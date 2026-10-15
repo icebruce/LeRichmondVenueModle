@@ -1,26 +1,32 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Handover uploaded to GitHub; awaiting Claude Code's proposed plan and owner approval.
+**Current stage:** Phase 0 — planning. References reviewed; plan under owner review. No app code yet.
+**Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** layout + décor usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Milestones
-- [ ] Phase 0 — Review research, venue landmark map, evidence-based scale assumptions and implementation plan.
-- [ ] Phase 1 — Accurate-looking navigable venue shell and lighting with photo comparisons.
-- [ ] Phase 2 — Practical seating/crowd/layout/scenario configurator.
-- [ ] Phase 3 — Easy screenshot/link-based asset intake, refinement, testing and polish.
+- [ ] Step 0 — Docs/`.claude`/tooling restructure; lo-fi mockup (venue map + 7 screens + layout export) approved by owner.
+- [ ] Step 1 — Recognizable evening venue, three cameras, tables/chairs/dance floor/DJ 1–3, seat counter, 75-guest scenario, deployed.
+- [ ] Step 2 — Shared login, scenarios + notes, people, linen/candle/floral presets, layout export.
+- [ ] Step 3 — Image upload → décor item, "Sit here" view, polish, performance.
 
-## Decisions already made
-- Include main restaurant floor only; exclude mezzanine, bistro and terrace.
-- Infer scale using reference photos and cross-view landmarks; never assume exact measurements.
-- AI does all development, testing and 3D implementation after owner approval.
-- Build a polished, minimal, game-like configurator, not a general CAD system.
+## Decisions
+- Main restaurant floor only. Mezzanine front edge allowed solely as a non-walkable DJ option 3 spot.
+- Dimensions are inferred, confidence-tagged and editable by Claude in data; no measurements will be supplied.
+- F01 venue plan is a sample: tables may seat up to 14. No seating chart (guest names) for now.
+- Used on desktop and phone by the owner and their partner; hosted on Vercel (free plan).
+- Repository stays public for now: reference images are not committed; observations live in `references/venue_evidence_matrix.md`.
+- Quality target: atmospheric and close to the venue, not photoreal.
+- The WeddingRunbookPlanner repo is a reference only; setup choices are made for this project on their merits.
 
-## Outstanding for Claude
-- Inspect accessible linked sources (videos/360 may be blocked).
-- Propose geometry, tech stack, first two sessions and uncertainty/confidence log.
-- Ask approval before large implementation.
+## Verified vs inferred
+See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, §5 corrections to the handover).
 
-## Media ingestion update (2026-10-15)
-- Added automated photo/video collector and rights-aware research guide.
-- Existing venue media URLs are **links only**; media has NOT been downloaded or committed.
-- Claude should try automatic retrieval from its connected development environment before asking for screenshots.
-- Google Maps interior 360 is a separate interactive source; acquisition/export unverified.
+## Open items
+- Owner: are tile and wood floors flush; what the "sample 3 rendering" visual reference is.
+- Venue: table sizes for 8–14 seats; whether the communal high table and bar stools stay.
+- Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
+
+## Media ingestion (2026-10-15)
+- 17 MAIN photos retrieved and reviewed in the cloud session (not committed). X05 link is broken.
+- Owner-supplied stills U01–U05, clips UV01–UV02 and plan F01 reviewed (not committed).
+- Collector scripts: `scripts/collect_venue_media.py`, `scripts/extract_video_frames.py`.
