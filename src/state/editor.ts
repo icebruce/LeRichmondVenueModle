@@ -14,6 +14,7 @@ enablePatches();
 export type CameraMode = "dollhouse" | "plan" | "walk";
 export type Refusal = { itemId: string; reason: string; at: number };
 export type Toast = { id: number; text: string; undo?: () => void };
+export type SaveState = "saved" | "saving" | "error";
 
 export type EditorState = {
   scenarios: Record<string, Scenario>;
@@ -24,6 +25,7 @@ export type EditorState = {
   snapping: boolean;
   refusal: Refusal | null;
   toast: Toast | null;
+  saveState: SaveState;
   /** Bumped on every scenario change; persistence listens to it. */
   version: number;
   canUndo: boolean;
@@ -54,6 +56,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     snapping: true,
     refusal: null,
     toast: null,
+    saveState: "saved",
     version: 0,
     canUndo: false,
     canRedo: false,
@@ -141,6 +144,14 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
 
     dismissToast() {
       set({ toast: null });
+    },
+
+    setSaveState(saveState: SaveState) {
+      set({ saveState });
+    },
+
+    notify(text: string) {
+      toast(text);
     },
 
     /** Add a library item near `preferred`; refuses with a message when nothing fits (LAY-01). */

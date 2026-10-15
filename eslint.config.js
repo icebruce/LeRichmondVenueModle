@@ -23,6 +23,11 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    // three.js objects are mutable by design (instanced matrices, materials); allow in-place updates.
+    files: ["src/scene/**"],
+    rules: { "react-hooks/immutability": "off" },
+  },
   layer(
     ["src/domain/**"],
     [
