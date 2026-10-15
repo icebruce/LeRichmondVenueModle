@@ -4,7 +4,11 @@
 
 **Goal:** Transfer usable visual evidence to Claude while keeping the reconstruction strictly on the **MAIN RESTAURANT FLOOR** of Le Richmond. Ignore the mezzanine, bistro, terrace, exterior and unrelated Richmond venues.
 
-## Preferred workflow — user has no modeling/coding tasks
+## First choice: automatic retrieval by Claude Code
+
+Before asking the user to record anything, follow `references/AUTO_MEDIA_COLLECTION.md` and try the collector at `scripts/collect_venue_media.py`. It handles photo URLs automatically and, when permitted and accessible, downloads wedding clips and builds contact sheets. Only use this manual fallback for blocked or inaccessible sources.
+
+## Fallback workflow — user has no modeling/coding tasks
 
 1. **Capture the videos** by asking Le Richmond or the video owner for downloadable copies, using an official download option where available, or making a permitted screen recording of videos they can view in their own browser. Do not bypass logins, paywalls, DRM or site restrictions.
 2. **For Google Maps 360°**, create a slow screen recording while rotating around each *main restaurant* indoor viewpoint. Pause briefly at major landmarks (central bar, window wall, raised main-floor dining area, stairs/railings, entrance). If video recording fails, take 4–8 overlapping screenshots from each viewpoint; keep the camera position and zoom stable within each set.
