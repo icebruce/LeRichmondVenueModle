@@ -1,0 +1,96 @@
+{
+  "family": "table",
+  "items": [
+    {
+      "id": "table-rect",
+      "name": "Rectangular table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": { "w": 3.0, "d": 0.9, "h": 0.75 },
+      "sizePresets": [
+        { "label": "8 guests", "options": { "seats": 8, "ends": false } },
+        { "label": "10 guests", "options": { "seats": 10, "ends": false } },
+        { "label": "12 guests", "options": { "seats": 12, "ends": false } },
+        { "label": "14 guests", "options": { "seats": 14, "ends": false } }
+      ],
+      "model": { "kind": "parametric", "generator": "table" },
+      "options": [
+        { "type": "number", "key": "seats", "label": "Seats", "min": 4, "max": 14, "step": 1, "default": 8 },
+        { "type": "boolean", "key": "ends", "label": "Chairs at the ends", "default": false }
+      ],
+      "seats": true,
+      "thumbnail": "thumbs/table-rect.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
+      "budget": { "triangles": 30000, "drawCalls": 8 }
+    },
+    {
+      "id": "table-round",
+      "name": "Round table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": { "w": 1.5, "d": 1.5, "h": 0.75 },
+      "sizePresets": [
+        { "label": "4 guests · 0.9 m", "options": { "seats": 4 } },
+        { "label": "6 guests · 1.2 m", "options": { "seats": 6 } },
+        { "label": "8 guests · 1.5 m", "options": { "seats": 8 } },
+        { "label": "10 guests · 1.8 m", "options": { "seats": 10 } }
+      ],
+      "model": { "kind": "parametric", "generator": "table" },
+      "options": [{ "type": "number", "key": "seats", "label": "Seats", "min": 4, "max": 10, "step": 2, "default": 8 }],
+      "seats": true,
+      "thumbnail": "thumbs/table-round.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
+      "budget": { "triangles": 25000, "drawCalls": 8 }
+    },
+    {
+      "id": "table-farm",
+      "name": "Wood farm table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": { "w": 3.8, "d": 1.0, "h": 0.76 },
+      "sizePresets": [
+        { "label": "8 guests", "options": { "seats": 8, "ends": false } },
+        { "label": "10 guests", "options": { "seats": 10, "ends": false } },
+        { "label": "12 guests", "options": { "seats": 12, "ends": false } },
+        { "label": "14 guests", "options": { "seats": 14, "ends": false } }
+      ],
+      "model": { "kind": "parametric", "generator": "table" },
+      "options": [
+        { "type": "number", "key": "seats", "label": "Seats", "min": 6, "max": 14, "step": 1, "default": 10 },
+        { "type": "boolean", "key": "ends", "label": "Chairs at the ends", "default": false }
+      ],
+      "seats": true,
+      "thumbnail": "thumbs/table-farm.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
+      "budget": { "triangles": 30000, "drawCalls": 8 }
+    },
+    {
+      "id": "table-sweetheart",
+      "name": "Sweetheart table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": { "w": 1.6, "d": 0.75, "h": 0.75 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "table" },
+      "options": [],
+      "seats": true,
+      "thumbnail": "thumbs/table-sweetheart.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
+      "budget": { "triangles": 8000, "drawCalls": 6 }
+    },
+    {
+      "id": "table-cocktail",
+      "name": "Cocktail high-top",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": { "w": 0.75, "d": 0.75, "h": 1.1 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "table" },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/table-cocktail.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
+      "budget": { "triangles": 4000, "drawCalls": 4 }
+    }
+  ]
+}

@@ -33,7 +33,9 @@ data/
   catalog.json         Built-in furniture/décor definitions
 src/
   domain/   Pure TypeScript: geometry, levels, footprints, seating, counts,
-            advisories, commands, scenario schema + migrations. No React, three or I/O.
+            advisories, command functions, scenario schema + migrations. No React, three or I/O.
+  state/    Framework-free stores (zustand/vanilla + immer): editor state, command
+            dispatch, undo/redo. Shared by scene, ui and data.
   scene/    R3F components that render venue + scenario state. Reads domain types.
   ui/       React panels, inspector, rail, sheets, tokens.css.
   data/     API client, sync, IndexedDB drafts, image processing.
@@ -48,9 +50,10 @@ docs/  references/  scripts/  .claude/
 | Layer | May import |
 |---|---|
 | `domain` | nothing outside `domain` (and zod) |
-| `scene` | `domain`, three/R3F |
-| `ui` | `domain`, `scene` (components only), React |
-| `data` | `domain` |
+| `state` | `domain`, zustand/vanilla, immer |
+| `scene` | `domain`, `state`, three/R3F |
+| `ui` | `domain`, `state`, `scene` (components only), React |
+| `data` | `domain`, `state` |
 | `app` | everything |
 | `api` | `src/domain` schemas only |
 

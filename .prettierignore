@@ -1,0 +1,6 @@
+dist
+node_modules
+docs/handover
+public/assets
+package-lock.json
+references

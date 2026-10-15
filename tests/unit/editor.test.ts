@@ -1,0 +1,97 @@
+import { describe, expect, test } from "vitest";
+import { catalog, venue } from "./fixtures";
+import { createEditor } from "../../src/state/editor";
+import { venueSampleScenario } from "../../src/domain/scenario/scenario";
+import type { Item } from "../../src/domain/layout/items";
+
+function setup() {
+  let n = 0;
+  const editor = createEditor(
+    { venue, catalog, now: () => "2026-10-15T00:00:00.000Z", newId: () => `id${++n}` },
+    [venueSampleScenario("A", "2026-10-15T00:00:00.000Z")],
+  );
+  const item = (id: string) => editor.active().items.find((i) => i.id === id) as Item;
+  return { editor, item };
+}
+
+describe("editing", () => {
+  test("[LAY-02] move, rotate, duplicate and delete a table", () => {
+    const { editor, item } = setup();
+    expect(editor.moveItems([{ id: "t1", x: 2.8, z: 2.6 }])).toBe(true);
+    expect(item("t1").z).toBeCloseTo(2.6);
+    editor.select(["t5"]);
+    expect(editor.rotateItems(["t5"], Math.PI / 2)).toBe(false); // too long to turn between its neighbours
+    editor.select(["t1"]);
+    const before = editor.active().items.length;
+    editor.deleteSelection();
+    expect(editor.active().items.length).toBe(before - 1);
+    expect(editor.store.getState().toast?.undo).toBeTypeOf("function");
+  });
+
+  test("[LAY-04] a refused move leaves the layout unchanged and explains why", () => {
+    const { editor, item } = setup();
+    expect(editor.moveItems([{ id: "t1", x: 7.7, z: 6 }])).toBe(false);
+    expect(item("t1").x).toBeCloseTo(2.8);
+    expect(editor.store.getState().refusal?.reason).toBe("Overlaps the bar");
+  });
+
+  test("[LAY-05] moves snap to a 10 cm grid unless snapping is off", () => {
+    const { editor, item } = setup();
+    editor.moveItems([{ id: "t1", x: 2.84, z: 2.63 }]);
+    expect(item("t1").x).toBeCloseTo(2.8);
+    expect(item("t1").z).toBeCloseTo(2.6);
+    editor.setSnapping(false);
+    editor.moveItems([{ id: "t1", x: 2.84, z: 2.63 }]);
+    expect(item("t1").x).toBeCloseTo(2.84);
+  });
+
+  test("[LAY-06] undo and redo every change, at least 50 steps deep", () => {
+    const { editor, item } = setup();
+    for (let i = 0; i < 60; i++) editor.moveItems([{ id: "t1", x: 2.8, z: i % 2 ? 2.3 : 2.4 }]);
+    for (let i = 0; i < 60; i++) editor.undo();
+    expect(item("t1").z).toBeCloseTo(2.3);
+    expect(editor.store.getState().canUndo).toBe(false);
+    editor.redo();
+    expect(item("t1").z).toBeCloseTo(2.4);
+  });
+
+  test("[LAY-03] changing seats re-arranges chairs; refused if the bigger table no longer fits", () => {
+    const { editor, item } = setup();
+    expect(editor.setOption("t1", "seats", 10)).toBe(true);
+    expect(item("t1").options.seats).toBe(10);
+    expect(editor.setOption("t2", "seats", 14)).toBe(true);
+    expect(editor.setOption("t5", "seats", 14)).toBe(false); // 5.3 m would cross the east wall
+  });
+
+  test("[LAY-11] choosing DJ option 3 moves the booth to the mezzanine spot", () => {
+    const { editor, item } = setup();
+    expect(editor.setOption("dj", "spot", "dj3")).toBe(true);
+    expect(item("dj")).toMatchObject({ x: 13.7, z: 15 });
+  });
+});
+
+describe("scenarios", () => {
+  test("[SCN-01] create, duplicate, rename and delete scenarios; delete can be undone", () => {
+    const { editor } = setup();
+    const b = editor.duplicateScenario("A");
+    editor.renameScenario(b, "Option B");
+    expect(editor.active().name).toBe("Option B");
+    expect(editor.active().items.length).toBe(10);
+    const c = editor.createScenario("blank");
+    expect(editor.store.getState().order).toEqual(["A", b, c]);
+    editor.deleteScenario(b);
+    expect(editor.store.getState().order).toEqual(["A", c]);
+    editor.store.getState().toast?.undo?.();
+    expect(editor.store.getState().order).toEqual(["A", b, c]);
+  });
+
+  test("[SCN-01] undo history is kept per scenario", () => {
+    const { editor } = setup();
+    editor.moveItems([{ id: "t1", x: 2.8, z: 2.4 }]);
+    const b = editor.duplicateScenario("A");
+    expect(editor.store.getState().canUndo).toBe(false);
+    editor.switchScenario("A");
+    expect(editor.store.getState().canUndo).toBe(true);
+    expect(b).toBeTruthy();
+  });
+});
