@@ -15,8 +15,8 @@ Plan north = the back-bar wall (top of F01). West = glazed garage doors to the t
    [horseman painting +    [BACK BAR: lit shelving,    [pop-art painting +
     tufted banquettes]      steel canopy]               tufted banquettes]
  W ┌──────────────────────────────────────────────────────────────┐ E
- E │ dark tile floor          ┌──── BAR (U, open to north) ────┐   dark wood  │ tall street
- S │ (light wood joint        │ marble top, black base          │   floor      │ windows,
+ E │ dark tile floor          ┌──── BAR (U, open to north) ────┐   dark wood, │ tall street
+ S │ (light wood joint        │ marble top, black base          │   RAISED     │ windows,
  T │  strips)                 │ stools W/S, chairs E            │              │ velvet
    │ communal high table      └─────────────────────────────────┘╲ stair to   │ curtains,
  g │                                                              ╲ mezzanine │ brick piers,
@@ -43,7 +43,8 @@ Plan north = the back-bar wall (top of F01). West = glazed garage doors to the t
 | North wall: buff brick over red-brick dado; tufted nail-head banquettes; horseman painting (west of back bar), pop-art portrait (east of back bar) | O: R01 R03 R06 R07 U03 U05 UV01 · C: F01 white rectangles = paintings | M | Artwork moves between years (R08, R15 differ); treat paintings as swappable. |
 | East wall: double-height street windows, velvet curtains, brick piers with red-brick bands | O: R05 R09 R10 R13 R15 UV01 UV02 | M | Window height est. 5–6 m (L). |
 | Wine wall: tall red-framed glass case under steel canopy beside brick pier | O: UV02 R15 | M presence / L position | Near east windows. |
-| Floors: large dark tiles with light wood joint strips (west/centre); dark hardwood planks (east) | O: R01 R02 R03 R04 U01 | H materials / M boundary | The "recovered brick floor" in a design write-up is not visible in any interior image; ignore. |
+| Floors: large dark tiles with light wood joint strips (west/centre); dark hardwood planks (east) | O: R01 R02 R03 R04 U01 · C | H materials / M boundary | The "recovered brick floor" in a design write-up is not visible in any interior image; ignore. |
+| Raised floor strip along the east street windows, right of the bar ("raised a bit") | C · O: U01 U05 (chairs, not stools, at the bar's east side) | H presence / L extent, height, step positions | Est. +0.15–0.45 m. Separate from the mezzanine stair. |
 | Mezzanine: iron balustrade, dark green soffit/fascia, over kitchen pass; NOT modelled as a floor | O: R09 UV02 UV01 | M | Front edge used only as the DJ option 3 spot (C). |
 | Stair to mezzanine: LED-lit treads, wrought-iron scroll balustrade, timber handrail | O: R01 R09 U01 U02 UV02 · C | M position | R01/R02/U01/U03 shot from its top. Likely the diagonal piece in F01 near the bar's SE corner. |
 | Entrance: SE corner, beside street windows, under mezzanine | C | M | EXIT sign visible there (UV02). |
@@ -95,7 +96,7 @@ Sense checks only: published indoor capacity ~150–170 seated; 3,200 ft² (~297
 ## 5. Corrections to the original handover
 
 - Ceiling is much higher than the 3.6–5.4 m placeholder.
-- No raised dining zone: the platform with steps is the mezzanine stair (C). Whether the tile and wood floors are exactly flush is still open.
+- The platform with steps seen in U02 is the mezzanine stair (C). Separately, the floor along the east street windows, right of the bar, is raised a bit (C).
 - Kitchen pass is under the mezzanine; the dance floor zone is not (C).
 - Wine wall exists near the street windows.
 - Paintings rotate; they are décor, not fixed architecture.
@@ -103,7 +104,7 @@ Sense checks only: published indoor capacity ~150–170 seated; 3,200 ft² (~297
 
 ## 6. Open items
 
-1. Are the tile and wood floors flush (no step anywhere on the main floor)?
+1. Raised east strip: extent, height and where its steps are.
 2. Exact stair footprint and how far its base projects into the room.
 3. West wall south of the garage doors (green wall extent, EXIT location).
 4. Venue table sizes (lengths for 8–14 seats) and whether the communal high table and bar stools stay for the wedding.
