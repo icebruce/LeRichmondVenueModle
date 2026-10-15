@@ -15,6 +15,9 @@ Only **Le Richmond restaurant's MAIN RESTAURANT FLOOR** in Montreal. NO mezzanin
 
 The complete first-reply instructions are in `00_START_HERE_PASTE_IN_CLAUDE.md` (read them verbatim as project requirements).
 
+## Automatically gather venue visuals first — user should NOT screenshot
+Before asking for video captures, read `references/AUTO_MEDIA_COLLECTION.md` and try `python scripts/collect_venue_media.py --photos-only`. Retrieve reference photos in your coding environment, review the resulting report, and classify photos by room. For publicly linked wedding videos V01/V02, when the user confirms permission and terms allow, try the video collector, extract frames and inspect them. Do not bypass authentication/DRM/rate limits. The interactive Google Maps 360 tour is NOT an ordinary video file, so cannot be downloaded with a video tool; ask the venue for an authorized panorama export if needed. Prioritize fully autonomous collection and infer room dimensions from photos when moving footage is blocked.
+
 ## Blocked media: offline evidence is mandatory fallback
 If Instagram, YouTube, or Google Maps URLs cannot be inspected, do not keep retrying inaccessible platforms or hallucinate video content. Read `references/VIDEO_360_OFFLINE_WORKFLOW.md`. Explain to the user how to provide screen recordings or screenshots from the main restaurant floor. In **Local** Claude Code, process `references/private_media/raw/` yourself using `python scripts/extract_video_frames.py`, classify the extracted frames and build the evidence matrix. In **Remote** Claude Code, you cannot see local files: ask for uploaded stills or use only media explicitly placed into a suitably private, accessible repo. The user is not expected to write code, run ffmpeg, or crop screenshots. If the user has no video assets, proceed using source photos with documented uncertainty.
 
