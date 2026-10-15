@@ -15,6 +15,9 @@ Only **Le Richmond restaurant's MAIN RESTAURANT FLOOR** in Montreal. NO mezzanin
 
 The complete first-reply instructions are in `00_START_HERE_PASTE_IN_CLAUDE.md` (read them verbatim as project requirements).
 
+## Blocked media: offline evidence is mandatory fallback
+If Instagram, YouTube, or Google Maps URLs cannot be inspected, do not keep retrying inaccessible platforms or hallucinate video content. Read `references/VIDEO_360_OFFLINE_WORKFLOW.md`. Explain to the user how to provide screen recordings or screenshots from the main restaurant floor. In **Local** Claude Code, process `references/private_media/raw/` yourself using `python scripts/extract_video_frames.py`, classify the extracted frames and build the evidence matrix. In **Remote** Claude Code, you cannot see local files: ask for uploaded stills or use only media explicitly placed into a suitably private, accessible repo. The user is not expected to write code, run ffmpeg, or crop screenshots. If the user has no video assets, proceed using source photos with documented uncertainty.
+
 ## After approval — implementation rules
 - Own implementation end-to-end: research, procedural scene generation, licensed assets, React/TypeScript/React Three Fiber/Three.js UI, local dev server, E2E visual testing, bug fixing, screenshots, iterations, commits and pushes.
 - Prioritize **recognizable existing room geometry** over generic beautiful renders. Compare multiple render camera angles to primary sources R01/R02/R03/R04/R08/R09/R10 and tour V03.
