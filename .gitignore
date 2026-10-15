@@ -13,3 +13,4 @@ references/PRIVATE_LOCAL_PHOTO_CACHE/
 
 # Rights-sensitive local venue video and image evidence — not pushed to public GitHub
 references/private_media/
+.vercel/
