@@ -11,6 +11,12 @@
 
 Claude is expected to do the coding and modeling. You do not need to install Blender, write code, or provide a precise floor plan just to start.
 
+## If video links are blocked
+
+The video and Google Maps links in the source register are not the actual media. See [Offline video + 360 workflow](references/VIDEO_360_OFFLINE_WORKFLOW.md) for the simple plan: user obtains or screen-records the video/360 tour where permitted, and **Claude** extracts screenshots, filters out terrace/mezzanine, organizes evidence, and uses the images to reconstruct the main room. The helper [extract_video_frames.py](scripts/extract_video_frames.py) prepares time-indexed contact sheets and manifests for Claude.
+
+**Local vs Remote:** Private videos dropped into `references/private_media/raw/` work in a **local** Claude Code checkout; they do not magically appear in a Remote session. For Remote, supply a curated, authorized set of screenshots to the remote environment or a private repo. This is a public repo at the time of setup: do not push copyrighted videos/screenshots or private guest images here.
+
 ## Essential files
 - [CLAUDE.md](CLAUDE.md) — root-level instructions automatically available to Claude Code in project context.
 - [00_START_HERE_PASTE_IN_CLAUDE.md](00_START_HERE_PASTE_IN_CLAUDE.md) — original detailed kickoff brief.
