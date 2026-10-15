@@ -15,7 +15,7 @@ Useful window: now until about 2026-11-10. Anything that does not help a decisio
 
 ## 2. Scope
 
-**In:** Le Richmond's main restaurant floor, including the raised floor strip along the east street windows; the mezzanine stair and mezzanine front edge as visible, non-walkable architecture; the terrace seen through the glass as a dark backdrop.
+**In:** Le Richmond's main restaurant floor, including the raised floor east of the bar; the mezzanine stair and mezzanine front edge as visible, non-walkable architecture; the terrace seen through the glass as a dark backdrop.
 
 **Out:** the mezzanine as a usable floor (one exception: a fixed DJ spot on its front edge, `LAY-11`), the terrace, the bistro, the kitchen interior, guest seating chart (names to seats), RSVP, budgets, vendor management.
 
@@ -46,10 +46,10 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
-| VEN-01 | M | 1 | The fixed room is modelled from `data/venue_geometry.json`: walls, glazed garage doors, street windows, brick, timber ceiling and steel beams, U-shaped bar and back bar, floors (tile / wood), raised east strip, mezzanine edge and stair, kitchen pass, entrance, chandeliers, paintings, banquettes, wine wall. | From the default dollhouse view and from the R01, R03, R09 viewpoints, the owner identifies the room as Le Richmond. |
+| VEN-01 | M | 1 | The fixed room is modelled from `data/venue_geometry.json`: walls, glazed garage doors, street windows, brick, timber ceiling and steel beams, U-shaped bar and back bar, floors (tile / wood), raised floor east of the bar with its step edge and railing, mezzanine edge, stair from the entrance landing, south wall with kitchen pass opening, entrance corridor opening, chandeliers, paintings, banquettes, wine wall. | From the default dollhouse view and from the R01, R03, R09 viewpoints, the owner identifies the room as Le Richmond. |
 | VEN-02 | M | 1 | Fixed architecture cannot be selected, moved or deleted in normal use. | Clicking a wall, the bar or the stair never selects it. |
 | VEN-03 | M | 1 | No walkable or editable mezzanine, terrace or bistro. | Walk mode cannot leave the main floor; nothing can be placed outside it except at `LAY-11`. |
-| VEN-04 | M | 1 | The raised east strip is a separate level with a visible step edge. Items placed on it sit at its height. | A table dragged onto the strip rises to the strip level; one straddling the edge is refused. |
+| VEN-04 | M | 1 | The raised floor east of the bar is a separate level with a visible step edge and railing. Items placed on it sit at its height. | A table dragged onto the strip rises to the strip level; one straddling the edge is refused. |
 | VEN-05 | S | 2 | Paintings are swappable décor (current artwork by default). | Owner can hide or swap each painting. |
 
 ### 5.2 Cameras — CAM
@@ -82,10 +82,10 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | LAY-06 | M | 1 | Undo / redo for every change (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, toolbar buttons). | 50 steps deep at minimum. |
 | LAY-07 | M | 1 | Live counts: tables, seats, guests, guests without a seat, dance floor area. | Counts update on every change. |
 | LAY-08 | M | 2 | Advisory checks with editable thresholds: aisle width between chair backs (default 1.0 m), clearance at entrance, stair, kitchen pass and glazed doors (default 1.2 m), dance floor size vs guest count (default 0.45 m² per dancer, 35% dancing). Wording always says "advisory". | Narrowing an aisle below the threshold highlights it and names the issue. |
-| LAY-09 | M | 1 | The venue sample plan (F01) is available as a starting scenario. | Loads 3×8, 1×10, 3×8, sweetheart, dance floor, DJ option 1. |
+| LAY-09 | M | 1 | The venue sample plan (F01) is available as a starting scenario. | Loads 3×8, 1×10, 3×8, sweetheart table against the south (kitchen) wall, dance floor, DJ option 1; communal high table and bar stools hidden. |
 | LAY-10 | M | 1 | Tables are numbered automatically; numbers can be edited. | Numbers show in top-down view and in the export. |
 | LAY-11 | M | 1 | DJ can be placed at three named spots, including the mezzanine front edge (option 3), or freely on the floor. | DJ option 3 sits on the mezzanine edge and is not walkable. |
-| LAY-12 | S | 2 | Existing venue furniture (communal high table, bar stools) can be shown or hidden per scenario. | Hidden items free their floor area for the checks. |
+| LAY-12 | S | 2 | Existing venue furniture (communal high table, bar stools) can be shown or hidden per scenario; hidden by default (owner: removed for the wedding). | Hidden items free their floor area for the checks. |
 
 ### 5.5 People — PPL
 

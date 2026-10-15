@@ -1,13 +1,13 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 0 — docs, `.claude` setup and lo-fi mockup done; **waiting for owner approval of the mockup and venue map.** No app code yet.
+**Current stage:** Step 0 approved (mockup + venue map v2, 2026-10-15). Next: step 1. No app code yet.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
 
 | Step | Delivers | Requirements | Gate | State |
 |---|---|---|---|---|
-| 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | In review |
+| 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | Done |
 | 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03 | Owner recognizes the room; layout usable | Not started |
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02 | Both partners use it on laptop and phone | Not started |
 | 3 | Inspiration import; Sit here view; polish; performance | IMP-01..07, CAM-04 | Owner imports a real centrepiece | Not started |
@@ -23,6 +23,7 @@
 - Live browser lighting only for now; pre-computed lighting only if the step 1 render falls short (ADR-2).
 - Docs structure and tooling chosen on their merits; WeddingRunbookPlanner was a reference only.
 - Pull request per step with Vercel preview for owner review.
+- Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Verified vs inferred
 
@@ -30,8 +31,8 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 ## Open items
 
-- Raised east strip: extent, height and step positions (evidence matrix §6).
-- Venue: table sizes for 8–14 seats; whether the communal high table and bar stools stay.
+- Raised floor height and step positions; stair run and turn (evidence matrix §6).
+- Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.
 

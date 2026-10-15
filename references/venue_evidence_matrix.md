@@ -8,7 +8,7 @@ Legend: **O** observed in images · **C** confirmed by owner · **I** inferred �
 
 ## 1. Orientation convention
 
-Plan north = the back-bar wall (top of F01). West = glazed garage doors to the terrace. East = tall street windows. South = mezzanine above the kitchen pass.
+Plan north = the back-bar wall (top of F01). West = glazed garage doors to the terrace. East = tall street windows. South = wall with the kitchen behind it; the mezzanine sits above the kitchen and the entrance corridor.
 
 ```
                          NORTH: brick wall
@@ -18,15 +18,17 @@ Plan north = the back-bar wall (top of F01). West = glazed garage doors to the t
  E │ dark tile floor          ┌──── BAR (U, open to north) ────┐   dark wood, │ tall street
  S │ (light wood joint        │ marble top, black base          │   RAISED     │ windows,
  T │  strips)                 │ stools W/S, chairs E            │              │ velvet
-   │ communal high table      └─────────────────────────────────┘╲ stair to   │ curtains,
- g │                                                              ╲ mezzanine │ brick piers,
+   │ (communal table: removed)└─────────────────────────────────┘╲ step edge  │ curtains,
+ g │                                                              ╲ + railing │ brick piers,
  l │                    DANCE FLOOR ZONE (full-height ceiling)       ╲          │ wine wall
  a │                                                                          │
- z │ - - - - - - - - - - - mezzanine edge above (DJ option 3) - - - - - - - - │
- e │   EXIT            KITCHEN PASS ("CUISINE") under mezzanine     ENTRANCE  │
+ z │ [sweetheart table]                                   landing ═stair═► │
+ e │ EXIT ────────────── KITCHEN PASS (opening) ─────────────┐ corridor ──┤ ENTRANCE
    └──────────────────────────────────────────────────────────────┘
-                         SOUTH: under the mezzanine
+                SOUTH: kitchen behind the wall; mezzanine above kitchen + corridor
 ```
+
+The drawn map in `docs/mockups/lofi.html` (Venue map tab) is the authoritative picture of this layout.
 
 ## 2. Fixed features
 
@@ -44,12 +46,12 @@ Plan north = the back-bar wall (top of F01). West = glazed garage doors to the t
 | East wall: double-height street windows, velvet curtains, brick piers with red-brick bands | O: R05 R09 R10 R13 R15 UV01 UV02 | M | Window height est. 5–6 m (L). |
 | Wine wall: tall red-framed glass case under steel canopy beside brick pier | O: UV02 R15 | M presence / L position | Near east windows. |
 | Floors: large dark tiles with light wood joint strips (west/centre); dark hardwood planks (east) | O: R01 R02 R03 R04 U01 · C | H materials / M boundary | The "recovered brick floor" in a design write-up is not visible in any interior image; ignore. |
-| Raised floor strip along the east street windows, right of the bar ("raised a bit") | C · O: U01 U05 (chairs, not stools, at the bar's east side) | H presence / L extent, height, step positions | Est. +0.15–0.45 m. Separate from the mezzanine stair. |
-| Mezzanine: iron balustrade, dark green soffit/fascia, over kitchen pass; NOT modelled as a floor | O: R09 UV02 UV01 | M | Front edge used only as the DJ option 3 spot (C). |
-| Stair to mezzanine: LED-lit treads, wrought-iron scroll balustrade, timber handrail | O: R01 R09 U01 U02 UV02 · C | M position | R01/R02/U01/U03 shot from its top. Likely the diagonal piece in F01 near the bar's SE corner. |
-| Entrance: SE corner, beside street windows, under mezzanine | C | M | EXIT sign visible there (UV02). |
-| Kitchen pass ("CUISINE") under mezzanine, south wall | O: UV02 · F01 | M | |
-| Communal high table with stools (tile zone, west of bar) | O: R01 R02 U01 U05 | H | Removable for events? (?) |
+| Raised floor: everything right (east) of the bar to the street windows; edge (step + railing) runs diagonally from the bar's south-east corner, then straight across to the east wall (F01 diagonal + L) | C · O: U01 U05 (chairs, not stools, at the bar's east side) · F01 | H outline / L height | Est. +0.15–0.45 m. Separate from the mezzanine stair. |
+| Mezzanine: iron balustrade, dark green fascia, above the kitchen and the entrance corridor, i.e. behind the south wall line; NOT modelled as a floor | C · O: R09 UV02 UV01 | M | Front edge used only as the DJ option 3 spot (C). The dance floor and sweetheart table are not under it (C). |
+| Stair to mezzanine: starts at the landing where the entrance corridor enters the room (SE), climbs to the right (east) up to the wall, then to the mezzanine; LED-lit treads, wrought-iron scroll balustrade, timber handrail | C · O: R01 R09 U01 U02 UV02 | M start / L run and turn | R01/R02/U01/U03 shot from its top. Turn at the wall inferred from R09 landing. |
+| Entrance: street door on the east side, SE corner, into a corridor under the mezzanine that opens into the room at the stair landing | C | M | EXIT sign visible near it (UV02). Corridor itself is out of scope. |
+| South wall: kitchen behind it (out of scope); kitchen pass = opening in that wall. Sweetheart table goes against this wall. | C · O: UV02 · F01 | M | F01 "CUISINE" box is the kitchen beyond the wall. |
+| Communal high table with stools (tile zone, west of bar); bar stools | O: R01 R02 U01 U05 · C | H | Both removed for the wedding (C). Hidden by default in wedding scenarios. |
 
 ## 3. Image ledger
 
@@ -82,10 +84,10 @@ Plan north = the back-bar wall (top of F01). West = glazed garage doors to the t
 
 | Quantity | Range | Conf. | Basis |
 |---|---|---|---|
-| Room width W–E × depth N–S | 13–17 m × 17–23 m (handover placeholder) | L | To be refined by photo-matching; F01 is not to scale |
+| Main room width W–E × depth N–S | ≈ 16 × 14.3 m (range 14–18 × 12.5–16) | L | From F01 proportions if its 8-seat tables are ≈ 3.5 m; south wall at the F01 kitchen line. Kitchen + corridor beyond add ≈ 2 m. |
 | Main ceiling (timber deck) | 6.5–8 m | L | Ceiling well above mezzanine level in R01/UV02 |
 | Mezzanine floor height | 3.5–4.2 m | L | Headroom over kitchen pass in UV02 |
-| Mezzanine depth (from south wall) | 3–5 m | L | UV02; does not reach the dance floor (C) |
+| Mezzanine projection into the main room | ≈ 0–1 m | L | Sits above kitchen + corridor (C). |
 | Garage door (each) | 3.2–3.8 m W × 3.6–4.2 m H | M | ≈6 panes × 0.55–0.65 m |
 | Street windows | 2–2.5 m W × 5–6 m H | L | Curtain drops vs chairs |
 | Bar island | 4–5 m (W side) × 3–4 m | L–M | Stool count × ~0.6 m pitch |
@@ -97,15 +99,15 @@ Sense checks only: published indoor capacity ~150–170 seated; 3,200 ft² (~297
 
 - Ceiling is much higher than the 3.6–5.4 m placeholder.
 - The platform with steps seen in U02 is the mezzanine stair (C). Separately, the floor along the east street windows, right of the bar, is raised a bit (C).
-- Kitchen pass is under the mezzanine; the dance floor zone is not (C).
+- Kitchen is behind the south wall (kitchen pass = opening); the mezzanine is above the kitchen and entrance corridor; dance floor and sweetheart table are in the full-height room (C).
 - Wine wall exists near the street windows.
 - Paintings rotate; they are décor, not fixed architecture.
 - F01 seats 60; the plan is for ~75 guests with tables of up to 14 (C).
 
 ## 6. Open items
 
-1. Raised east strip: extent, height and where its steps are.
-2. Exact stair footprint and how far its base projects into the room.
+1. Raised floor height and exact step positions along its edge.
+2. Stair run length and where it turns at the east wall.
 3. West wall south of the garage doors (green wall extent, EXIT location).
-4. Venue table sizes (lengths for 8–14 seats) and whether the communal high table and bar stools stay for the wedding.
+4. Venue table sizes (lengths for 8–14 seats).
 5. Any measurement (room length, width, bar length) would replace §4 ranges.
