@@ -18,3 +18,9 @@
 - Inspect accessible linked sources (videos/360 may be blocked).
 - Propose geometry, tech stack, first two sessions and uncertainty/confidence log.
 - Ask approval before large implementation.
+
+## Media ingestion update (2026-10-15)
+- Added automated photo/video collector and rights-aware research guide.
+- Existing venue media URLs are **links only**; media has NOT been downloaded or committed.
+- Claude should try automatic retrieval from its connected development environment before asking for screenshots.
+- Google Maps interior 360 is a separate interactive source; acquisition/export unverified.
