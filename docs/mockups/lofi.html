@@ -1,0 +1,446 @@
+<title>Richmond Studio Wireframes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one review page; screen tabs on top, each screen = annotated wireframe frame(s) + review notes. Tokens follow docs/DESIGN_GUIDE.md §2. */
+:root{
+  --bg:#F7F7F4; --surface:#FFFFFF; --sunk:#EEEDE8; --ink:#202522; --ink-2:#5C605B; --ink-3:#7E817B;
+  --line:#E2E1DA; --line-2:#CFCEC6; --accent:#98775B; --accent-soft:#EFE6DC; --accent-ink:#FFFFFF;
+  --advisory:#B7791F; --advisory-soft:#FBF1DF; --blocked:#C2412D; --glass:#7FA3B8; --tile:#E4E3DD; --wood:#D9C9B5;
+  --wire:#B9B8B0; --table:#FFFFFF; --chair:#8D8F89; --note:#FFF9EC;
+  --eve-bg:#1E2120; --eve-floor:#2C2F2D; --eve-wood:#3A332B; --eve-table:#EFE7D6; --eve-line:#4A4E4B; --candle:#F4B860;
+  --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  --font-display:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --r-1:8px; --r-2:12px; --r-3:16px; --shadow:0 8px 24px rgba(32,37,34,.12);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141615; --surface:#1D201F; --sunk:#252826; --ink:#ECEBE6; --ink-2:#B4B6B0; --ink-3:#8C8F89;
+  --line:#2F3331; --line-2:#3E4240; --accent:#C9A27F; --accent-soft:#3A3027; --accent-ink:#1A1A1A;
+  --advisory:#E0A84A; --advisory-soft:#3A2E1A; --glass:#7FA3B8; --tile:#2E312F; --wood:#4A3F33;
+  --wire:#55595A; --table:#2A2D2B; --chair:#9A9C96; --note:#2A2620; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141615; --surface:#1D201F; --sunk:#252826; --ink:#ECEBE6; --ink-2:#B4B6B0; --ink-3:#8C8F89;
+  --line:#2F3331; --line-2:#3E4240; --accent:#C9A27F; --accent-soft:#3A3027; --accent-ink:#1A1A1A;
+  --advisory:#E0A84A; --advisory-soft:#3A2E1A; --glass:#7FA3B8; --tile:#2E312F; --wood:#4A3F33;
+  --wire:#55595A; --table:#2A2D2B; --chair:#9A9C96; --note:#2A2620; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--font-ui);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font:600 26px/1.2 var(--font-display);letter-spacing:-.2px}
+h2{font:600 19px/1.3 var(--font-ui)}
+h3{font:600 15px/1.3 var(--font-ui)}
+p{margin:0}
+.muted{color:var(--ink-2)} .small{font-size:13px} .tiny{font-size:12px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.head .meta{display:flex;flex-direction:column;gap:6px;max-width:62ch}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--ink-2);background:var(--surface)}
+.pill.warn{border-color:var(--advisory);color:var(--advisory);background:var(--advisory-soft)}
+.review{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.review .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.tabs{display:flex;gap:4px;overflow-x:auto;background:var(--sunk);border-radius:var(--r-2);padding:4px;scrollbar-width:thin}
+.tabs button{flex:0 0 auto;border:0;background:transparent;color:var(--ink-2);font:500 14px var(--font-ui);padding:9px 14px;border-radius:9px;cursor:pointer;min-height:40px}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabs button:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.screen{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.screen.full{grid-template-columns:minmax(0,1fr)}
+@media (max-width:980px){.screen{grid-template-columns:minmax(0,1fr)}}
+.notes{background:var(--note);border:1px solid var(--line);border-radius:var(--r-2);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.notes ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.notes li{font-size:14px}
+.notes .q{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.conf{display:inline-block;font:600 11px/1 var(--font-ui);padding:3px 6px;border-radius:5px;border:1px solid currentColor;vertical-align:1px}
+.conf.H{color:#3F7D58}.conf.M{color:var(--accent)}.conf.L{color:var(--advisory)}.conf.C{color:var(--glass)}
+/* frames */
+.frame{background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-3);overflow:hidden;min-width:0;box-shadow:var(--shadow)}
+.frame-label{font-size:12px;color:var(--ink-3);padding:8px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+.desk{display:grid;grid-template-columns:64px minmax(0,1fr);min-height:560px}
+.desk.with-insp{grid-template-columns:64px minmax(0,1fr) 248px}
+@media (max-width:760px){.desk,.desk.with-insp{grid-template-columns:52px minmax(0,1fr)} .desk .insp{display:none}}
+.rail{border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0}
+.rail button{width:52px;min-height:52px;border:0;border-radius:10px;background:transparent;color:var(--ink-3);font:500 10px var(--font-ui);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
+.rail button .ic{width:20px;height:20px;border:1.75px solid currentColor;border-radius:6px}
+.rail button.on{background:var(--accent-soft);color:var(--accent)}
+.vp{position:relative;background:var(--sunk);min-height:520px;overflow:hidden}
+.vp.evening{background:var(--eve-bg)}
+.vp .float{position:absolute;display:flex;gap:6px;align-items:center;background:color-mix(in srgb,var(--surface) 78%,transparent);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:12px;padding:5px;font-size:13px}
+.vp .tl{top:10px;left:10px;padding:6px 10px;flex-direction:column;align-items:flex-start;gap:0}
+.vp .tc{top:10px;left:50%;transform:translateX(-50%)}
+.vp .tr{top:10px;right:10px}
+.vp .bl{bottom:10px;left:10px;flex-wrap:wrap;max-width:calc(100% - 20px);padding:6px 10px;gap:4px 14px}
+.seg{display:flex;background:var(--sunk);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--ink-2);font:500 12px var(--font-ui);padding:6px 10px;border-radius:7px;cursor:pointer;min-height:30px}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.icon-btn{border:0;background:transparent;color:var(--ink-2);min-width:32px;min-height:30px;border-radius:7px;cursor:pointer;font:500 12px var(--font-ui)}
+.count{display:flex;flex-direction:column;line-height:1.1}
+.count b{font:500 18px/1.1 var(--font-ui);font-variant-numeric:tabular-nums}
+.count span{font-size:11px;color:var(--ink-3)}
+.count.warn b{color:var(--advisory)}
+.stage{position:absolute;inset:54px 10px 64px;display:flex;align-items:center;justify-content:center;perspective:none}
+.stage svg{width:100%;height:100%;max-width:640px;transition:transform .36s cubic-bezier(.2,.8,.2,1)}
+.stage.iso svg{transform:rotateX(52deg) rotateZ(45deg) scale(.9)}
+.walk{position:absolute;inset:54px 10px 64px;display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--wire);border-radius:12px;color:var(--ink-3);text-align:center;padding:16px;font-size:14px}
+.vp.evening .walk{color:#A9ABA5;border-color:#4A4E4B}
+.insp{border-left:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.insp .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);cursor:pointer;font-size:16px}
+.stepper b{font:500 22px var(--font-ui);font-variant-numeric:tabular-nums;min-width:2ch;text-align:center}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:1px solid var(--line-2);cursor:pointer;padding:0}
+.sw.on{outline:2px solid var(--accent);outline-offset:3px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line-2);border-radius:8px;padding:6px 10px;font-size:13px;background:var(--surface);color:var(--ink);cursor:pointer;min-height:32px}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:9px;padding:8px 12px;font:500 13px var(--font-ui);cursor:pointer;min-height:36px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.plain{border-color:transparent;background:transparent;color:var(--ink-2)}
+.empty-insp{color:var(--ink-3);font-size:13px;border:1.5px dashed var(--line-2);border-radius:10px;padding:14px;text-align:center}
+.adv{background:var(--advisory-soft);border:1px solid var(--advisory);color:var(--ink);border-radius:9px;padding:8px 10px;font-size:12px}
+.badge{display:inline-block;font:600 11px var(--font-ui);border:1px solid var(--line-2);border-radius:6px;padding:2px 6px;color:var(--ink-2)}
+/* phone */
+.phones{display:flex;gap:20px;overflow-x:auto;padding-bottom:6px;align-items:flex-start}
+.phone{flex:0 0 auto;width:250px;height:540px;border:8px solid var(--ink);border-radius:36px;background:var(--surface);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.phone .sb{height:22px;flex:0 0 auto}
+.phone .ph-body{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.phone .tabbar{flex:0 0 auto;height:52px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);align-items:center;background:var(--surface)}
+.phone .tabbar span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8.5px;color:var(--ink-3)}
+.phone .tabbar span i{width:14px;height:14px;border:1.5px solid currentColor;border-radius:4px}
+.phone .tabbar span.on{color:var(--accent)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -6px 20px rgba(0,0,0,.12);padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.grabber{width:36px;height:4px;border-radius:2px;background:var(--line-2);margin:0 auto 4px}
+.ph-cap{font-size:12px;color:var(--ink-2);text-align:center;margin-top:8px;max-width:250px}
+.ph-col{display:flex;flex-direction:column;align-items:center}
+.wiz{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.ph-img{background:repeating-linear-gradient(45deg,var(--sunk),var(--sunk) 8px,var(--surface) 8px,var(--surface) 16px);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:12px;position:relative}
+.crop{position:absolute;border:2px solid var(--accent);border-radius:4px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-2)}
+.field input{font:15px var(--font-ui);padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
+/* compare & export */
+.cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+@media (max-width:700px){.cmp{grid-template-columns:minmax(0,1fr)}}
+.cmp .pane{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.cmp .pane header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);gap:8px}
+.cmp .pane .pv{background:var(--sunk);height:300px;display:flex;align-items:center;justify-content:center;padding:8px}
+.cmp .pane .pv svg{width:100%;height:100%}
+.cmp .pane footer{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px 12px}
+.thread{border-top:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{display:flex;gap:8px;font-size:13px}
+.msg .av{flex:0 0 26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font:600 12px var(--font-ui)}
+.paper{background:#FFFFFF;color:#202522;border:1px solid var(--line-2);margin:16px auto;width:min(100%,640px);aspect-ratio:8.5/11;padding:4% 5%;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.paper .pp-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #CFCEC6;padding-bottom:6px;gap:8px}
+.paper .pp-plan{flex:1;min-height:0;display:flex;justify-content:center}
+.paper .pp-plan svg{height:100%;max-width:100%}
+.paper table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+.paper td,.paper th{border-bottom:1px solid #E2E1DA;padding:3px 4px;text-align:left}
+.paper .foot{font-size:10px;color:#5C605B}
+.login{display:flex;align-items:center;justify-content:center;padding:48px 16px;background:var(--sunk);min-height:460px}
+.login .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);padding:28px;width:min(100%,360px);display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.wordmark{font:600 22px var(--font-display)}
+/* map */
+.mapwrap{padding:12px;display:flex;flex-direction:column;gap:10px}
+.mapwrap svg{width:100%;height:auto;max-height:760px;background:var(--surface)}
+.toggles{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toggles label{display:inline-flex;gap:6px;align-items:center;font-size:13px;border:1px solid var(--line-2);border-radius:8px;padding:5px 10px;cursor:pointer;min-height:34px;background:var(--surface)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:16px;height:10px;border-radius:2px;display:inline-block;border:1px solid var(--line-2)}
+svg text{font-family:var(--font-ui)}
+.tbl{cursor:pointer}
+@media (max-width:760px){.vp .tl{display:none}.vp .tr{top:54px}.head .meta{min-width:0}}
+@media (prefers-reduced-motion:reduce){.stage svg{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="meta">
+      <div class="eyebrow">Richmond Studio · Step 0 · Lo-fi review</div>
+      <h1>Screens and venue map for approval</h1>
+      <p class="muted">Grey-box wireframes of what the studio will do and where things sit, not how the final 3D will look. Example data is the venue's sample plan (F01) with 75 guests. Click tables, camera modes and controls to try the flow.</p>
+    </div>
+    <div class="toggles"><span class="pill">2026-10-15</span><span class="pill">v1</span><span class="pill warn">All dimensions approximate</span></div>
+  </div>
+
+  <div class="review">
+    <div class="card"><h3>1 · Correct the venue map</h3><p class="small muted">The map is my reconstruction from the photos, videos and the venue plan. Five questions under the map: anything wrong there would be built wrong.</p></div>
+    <div class="card"><h3>2 · Approve the screens</h3><p class="small muted">Layout of each screen, what lives where, and the phone versions. Say what to add, cut or move.</p></div>
+    <div class="card"><h3>3 · Then I build step 1</h3><p class="small muted">The real 3D room, cameras and layout tools, on a preview link you can open on laptop and phone.</p></div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Screens" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<script>
+// ---------- venue + scenario data (metres; x east, z south; origin NW interior corner) ----------
+const ROOM = { w: 16, d: 16.5 };
+const F01 = {
+  name: "Option A · Venue sample",
+  tables: [
+    { id: 1, x: 2.8, z: 2.3, len: 3.5, wid: 1.0, seats: 8 },
+    { id: 2, x: 2.8, z: 5.0, len: 3.5, wid: 1.0, seats: 8 },
+    { id: 3, x: 2.8, z: 7.65, len: 3.5, wid: 1.0, seats: 8 },
+    { id: 4, x: 13.8, z: 1.1, len: 3.4, wid: 1.45, seats: 10 },
+    { id: 5, x: 13.8, z: 3.9, len: 3.4, wid: 1.0, seats: 8 },
+    { id: 6, x: 13.8, z: 6.4, len: 3.4, wid: 1.0, seats: 8 },
+    { id: 7, x: 13.85, z: 9.55, len: 3.3, wid: 0.9, seats: 8 }
+  ],
+  sweet: { x: 2.8, z: 13.65, len: 3.1, wid: 0.9, seats: 2 },
+  dance: { x: 2.3, z: 9.3, w: 6.6, d: 3.3 },
+  dj: [{ id: "DJ 1", x: 1.25, z: 10.7, w: 1.0, d: 2.1 }, { id: "DJ 2", x: 9.95, z: 10.75, w: 1.0, d: 2.1 }, { id: "DJ 3", x: 13.7, z: 13.75, w: 2.2, d: 1.2, mezz: true }],
+  djOn: "DJ 1"
+};
+const OPTB = {
+  name: "Option B · Six long tables",
+  tables: [
+    { id: 1, x: 3.0, z: 2.4, len: 4.4, wid: 1.0, seats: 12 },
+    { id: 2, x: 3.0, z: 5.1, len: 4.4, wid: 1.0, seats: 12 },
+    { id: 3, x: 3.0, z: 7.8, len: 4.4, wid: 1.0, seats: 12 },
+    { id: 4, x: 13.6, z: 1.6, len: 4.4, wid: 1.0, seats: 12 },
+    { id: 5, x: 13.6, z: 4.6, len: 4.4, wid: 1.0, seats: 12 },
+    { id: 6, x: 13.6, z: 7.6, len: 4.6, wid: 1.0, seats: 14 }
+  ],
+  sweet: { x: 5.6, z: 13.6, len: 3.1, wid: 0.9, seats: 2 },
+  dance: { x: 1.6, z: 9.4, w: 7.8, d: 3.4 },
+  dj: [{ id: "DJ 3", x: 13.7, z: 13.75, w: 2.2, d: 1.2, mezz: true }],
+  djOn: "DJ 3"
+};
+const RAISED = [[9.81,0],[16,0],[16,11.3],[11.2,11.3],[11.2,9.6],[9.81,8.2]];
+const seatsOf = s => s.tables.reduce((n,t)=>n+t.seats,0) + s.sweet.seats;
+
+// ---------- plan renderer ----------
+function chairs(t){
+  const out=[]; const r=0.2;
+  if(t.seats===2){ for(const dx of [-0.5,0.5]) out.push([t.x+dx,t.z+t.wid/2+0.35]); return out.map(([x,z])=>`<circle cx="${x}" cy="${z}" r="${r}" class="ch"/>`).join("") }
+  const per=t.seats/2, pitch=t.len/per;
+  for(let i=0;i<per;i++){ const x=t.x-t.len/2+pitch*(i+.5); out.push([x,t.z-t.wid/2-0.33],[x,t.z+t.wid/2+0.33]) }
+  return out.map(([x,z])=>`<circle cx="${x}" cy="${z}" r="${r}" class="ch"/>`).join("");
+}
+function tableG(t,o,label){
+  const sel=o.selected===t.id;
+  const candles = o.evening ? [-0.3,0,0.3].map(f=>`<circle cx="${t.x+f*t.len}" cy="${t.z}" r="0.28" fill="var(--candle)" opacity=".28"/><circle cx="${t.x+f*t.len}" cy="${t.z}" r="0.07" fill="var(--candle)"/>`).join("") : "";
+  return `<g class="tbl" data-id="${t.id}" role="button" tabindex="0" aria-label="Table ${label}, ${t.seats} seats">
+    ${chairs(t)}
+    <rect x="${t.x-t.len/2}" y="${t.z-t.wid/2}" width="${t.len}" height="${t.wid}" rx="0.06" class="tb${sel?' sel':''}"/>
+    ${candles}
+    ${o.labels!==false?`<text x="${t.x}" y="${t.z+0.17}" text-anchor="middle" class="tn">${label}</text>`:""}
+  </g>`;
+}
+function plan(s,o={}){
+  const ev=!!o.evening, map=o.mode==="map";
+  const L=o.layers||{floors:true,f01:true,venue:false};
+  const col={ floor: ev?"var(--eve-floor)":"var(--tile)", wood: ev?"var(--eve-wood)":"var(--wood)", line: ev?"var(--eve-line)":"var(--ink)", text: ev?"#D8D6CF":"var(--ink)", sub: ev?"#9C9E98":"var(--ink-2)", table: ev?"var(--eve-table)":"var(--table)" };
+  const raisedPts=RAISED.map(p=>p.join(",")).join(" ");
+  const fs = map?0.36:0.42;
+  let g=`<svg viewBox="-1.2 -1.6 ${ROOM.w+2.4} ${ROOM.d+3.2}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${map?'Venue map':'Layout plan'} of Le Richmond main floor">
+  <style>.ch{fill:var(--chair)} .tb{fill:${col.table};stroke:${col.line};stroke-width:.05} .tb.sel{stroke:var(--accent);stroke-width:.14} .tn{font-size:.5px;font-weight:600;fill:${ev?'#2A2420':'var(--ink)'}} .lb{font-size:${fs}px;fill:${col.sub}} .lbb{font-size:${fs}px;fill:${col.text};font-weight:600} .ttl{font-size:.5px;fill:${col.text};font-weight:600}</style>
+  <defs><pattern id="hatch${o.uid}" width=".5" height=".5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2=".5" stroke="${ev?'#4E463C':'var(--accent)'}" stroke-width=".05" opacity=".5"/></pattern></defs>
+  <rect x="0" y="0" width="${ROOM.w}" height="${ROOM.d}" fill="${col.floor}"/>`;
+  if(L.floors){
+    g+=`<polygon points="${raisedPts}" fill="${col.wood}"/><polygon points="${raisedPts}" fill="url(#hatch${o.uid})"/>`;
+    if(map) g+=`<text x="10.95" y="4.9" class="lbb" text-anchor="middle" transform="rotate(90 10.95 4.9)">Wood · raised ≈ +0.15–0.45 m</text><text x="5.0" y="8.9" class="lb">Tile</text>`;
+  }
+  // mezzanine above
+  g+=`<rect x="0" y="12.9" width="${ROOM.w}" height="${ROOM.d-12.9}" fill="none" stroke="${col.sub}" stroke-width=".06" stroke-dasharray=".3 .2"/>`;
+  if(map) g+=`<text x="8.75" y="13.5" class="lb">Mezzanine above</text><text x="8.75" y="13.95" class="lb">(edge only, not a floor)</text>`;
+  // back bar, bar U
+  g+=`<rect x="5.67" y="0.2" width="5.46" height="1.2" fill="${ev?'#5A4A35':'var(--ink-2)'}"/>${ev?'<rect x="5.8" y="0.25" width="5.2" height="0.25" fill="var(--candle)" opacity=".7"/>':''}
+  <path d="M5.67 2.16 H6.54 V7.72 H8.97 V2.16 H9.81 V8.42 H5.67 Z" fill="${ev?'#E9E4DA':'var(--surface)'}" stroke="${col.line}" stroke-width=".07"/>
+  <text x="7.74" y="5.2" text-anchor="middle" class="lbb">Bar</text>`;
+  if(map) g+=`<text x="8.4" y="-0.25" text-anchor="middle" class="lb">Back bar</text>`;
+  // chandelier markers
+  const ch=[[7.74,4.4,0.55],[3.0,6.3,0.35],[13.0,2.6,0.35],[13.0,7.6,0.35],[5.2,11.0,0.35]];
+  g+=ch.map(([x,z,r])=>`<circle cx="${x}" cy="${z}" r="${r}" fill="${ev?'var(--candle)':'none'}" fill-opacity="${ev?.22:0}" stroke="var(--accent)" stroke-width=".05" stroke-dasharray=".12 .08"/>`).join("");
+  // north wall: banquettes + paintings
+  g+=`<rect x="0.7" y="0" width="4.6" height="0.55" fill="${ev?'#3B3F3D':'var(--line-2)'}"/><rect x="11.3" y="0" width="4.6" height="0.55" fill="${ev?'#3B3F3D':'var(--line-2)'}"/>
+  <line x1="1.3" y1="-0.12" x2="4.3" y2="-0.12" stroke="var(--accent)" stroke-width=".22"/><line x1="11.8" y1="-0.12" x2="14.8" y2="-0.12" stroke="var(--accent)" stroke-width=".22"/>`;
+  if(map) g+=`<text x="2.8" y="-0.45" text-anchor="middle" class="lb">Horseman painting</text><text x="13.3" y="-0.45" text-anchor="middle" class="lb">Pop-art painting</text><text x="2.0" y="1.0" class="lb">Banquettes</text>`;
+  // walls: west glazing + piers, east windows, entrance, wine wall, kitchen
+  const wall=(x1,y1,x2,y2,c,w=.18,dash="")=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+  g+=wall(0,0,ROOM.w,0,col.line)+wall(0,0,0,1.0,col.line)+wall(0,1.0,0,4.6,"var(--glass)",.24)+wall(0,4.6,0,7.9,col.line)+wall(0,7.9,0,12.5,"var(--glass)",.24)+wall(0,12.5,0,ROOM.d,col.line);
+  g+=wall(ROOM.w,0,ROOM.w,1.5,col.line)+[[1.5,3.5],[4.5,6.5],[7.5,9.5]].map(([a,b],i,arr)=>wall(ROOM.w,a,ROOM.w,b,"var(--glass)",.24,".25 .12")+(i<arr.length-1?wall(ROOM.w,b,ROOM.w,arr[i+1][0],col.line):"")).join("")+wall(ROOM.w,9.5,ROOM.w,13.6,col.line)+wall(ROOM.w,15.6,ROOM.w,ROOM.d,col.line);
+  g+=wall(0,ROOM.d,ROOM.w,ROOM.d,col.line);
+  g+=`<rect x="15.35" y="10.1" width="0.55" height="1.3" fill="none" stroke="#B0443A" stroke-width=".07" stroke-dasharray=".15 .1"/>`;
+  g+=`<rect x="5.15" y="14.3" width="3.25" height="2.0" fill="none" stroke="${col.line}" stroke-width=".07"/><text x="6.78" y="15.45" text-anchor="middle" class="lb">Kitchen pass</text>`;
+  g+=`<path d="M${ROOM.w+0.95} 15.2 H${ROOM.w+0.15}" stroke="var(--accent)" stroke-width=".09" marker-end="url(#arr${o.uid})"/><defs><marker id="arr${o.uid}" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L6 3L0 6z" fill="var(--accent)"/></marker></defs>`;
+  if(map){
+    g+=`<text x="-0.3" y="2.8" class="lb" text-anchor="middle" transform="rotate(-90 -0.3 2.8)">Garage door</text><text x="-0.3" y="10.2" class="lb" text-anchor="middle" transform="rotate(-90 -0.3 10.2)">Garage door</text>`;
+    g+=`<text x="-0.3" y="14.5" class="lb" text-anchor="middle" transform="rotate(-90 -0.3 14.5)">Green wall · EXIT</text>`;
+    g+=`<text x="${ROOM.w+0.35}" y="5.5" class="lb" transform="rotate(90 ${ROOM.w+0.35} 5.5)" text-anchor="middle">Tall street windows (count ≈ 3)</text>`;
+    g+=`<text x="15.2" y="10.0" class="lb" text-anchor="end">Wine wall</text><text x="${ROOM.w+0.35}" y="13.9" class="lbb" transform="rotate(90 ${ROOM.w+0.35} 13.9)" text-anchor="middle">Entrance</text>`;
+    g+=`<text x="-0.55" y="-0.6" class="lbb">N ↑</text><text x="-0.3" y="${ROOM.d+0.9}" class="lb">West: terrace beyond glass</text><text x="${ROOM.w}" y="${ROOM.d+0.9}" class="lb" text-anchor="end">East: Rue Richmond side</text>`;
+    g+=`<line x1="5.5" y1="${ROOM.d+0.75}" x2="10.5" y2="${ROOM.d+0.75}" stroke="${col.text}" stroke-width=".06"/><line x1="5.5" y1="${ROOM.d+0.6}" x2="5.5" y2="${ROOM.d+0.9}" stroke="${col.text}" stroke-width=".06"/><line x1="10.5" y1="${ROOM.d+0.6}" x2="10.5" y2="${ROOM.d+0.9}" stroke="${col.text}" stroke-width=".06"/><text x="8" y="${ROOM.d+1.35}" text-anchor="middle" class="lb">5 m (approx.)</text>`;
+  }
+  // raised edge (step) and stair guess
+  g+=`<polyline points="9.81,8.42 11.2,9.6 11.2,11.3 16,11.3" fill="none" stroke="${col.line}" stroke-width=".14"/><polyline points="9.81,8.42 11.2,9.6 11.2,11.3 16,11.3" fill="none" stroke="${ev?'#9C9E98':'var(--surface)'}" stroke-width=".05" stroke-dasharray=".1 .2"/>`;
+  g+=`<g opacity=".9"><rect x="11.45" y="11.55" width="1.2" height="1.3" fill="none" stroke="var(--advisory)" stroke-width=".07" stroke-dasharray=".18 .1"/>${map?`<text x="12.05" y="12.38" text-anchor="middle" class="lbb" style="fill:var(--advisory)">?</text>`:''}</g>`;
+  if(map) g+=`<text x="15.85" y="11.05" class="lb" text-anchor="end">Step edge + railing</text><text x="12.85" y="12.05" class="lb">Stair to</text><text x="12.85" y="12.5" class="lb">mezzanine?</text>`;
+  // venue furniture layer
+  if(L.venue) g+=`<rect x="3.6" y="3.2" width="0.95" height="3.6" fill="none" stroke="${col.sub}" stroke-width=".07" stroke-dasharray=".2 .12"/><text x="4.75" y="5.1" class="lb">Communal high table</text>`;
+  // scenario layer
+  if(L.f01 && s){
+    const d=s.dance; g+=`<rect x="${d.x}" y="${d.z}" width="${d.w}" height="${d.d}" fill="${ev?'rgba(244,184,96,.10)':'var(--accent-soft)'}" stroke="var(--accent)" stroke-width=".07"/><text x="${d.x+d.w/2}" y="${d.z+d.d/2+0.15}" text-anchor="middle" class="ttl">Dance floor ≈ ${Math.round(d.w*d.d)} m²</text>`;
+    for(const j of s.dj){ const on=j.id===s.djOn; g+=`<g opacity="${on?1:.55}"><rect x="${j.x-j.w/2}" y="${j.z-j.d/2}" width="${j.w}" height="${j.d}" fill="${on?col.table:'none'}" stroke="${on?col.line:col.sub}" stroke-width=".06" ${on?'':'stroke-dasharray=".15 .1"'}/><text x="${j.x}" y="${j.z+0.15}" text-anchor="middle" class="lb" style="font-size:.34px">${j.id}${j.mezz?' · mezz.':''}</text></g>` }
+    s.tables.forEach(t=>g+=tableG(t,o,t.id));
+    g+=tableG({...s.sweet,id:"S"},o,"♥");
+  }
+  return g+`</svg>`;
+}
+
+// ---------- screens ----------
+const screens=[
+  {id:"map",name:"Venue map"},{id:"studio",name:"Studio · desktop"},{id:"phone",name:"Studio · phone"},
+  {id:"people",name:"People"},{id:"decor",name:"Décor"},{id:"import",name:"Inspiration"},
+  {id:"compare",name:"Compare"},{id:"export",name:"Export"},{id:"signin",name:"Sign in"}
+];
+const state={screen:"map",cam:"dollhouse",evening:true,selected:5,mapLayers:{floors:true,f01:true,venue:false},linen:"ivory",candles:"Votives",florals:"Low cluster",chair:"Venue oval-back",scope:"All tables",guests:75};
+
+const rail=(on)=>`<nav class="rail" aria-label="Sections">${["Venue","Layout","People","Décor","Inspiration","Compare"].map(n=>`<button class="${n===on?'on':''}" type="button"><span class="ic"></span>${n}</button>`).join("")}</nav>`;
+const countsStrip=(s)=>{const seats=seatsOf(s), without=Math.max(0,state.guests-seats);return `<div class="float bl" aria-label="Counts"><div class="count"><b>${s.tables.length+1}</b><span>tables</span></div><div class="count"><b>${seats}</b><span>seats</span></div><div class="count"><b>${state.guests}</b><span>guests</span></div><div class="count ${without?'warn':''}"><b>${without}</b><span>without a seat</span></div><div class="count"><b>≈ ${Math.round(s.dance.w*s.dance.d)} m²</b><span>dance floor</span></div></div>`};
+const linens={white:"#FFFFFF",ivory:"#EDE6D3",champagne:"#CDB48E",black:"#2E3231",navy:"#24324F",wood:"#8A6545"};
+function inspector(){
+  const t=F01.tables.find(x=>x.id===state.selected);
+  if(!t) return `<aside class="insp"><h3>Layout</h3><div class="empty-insp">Tap a table to edit it, or add one from the catalogue.</div><button class="btn primary" type="button">Add table</button><div class="chips"><span class="chip">Rectangle 4–14</span><span class="chip">Round 4–10</span><span class="chip">Dance floor</span><span class="chip">DJ</span><span class="chip">Station</span></div></aside>`;
+  return `<aside class="insp" aria-label="Inspector">
+    <div class="row"><h3>Table ${t.id}</h3><button class="btn plain" type="button" data-act="deselect">Done</button></div>
+    <div class="seg" role="group" aria-label="Shape"><button class="on" type="button">Rectangle</button><button type="button">Round</button></div>
+    <div class="row"><span class="small muted">Seats</span><div class="stepper"><button type="button" data-act="seat-">−</button><b>${t.seats}</b><button type="button" data-act="seat+">+</button></div></div>
+    <div class="row"><span class="small muted">Chairs at ends</span><div class="seg"><button class="on" type="button">No</button><button type="button">Yes</button></div></div>
+    <div class="row small"><span class="muted">Size</span><span>≈ ${(t.seats/2*0.85).toFixed(1)} × ${t.wid.toFixed(1)} m</span></div>
+    <div><div class="small muted" style="margin-bottom:6px">Linen</div><div class="swatches">${Object.entries(linens).map(([k,v])=>`<button class="sw ${k===state.linen?'on':''}" style="background:${v}" type="button" aria-label="${k}" data-linen="${k}"></button>`).join("")}</div></div>
+    <div class="row"><button class="btn" type="button">Rotate 90°</button><button class="btn" type="button">Duplicate</button></div>
+    <button class="btn plain" type="button" style="color:var(--blocked)">Delete · undo available</button>
+    ${t.z>8.5&&t.x>11?`<div class="adv">On the raised floor near the step edge. Aisle to the step ≈ 0.8 m, below your 1.0 m setting (advisory).</div>`:''}
+  </aside>`;
+}
+function studio(){
+  const s=F01;
+  const view = state.cam==="walk" ? `<div class="walk">Eye-level walk, 1.65 m. Drag to look, WASD or the on-screen pad to move.<br>(3D in the real app)</div>` : `<div class="stage ${state.cam==='dollhouse'?'iso':''}">${plan(s,{uid:"st",evening:state.evening,selected:state.selected,layers:{floors:true,f01:true}})}</div>`;
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Desktop · 1440 × 900</span><span>Layout section, table selected</span></div>
+    <div class="desk with-insp">${rail("Layout")}
+      <div class="vp ${state.evening?'evening':''}" id="vp">
+        <div class="float tl"><span style="font:600 14px var(--font-display)">${s.name}</span><span class="tiny muted">Saved · 2 min ago by you</span></div>
+        <div class="float tc"><div class="seg" role="group" aria-label="Camera">${["dollhouse","plan","walk"].map(c=>`<button type="button" data-cam="${c}" class="${state.cam===c?'on':''}">${c==="dollhouse"?"Dollhouse":c==="plan"?"Plan":"Walk"}</button>`).join("")}</div></div>
+        <div class="float tr"><button class="icon-btn" type="button" aria-label="Undo">↶</button><button class="icon-btn" type="button" aria-label="Redo">↷</button><div class="seg"><button type="button" data-light="1" class="${state.evening?'on':''}">Evening</button><button type="button" data-light="0" class="${state.evening?'':'on'}">Day</button></div></div>
+        ${view}${countsStrip(s)}
+      </div>${inspector()}
+    </div></div>
+    <div class="notes"><h3>What this screen does</h3><ol>
+      <li>The room fills the screen. Section rail left, inspector right only when something is selected.</li>
+      <li>Camera switch top-centre. Dollhouse opens from the R01 angle (south-east). Plan for placing. Walk at eye height.</li>
+      <li>Counts are always visible. "Without a seat" turns amber when guests exceed seats: 75 guests, 60 seats here.</li>
+      <li>Click a table to select it. Drag to move, handle to rotate, seats with − / +; chairs re-arrange automatically.</li>
+      <li>Advisories (amber) never block. Refused moves (into the bar, a wall, off the floor) spring back with a reason.</li>
+    </ol><div class="q"><h3>Check</h3><p class="small">Is anything missing from the inspector you'd reach for first?</p></div></div></div>`;
+}
+function phoneStudio(){
+  const t=F01.tables.find(x=>x.id===state.selected)||F01.tables[4];
+  const pv=(cls)=>`<div class="vp ${state.evening?'evening':''}" style="min-height:0;flex:1"><div class="float tc" style="top:8px"><div class="seg"><button class="on" type="button">Dollhouse</button><button type="button">Plan</button><button type="button">Walk</button></div></div><div class="stage ${cls}" style="inset:48px 4px 110px">${plan(F01,{uid:"ph"+cls,evening:state.evening,selected:t.id,layers:{floors:true,f01:true},labels:false})}</div>`;
+  const tabbar=(on)=>`<div class="tabbar">${["Venue","Layout","People","Décor","Inspo","Compare"].map(n=>`<span class="${n===on?'on':''}"><i></i>${n}</span>`).join("")}</div>`;
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Phone · 390 × 844</span><span>Bottom sheet replaces the inspector</span></div><div class="phones" style="padding:16px">
+    <div class="ph-col"><div class="phone"><div class="sb"></div><div class="ph-body">${pv("iso")}
+      <div class="sheet"><div class="grabber"></div><div class="row" style="display:flex;justify-content:space-between;align-items:center"><b>Table ${t.id}</b><div class="stepper"><button type="button">−</button><b style="font-size:18px">${t.seats}</b><button type="button">+</button></div></div><div class="chips"><span class="chip">Rotate</span><span class="chip">Duplicate</span><span class="chip">Linen</span><span class="chip">Delete</span></div></div></div></div>${tabbar("Layout")}</div><p class="ph-cap">Sheet at peek height: the key action for the selection.</p></div>
+    <div class="ph-col"><div class="phone"><div class="sb"></div><div class="ph-body">${pv("")}<div class="sheet" style="height:62%"><div class="grabber"></div><b>Table ${t.id}</b><div class="seg"><button class="on" type="button">Rectangle</button><button type="button">Round</button></div><div class="small muted">Linen</div><div class="swatches">${Object.values(linens).map(v=>`<span class="sw" style="background:${v};width:26px;height:26px"></span>`).join("")}</div><div class="small muted">Candles</div><div class="chips"><span class="chip on">Votives</span><span class="chip">Tapers</span><span class="chip">None</span></div></div></div></div>${tabbar("Layout")}</div><p class="ph-cap">Half height: full table options. Swipe down to dismiss.</p></div>
+    <div class="ph-col"><div class="phone"><div class="sb"></div><div class="ph-body"><div class="vp evening" style="min-height:0;flex:1"><div class="walk" style="inset:12px">Walk mode<br><br>Left thumb: move pad<br>Right thumb: look</div><div style="position:absolute;left:18px;bottom:18px;width:64px;height:64px;border-radius:50%;border:1.5px solid #6A6E6B"></div></div></div>${tabbar("Venue")}</div><p class="ph-cap">Walk on phone with touch controls.</p></div>
+  </div></div>
+  <div class="notes"><h3>Phone</h3><ol><li>Same six sections in a bottom tab bar.</li><li>Long-press a table to pick it up, drag, release. Two fingers rotate.</li><li>Everything works on phone; precise edits (many tables at once) are easier on desktop.</li></ol></div></div>`;
+}
+function people(){
+  const seats=seatsOf(F01), seated=Math.min(seats,state.guests), standing=Math.max(0,state.guests-seats);
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Desktop</span><span>People section</span></div><div class="desk with-insp">${rail("People")}
+    <div class="vp evening" style="min-height:420px"><div class="stage iso">${plan(F01,{uid:"pp",evening:true,layers:{floors:true,f01:true}})}</div>${countsStrip(F01)}</div>
+    <aside class="insp"><h3>Guests</h3><div class="row"><span class="small muted">Guest count</span><div class="stepper"><button type="button" data-act="g-">−</button><b>${state.guests}</b><button type="button" data-act="g+">+</button></div></div>
+      <div class="small" style="display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-variant-numeric:tabular-nums"><span class="muted">Seated</span><span>${seated}</span><span class="muted">Standing</span><span>${standing}</span><span class="muted">Seats left</span><span>${Math.max(0,seats-state.guests)}</span></div>
+      ${standing?`<div class="adv">${standing} guests without a seat. Add ${Math.ceil(standing/8)} tables of 8, or raise seats on existing tables.</div>`:''}
+      <div><div class="small muted" style="margin-bottom:6px">Moment</div><div class="seg"><button class="on" type="button">Dinner</button><button type="button">Party</button></div></div>
+      <button class="btn" type="button">Shuffle guests</button><p class="tiny muted">People are simple neutral figures. Seated first; the rest stand near the bar, never on the dance floor at dinner.</p></aside></div></div>
+    <div class="notes"><h3>What this screen does</h3><ol><li>One control: guest count. Seated vs standing follows the seats you have.</li><li>Dinner vs Party changes where standing guests go (party: dance floor fills).</li></ol><div class="q"><h3>Check</h3><p class="small">Try − / +: does the amber advice say what you'd want to know?</p></div></div></div>`;
+}
+function decor(){
+  const opt=(k,arr)=>`<div class="chips">${arr.map(a=>`<button type="button" class="chip ${state[k]===a?'on':''}" data-set="${k}" data-val="${a}">${a}</button>`).join("")}</div>`;
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Desktop</span><span>Décor section</span></div><div class="desk with-insp">${rail("Décor")}
+    <div class="vp evening" style="min-height:460px"><div class="walk">Eye-level preview of the selected look<br>(3D in the real app)</div></div>
+    <aside class="insp"><div><div class="small muted" style="margin-bottom:6px">Apply to</div><div class="seg">${["This table","Selected","All tables"].map(a=>`<button type="button" class="${state.scope===a?'on':''}" data-set="scope" data-val="${a}">${a}</button>`).join("")}</div></div>
+      <div><h3 style="margin-bottom:6px">Linen</h3><div class="swatches">${Object.entries(linens).map(([k,v])=>`<button class="sw ${k===state.linen?'on':''}" style="background:${v}" type="button" aria-label="${k}" data-linen="${k}"></button>`).join("")}</div><p class="tiny muted" style="margin-top:4px;text-transform:capitalize">${state.linen==='wood'?'Bare wood':state.linen}</p></div>
+      <div><h3 style="margin-bottom:6px">Candles</h3>${opt("candles",["None","Votives","Mixed pillars","Tall tapers","Floating"])}</div>
+      <div><h3 style="margin-bottom:6px">Florals</h3>${opt("florals",["None","Low cluster","Bud vases","Tall arrangement","Greenery runner"])}</div>
+      <div><h3 style="margin-bottom:6px">Chairs</h3>${opt("chair",["Venue oval-back","Wood cross-back","White & gold"])}</div>
+    </aside></div></div>
+    <div class="notes"><h3>What this screen does</h3><ol><li>Presets come from what Le Richmond weddings actually used (photos R06–R16).</li><li>"Apply to" decides one table, a selection or all. Placements never move.</li><li>Your imported items appear in these lists too, with their label.</li></ol></div></div>`;
+}
+function importer(){
+  const ph=(body,cap)=>`<div class="ph-col"><div class="phone"><div class="sb"></div><div class="ph-body"><div class="wiz">${body}</div></div></div><p class="ph-cap">${cap}</p></div>`;
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Phone · 4 steps</span><span>Inspiration section</span></div><div class="phones" style="padding:16px">
+    ${ph(`<h3>Add inspiration</h3><button class="btn primary" type="button">Take a photo</button><button class="btn" type="button">Choose from library</button><div class="field"><span>Product link (saved as the source)</span><input id="imp-link" type="url" placeholder="https://…"></div><p class="tiny muted">On desktop: drag an image in or paste a screenshot.</p>`,"1 · Add a photo or screenshot")}
+    ${ph(`<h3>What is it?</h3><div class="chips"><span class="chip">Fabric / linen</span><span class="chip on">Candle or holder</span><span class="chip">Vase / centrepiece</span><span class="chip">Florals</span><span class="chip">Chair</span><span class="chip">Other</span></div><div class="ph-img" style="height:150px">your photo</div>`,"2 · Pick the type")}
+    ${ph(`<h3>Crop and size</h3><div class="ph-img" style="height:190px">photo<div class="crop" style="left:30%;top:10%;width:38%;height:80%"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="field"><span>Width</span><input id="imp-w" value="14 cm"></label><label class="field"><span>Height</span><input id="imp-h" value="45 cm"></label></div>`,"3 · Crop to the object, set real size")}
+    ${ph(`<h3>Candelabra</h3><span class="badge">Approximate 3D</span><div class="ph-img" style="height:150px;background:var(--sunk)">3D template preview<br>coloured from your photo</div><p class="tiny muted">Built from the taper-candelabra template. Shape is close, not exact.</p><div class="seg"><button class="on" type="button">This table</button><button type="button">All tables</button></div><button class="btn primary" type="button">Place</button>`,"4 · Result, labelled honestly")}
+  </div></div>
+  <div class="notes"><h3>What gets made</h3><ol><li><b>Fabric</b> → a <i>Material</i> applied to linens.</li><li><b>Candles, vases, centrepieces, florals, chairs</b> → <i>Approximate 3D</i> from an adjustable template, coloured from the photo.</li><li><b>Anything else</b> → <i>Photo preview</i> standing at real size.</li><li><b>A GLB file</b> → <i>Exact 3D model</i>.</li></ol><p class="small muted">Links are kept as the source; the app does not fetch web pages.</p></div></div>`;
+}
+function compare(){
+  const pane=(s,uid,sub)=>{const seats=seatsOf(s);return `<div class="pane"><header><b style="font:600 14px var(--font-display)">${s.name}</b><span class="tiny muted">${sub}</span></header><div class="pv">${plan(s,{uid,evening:false,layers:{floors:true,f01:true}})}</div><footer>${[["Tables",s.tables.length+1],["Seats",seats],["No seat",Math.max(0,75-seats)],["Dance",`≈ ${Math.round(s.dance.w*s.dance.d)} m²`]].map(([k,v])=>`<div class="count ${k==='No seat'&&v>0?'warn':''}"><b style="font-size:16px">${v}</b><span>${k}</span></div>`).join("")}</footer></div>`};
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Desktop</span><span>Compare section · same camera for both</span></div>
+    <div class="cmp">${pane(F01,"ca","Venue sample")}${pane(OPTB,"cb","Example alternative")}</div>
+    <div class="thread"><h3>Notes on Option B</h3><div class="msg"><span class="av">A</span><div><b>Partner A</b> <span class="tiny muted">example</span><br>Long tables feel fuller. DJ upstairs frees the floor.</div></div><div class="msg"><span class="av">B</span><div><b>Partner B</b> <span class="tiny muted">example</span><br>Can we keep the sweetheart table closer to the windows?</div></div><div class="field"><label for="note-in">Add a note</label><input id="note-in" placeholder="Write a note for your partner"></div></div></div>
+    <div class="notes"><h3>What this screen does</h3><ol><li>Two scenarios side by side from the same camera, with their counts.</li><li>Notes per scenario, with who wrote them: how you and your partner discuss without editing at the same time.</li><li>If you both edit the same scenario, the second save asks: keep mine, take theirs, or save as a copy.</li></ol></div></div>`;
+}
+function exporter(){
+  const rows=[...F01.tables.map(t=>[t.id,"Rectangle",t.seats]),["♥","Sweetheart",2]];
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>PDF / PNG · Letter</span><span>For the venue coordinator</span></div>
+    <div style="background:var(--sunk);padding:4px 12px"><div class="paper"><div class="pp-head"><b style="font:600 16px var(--font-display)">Reception layout · ${F01.name}</b><span style="font-size:11px">Le Richmond · 21 Nov 2026</span></div>
+      <div class="pp-plan">${plan(F01,{uid:"ex",evening:false,layers:{floors:false,f01:true}}).replace('class="tb','class="tb')}</div>
+      <table><thead><tr><th>Table</th><th>Type</th><th>Seats</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}<tr><th colspan="2">Total seats</th><th>${seatsOf(F01)}</th></tr></tbody></table>
+      <p class="foot">Guests: 75 · Dance floor ≈ ${Math.round(F01.dance.w*F01.dance.d)} m² · DJ: option 1. Approximate dimensions, for discussion with the venue.</p></div></div></div>
+    <div class="notes"><h3>What this screen does</h3><ol><li>One tap from any scenario: a plan the venue can read, with table numbers and seat counts.</li><li>Always marked as approximate.</li></ol></div></div>`;
+}
+function signin(){
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Phone and desktop</span><span>First visit on a device</span></div><div class="login"><form class="card" id="login-form"><span class="wordmark">Richmond Studio</span><p class="small muted">Private planner for our reception at Le Richmond.</p><label class="field" for="pw"><span>Password</span><input id="pw" type="password" autocomplete="current-password" placeholder="Shared password"></label><label class="small" style="display:flex;gap:8px;align-items:center"><input id="stay" type="checkbox" checked> Stay signed in on this device for 30 days</label><button class="btn primary" type="submit">Open the studio</button><p class="tiny muted" id="login-msg">Wrong passwords are slowed down after a few tries.</p></form></div></div>
+    <div class="notes"><h3>What this screen does</h3><ol><li>One shared password for both partners. No accounts.</li><li>Notes are signed "Partner A" or "Partner B", chosen once per device.</li></ol></div></div>`;
+}
+function venueMap(){
+  const L=state.mapLayers;
+  return `<div class="screen"><div class="frame"><div class="frame-label"><span>Top-down · north up</span><span>Reconstruction v1 · not to scale-verified</span></div>
+    <div class="mapwrap"><div class="toggles"><label><input type="checkbox" id="lay-floors" ${L.floors?'checked':''}> Floors and levels</label><label><input type="checkbox" id="lay-f01" ${L.f01?'checked':''}> Venue sample layout (F01)</label><label><input type="checkbox" id="lay-venue" ${L.venue?'checked':''}> Existing venue furniture</label></div>
+    ${plan(F01,{uid:"mp",mode:"map",evening:false,layers:L})}
+    <div class="legend"><span><i style="background:var(--tile)"></i>Tile</span><span><i style="background:var(--wood)"></i>Wood, raised</span><span><i style="background:var(--glass)"></i>Glass</span><span><i style="border:1.5px dashed var(--accent);background:none;border-radius:50%"></i>Chandelier</span><span><i style="border:1.5px dashed var(--ink-2);background:none"></i>Mezzanine above</span><span><i style="border:1.5px dashed var(--advisory);background:none"></i>Unconfirmed</span></div>
+    <p class="tiny muted">Scale assumes the venue plan's 8-seat tables are ≈ 3.5 m: room ≈ 16 × 16.5 m <span class="conf L">L</span>. Ceiling ≈ 6.5–8 m <span class="conf L">L</span>.</p></div></div>
+    <div class="notes"><h3>Please confirm or correct</h3><ol>
+      <li><b>Raised floor:</b> it covers everything right of the bar to the street windows, and its edge (step + railing) runs from the bar's bottom-right corner diagonally, then across to the windows, as on the venue plan. <span class="conf L">L</span></li>
+      <li><b>Stair to the mezzanine:</b> where does it start? I've marked a guess near the step edge. <span class="conf L">L</span></li>
+      <li><b>Entrance:</b> on the street-window side, under the mezzanine. <span class="conf C">C</span> Correct spot on the map?</li>
+      <li><b>Mezzanine:</b> its front edge runs across the whole south side at the line shown, above the kitchen pass and the sweetheart table. <span class="conf L">L</span></li>
+      <li><b>Communal high table and bar stools:</b> removed for the wedding? (toggle "Existing venue furniture")</li>
+    </ol><div class="q"><h3>Confidence</h3><p class="small"><span class="conf H">H</span> high · <span class="conf M">M</span> medium · <span class="conf L">L</span> low · <span class="conf C">C</span> confirmed by you. Detail per feature: <span class="tiny">references/venue_evidence_matrix.md</span></p></div></div></div>`;
+}
+const renderers={map:venueMap,studio,phone:phoneStudio,people,decor,import:importer,compare,export:exporter,signin};
+
+// ---------- wiring ----------
+const tabsEl=document.getElementById("tabs"), panelsEl=document.getElementById("panels");
+function render(){
+  tabsEl.innerHTML=screens.map(s=>`<button role="tab" type="button" id="tab-${s.id}" aria-selected="${s.id===state.screen}" aria-controls="panel" data-screen="${s.id}">${s.name}</button>`).join("");
+  panelsEl.innerHTML=`<section id="panel" role="tabpanel" aria-labelledby="tab-${state.screen}">${renderers[state.screen]()}</section>`;
+}
+function go(id){ if(!renderers[id]) return; state.screen=id; render(); try{history.replaceState(null,"","#"+id)}catch(e){} }
+tabsEl.addEventListener("click",e=>{const b=e.target.closest("[data-screen]"); if(b) go(b.dataset.screen)});
+panelsEl.addEventListener("click",e=>{
+  const c=e.target.closest("[data-cam]"); if(c){state.cam=c.dataset.cam;render();return}
+  const l=e.target.closest("[data-light]"); if(l){state.evening=l.dataset.light==="1";render();return}
+  const t=e.target.closest(".tbl"); if(t && state.screen==="studio"){const id=Number(t.dataset.id); state.selected=Number.isNaN(id)?null:id; render(); return}
+  const sw=e.target.closest("[data-linen]"); if(sw){state.linen=sw.dataset.linen;render();return}
+  const st=e.target.closest("[data-set]"); if(st){state[st.dataset.set]=st.dataset.val;render();return}
+  const a=e.target.closest("[data-act]"); if(!a) return;
+  const tb=F01.tables.find(x=>x.id===state.selected);
+  if(a.dataset.act==="deselect"){state.selected=null}
+  if(a.dataset.act==="seat+"&&tb&&tb.seats<14){tb.seats+=2;tb.len=Math.round(tb.seats/2*0.85*10)/10}
+  if(a.dataset.act==="seat-"&&tb&&tb.seats>4){tb.seats-=2;tb.len=Math.round(tb.seats/2*0.85*10)/10}
+  if(a.dataset.act==="g+"&&state.guests<200){state.guests+=5}
+  if(a.dataset.act==="g-"&&state.guests>0){state.guests-=5}
+  render();
+});
+panelsEl.addEventListener("keydown",e=>{const t=e.target.closest(".tbl"); if(t&&(e.key==="Enter"||e.key===" ")&&state.screen==="studio"){e.preventDefault();t.dispatchEvent(new MouseEvent("click",{bubbles:true}))}});
+panelsEl.addEventListener("change",e=>{const m={"lay-floors":"floors","lay-f01":"f01","lay-venue":"venue"}[e.target.id]; if(m){state.mapLayers[m]=e.target.checked;render()}});
+panelsEl.addEventListener("submit",e=>{e.preventDefault();const m=document.getElementById("login-msg"); if(m) m.textContent="Wireframe only: no sign-in happens here."});
+const h=(location.hash||"").slice(1); if(renderers[h]) state.screen=h;
+render();
+</script>
