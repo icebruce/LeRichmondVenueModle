@@ -36,7 +36,9 @@
         { "label": "10 guests · 1.8 m", "options": { "seats": 10 } }
       ],
       "model": { "kind": "parametric", "generator": "table" },
-      "options": [{ "type": "number", "key": "seats", "label": "Seats", "min": 4, "max": 10, "step": 2, "default": 8 }],
+      "options": [
+        { "type": "number", "key": "seats", "label": "Seats", "min": 4, "max": 10, "step": 2, "default": 8 }
+      ],
       "seats": true,
       "thumbnail": "thumbs/table-round.webp",
       "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },

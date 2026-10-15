@@ -21,7 +21,8 @@ describe("venue model", () => {
   test("[VEN-01] the venue data parses and builds a closed room with the bar inside it", () => {
     expect(venue.width).toBeGreaterThan(10);
     expect(area(venue.room)).toBeCloseTo(venue.width * venue.depth);
-    for (const o of venue.obstacles) expect(polygonInside(o.polygon, venue.room) || o.id.startsWith("stair")).toBe(true);
+    for (const o of venue.obstacles)
+      expect(polygonInside(o.polygon, venue.room) || o.id.startsWith("stair")).toBe(true);
   });
 });
 
@@ -40,11 +41,17 @@ describe("placement", () => {
   });
 
   test("[VEN-03] items outside the main room are refused", () => {
-    expect(checkPlacement(table({ x: 8, z: 15.5 }), [], venue, catalog)).toEqual({ ok: false, reason: "Outside the room" });
+    expect(checkPlacement(table({ x: 8, z: 15.5 }), [], venue, catalog)).toEqual({
+      ok: false,
+      reason: "Outside the room",
+    });
   });
 
   test("[VEN-04] a table fully on the raised floor sits on the raised level", () => {
-    expect(checkPlacement(table({ x: 13.6, z: 6.6 }), [], venue, catalog)).toEqual({ ok: true, level: "raised" });
+    expect(checkPlacement(table({ x: 13.6, z: 6.6 }), [], venue, catalog)).toEqual({
+      ok: true,
+      level: "raised",
+    });
   });
 
   test("[VEN-04] a table straddling the raised floor edge is refused", () => {
@@ -62,7 +69,10 @@ describe("placement", () => {
     const t = table({ x: 4.1, z: 5.0, rotY: Math.PI / 2, options: { seats: 4 } });
     expect(checkPlacement(t, [], venue, catalog).ok).toBe(true);
     const shown = toggledObstacles(venue, { communalTable: true, barStools: false });
-    expect(checkPlacement(t, [], venue, catalog, shown)).toEqual({ ok: false, reason: "Overlaps the communal high table" });
+    expect(checkPlacement(t, [], venue, catalog, shown)).toEqual({
+      ok: false,
+      reason: "Overlaps the communal high table",
+    });
   });
 
   test("[LAY-01] free-spot search finds a valid place (turning the table if needed)", () => {
@@ -74,7 +84,14 @@ describe("placement", () => {
   });
 
   test("[LAY-01] free-spot search reports no space when nothing fits", () => {
-    const floor: Item = { id: "big", libraryId: "dance-floor", x: 8, z: 7, rotY: 0, options: { width: 10, depth: 8 } };
+    const floor: Item = {
+      id: "big",
+      libraryId: "dance-floor",
+      x: 8,
+      z: 7,
+      rotY: 0,
+      options: { width: 10, depth: 8 },
+    };
     expect(findFreeSpot(floor, [8, 7], venueSampleItems(), venue, catalog)).toBeNull();
   });
 });

@@ -14,8 +14,24 @@
       ],
       "model": { "kind": "parametric", "generator": "danceFloor" },
       "options": [
-        { "type": "number", "key": "width", "label": "Width", "min": 2, "max": 10, "step": 0.3, "default": 6.0 },
-        { "type": "number", "key": "depth", "label": "Depth", "min": 2, "max": 8, "step": 0.3, "default": 3.6 },
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 2,
+          "max": 10,
+          "step": 0.3,
+          "default": 6.0
+        },
+        {
+          "type": "number",
+          "key": "depth",
+          "label": "Depth",
+          "min": 2,
+          "max": 8,
+          "step": 0.3,
+          "default": 3.6
+        },
         {
           "type": "choice",
           "key": "finish",

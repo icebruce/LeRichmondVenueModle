@@ -102,13 +102,15 @@ export function findFreeSpot(
     const candidates: Vec2[] = [];
     for (let i = -ring; i <= ring; i++) {
       for (let j = -ring; j <= ring; j++) {
-        if (Math.max(Math.abs(i), Math.abs(j)) === ring) candidates.push([preferred[0] + i * step, preferred[1] + j * step]);
+        if (Math.max(Math.abs(i), Math.abs(j)) === ring)
+          candidates.push([preferred[0] + i * step, preferred[1] + j * step]);
       }
     }
     candidates.sort((a, b) => dist(a) - dist(b));
     for (const [x, z] of candidates) {
       for (const rotY of turns) {
-        if (checkPlacement({ ...item, x, z, rotY }, others, venue, catalog, extraObstacles).ok) return { x, z, rotY };
+        if (checkPlacement({ ...item, x, z, rotY }, others, venue, catalog, extraObstacles).ok)
+          return { x, z, rotY };
       }
     }
   }

@@ -32,13 +32,16 @@ const walk = (d) => {
   for (const f of readdirSync(d)) {
     const p = join(d, f);
     if (statSync(p).isDirectory()) walk(p);
-    else if (/\.(ts|tsx)$/.test(f)) for (const m of readFileSync(p, "utf8").matchAll(/\[([A-Z]{2,4}-\d{2})\]/g)) tested.add(m[1]);
+    else if (/\.(ts|tsx)$/.test(f))
+      for (const m of readFileSync(p, "utf8").matchAll(/\[([A-Z]{2,4}-\d{2})\]/g)) tested.add(m[1]);
   }
 };
 walk(join(root, "tests"));
 
 const missing = required.filter((id) => !tested.has(id) && !MANUAL[id]);
-console.log(`Step ${steps.join(",")}: ${required.length} must-have requirements, ${required.length - missing.length} covered.`);
+console.log(
+  `Step ${steps.join(",")}: ${required.length} must-have requirements, ${required.length - missing.length} covered.`,
+);
 if (missing.length) {
   console.error(`No test or manual gate for: ${missing.join(", ")}`);
   process.exit(1);

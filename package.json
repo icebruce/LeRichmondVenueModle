@@ -14,11 +14,12 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run check:library",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:library",
     "check:library": "node scripts/check-library.mjs",
     "check:trace": "node scripts/check-traceability.mjs",
     "test:e2e": "playwright test --project=desktop --project=phone",
-    "test:visual": "playwright test --project=visual"
+    "test:visual": "playwright test --project=visual",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

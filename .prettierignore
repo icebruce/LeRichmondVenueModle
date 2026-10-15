@@ -4,3 +4,6 @@ docs/handover
 public/assets
 package-lock.json
 references
+*.md
+references
+.claude
