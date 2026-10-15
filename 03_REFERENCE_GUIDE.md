@@ -28,6 +28,8 @@
 
 ## Videos and 360° tour
 
+**Important access limitation:** These are URLs, not imported video evidence. Claude may be unable to access YouTube/Instagram players or Google Maps 360. For the fallback capture + extraction workflow, see [VIDEO_360_OFFLINE_WORKFLOW.md](references/VIDEO_360_OFFLINE_WORKFLOW.md). Ask user for browser screen recordings/stills if needed; Claude will generate time-indexed stills and classify each viewpoint. Never claim a blocked video was inspected.
+
 Venue-linked video references have been discovered but **were not independently watched**, and may contain terrace footage. Claude should inspect and timestamp only main-floor clips.
 - **V01 [Official embedded wedding video 2022](https://www.youtube.com/embed/0v_ZksoBabY?feature=oembed)** — Confirmed venue embedded link; content not directly watched; contains potentially out-of-scope terrace shots; action: Review video, collect timestamps/screenshots ONLY for main restaurant room.
 - **V02 [Votre mariage au Richmond Griffintown – TRAILER](https://www.youtube.com/embed/mQFOhEY6APs?feature=oembed)** — Confirmed venue embedded link; content not directly watched; contains potentially out-of-scope terrace shots; action: Review video, select indoor main restaurant shots and label timestamp.
