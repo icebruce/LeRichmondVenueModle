@@ -87,6 +87,20 @@ Schema changes bump `schemaVersion` and add a migration in `domain/scenario/migr
 
 Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `applyStyle`, …) that produces an immer patch pair. The store applies patches; undo/redo replays inverses. The same command stream drives autosave. No component mutates scenario state directly.
 
+### 4.4 Library
+
+```
+data/library/<family>.json      Entries: id, name, family, placement, sizeM {w,d,h}, sizePresets,
+                                model {kind:"parametric", generator, params} | {kind:"glb", file},
+                                lowModel?, thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
+                                budget {triangles, drawCalls}
+src/scene/library/<generator>.tsx   One component per parametric generator (table, chair, candle, floral, …)
+public/assets/models/            GLB files (CC0 adapted or custom-built), meshopt-compressed
+public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
+```
+
+Validated with zod at load (`domain/library`). `scripts/check-library` fails CI on missing fields, missing licence, sizes outside family bounds or budget breaches. Imported items (IMP) store a library model reference + options + the owner's image id; custom requests (REQ) live in the app store, not Git.
+
 ## 5. Rendering
 
 - **Venue shell:** generated meshes from venue data; PBR materials with tiling textures (CC0, provenance in `public/assets/LICENSES.md`) or procedural textures.
@@ -108,6 +122,7 @@ Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `a
 | `GET /api/scenarios/:id/versions`, `POST …/restore` | History (last 50 per scenario). |
 | `GET/POST /api/catalog` | Imported items metadata. |
 | `POST /api/uploads` | Image upload (§6.3). |
+| `GET/POST/PATCH /api/library-requests` | Custom model requests (REQ). Reads also accept `Authorization: Bearer <LIBRARY_REQUESTS_TOKEN>` for Claude sessions. |
 
 All request bodies validated with the shared zod schemas. Responses `Cache-Control: no-store`.
 
@@ -151,3 +166,4 @@ Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-t
 | ADR-5 | No physics engine; 2D footprints per level | Placement and walk need only planar collision. | — |
 | ADR-6 | No third-party images in Git while the repo is public | Copyright; observations kept as text in `references/`. | Repo made private and rights confirmed. |
 | ADR-7 | Venue dimensions edited in data by Claude; no calibration UI | Owner has no measurements; saves build time. | Venue supplies a dimensioned plan. |
+| ADR-8 | One data-driven library for built-in, imported and custom items; parametric generators in code + CC0 GLBs (Poly Haven) | Many variants from few models; custom additions need no UI work. | — |

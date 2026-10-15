@@ -74,7 +74,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
-| LAY-01 | M | 1 | Catalogue: rectangular tables 4–14 seats (length follows seat count), round tables 4–10, sweetheart table (2), cocktail table, dance floor (resizable), DJ booth, food station, cake table, gift/card table. | Each item can be added from the catalogue in one tap. |
+| LAY-01 | M | 1 | Add any library item (`LIB`) in one tap; rectangular table length follows its seat count. | Each step-1 library item can be added and placed. |
 | LAY-02 | M | 1 | Select, drag, rotate (handle + 15° snap; free with modifier), duplicate, delete. Multi-select on desktop. | Works with mouse and touch. |
 | LAY-03 | M | 1 | Chairs are placed automatically around a table from its seat count. Changing seats re-arranges them. | A 12-seat rectangle shows 5 + 5 + 1 + 1 (sides + ends) or 6 + 6 (no ends), owner's choice per table. |
 | LAY-04 | M | 1 | Items cannot overlap fixed architecture or each other; the move is refused with a visible cue, not silently clamped. | Dragging a table into the bar shows a red outline and returns it on release. |
@@ -102,22 +102,50 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | DEC-01 | M | 2 | Linens: white, ivory, champagne, black, navy, bare wood. Apply to one table, selected tables or all. | One tap applies to all; placements unchanged. |
 | DEC-02 | M | 2 | Candles: none, votives, mixed pillars, tall tapers, floating candles in tall glass. Lit by default in evening mode. | Candles glow in evening and are visible but unlit-looking in daylight. |
 | DEC-03 | M | 2 | Florals: none, low cluster, bud vases, tall arrangement, greenery runner. | Heights are realistic (low ≤ 30 cm, tall 80–120 cm). |
-| DEC-04 | M | 2 | Chairs: venue oval-back upholstered (default), wood cross-back, white-and-gold oval-back. | Swap per table or all. |
+| DEC-04 | M | 2 | Chairs: any chair in the library (default: venue oval-back). | Swap per table or all. |
 | DEC-05 | S | 2 | Per-table override and "apply this table's style to all". | — |
 
-### 5.7 Inspiration import — IMP
+### 5.7 Library — LIB
+
+The library is the single catalogue of everything placeable. Built-in items are adjustable models built in code (**P**) or CC0 models adapted to one consistent scale and look (**CC0**). Imported and custom items join the same library.
+
+| ID | Pri | Step | Requirement | Acceptance |
+|---|---|---|---|---|
+| LIB-01 | M | 1 | **Tables** (P): rectangle 4–14 seats, round 4–10, wood farm table, sweetheart, cocktail high-top; step 3 adds cake, gift/card, buffet/station. **Event pieces** step 1: dance floor (wood/white/black, resizable), DJ booth. | Each placeable from the library in one tap. |
+| LIB-02 | M | 1–2 | **Chairs** (P/CC0): venue oval-back (step 1), wood cross-back, white & gold, chiavari gold/silver/clear (step 2); lounge armchair, loveseat (step 3). | — |
+| LIB-03 | M | 1–2 | **Linens** (P): tablecloth lap or floor length in any colour (step 1: white, ivory); runners velvet/chiffon/greenery, napkins, drapery panels (step 2). | — |
+| LIB-04 | M | 2 | **Tableware** (P): chargers gold/silver/glass, plates, glassware set, cutlery, menu card, table number holder; instanced. | 15 fully set tables stay within budgets. |
+| LIB-05 | M | 2 | **Candles** (P/CC0): votives, pillars (3 heights), tapers + candlesticks, candelabra 3/5-arm, hurricanes, floating candles, lanterns. Glow in evening. | — |
+| LIB-06 | M | 2–3 | **Florals** (P): low mound, bud vases, tall arrangement on stand, compote, garland runner (step 2); hanging installation, arch, flower wall, pedestal (step 3). Flower types: rose, peony, hydrangea, ranunculus, baby's breath, eucalyptus, pampas, blossom branches; colours chosen per arrangement. | Read correctly at table distance; generic up close is acceptable. |
+| LIB-07 | M | 3 | **Plants** (CC0/P): fiddle-leaf fig, olive tree, kentia palm, monstera, fern, blossom tree. | — |
+| LIB-08 | M | 3 | **Lights** (P/CC0): fairy/string lights, Edison strands, uplights with colour, pin spots, crystal chandelier, disco ball, DJ lights, projected monogram with custom text. | Visible effect in evening mode. |
+| LIB-09 | M | 3 | **Signs and prints** (P): framed print or poster from the owner's image, welcome sign on easel, seating chart board, neon sign with custom text, table numbers. | Owner image renders on the print; text is editable. |
+| LIB-10 | S | 3 | **More event pieces** (P): stage/riser, DJ booth fronts, backdrop, photo booth, food/dessert stations, bar module, LED dance floor. | — |
+| LIB-11 | M | 1 | Every item has: thumbnail, true metric size, size presets, placement rule (table / floor / wall / ceiling / hanging), a phone-weight version, source and licence; automated checks keep size, detail and licence within bounds. | Catalogue check fails CI on a missing field or a budget breach. |
+| LIB-12 | M | 1 | Items are data-driven: adding an item is a catalogue entry plus a model or a preset of an existing model; no UI code changes. | Documented in the `library-item` skill. |
+
+### 5.8 Inspiration import — IMP
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
 | IMP-01 | M | 3 | Add an image from the phone camera or photo library, by desktop drag-and-drop, or by paste. | Works on iOS Safari and desktop Chrome/Safari. |
-| IMP-02 | M | 3 | Choose what it is: fabric/linen, candle or holder, vase or centrepiece, florals, chair, other. | — |
+| IMP-02 | M | 3 | Choose what it is (library family: linen, candle, vase/centrepiece, florals, chair, table, plant, light, sign/print, other). | — |
 | IMP-03 | M | 3 | Crop to the object. | — |
 | IMP-04 | M | 3 | Set real size in cm (width, height). | — |
-| IMP-05 | M | 3 | The app makes, by type: a **material** (fabric), an **adjustable 3D template** coloured from the photo (candles, vases, centrepieces, florals, chairs), or a **photo preview** standing at real size (other). A **GLB file** imports as an exact model. Every item shows its label: *Material*, *Approximate 3D*, *Photo preview* or *Exact 3D model*. | A photo preview is never labelled as 3D. |
-| IMP-06 | M | 3 | Saved items go to a shared catalogue, placeable on tables or floor, reusable, applicable to all tables. | Survives reload and is visible to the partner. |
+| IMP-05 | M | 3 | The app suggests the closest library model in that family from the photo's colours and proportions; the owner can switch model and adjust its options. Results are labelled: *Material* (fabric), *Approximate 3D* (adjusted library model), *Photo preview* (photo standing at real size, for anything without a fitting model), *Exact 3D model* (imported GLB). | A photo preview is never labelled as 3D. |
+| IMP-06 | M | 3 | Saved items join the shared library, placeable and reusable, applicable to all tables. | Survives reload and is visible to the partner. |
 | IMP-07 | M | 3 | A pasted product link is stored as the item's source only; the app does not fetch web pages. | — |
 
-### 5.8 Scenarios and collaboration — SCN
+### 5.9 Custom model requests — REQ
+
+| ID | Pri | Step | Requirement | Acceptance |
+|---|---|---|---|---|
+| REQ-01 | M | 3 | "Request a custom model" from any imported item or library item: photos, real size, placement, notes. Stored privately in the app. | Request visible to both partners. |
+| REQ-02 | M | 3 | Request status: Requested → In progress → In library, with a link to the resulting item. | — |
+| REQ-03 | M | 3 | Claude can read open requests with a read-only token (`LIBRARY_REQUESTS_TOKEN`, never in Git) or from photos attached in chat, build the item per the `library-item` skill, and deliver it through a pull request with a preview link. | A test request goes from Requested to In library through one pull request. |
+| REQ-04 | M | 3 | Reference photos in requests are never committed; only the models Claude builds are. | — |
+
+### 5.10 Scenarios and collaboration — SCN
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
@@ -131,14 +159,14 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | SCN-08 | M | 1 | Export / import a scenario as a JSON file. | Round trip restores it exactly. |
 | SCN-09 | M | 1 | Work is never lost on refresh or connection loss (local draft until saved). | — |
 
-### 5.9 Export — EXP
+### 5.11 Export — EXP
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
 | EXP-01 | M | 2 | Export the layout for the venue as PNG and PDF: top-down plan, table numbers, seats per table, totals, legend, date, note "approximate dimensions, for discussion". | Readable when printed on Letter paper. |
 | EXP-02 | M | 2 | Save the current view as an image. | — |
 
-### 5.10 Access and platforms — ACC / PLT
+### 5.12 Access and platforms — ACC / PLT
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
@@ -150,7 +178,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 
 ## 6. Non-goals
 
-Photoreal rendering; exact replicas from a single photo; automatic image-to-3D (could be proposed later with cost); real-time co-editing; seating chart; capacity or code compliance; mezzanine/terrace/bistro planning.
+Photoreal rendering; exact replicas from a single photo (exact pieces come through custom requests, `REQ`); automatic paid image-to-3D (could be proposed later with cost); real-time co-editing; seating chart; capacity or code compliance; mezzanine/terrace/bistro planning.
 
 ## 7. Open questions
 
