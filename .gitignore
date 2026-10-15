@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+.env
+.env.*
+!.env.example
+references/PRIVATE_LOCAL_PHOTO_CACHE/
+*.log
