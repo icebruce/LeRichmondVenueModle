@@ -63,9 +63,8 @@ button:disabled {
 }
 .pane-label {
   position: absolute;
-  top: calc(var(--s-7) + var(--s-7));
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: var(--s-5);
+  left: var(--s-4);
   padding: var(--s-1) var(--s-3);
   font: var(--t-footnote);
   pointer-events: none;
