@@ -28,6 +28,7 @@ export default defineConfig({
     {
       name: "desktop",
       testMatch: "e2e/**/*.spec.ts",
+      testIgnore: "**/*.phone.spec.ts",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, launchOptions },
     },
     {

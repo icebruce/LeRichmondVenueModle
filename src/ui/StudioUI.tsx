@@ -1,3 +1,290 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useProgress } from "@react-three/drei";
+import { countLayout } from "../domain/layout/counts";
+import type { Scenario } from "../domain/scenario/schema";
+import { ROTATE_STEP } from "../state/editor";
+import { requestCamera } from "../scene/cameras";
+import { useEditor, useStudio } from "../scene/context";
+import { walkInput } from "../scene/interaction";
+import { Icon, type IconName } from "./icons";
+import { Inspector, LayoutPanel, type Section, VenuePanel } from "./Panels";
+import { Actions, CameraSwitch, ScenarioMenu } from "./TopBar";
+
+const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
+  { id: "venue", label: "Venue", icon: "venue" },
+  { id: "layout", label: "Layout", icon: "layout" },
+];
+
+function Counts() {
+  const { catalog } = useStudio();
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const c = useMemo(
+    () => countLayout(scenario.items, scenario.guests.count, catalog),
+    [scenario.items, scenario.guests.count, catalog],
+  );
+  return (
+    <div className="counts glass" aria-label="Counts" data-testid="counts">
+      <div className="count">
+        <b data-testid="count-tables">{c.tables}</b>
+        <span>tables</span>
+      </div>
+      <div className="count">
+        <b data-testid="count-seats">{c.seats}</b>
+        <span>seats</span>
+      </div>
+      <div className="count">
+        <b data-testid="count-guests">{c.guests}</b>
+        <span>guests</span>
+      </div>
+      <div className={`count ${c.withoutSeat ? "warn" : ""}`}>
+        <b data-testid="count-without">{c.withoutSeat}</b>
+        <span>without a seat</span>
+      </div>
+      <div className="count">
+        <b>≈ {Math.round(c.danceFloorM2)} m²</b>
+        <span>dance floor</span>
+      </div>
+    </div>
+  );
+}
+
+function Toast() {
+  const { editor } = useStudio();
+  const toast = useEditor((s) => s.toast);
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => editor.dismissToast(), toast.undo ? 10000 : 4000);
+    return () => window.clearTimeout(t);
+  }, [toast, editor]);
+  if (!toast) return null;
+  return (
+    <div className="toast" role="status" data-testid="toast">
+      <span>{toast.text}</span>
+      {toast.undo && (
+        <button
+          type="button"
+          className="plain-btn on-dark"
+          onClick={() => {
+            toast.undo?.();
+            editor.dismissToast();
+          }}
+        >
+          Undo
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Touch joystick for walk mode on phones (CAM-03). */
+function Joystick() {
+  const pad = useRef<HTMLDivElement>(null);
+  const [knob, setKnob] = useState<[number, number]>([0, 0]);
+  const end = () => {
+    setKnob([0, 0]);
+    walkInput.setState({ move: [0, 0] });
+  };
+  const move = (e: React.PointerEvent) => {
+    const r = pad.current?.getBoundingClientRect();
+    if (!r || e.buttons === 0) return;
+    const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    const m = Math.min(1, Math.hypot(dx, dy));
+    const a = Math.atan2(dy, dx);
+    setKnob([Math.cos(a) * m * 34, Math.sin(a) * m * 34]);
+    walkInput.setState({ move: [Math.cos(a) * m, -Math.sin(a) * m] });
+  };
+  return (
+    <div
+      ref={pad}
+      className="joystick"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        move(e);
+      }}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+      aria-label="Move"
+      role="application"
+    >
+      <span className="knob" style={{ transform: `translate(${knob[0]}px, ${knob[1]}px)` }} />
+    </div>
+  );
+}
+
+function Loading() {
+  const { active, progress } = useProgress();
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    if (!active && progress >= 100) {
+      const t = window.setTimeout(() => setShown(false), 400);
+      return () => window.clearTimeout(t);
+    }
+  }, [active, progress]);
+  if (!shown) return null;
+  return (
+    <div className={`loading ${!active && progress >= 100 ? "done" : ""}`} aria-live="polite">
+      <span className="wordmark">Richmond Studio</span>
+      <span className="loading-text">Setting up the room…</span>
+      <span className="loading-bar">
+        <span style={{ width: `${Math.max(8, progress)}%` }} />
+      </span>
+    </div>
+  );
+}
+
+function useShortcuts() {
+  const { editor } = useStudio();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable]")) return;
+      const mod = e.metaKey || e.ctrlKey;
+      const st = editor.store.getState();
+      const sel = st.selection;
+      if (mod && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) editor.redo();
+        else editor.undo();
+      } else if (mod && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        editor.redo();
+      } else if (mod && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        editor.duplicateSelection();
+      } else if ((e.key === "Delete" || e.key === "Backspace") && sel.length) {
+        e.preventDefault();
+        editor.deleteSelection();
+      } else if (e.key === "Escape") {
+        if (st.camera === "walk") editor.setCamera("dollhouse");
+        else editor.select([]);
+      } else if (st.camera !== "walk" && (e.key === "r" || e.key === "R") && sel.length) {
+        editor.rotateItems(sel, e.shiftKey ? -ROTATE_STEP : ROTATE_STEP);
+      } else if (st.camera !== "walk" && e.key.startsWith("Arrow") && sel.length) {
+        e.preventDefault();
+        const d = e.shiftKey ? 1 : 0.1;
+        const nudge: Record<string, [number, number]> = {
+          ArrowLeft: [-d, 0],
+          ArrowRight: [d, 0],
+          ArrowUp: [0, -d],
+          ArrowDown: [0, d],
+        };
+        const [dx, dz] = nudge[e.key] ?? [0, 0];
+        const items = editor.active().items.filter((i) => sel.includes(i.id));
+        editor.moveItems(items.map((i) => ({ id: i.id, x: i.x + dx, z: i.z + dz })));
+      } else if (!mod && ["1", "2", "3"].includes(e.key)) {
+        editor.setCamera((["dollhouse", "plan", "walk"] as const)[Number(e.key) - 1] ?? "dollhouse");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editor]);
+}
+
+type Detent = "peek" | "half" | "full";
+
 export function StudioUI() {
-  return null;
+  const selection = useEditor((s) => s.selection);
+  const camera = useEditor((s) => s.camera);
+  const [section, setSection] = useState<Section | null>("layout");
+  const [detent, setDetent] = useState<Detent>("peek");
+  const drag = useRef<number | null>(null);
+  useShortcuts();
+
+  const hasSelection = selection.length > 0;
+  const showPanel = camera !== "walk" && (hasSelection || section !== null);
+  const content = hasSelection ? (
+    <Inspector />
+  ) : section === "venue" ? (
+    <VenuePanel />
+  ) : section === "layout" ? (
+    <LayoutPanel />
+  ) : null;
+
+  const pick = (id: Section) => {
+    setSection((s) => (s === id && window.matchMedia("(min-width: 768px)").matches ? null : id));
+    setDetent((d) => (d === "peek" ? "half" : d));
+  };
+
+  return (
+    <div className="ui">
+      <header className="topbar">
+        <ScenarioMenu />
+        <CameraSwitch />
+        <Actions />
+      </header>
+
+      <nav className="rail" aria-label="Sections">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={section === s.id ? "on" : ""}
+            aria-pressed={section === s.id}
+            onClick={() => pick(s.id)}
+            data-testid={`section-${s.id}`}
+          >
+            <Icon name={s.icon} />
+            <span>{s.label}</span>
+          </button>
+        ))}
+        <button type="button" onClick={() => requestCamera(null)} title="Reset view">
+          <Icon name="camera" />
+          <span>Reset view</span>
+        </button>
+      </nav>
+
+      {showPanel && (
+        <aside
+          className={`panel detent-${hasSelection && detent === "peek" ? "half" : detent}`}
+          aria-label={hasSelection ? "Inspector" : "Panel"}
+        >
+          <button
+            type="button"
+            className="grabber"
+            aria-label="Resize panel"
+            onClick={() => setDetent((d) => (d === "peek" ? "half" : d === "half" ? "full" : "peek"))}
+            onPointerDown={(e) => (drag.current = e.clientY)}
+            onPointerUp={(e) => {
+              if (drag.current === null) return;
+              const dy = e.clientY - drag.current;
+              drag.current = null;
+              if (dy < -40) setDetent((d) => (d === "peek" ? "half" : "full"));
+              if (dy > 40) setDetent((d) => (d === "full" ? "half" : "peek"));
+            }}
+          />
+          {content}
+        </aside>
+      )}
+
+      <Counts />
+      {camera === "walk" && (
+        <>
+          <p className="walk-hint glass">
+            <span className="desktop-only">Click to look around · WASD or arrows to move · Esc to stop</span>
+            <span className="touch-only">Drag to look · use the pad to move</span>
+          </p>
+          <Joystick />
+        </>
+      )}
+
+      <nav className="tabbar" aria-label="Sections">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={section === s.id ? "on" : ""}
+            aria-pressed={section === s.id}
+            onClick={() => pick(s.id)}
+          >
+            <Icon name={s.icon} />
+            <span>{s.label}</span>
+          </button>
+        ))}
+      </nav>
+      <Toast />
+      <Loading />
+    </div>
+  );
 }

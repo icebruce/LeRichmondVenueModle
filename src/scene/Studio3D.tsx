@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
@@ -7,7 +7,7 @@ import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { CameraRig } from "./cameras";
+import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio } from "./context";
 import { Items } from "./items/Items";
 import { useMaterials } from "./materials";
@@ -140,6 +140,27 @@ function Effects({ evening, quality }: { evening: boolean; quality: Quality }) {
   );
 }
 
+type ProjectFn = (x: number, y: number, z: number) => [number, number];
+
+/** Test hook: screen position of a room point, from the live camera (Playwright drags with real pointers). */
+function TestHooks() {
+  const get = useThree((s) => s.get);
+  useEffect(() => {
+    const w = window as unknown as { __project?: ProjectFn };
+    const fn: ProjectFn = (x, y, z) => {
+      const { camera, size } = get();
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      return [((v.x + 1) / 2) * size.width, ((1 - v.y) / 2) * size.height];
+    };
+    w.__project = fn;
+    (window as unknown as { __rig?: typeof rig }).__rig = rig;
+    return () => {
+      if (w.__project === fn) delete w.__project;
+    };
+  }, [get]);
+  return null;
+}
+
 function Scene({ quality }: { quality: Quality }) {
   const { venue } = useStudio();
   const m = useMaterials();
@@ -168,6 +189,7 @@ function Scene({ quality }: { quality: Quality }) {
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
       <Items m={m} evening={evening} />
       <CameraRig />
+      <TestHooks />
       <Effects evening={evening} quality={quality} />
     </>
   );
@@ -178,7 +200,7 @@ export function Studio3D({ studio, onReady }: { studio: Studio; onReady?: () => 
   const dollhouse = studio.venue.data.cameraPresets.dollhouse;
   return (
     <Canvas
-      shadows="soft"
+      shadows
       dpr={quality === "high" ? [1, 2] : [1, 1.5]}
       gl={{
         antialias: false,

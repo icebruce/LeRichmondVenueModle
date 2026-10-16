@@ -33,13 +33,15 @@ export function requestCamera(key: string | null) {
   cameraCommands.setState((s) => ({ request: { key, n: s.request.n + 1 } }));
 }
 
-const rig = { tweening: false };
+/** Whether a camera animation is running (read by walk controls and test hooks). */
+export const rig = { tweening: false };
 
 export function CameraRig() {
   const { venue } = useStudio();
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useInteraction((s) => s.controlsEnabled);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
@@ -57,9 +59,16 @@ export function CameraRig() {
     const p = key in poses ? poses[key as CameraMode] : presets[key];
     if (!p) return;
     const target = controls.current?.target ?? new THREE.Vector3();
+    const to = presetPose(p);
+    // Narrow (portrait) screens: pull overview cameras back so the whole room fits.
+    const aspect = size.width / Math.max(1, size.height);
+    if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
+      const k = Math.pow(1.3 / aspect, 0.85);
+      to.position.sub(to.target).multiplyScalar(k).add(to.target);
+    }
     tween.current = {
       from: { position: camera.position.clone(), target: target.clone() },
-      to: presetPose(p),
+      to,
       t: 0,
       fov: [camera.fov, p.fov],
     };

@@ -195,7 +195,16 @@ function Outline({ item, valid, y }: { item: Item; valid: boolean; y: number }) 
     const fp = localFootprint(shapeOf(item, catalog));
     return [...fp, fp[0] as [number, number]].map(([x, z]) => new THREE.Vector3(x, y + 0.02, z));
   }, [item, catalog, y]);
-  return <Line points={pts} color={valid ? "#c9a27f" : "#d9483b"} lineWidth={2.5} />;
+  return (
+    <Line
+      points={pts}
+      color={valid ? "#c9a27f" : "#d9483b"}
+      lineWidth={3}
+      depthTest={false}
+      renderOrder={10}
+      transparent
+    />
+  );
 }
 
 function useFloorPointer() {
@@ -221,6 +230,7 @@ export function Items({ m, evening }: { m: Materials; evening: boolean }) {
   const placed = usePlaced(scenario);
   const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const toPlane = useFloorPointer();
+  const getThree = useThree((s) => s.get);
   const press = useRef<{ x: number; y: number; timer: number | null; started: boolean } | null>(null);
 
   const linenMat = useMemo(() => {
@@ -240,6 +250,9 @@ export function Items({ m, evening }: { m: Materials; evening: boolean }) {
     y: number,
     pivot: [number, number],
   ) {
+    // Stop the camera controls from also handling this gesture (they listen on the same canvas).
+    const controls = getThree().controls as { enabled?: boolean } | null;
+    if (controls) controls.enabled = false;
     const start = toPlane(e.clientX, e.clientY, y);
     if (!start) return;
     const base = scenario.items.filter((i) => ids.includes(i.id));

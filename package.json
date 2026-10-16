@@ -15,11 +15,12 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:library",
-    "check:library": "node scripts/check-library.mjs",
-    "check:trace": "node scripts/check-traceability.mjs",
+    "check:library": "node scripts/check-library.mjs --thumbs",
+    "check:trace": "node scripts/check-traceability.mjs --step 1",
     "test:e2e": "playwright test --project=desktop --project=phone",
     "test:visual": "playwright test --project=visual",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "library:thumbs": "node scripts/render-thumbnails.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -2,7 +2,7 @@
 :root {
   --bg: #f7f7f4;
   --surface: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.74);
+  --surface-glass: rgba(255, 255, 255, 0.88);
   --sunk: #eeede8;
   --ink: #202522;
   --ink-2: #5c605b;
@@ -15,6 +15,9 @@
   --advisory: #b7791f;
   --advisory-soft: #fbf1df;
   --blocked: #c2412d;
+  --blocked-soft: #fbe9e6;
+  --toast-bg: rgba(32, 37, 34, 0.92);
+  --accent-on-dark: #e7c9a5;
   --ok: #3f7d58;
 
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
