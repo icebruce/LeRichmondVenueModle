@@ -115,7 +115,23 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
   );
 }
 
-type Group = { key: string; prim: Prim; slot: Slot };
+type Group = { key: string; prim: Prim; slot: Slot; solid: boolean };
+
+/**
+ * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance, so the
+ * heaviest décor stays inside the phone draw-call budget (ARCHITECTURE §7). Metal sheen is lost.
+ */
+const SOLID: Partial<Record<Slot, string>> = {
+  wax: "#f3ecdf",
+  brass: "#b08d48",
+  silver: "#c9cbcc",
+  black: "#222222",
+  ceramic: "#f7f5f0",
+  paper: "#f4efe4",
+  flower: "#ffffff",
+  leaf: "#56704a",
+  fabric: "#ffffff",
+};
 
 /**
  * Candles, florals and place settings on every table (DEC-02..03, LIB-04..06): world-space
@@ -146,6 +162,11 @@ export function TableDecor({
     [placed, scenario.style, catalog],
   );
   const prims = useMemo(() => primitives(low), [low]);
+  const solidMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.15 }),
+    [],
+  );
+  useEffect(() => () => solidMaterial.dispose(), [solidMaterial]);
   const materials = useMemo<Record<Slot, THREE.Material>>(
     () => ({
       wax: new THREE.MeshStandardMaterial({
@@ -185,23 +206,28 @@ export function TableDecor({
     for (const { p, parts } of perItem) {
       for (const part of parts) {
         if (part.slot === "flame" && !evening) continue;
-        const key = `${part.prim}:${part.slot}`;
+        const solid = low && SOLID[part.slot] !== undefined;
+        const key = `${part.prim}:${solid ? "solid" : part.slot}`;
         let g = map.get(key);
-        if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, parts: [] }));
+        if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, solid, parts: [] }));
         g.parts.push({ p, part });
       }
     }
     return [...map.values()];
-  }, [perItem, evening]);
+  }, [perItem, evening, low]);
   const meshes = useMemo(
     () =>
       groups.map((g) => {
-        const mesh = new THREE.InstancedMesh(prims[g.prim], materials[g.slot], Math.max(1, g.parts.length));
+        const mesh = new THREE.InstancedMesh(
+          prims[g.prim],
+          g.solid ? solidMaterial : materials[g.slot],
+          Math.max(1, g.parts.length),
+        );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
         mesh.castShadow = !low && !["flame", "glass", "water", "sheer"].includes(g.slot);
         return { g, mesh };
       }),
-    [groups, prims, materials, low],
+    [groups, prims, materials, solidMaterial, low],
   );
   useEffect(
     () => () => {
@@ -237,6 +263,7 @@ export function TableDecor({
     const table = new THREE.Matrix4();
     const out = new THREE.Matrix4();
     const colour = new THREE.Color();
+    const tint = new THREE.Color();
     for (const { g, mesh } of meshes) {
       g.parts.forEach(({ p, part }, i) => {
         const item = moved(p.item, drag);
@@ -249,7 +276,12 @@ export function TableDecor({
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
         mesh.setMatrixAt(i, out);
-        if (part.colour) mesh.setColorAt(i, colour.set(part.colour));
+        if (g.solid) {
+          // Solid batch: the slot's own colour, times the part's (flowers, napkins, leaf tints).
+          colour.set(SOLID[part.slot] ?? "#ffffff");
+          if (part.colour) colour.multiply(tint.set(part.colour));
+          mesh.setColorAt(i, colour);
+        } else if (part.colour) mesh.setColorAt(i, colour.set(part.colour));
       });
       mesh.count = g.parts.length;
       mesh.instanceMatrix.needsUpdate = true;

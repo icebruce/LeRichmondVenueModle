@@ -4,6 +4,7 @@ import { Html, Line } from "@react-three/drei";
 import { advise } from "../../domain/layout/advisories";
 import { pointInPolygon } from "../../domain/geometry";
 import type { Scenario } from "../../domain/scenario/schema";
+import { viewStore } from "../../state/view";
 import { useEditor, useStudio, useView } from "../context";
 
 /**
@@ -13,21 +14,26 @@ import { useEditor, useStudio, useView } from "../context";
 export function Advisories() {
   const { venue, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
-  const drag = useView((s) => s.drag);
+  // While dragging, re-check only when the move changes by ~10 cm or ~5°, not on every pointer move.
+  const dragKey = useView(({ drag: d }) =>
+    d
+      ? `${d.ids.join(",")}|${Math.round(d.dx * 10)}|${Math.round(d.dz * 10)}|${Math.round(d.dRot * 12)}`
+      : "",
+  );
   const amber = useMemo(
     () => getComputedStyle(document.documentElement).getPropertyValue("--advisory").trim(),
     [],
   );
   const list = useMemo(() => {
-    const items = drag
+    const d = viewStore.getState().drag;
+    const items = d
       ? scenario.items.map((it) =>
-          drag.ids.includes(it.id)
-            ? { ...it, x: it.x + drag.dx, z: it.z + drag.dz, rotY: it.rotY + drag.dRot }
-            : it,
+          d.ids.includes(it.id) ? { ...it, x: it.x + d.dx, z: it.z + d.dz, rotY: it.rotY + d.dRot } : it,
         )
       : scenario.items;
     return advise(items, scenario.guests.count, scenario.thresholds, venue, catalog, scenario.venueToggles);
-  }, [scenario, drag, venue, catalog]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenario, dragKey, venue, catalog]);
   const floorY = (x: number, z: number) =>
     (pointInPolygon([x, z], venue.raised.outline) ? venue.raised.height : 0) + 0.03;
   // Edge pairs of every outline, drawn as one line-segments object (one draw call).

@@ -128,7 +128,11 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
         <div className="studio">
           <div
             className={`viewport ${compare ? "split" : ""}`}
-            style={compare ? { top: insetTop, right: insetRight, bottom: insetBottom } : undefined}
+            style={
+              compare
+                ? { top: insetTop, right: insetRight && insetRight + 12, bottom: insetBottom }
+                : undefined
+            }
           >
             <div className="pane">
               <Studio3D studio={studio} />

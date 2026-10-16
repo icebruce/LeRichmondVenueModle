@@ -12,7 +12,8 @@ const launchOptions = {
 export default defineConfig({
   testDir: "tests",
   testMatch: ["e2e/**/*.spec.ts", "visual/**/*.spec.ts"],
-  timeout: 90_000,
+  // Software rendering on 2-core CI runners is slow; a drag test can take well over a minute there.
+  timeout: 150_000,
   expect: { timeout: 20_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
   fullyParallel: false,
   workers: 1,

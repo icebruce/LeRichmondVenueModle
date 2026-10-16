@@ -285,9 +285,9 @@ export function StudioUI() {
   const hasSelection = selection.length > 0;
   const showPanel = camera !== "walk" && (hasSelection || section !== null);
 
-  // Desktop: the camera frames the room beside the panel (340 px + margin), not under it.
+  // Desktop: the camera frames the room beside the panel (340 px, its border and margin), not under it.
   useEffect(() => {
-    viewStore.setState({ insetRight: showPanel && !phone ? 352 : 0 });
+    viewStore.setState({ insetRight: showPanel && !phone ? 354 : 0 });
   }, [showPanel, phone]);
 
   // Phone: the camera centres the room between the top bar and the sheet (and the floating Undo
