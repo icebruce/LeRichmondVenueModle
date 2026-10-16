@@ -66,6 +66,26 @@
       "budget": { "triangles": 1200, "phoneTriangles": 300, "drawCalls": 3 }
     },
     {
+      "id": "candle-sand-trio",
+      "name": "Candles in glass with eucalyptus",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.36, "d": 0.36, "h": 0.3 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "sandCylinders", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "sandCylinders", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-sand-trio.webp",
+      "source": {
+        "type": "custom",
+        "origin": "Richmond Studio generator: sandCylinders, from the couple's request photo",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 2800, "phoneTriangles": 1250, "drawCalls": 5 },
+      "requestId": "req-f6462824"
+    },
+    {
       "id": "candelabra-3",
       "name": "Candelabra, 3 arms",
       "family": "candle",

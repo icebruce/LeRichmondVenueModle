@@ -42,6 +42,27 @@ describe("décor", () => {
     expect(decor({ candles: "none" })).toEqual([]);
   });
 
+  test("[REQ-03] the requested candles: three glass cylinders of 20, 25 and 30 cm on eucalyptus, within budget", () => {
+    const e = catalog.get("candle-sand-trio");
+    expect(e?.requestId).toBe("req-f6462824");
+    const parts = decor({ candles: "candle-sand-trio", florals: "none" });
+    const glass = parts.filter((p) => p.slot === "glass").map((p) => Math.round(p.sy * 100));
+    expect(glass.sort()).toEqual([20, 25, 30]);
+    expect(parts.filter((p) => p.slot === "flame")).toHaveLength(3);
+    expect(parts.some((p) => p.slot === "leaf") && parts.some((p) => p.slot === "flower")).toBe(true);
+    expect(Math.abs(heightOf(parts) - (e?.sizeM.h ?? 0))).toBeLessThanOrEqual(0.01);
+    const reach = Math.max(...parts.map((p) => Math.max(Math.abs(p.x) + p.sx, Math.abs(p.z) + p.sz)));
+    expect(2 * reach).toBeLessThanOrEqual((e?.sizeM.w ?? 0) + 0.01);
+    // Triangles per primitive as Decor.tsx builds them, desktop and phone.
+    const tris = (q: Record<string, number>) => parts.reduce((n, p) => n + (q[p.prim] ?? 0), 0);
+    expect(tris({ cylinder: 56, sphere: 108, cone: 28, box: 12 })).toBeLessThanOrEqual(
+      e?.budget.triangles ?? 0,
+    );
+    expect(tris({ cylinder: 32, sphere: 36, cone: 16, box: 12 })).toBeLessThanOrEqual(
+      e?.budget.phoneTriangles ?? 0,
+    );
+  });
+
   test("[LIB-04] place settings: a charger, plate, two glasses and cutlery per seat", () => {
     const parts = decor({ charger: "gold" }, true);
     expect(parts.filter((p) => p.slot === "ceramic")).toHaveLength(8);

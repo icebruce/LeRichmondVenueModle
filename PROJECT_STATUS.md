@@ -60,7 +60,7 @@ Where things stand:
 
 To do, in order:
 
-1. Owner: send one real custom request from the app (Library → request a custom piece). Claude reads it with the token, builds it per the `library-item` skill and delivers it through a PR (REQ-03 acceptance).
+1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "In library" (REQ-03 acceptance).
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
@@ -92,6 +92,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Main chandelier position (z) still unconfirmed.
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
+- Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET, LIBRARY_REQUESTS_TOKEN. Token read verified from here; the first shared save and an import seen on the second device are owner checks (Claude cannot sign in).
 - Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
