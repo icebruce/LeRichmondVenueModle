@@ -15,9 +15,7 @@ import { requestCamera, viewStore } from "../state/view";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
 import { useServices } from "./services";
 import { Icon } from "./icons";
-import { useStore } from "zustand";
 import { RESULT_LABELS } from "../domain/library/imported";
-import { libraryStore } from "../state/library";
 
 export type Section = "venue" | "layout" | "people" | "decor" | "inspiration" | "compare";
 
@@ -432,7 +430,6 @@ const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
 
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
-  const imports = useStore(libraryStore, (s) => s.imports);
   const snapping = useEditor((s) => s.snapping);
   const placeable = useMemo(
     () =>
@@ -446,9 +443,7 @@ export function LayoutPanel() {
           !(e.model.kind === "parametric" && e.model.generator === "photo" && !e.model.params.image) &&
           !e.imported?.archived,
       ),
-    // The catalogue grows in place when an import arrives.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [catalog, imports],
+    [catalog],
   );
   const [category, setCategory] = useState<Family>(lastCategory);
   const shown = placeable.filter((e) => e.family === category);
@@ -551,10 +546,21 @@ export function Chips({
   /** Always wrap (navigation, where a hidden choice must never be missed). */
   wrap?: boolean;
 }) {
+  // A sideways-scrolling row keeps its chosen chip in view (an imported item comes last).
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const r = row.current;
+    const on = r?.querySelector<HTMLElement>(".chip.on");
+    if (!r || !on || r.scrollWidth <= r.clientWidth) return;
+    const left = on.offsetLeft - r.offsetLeft;
+    if (left < r.scrollLeft || left + on.offsetWidth > r.scrollLeft + r.clientWidth)
+      r.scrollLeft = left - (r.clientWidth - on.offsetWidth) / 2;
+  }, [value]);
   return (
     <div className="field">
       <span className="row-label">{label}</span>
       <div
+        ref={row}
         className={`chips ${!wrap && options.length > 5 ? "chips-scroll" : ""}`}
         role="radiogroup"
         aria-label={label}
@@ -590,7 +596,6 @@ export function DecorPanel() {
   const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
   const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
   const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
-  useStore(libraryStore, (s) => s.imports);
   // Imported items join these lists with their label (IMP-06); removed ones only stay where used.
   const family = (f: string, generator?: string) =>
     [...catalog.values()]
@@ -1408,20 +1413,6 @@ export function Inspector() {
         </p>
       ))}
       {fields}
-      {!many && entry && (
-        <button
-          type="button"
-          className="plain-btn"
-          onClick={() => {
-            // The form opens in Inspiration, where requests are listed (REQ-01).
-            editor.select([]);
-            viewStore.setState({ requestFor: entry.id });
-          }}
-          data-testid="inspector-request"
-        >
-          Request a custom model
-        </button>
-      )}
       {locked && (
         <p className="hint">
           Fixed at {venue.data.spots[String(item.options.spot)]?.label}. Choose “Anywhere” to move it.
@@ -1432,6 +1423,20 @@ export function Inspector() {
           ≈ {item.x.toFixed(1)} m from the glass-door wall, {item.z.toFixed(1)} m from the back-bar wall.
           {touch ? "" : " Arrow keys nudge 10 cm."}
         </p>
+      )}
+      {!many && entry && (
+        <button
+          type="button"
+          className="plain-btn inspector-foot"
+          onClick={() => {
+            // The form opens in Inspiration, where requests are listed (REQ-01).
+            editor.select([]);
+            viewStore.setState({ requestFor: entry.id });
+          }}
+          data-testid="inspector-request"
+        >
+          Request a custom model
+        </button>
       )}
     </div>
   );

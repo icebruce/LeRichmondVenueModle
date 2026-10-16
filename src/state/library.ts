@@ -12,12 +12,14 @@ export type LibraryState = {
 
 export const libraryStore = createStore<LibraryState>(() => ({ imports: [], requests: [] }));
 
-/** Merge in imports from elsewhere (the device, the partner): new ones join, removal sticks. */
+const changed = (i: Imported) => i.updatedAt ?? i.createdAt;
+
+/** Merge in imports from elsewhere (the device, the partner): new ones join; the latest removal or Undo wins. */
 export function mergeImports(mine: readonly Imported[], theirs: readonly Imported[]): Imported[] {
   const out = new Map(mine.map((i) => [i.id, i]));
   for (const t of theirs) {
     const m = out.get(t.id);
-    out.set(t.id, m ? { ...m, archived: m.archived || t.archived } : t);
+    if (!m || changed(t) > changed(m)) out.set(t.id, t);
   }
   return [...out.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }

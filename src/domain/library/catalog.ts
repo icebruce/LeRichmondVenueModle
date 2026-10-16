@@ -1,4 +1,3 @@
-import { placeholderEntry } from "./imported";
 import { type LibraryEntry, libraryFileSchema } from "./schema";
 
 export type Catalog = ReadonlyMap<string, LibraryEntry>;
@@ -33,4 +32,24 @@ export function resolveOptions(e: LibraryEntry, own: Record<string, unknown>): R
   for (const o of e.options)
     if (o.type === "text") resolved[o.key] = String(resolved[o.key] ?? o.default).slice(0, o.maxLength);
   return resolved;
+}
+
+/** Stand-in for an imported item this device has not loaded yet: a plain panel, never an error. */
+export function placeholderEntry(id: string, name = "Imported item"): LibraryEntry {
+  return {
+    id,
+    name,
+    family: "photo",
+    placement: "floor",
+    sizeM: { w: 0.6, d: 0.25, h: 0.9 },
+    sizePresets: [],
+    model: { kind: "parametric", generator: "photo", params: { kind: "standee", w: 0.6, h: 0.9 } },
+    lowModel: { kind: "parametric", generator: "photo", params: { kind: "standee", w: 0.6, h: 0.9 } },
+    options: [],
+    seats: false,
+    thumbnail: "thumbs/photo-standee.webp",
+    source: { type: "custom", origin: "The couple's photo", licence: "The couple's own photo" },
+    budget: { triangles: 20, phoneTriangles: 20, drawCalls: 2 },
+    imported: { result: "photo", imageId: "" },
+  };
 }

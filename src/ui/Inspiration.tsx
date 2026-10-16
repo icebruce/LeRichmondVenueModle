@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
-import { IMPORT_TYPES, RESULT_LABELS, importKind, importParams, suggest } from "../domain/library/imported";
+import {
+  IMPORT_TYPES,
+  RESULT_LABELS,
+  importKind,
+  importAdjusts,
+  importParams,
+  requestStatus,
+  suggest,
+} from "../domain/library/imported";
 import {
   type CustomRequest,
   type ImportType,
@@ -10,6 +18,7 @@ import {
   importedSchema,
 } from "../domain/library/schema";
 import type { TableStyle } from "../domain/scenario/schema";
+import { isTable } from "../domain/layout/items";
 import { libraryStore } from "../state/library";
 import { viewStore } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
@@ -129,7 +138,7 @@ export function InspirationPanel() {
               >
                 <span className="library-text">
                   <span className="library-name">{r.name}</span>
-                  <span className="library-caption">{statusText(r, catalog)}</span>
+                  <span className="library-caption">{requestStatus(r, catalog).label}</span>
                 </span>
                 <Icon name="chevron" size={16} className="library-add rot-left" />
               </button>
@@ -141,14 +150,6 @@ export function InspirationPanel() {
       )}
     </div>
   );
-}
-
-const inLibrary = (r: CustomRequest, catalog: ReadonlyMap<string, LibraryEntry>) =>
-  [...catalog.values()].find((e) => e.requestId === r.id);
-
-function statusText(r: CustomRequest, catalog: ReadonlyMap<string, LibraryEntry>): string {
-  if (inLibrary(r, catalog)) return "In library";
-  return r.status === "in_progress" ? "In progress" : "Requested";
 }
 
 function newRequest(
@@ -190,6 +191,8 @@ type Draft = {
 };
 
 const FULL: Crop = { x: 0, y: 0, w: 1, h: 1 };
+/** The first crop sits a little inside the photo, so the frame and its dimmed surround show at once. */
+const START: Crop = { x: 0.08, y: 0.08, w: 0.84, h: 0.84 };
 
 function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
   const { catalog, editor } = useStudio();
@@ -200,7 +203,7 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
     preview: null,
     link: "",
     type: null,
-    crop: FULL,
+    crop: START,
     w: "",
     h: "",
   });
@@ -213,7 +216,7 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
     try {
       const bitmap = await library.decode(file);
       if (draft.preview) URL.revokeObjectURL(draft.preview);
-      patch({ file: bitmap, preview: URL.createObjectURL(file), crop: FULL });
+      patch({ file: bitmap, preview: URL.createObjectURL(file), crop: START });
       setStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That file isn't a photo.");
@@ -230,11 +233,13 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
     return () => window.removeEventListener("paste", onPaste);
   });
   useEffect(() => () => void (draft.preview && URL.revokeObjectURL(draft.preview)), [draft.preview]);
+  // A phone photo decoded at full size is large: free it once replaced or the wizard closes.
+  useEffect(() => () => draft.file?.close(), [draft.file]);
 
   const back = () => (step === 1 ? onDone(null) : setStep(step - 1));
   return (
     <div className="panel-body" data-testid="add-inspiration-panel">
-      <div className="panel-head">
+      <div className="panel-head sticky-head">
         <button type="button" className="plain-btn" onClick={back} data-testid="import-back">
           <Icon name="chevron" size={16} className="rot-right" /> {step === 1 ? "Cancel" : "Back"}
         </button>
@@ -245,7 +250,7 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
         <>
           <h2 className="panel-title">What is it?</h2>
           <Chips
-            label="It is"
+            label="Choose one"
             options={IMPORT_TYPES.map((k) => ({ id: k.id, name: k.name }))}
             value={draft.type ?? ""}
             onPick={(id) => patch({ type: id as ImportType })}
@@ -253,15 +258,17 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
             wrap
           />
           <img className="import-photo" src={draft.preview} alt="Your photo" />
-          <button
-            type="button"
-            className="btn primary"
-            disabled={!draft.type}
-            onClick={() => setStep(3)}
-            data-testid="import-next"
-          >
-            Next
-          </button>
+          <div className="sticky-actions">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={!draft.type}
+              onClick={() => setStep(3)}
+              data-testid="import-next"
+            >
+              Next
+            </button>
+          </div>
         </>
       )}
       {step === 3 && draft.preview && draft.type && (
@@ -270,9 +277,15 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
       {step === 4 && draft.file && draft.type && (
         <ResultStep
           draft={draft}
-          onSave={async (item, blob) => {
+          onSave={async (item, blob, then) => {
             await library.addImport(item, blob);
-            editor.notify(`“${item.name}” is in your library`);
+            const e = catalog.get(item.id);
+            const key = e ? styleKeyOf(e) : null;
+            if (then === "use" && key) {
+              editor.applyStyle("all", { [key]: item.id } as Partial<TableStyle>);
+              editor.notify(`“${item.name}” is in your library and on every table`);
+            } else if (then === "place") editor.addItem(item.id, viewStore.getState().focus);
+            else editor.notify(`“${item.name}” is in your library`);
             onDone(item.id);
           }}
           newId={library.newId}
@@ -298,7 +311,7 @@ function PhotoStep({
   return (
     <>
       <h2 className="panel-title">Add inspiration</h2>
-      <label className="btn primary file-btn">
+      <label className="btn primary file-btn camera-only">
         <Icon name="camera" size={16} /> Take a photo
         <input
           type="file"
@@ -307,7 +320,7 @@ function PhotoStep({
           onChange={(e) => void take(e.currentTarget.files?.[0])}
         />
       </label>
-      <label className="btn file-btn">
+      <label className="btn file-btn primary-on-desktop">
         <Icon name="upload" size={16} /> Choose a photo
         <input
           type="file"
@@ -332,7 +345,7 @@ function PhotoStep({
         Or drag a photo here, or paste a screenshot.
       </div>
       <label className="field">
-        <span className="row-label">Product link (kept as the source; never opened by the app)</span>
+        <span className="row-label">Product link (saved as the source)</span>
         <input
           className="text-input wide"
           type="url"
@@ -343,6 +356,7 @@ function PhotoStep({
           onChange={(e) => patch({ link: e.currentTarget.value })}
           data-testid="import-link"
         />
+        <span className="hint">The app never opens it.</span>
       </label>
       {error && (
         <p className="hint error" role="alert">
@@ -367,7 +381,7 @@ function CropStep({
 }) {
   const area = useRef<HTMLDivElement>(null);
   const aspect = draft.file ? (draft.crop.h * draft.file.height) / (draft.crop.w * draft.file.width) : 1;
-  // A typical width for this kind of thing, and a height that follows the crop.
+  // A starting size: a typical width for this kind of thing, and the crop's height to match.
   const typical = useMemo(() => {
     const fits = [...catalog.values()].filter(
       (e) => !e.imported && importKind(draft.type ?? "other").fits(e),
@@ -416,26 +430,46 @@ function CropStep({
     window.addEventListener("pointerup", up);
   };
   const c = draft.crop;
+  const at = { left: `${c.x * 100}%`, top: `${c.y * 100}%`, width: `${c.w * 100}%`, height: `${c.h * 100}%` };
+  // Keyboard (DESIGN_GUIDE §10): arrows move the frame by 2 %; with Shift they resize it.
+  const keys = (e: React.KeyboardEvent) => {
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const [mx = 0, my = 0] = d;
+    const [dx, dy] = [mx * 0.02, my * 0.02];
+    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+    patch({
+      crop: e.shiftKey
+        ? { ...c, w: clamp(c.w + dx, 0.08, 1 - c.x), h: clamp(c.h + dy, 0.08, 1 - c.y) }
+        : { ...c, x: clamp(c.x + dx, 0, 1 - c.w), y: clamp(c.y + dy, 0, 1 - c.h) },
+    });
+  };
   const valid = Number(draft.w) >= 1 && Number(draft.h) >= 1;
   return (
     <>
       <h2 className="panel-title">Crop and size</h2>
-      <div className="crop-area" ref={area}>
-        <img src={draft.preview ?? ""} alt="Your photo" draggable={false} />
-        <div
-          className="crop-box"
-          style={{
-            left: `${c.x * 100}%`,
-            top: `${c.y * 100}%`,
-            width: `${c.w * 100}%`,
-            height: `${c.h * 100}%`,
-          }}
-          onPointerDown={drag("move")}
-          data-testid="crop-box"
-        >
-          {(["nw", "ne", "sw", "se"] as const).map((k) => (
-            <span key={k} className={`crop-handle ${k}`} onPointerDown={drag(k)} aria-hidden="true" />
-          ))}
+      {/* The dimmed surround is clipped to the photo; the frame and its handles sit on a layer above it. */}
+      <div className="crop-area">
+        <div className="crop-photo">
+          <img src={draft.preview ?? ""} alt="Your photo" draggable={false} />
+          <div className="crop-dim" style={at} />
+        </div>
+        <div className="crop-layer" ref={area}>
+          <div
+            className="crop-box"
+            style={at}
+            onPointerDown={drag("move")}
+            onKeyDown={keys}
+            tabIndex={0}
+            role="group"
+            aria-label="Crop frame. Arrow keys move it; Shift and arrow keys resize it."
+            data-testid="crop-box"
+          >
+            {(["nw", "ne", "sw", "se"] as const).map((k) => (
+              <span key={k} className={`crop-handle ${k}`} onPointerDown={drag(k)} aria-hidden="true" />
+            ))}
+          </div>
         </div>
       </div>
       <p className="hint">Drag the frame or its corners so it holds just the object.</p>
@@ -468,15 +502,17 @@ function CropStep({
         </label>
       </div>
       <p className="hint">Real size, measured or from the product page. Sizes are approximate.</p>
-      <button
-        type="button"
-        className="btn primary"
-        disabled={!valid}
-        onClick={next}
-        data-testid="import-next"
-      >
-        Next
-      </button>
+      <div className="sticky-actions">
+        <button
+          type="button"
+          className="btn primary"
+          disabled={!valid}
+          onClick={next}
+          data-testid="import-next"
+        >
+          Next
+        </button>
+      </div>
     </>
   );
 }
@@ -488,7 +524,8 @@ function ResultStep({
   partner,
 }: {
   draft: Draft;
-  onSave: (item: Imported, blob: Blob) => Promise<void>;
+  /** Saves, then uses it on every table or places it in the room (`then`), or only saves. */
+  onSave: (item: Imported, blob: Blob, then: "use" | "place" | null) => Promise<void>;
   newId: () => string;
   partner: "A" | "B" | null;
 }) {
@@ -530,7 +567,7 @@ function ResultStep({
   if (!prepared || !base) return <p className="hint">Reading your photo…</p>;
 
   const link = draft.link.trim();
-  const save = async () => {
+  const save = async (then: "use" | "place" | null) => {
     const imageId = `img-${newId()}`;
     const item: Imported = {
       id: `imp-${newId()}`,
@@ -558,14 +595,28 @@ function ResultStep({
       return;
     }
     setBusy(true);
-    await onSave(ok.data, prepared.blob);
+    await onSave(ok.data, prepared.blob, then);
   };
+  // Say exactly what the photo changed: size, colours, both or neither (DESIGN_GUIDE §1.6).
+  const adj = importAdjusts(
+    base,
+    importParams(base, { sizeCm, colours: prepared.colours, imageId: "img-preview" }),
+  );
+  const model = `the “${base.name}” model`;
   const what =
     kind.result === "material"
       ? "Your fabric's colour, for tablecloths, runners or napkins."
       : kind.result === "photo"
         ? "Your photo, standing at its real size. It is a picture, not a 3D model."
-        : `Built from the “${base.name}” model, coloured from your photo. The shape is close, not exact.`;
+        : type === "print"
+          ? "Your photo in a frame on an easel, at its real size."
+          : adj.size && adj.colour
+            ? `Built from ${model}, at your size and coloured from your photo. The shape is close, not exact.`
+            : adj.size
+              ? `Built from ${model} at your size. Its colours stay the model's own.`
+              : adj.colour
+                ? `Built from ${model}, coloured from your photo. Its size stays the model's; yours is kept for reference.`
+                : `Uses ${model} as it is; your size and photo are kept for reference.`;
   return (
     <>
       <h2 className="panel-title">
@@ -574,9 +625,18 @@ function ResultStep({
           {RESULT_LABELS[kind.result]}
         </span>
       </h2>
+      {/* Labelled, so the plain model render is never read as the finished, coloured result. */}
       <div className="import-result">
-        <img src={prepared.thumb} alt="Your photo, cropped" width={96} height={96} />
-        {kind.result !== "photo" && <Thumb entry={base} size={96} />}
+        <figure>
+          <img src={prepared.thumb} alt="" width={96} height={96} />
+          <figcaption>Your photo</figcaption>
+        </figure>
+        {kind.result !== "photo" && (
+          <figure>
+            <Thumb entry={base} size={96} />
+            <figcaption>Model, before colouring</figcaption>
+          </figure>
+        )}
       </div>
       <p className="hint">{what}</p>
       {prepared.colours.length > 0 && (
@@ -596,6 +656,7 @@ function ResultStep({
           value={base.id}
           onPick={setBaseId}
           testId="import-model"
+          wrap
         />
       )}
       <label className="field">
@@ -609,15 +670,26 @@ function ResultStep({
           data-testid="import-name"
         />
       </label>
-      <button
-        type="button"
-        className="btn primary"
-        disabled={busy}
-        onClick={() => void save()}
-        data-testid="import-save"
-      >
-        Save to library
-      </button>
+      <div className="sticky-actions">
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy}
+          onClick={() => void save(styleKeyOf(base) ? "use" : "place")}
+          data-testid="import-save-use"
+        >
+          {styleKeyOf(base) ? "Save and use on all tables" : "Save and place in the room"}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => void save(null)}
+          data-testid="import-save"
+        >
+          Save to library
+        </button>
+      </div>
     </>
   );
 }
@@ -626,6 +698,15 @@ const defaultName = (base: LibraryEntry, result: Imported["result"]) =>
   result === "photo"
     ? "Photo preview"
     : `${base.name.replace(/^Framed print on an easel$/, "Framed print")} (yours)`;
+
+/** The site name of a product link, or the link itself if it does not parse. */
+function hostOf(link: string): string {
+  try {
+    return new URL(link).hostname || link;
+  } catch {
+    return link;
+  }
+}
 
 // ---- An imported item ---------------------------------------------------------------------------
 
@@ -641,11 +722,17 @@ function ItemDetail({
   const { catalog, editor } = useStudio();
   const { library, cloud } = useServices();
   const imports = useStore(libraryStore, (s) => s.imports);
-  const tables = useEditor((s) => s.scenarios[s.activeId]?.items.length ?? 0);
+  const scenario = useEditor((s) => s.scenarios[s.activeId]);
   const imp = imports.find((i) => i.id === id);
   const e = catalog.get(id);
-  if (!imp || !e) return null;
+  if (!imp || !e || !scenario) return null;
   const styleKey = styleKeyOf(e);
+  const tables = scenario.items.filter((i) => isTable(i, catalog)).length;
+  // Already the room-wide choice, with no table dressed differently.
+  const onAll =
+    !!styleKey &&
+    scenario.style[styleKey] === e.id &&
+    scenario.items.every((i) => !i.style || i.style[styleKey] === undefined);
   return (
     <div className="panel-body" data-testid="imported-detail">
       <div className="panel-head">
@@ -674,7 +761,7 @@ function ItemDetail({
             target="_blank"
             rel="noopener noreferrer nofollow"
           >
-            {new URL(imp.link).hostname}
+            {hostOf(imp.link)}
           </a>
         </div>
       )}
@@ -682,14 +769,14 @@ function ItemDetail({
         <button
           type="button"
           className="btn primary"
-          disabled={!tables}
+          disabled={!tables || onAll}
           onClick={() => {
             editor.applyStyle("all", { [styleKey]: e.id } as Partial<TableStyle>);
             editor.notify(`“${e.name}” is on every table`);
           }}
           data-testid="use-on-tables"
         >
-          Use on all tables
+          {onAll ? "On every table" : "Use on all tables"}
         </button>
       ) : (
         <button
@@ -715,7 +802,11 @@ function ItemDetail({
         className="plain-btn"
         onClick={() => {
           void library.archiveImport(e.id);
-          editor.notify(`Removed “${e.name}” from the library. Rooms that use it still show it.`);
+          // Undo puts it back in the library (DESIGN_GUIDE §4: destructive actions carry Undo).
+          editor.notify(
+            `Removed “${e.name}” from the library`,
+            () => void library.archiveImport(e.id, false),
+          );
           onBack();
         }}
         data-testid="remove-imported"
@@ -752,7 +843,7 @@ function RequestForm({
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const patch = (p: Partial<CustomRequest>) => setR((x) => ({ ...x, ...p }));
-  const built = inLibrary(r, catalog);
+  const built = requestStatus(r, catalog).entry;
   const num = (v: string) => Math.max(0, Math.round(Number(v)));
 
   const save = async () => {
@@ -763,9 +854,7 @@ function RequestForm({
       return;
     }
     await library.saveRequest(ok.data);
-    editor.notify(
-      isNew ? "Request saved. Claude builds it and it arrives in a later update." : "Request updated",
-    );
+    editor.notify(isNew ? "Request sent" : "Request updated");
     onDone();
   };
   const addPhoto = async (file: File | undefined) => {
@@ -774,6 +863,7 @@ function RequestForm({
     try {
       const bitmap = await library.decode(file);
       const p = await library.prepare(bitmap, FULL);
+      bitmap.close();
       const id = await library.addImage(p.blob);
       patch({ imageIds: [...r.imageIds, id].slice(0, 6) });
     } catch (e) {
@@ -797,7 +887,7 @@ function RequestForm({
         <div className="row">
           <span className="row-label">Status</span>
           <span className="row-value" data-testid="request-status">
-            {statusText(r, catalog)}
+            {requestStatus(r, catalog).label}
           </span>
         </div>
       )}
@@ -845,6 +935,7 @@ function RequestForm({
               type="number"
               inputMode="numeric"
               min={1}
+              placeholder={k === "d" ? "optional" : undefined}
               value={r.sizeCm[k] ?? ""}
               onChange={(e) => {
                 const v = e.currentTarget.value;

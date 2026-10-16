@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { type Part, type Prim } from "../../src/domain/layout/decor";
+import { FLOWER_TYPES, type Part, type Prim } from "../../src/domain/layout/decor";
 import { PIECE_GENERATORS, makePiece } from "../../src/domain/layout/pieces";
 import { type Item, blocksFloor, footprint, shapeOf } from "../../src/domain/layout/items";
 import { checkPlacement } from "../../src/domain/layout/validate";
@@ -182,6 +182,12 @@ describe("step-3 library pieces", () => {
     expect(blooms("eucalyptus").some((p) => p.slot === "leaf" && p.colour === "#9fb5a8")).toBe(true);
     // Never more blooms than roses, so every flower type stays inside the budget.
     expect(blooms("babysBreath").length).toBeLessThanOrEqual(blooms("rose").length);
-    expect(pedestal.options.some((o) => o.key === "flowerType")).toBe(true);
+    // Every installation offers exactly the flower types table arrangements know.
+    for (const e of pieces.filter((x) => x.family === "floral")) {
+      const o = e.options.find((x) => x.key === "flowerType");
+      expect(o?.type === "choice" ? o.choices.map((c) => c.value) : [], e.id).toEqual(
+        Object.keys(FLOWER_TYPES),
+      );
+    }
   });
 });

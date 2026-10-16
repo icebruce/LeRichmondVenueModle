@@ -10,7 +10,7 @@
 | 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | Done |
 | 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
-| 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | In review |
+| 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | In review |
 
 ## Decisions
@@ -99,7 +99,10 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET. Not yet verified from here (this environment's network policy blocks vercel.app): the first shared save and an import seen on the second device. `LIBRARY_REQUESTS_TOKEN` is not set yet; REQ-03's acceptance (one real request delivered through a PR) needs it in Vercel and in the Claude environment.
-- Phone draw calls in the dressed-room test leave about 11 calls of headroom under 150; each piece with words adds one. Re-measure in 3b.
+- Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
+- Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
+- "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
+- A photo added to a request form that is then abandoned stays stored (small; no cleanup yet).
 - LIB-08 "visible effect in evening mode" is checked by unit test (bulbs, beams, glows) and by the evening screenshots in the PR; no evening visual baseline yet.
 
 ## Media ingestion (2026-10-15)

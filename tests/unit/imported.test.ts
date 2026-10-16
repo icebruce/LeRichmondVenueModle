@@ -5,8 +5,10 @@ import { resetMemoryStore } from "../../api/_lib/store";
 import {
   RESULT_LABELS,
   dominantColours,
+  importAdjusts,
   importParams,
   importedEntry,
+  requestStatus,
   suggest,
   withImported,
 } from "../../src/domain/library/imported";
@@ -149,12 +151,17 @@ describe("inspiration import", () => {
     expect(Math.abs(shape.width - e.sizeM.w)).toBeLessThan(0.01);
   });
 
-  test("[IMP-06] imported items join the library and survive merges; removal sticks; unknown ones never break a room", () => {
+  test("[IMP-06] imported items join the library and survive merges; the latest removal or Undo wins; unknown ones never break a room", () => {
     const a = imported({ id: "imp-aaa111" });
     const b = imported({ id: "imp-bbb222", createdAt: "2026-10-16T11:00:00.000Z" });
-    const merged = mergeImports([a], [b, { ...a, archived: true }]);
+    const removed = { ...a, archived: true, updatedAt: "2026-10-16T12:00:00.000Z" };
+    const merged = mergeImports([a], [b, removed]);
     expect(merged.map((i) => i.id)).toEqual(["imp-aaa111", "imp-bbb222"]);
     expect(merged[0]?.archived).toBe(true);
+    // Undo (a later change) puts it back; the older removal arriving late does not undo the Undo.
+    const back = { ...a, archived: false, updatedAt: "2026-10-16T12:00:05.000Z" };
+    expect(mergeImports(merged, [back])[0]?.archived).toBe(false);
+    expect(mergeImports([back], [removed])[0]?.archived).toBe(false);
     const cat = withImported(catalog, merged);
     expect(cat.get("imp-bbb222")?.imported?.result).toBe("approximate");
     expect(cat.get("candelabra-5")).toBe(catalog.get("candelabra-5"));
@@ -234,9 +241,19 @@ describe("library API", () => {
     const img = await call("GET", "/api/uploads/img-abc123");
     expect(img.headers.get("content-type")).toBe("image/jpeg");
     expect(new Uint8Array(await img.arrayBuffer())).toEqual(jpeg);
-    expect((await call("PATCH", "/api/catalog/imp-abc123", { archived: true })).status).toBe(200);
+    const removal = { archived: true, updatedAt: "2026-10-16T12:00:00.000Z" };
+    expect((await call("PATCH", "/api/catalog/imp-abc123", removal)).status).toBe(200);
     const after = (await (await call("GET", "/api/catalog")).json()) as { items: Imported[] };
     expect(after.items[0]?.archived).toBe(true);
+    // Undo puts it back; a stale removal sent late changes nothing.
+    await call("PATCH", "/api/catalog/imp-abc123", {
+      archived: false,
+      updatedAt: "2026-10-16T12:00:05.000Z",
+    });
+    await call("PATCH", "/api/catalog/imp-abc123", removal);
+    const undone = (await (await call("GET", "/api/catalog")).json()) as { items: Imported[] };
+    expect(undone.items[0]?.archived).toBe(false);
+    expect((await call("PATCH", "/api/catalog/imp-abc123", { archived: true })).status).toBe(400);
     // Bad input is refused at the boundary.
     expect((await call("POST", "/api/catalog", { item: { ...imported({}), id: "../x" } })).status).toBe(400);
     expect((await call("PUT", "/api/uploads/img-def456", jpeg, { "content-type": "text/html" })).status).toBe(
@@ -250,12 +267,12 @@ describe("library API", () => {
     expect((await call("GET", "/api/catalog")).status).toBe(401);
   });
 
-  test("[REQ-01] [REQ-02] [REQ-03] [REQ-04] requests are private to the couple; Claude reads them with a read-only token", async () => {
+  test("[REQ-01] [REQ-02] requests are private to the couple; Claude reads them with a read-only token", async () => {
     expect((await call("POST", "/api/library-requests", { request: request() })).status).toBe(201);
     const later = request({ status: "in_progress", updatedAt: "2026-10-16T12:00:00.000Z" });
-    expect((await call("PATCH", "/api/library-requests/req-abc123", { request: later })).status).toBe(200);
+    expect((await call("POST", "/api/library-requests", { request: later })).status).toBe(201);
     // An older change sent late does not undo the newer one.
-    await call("PATCH", "/api/library-requests/req-abc123", { request: request({ notes: "old" }) });
+    await call("POST", "/api/library-requests", { request: request({ notes: "old" }) });
     const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
     await call("PUT", "/api/uploads/img-abc123", jpeg, { "content-type": "image/jpeg" });
     cookie = "";
@@ -272,13 +289,39 @@ describe("library API", () => {
     expect(
       (await call("POST", "/api/library-requests", { request: request({ id: "req-zzz999" }) }, auth)).status,
     ).toBe(401);
-    expect((await call("PATCH", "/api/library-requests/req-abc123", { request: later }, auth)).status).toBe(
-      401,
-    );
+    expect((await call("POST", "/api/library-requests", { request: later }, auth)).status).toBe(401);
     expect(
       (await call("GET", "/api/library-requests", undefined, { authorization: "Bearer nope" })).status,
     ).toBe(401);
     // Merging keeps each request's latest change.
     expect(mergeRequests([later], [request()])[0]?.status).toBe("in_progress");
+  });
+});
+
+describe("custom requests and honest results", () => {
+  test("[REQ-02] a request shows In library, with its item, once a library entry carries its id", () => {
+    const r = request();
+    expect(requestStatus(r, catalog)).toMatchObject({ status: "requested", label: "Requested" });
+    expect(requestStatus({ ...r, status: "in_progress" }, catalog).label).toBe("In progress");
+    const built = { ...entry(catalog, "candelabra-5"), id: "candelabra-gold", requestId: r.id };
+    const withBuilt = new Map([...catalog, [built.id, built]]);
+    expect(requestStatus(r, withBuilt)).toMatchObject({
+      status: "in_library",
+      entry: { id: "candelabra-gold" },
+    });
+  });
+
+  test("[IMP-05] the result says what the photo really changed: size, colour, both or neither", () => {
+    const of = (id: string, colours: string[]) => {
+      const base = entry(catalog, id);
+      return importAdjusts(
+        base,
+        importParams(base, { sizeCm: { w: 40, h: 50 }, colours, imageId: "img-x1y2z3" }),
+      );
+    };
+    expect(of("table-rect", ["#6b4a30"])).toEqual({ size: false, colour: false });
+    expect(of("candle-tapers", ["#ffffff"])).toEqual({ size: true, colour: false });
+    expect(of("chair-oval", ["#222222"])).toEqual({ size: false, colour: true });
+    expect(of("floral-low", ["#ef9fb8"])).toEqual({ size: true, colour: true });
   });
 });

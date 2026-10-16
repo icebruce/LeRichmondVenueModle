@@ -28,6 +28,19 @@ const parseAll = <T>(
 class Unreachable extends Error {}
 
 /**
+ * Whether a queued send is done. The server refusing it (a 4xx) will not change on a retry, so it
+ * leaves the queue instead of blocking everything behind it; server errors are retried.
+ */
+function sent(res: Response, what: string): void {
+  if (res.ok) return;
+  if (res.status >= 400 && res.status < 500) {
+    console.warn(`${what} was refused (${res.status}); not retrying`);
+    return;
+  }
+  throw new Error(`${what} failed (${res.status})`);
+}
+
+/**
  * The couple's imported items, their photos and custom requests (IMP-06, REQ-01): saved on the
  * device at once and shared through the API when cloud saving is on. Imports are never edited
  * after saving (only removed), and each request keeps its latest change, so merging needs no
@@ -88,6 +101,11 @@ export class LibrarySync {
     return res;
   }
 
+  /** Brings in the partner's imports and requests now (when cloud saving is on). */
+  refresh(): Promise<void> {
+    return this.sync();
+  }
+
   private sync(): Promise<void> {
     this.chain = this.chain.then(async () => {
       if (!this.cloud) return;
@@ -113,7 +131,7 @@ export class LibrarySync {
           headers: { "Content-Type": blob.type },
           body: blob,
         });
-        if (!res.ok) throw new Error(`Photo upload failed (${res.status})`);
+        sent(res, "Photo upload");
       }
       this.pending.images = this.pending.images.filter((x) => x !== id);
     }
@@ -125,17 +143,21 @@ export class LibrarySync {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ item }),
         });
-        if (!res.ok) throw new Error(`Saving an import failed (${res.status})`);
+        sent(res, "Saving an import");
       }
       this.pending.imports = this.pending.imports.filter((x) => x !== id);
     }
     for (const id of [...this.pending.archives]) {
+      const item = imports.find((i) => i.id === id);
       const res = await this.call(`/api/catalog/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ archived: true }),
+        body: JSON.stringify({
+          archived: item?.archived ?? true,
+          updatedAt: item?.updatedAt ?? new Date().toISOString(),
+        }),
       });
-      if (!res.ok && res.status !== 404) throw new Error(`Removing an import failed (${res.status})`);
+      sent(res, "Removing an import");
       this.pending.archives = this.pending.archives.filter((x) => x !== id);
     }
     for (const id of [...this.pending.requests]) {
@@ -146,7 +168,7 @@ export class LibrarySync {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ request }),
         });
-        if (!res.ok) throw new Error(`Saving a request failed (${res.status})`);
+        sent(res, "Saving a request");
       }
       this.pending.requests = this.pending.requests.filter((x) => x !== id);
     }
@@ -190,9 +212,11 @@ export class LibrarySync {
     await this.change({ images: [item.imageId], imports: [item.id] });
   }
 
-  async archiveImport(id: string): Promise<void> {
+  /** Removes an import from the lists, or puts it back (`archived: false`, Undo). */
+  async archiveImport(id: string, archived = true): Promise<void> {
+    const updatedAt = new Date().toISOString();
     libraryStore.setState((s) => ({
-      imports: s.imports.map((i) => (i.id === id ? { ...i, archived: true } : i)),
+      imports: s.imports.map((i) => (i.id === id ? { ...i, archived, updatedAt } : i)),
     }));
     await this.change({ archives: [id] });
   }
@@ -211,7 +235,11 @@ export class LibrarySync {
         if (local) return URL.createObjectURL(local);
         try {
           const res = await this.call(`/api/uploads/${id}`, { method: "GET" });
-          if (!res.ok) return null;
+          if (!res.ok) {
+            // Not uploaded yet (the partner's device may still be sending it): ask again later.
+            this.urls.delete(id);
+            return null;
+          }
           const blob = await res.blob();
           await set(this.imageKey(id), blob).catch(() => {});
           return URL.createObjectURL(blob);

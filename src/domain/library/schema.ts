@@ -131,7 +131,7 @@ export type ImportType = (typeof importTypes)[number];
 /**
  * An item imported from a photo (IMP-01..07): a library model (`baseId`) adjusted from the photo
  * (`params` over the model's own), its real size, colours and the cropped photo. Shared by both
- * partners; never edited after saving except to remove it from the library (`archived`).
+ * partners; never edited after saving except to remove it from the library or put it back (`archived`).
  */
 export const importedSchema = z.object({
   id: z.string().regex(/^imp-[a-z0-9]{6,16}$/),
@@ -149,9 +149,11 @@ export const importedSchema = z.object({
     .regex(/^data:image\/(jpeg|webp|png);base64,/)
     .max(60_000),
   link: link.optional(),
-  createdAt: z.string(),
+  createdAt: z.iso.datetime(),
   createdBy: z.enum(["A", "B"]).nullable(),
   archived: z.boolean(),
+  /** When `archived` last changed (removed, or put back with Undo); the later change wins. */
+  updatedAt: z.iso.datetime().optional(),
 });
 export type Imported = z.infer<typeof importedSchema>;
 
@@ -173,8 +175,8 @@ export const customRequestSchema = z.object({
   notes: z.string().max(1000),
   imageIds: z.array(imageIdSchema).max(6),
   status: z.enum(["requested", "in_progress"]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
   createdBy: z.enum(["A", "B"]).nullable(),
 });
 export type CustomRequest = z.infer<typeof customRequestSchema>;

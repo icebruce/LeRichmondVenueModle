@@ -28,7 +28,8 @@ export type LibraryServices = {
     crop: Crop,
   ) => Promise<{ blob: Blob; thumb: string; colours: string[]; aspect: number }>;
   addImport: (item: Imported, image: Blob) => Promise<void>;
-  archiveImport: (id: string) => Promise<void>;
+  /** Removes an import from the library lists, or puts it back (`false`, for Undo). */
+  archiveImport: (id: string, archived?: boolean) => Promise<void>;
   /** Stores a request photo and returns its id. */
   addImage: (image: Blob) => Promise<string>;
   saveRequest: (request: CustomRequest) => Promise<void>;

@@ -11,6 +11,7 @@ import { createEditor } from "../state/editor";
 import { Thumbnail } from "../scene/Thumbnail";
 import { type Cloud, newId } from "./boot";
 import { decodePhoto, preparePhoto } from "../data/images";
+import { libraryStore } from "../state/library";
 import { Login } from "../ui/Login";
 import { type Partner, type Services, ServicesContext } from "../ui/services";
 import { Counts, StudioUI } from "../ui/StudioUI";
@@ -26,7 +27,10 @@ const toBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
 const bare = params.has("bare");
 const thumb = params.get("thumb");
 
-export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
+export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
+  // The catalogue changes when imported items arrive (IMP-06); views recompute from the new one.
+  const catalog = useSyncExternalStore(libraryStore.subscribe, cloud.catalog);
+  const studio = useMemo(() => ({ ...base, catalog }), [base, catalog]);
   const [status, setStatus] = useState(cloud.status);
   const [partner, setPartnerState] = useState<Partner | null>(getPartner);
   const sync = useRef<CloudSync | null>(null);
@@ -100,7 +104,7 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
         decode: decodePhoto,
         prepare: preparePhoto,
         addImport: (item, image) => cloud.library.addImport(item, image),
-        archiveImport: (id) => cloud.library.archiveImport(id),
+        archiveImport: (id, archived) => cloud.library.archiveImport(id, archived),
         addImage: async (image) => {
           const id = `img-${newId()}`;
           await cloud.library.addImage(id, image);

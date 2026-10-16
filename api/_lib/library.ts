@@ -40,11 +40,21 @@ export async function createImport(store: Store, body: unknown): Promise<Importe
   return r.data;
 }
 
-/** Removes an import from the library lists; scenarios that use it keep showing it. */
-export async function archiveImport(store: Store, id: string): Promise<Imported | null> {
+/**
+ * Removes an import from the library lists, or puts it back (Undo); scenarios that use it keep
+ * showing it either way. A change older than the stored one is ignored.
+ */
+export async function setArchived(
+  store: Store,
+  id: string,
+  archived: boolean,
+  updatedAt: string,
+): Promise<Imported | null> {
   const raw = await store.get(importKey(id));
   if (!raw) return null;
-  const item = { ...(JSON.parse(raw) as Imported), archived: true };
+  const current = JSON.parse(raw) as Imported;
+  if ((current.updatedAt ?? current.createdAt) >= updatedAt) return current;
+  const item = { ...current, archived, updatedAt };
   await store.set(importKey(id), JSON.stringify(item));
   return item;
 }

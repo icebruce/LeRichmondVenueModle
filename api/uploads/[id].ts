@@ -7,7 +7,8 @@ export function GET(request: Request): Promise<Response> {
     const image = await getImage(store, idFrom(request));
     if (!image) return json({ message: "Not found" }, 404);
     return new Response(new Uint8Array(image.bytes), {
-      headers: { "Content-Type": image.type, "Cache-Control": "private, max-age=31536000, immutable" },
+      // The app keeps its own copy on the device (IndexedDB); like every API reply, never cached.
+      headers: { "Content-Type": image.type, "Cache-Control": "no-store" },
     });
   });
 }

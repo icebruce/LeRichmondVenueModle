@@ -1,7 +1,7 @@
 import { FLORAL_PALETTES, centrepieceHeight } from "../layout/decor";
 import { PIECE_GENERATORS, makePiece } from "../layout/pieces";
-import type { Catalog } from "./catalog";
-import type { ImportType, Imported, ItemOption, LibraryEntry } from "./schema";
+import { type Catalog, placeholderEntry } from "./catalog";
+import type { CustomRequest, ImportType, Imported, ItemOption, LibraryEntry } from "./schema";
 
 type Values = Record<string, number | string | boolean>;
 
@@ -231,6 +231,18 @@ export function importParams(
   return {};
 }
 
+/**
+ * What the photo really changes on a model (IMP-05 honesty): its size (pieces take the real size,
+ * table-top pieces a scale) and its colours. Tables, for example, keep the model's own of both.
+ */
+export function importAdjusts(base: LibraryEntry, params: Values): { size: boolean; colour: boolean } {
+  const g = base.model.kind === "parametric" ? base.model.generator : "";
+  return {
+    size: params.scale !== undefined || PIECE_GENERATORS.includes(g),
+    colour: ["colour", "frame", "seat", "colours"].some((k) => params[k] !== undefined),
+  };
+}
+
 // ---- Library entries ----------------------------------------------------------------------------
 
 /** Options of the model, with the photo's colour first where the model offers colours. */
@@ -294,29 +306,24 @@ export function importedEntry(imp: Imported, catalog: Catalog): LibraryEntry {
   };
 }
 
-/** Stand-in for an imported item this device has not loaded yet: a plain panel, never an error. */
-export function placeholderEntry(id: string, name = "Imported item"): LibraryEntry {
-  return {
-    id,
-    name,
-    family: "photo",
-    placement: "floor",
-    sizeM: { w: 0.6, d: 0.25, h: 0.9 },
-    sizePresets: [],
-    model: { kind: "parametric", generator: "photo", params: { kind: "standee", w: 0.6, h: 0.9 } },
-    lowModel: { kind: "parametric", generator: "photo", params: { kind: "standee", w: 0.6, h: 0.9 } },
-    options: [],
-    seats: false,
-    thumbnail: "thumbs/photo-standee.webp",
-    source: { type: "custom", origin: "The couple's photo", licence: "The couple's own photo" },
-    budget: { triangles: 20, phoneTriangles: 20, drawCalls: 2 },
-    imported: { result: "photo", imageId: "" },
-  };
-}
-
 /** The catalogue with the couple's imported items (IMP-06), built-in entries first. */
 export function withImported(builtIn: Catalog, imports: readonly Imported[]): Map<string, LibraryEntry> {
   const map = new Map<string, LibraryEntry>([...builtIn].filter(([id]) => !id.startsWith("imp-")));
   for (const imp of imports) map.set(imp.id, importedEntry(imp, builtIn));
   return map;
+}
+
+/**
+ * Where a custom request stands (REQ-02): "In library" once a catalogue entry carries its id in
+ * `requestId` (Claude ships it in an update), otherwise what the couple set.
+ */
+export function requestStatus(
+  r: CustomRequest,
+  catalog: Catalog,
+): { status: "requested" | "in_progress" | "in_library"; label: string; entry?: LibraryEntry } {
+  const entry = [...catalog.values()].find((e) => e.requestId === r.id);
+  if (entry) return { status: "in_library", label: "In library", entry };
+  return r.status === "in_progress"
+    ? { status: "in_progress", label: "In progress" }
+    : { status: "requested", label: "Requested" };
 }

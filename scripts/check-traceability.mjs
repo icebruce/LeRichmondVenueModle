@@ -14,6 +14,8 @@ const MANUAL = {
   "LGT-03": "architecture decision (ADR-2)",
   "PLT-01": "owner devices at step gates",
   "PLT-03": "frame rate on real devices at step gates (draw calls and triangles are tested)",
+  "REQ-03": "one real request delivered through a pull request at the step 3 gate (token reads are tested)",
+  "REQ-04": "by design: request photos live only in the app's store; references/ media is gitignored",
 };
 
 const spec = readFileSync(join(root, "docs/PRODUCT_SPEC.md"), "utf8");

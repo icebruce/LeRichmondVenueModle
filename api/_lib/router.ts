@@ -8,7 +8,6 @@ import * as catalog from "../catalog/index.js";
 import * as catalogItem from "../catalog/[id].js";
 import * as upload from "../uploads/[id].js";
 import * as requests from "../library-requests/index.js";
-import * as requestItem from "../library-requests/[id].js";
 
 type Handler = (request: Request) => Promise<Response> | Response;
 type Module = Partial<Record<"GET" | "POST" | "PUT" | "PATCH" | "DELETE", Handler>>;
@@ -25,7 +24,6 @@ const routes: [RegExp, Module][] = [
   [/^\/api\/catalog\/[^/]+$/, catalogItem],
   [/^\/api\/uploads\/[^/]+$/, upload],
   [/^\/api\/library-requests$/, requests],
-  [/^\/api\/library-requests\/[^/]+$/, requestItem],
 ];
 
 export async function route(request: Request): Promise<Response> {

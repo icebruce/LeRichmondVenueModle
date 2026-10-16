@@ -507,6 +507,9 @@ button:disabled {
 .library-caption {
   font: var(--t-footnote);
   color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .library-add {
   color: var(--accent);
@@ -1398,32 +1401,48 @@ button:disabled {
   object-fit: contain;
   align-self: center;
 }
-/* The dimmed surround stays inside the photo; corner handles are half inside it. */
+/* Crop (IMP-03): a 22 px margin keeps whole 44 pt corner handles inside the panel; only the dimming is clipped. */
 .crop-area {
   position: relative;
   align-self: center;
   max-width: 100%;
-  overflow: hidden;
+  padding: 22px;
   touch-action: none;
   user-select: none;
 }
-.crop-area img {
+.crop-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-control);
+}
+.crop-photo img {
   display: block;
   max-width: 100%;
   max-height: 280px;
-  border-radius: var(--r-control);
+}
+.crop-dim {
+  position: absolute;
+  box-shadow: 0 0 0 9999px var(--dim);
+  pointer-events: none;
+}
+.crop-layer {
+  position: absolute;
+  inset: 22px;
 }
 .crop-box {
   position: absolute;
   border: 2px solid var(--accent);
-  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.35);
   cursor: move;
 }
-/* Corner handles: 22 px marks in 44 px targets (DESIGN_GUIDE §2.5). */
+.crop-box:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Corner handles: 22 pt marks in 44 pt targets (DESIGN_GUIDE §2.5). */
 .crop-handle {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: var(--target);
+  height: var(--target);
 }
 .crop-handle::after {
   content: "";
@@ -1499,7 +1518,51 @@ textarea.text-input {
   padding: var(--s-2);
 }
 .hint.error {
-  color: var(--blocked);
+  color: var(--error-ink);
+}
+/* The wizard's back row and its main action stay in reach in a half-height phone sheet (§3.2). */
+.sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-block: var(--s-2);
+  background: var(--surface);
+}
+/* The camera button only where there is a camera to open; on desktop "Choose a photo" leads. */
+.camera-only {
+  display: none;
+}
+@media (pointer: coarse) {
+  .camera-only {
+    display: inline-flex;
+  }
+}
+@media (pointer: fine) {
+  .primary-on-desktop {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+}
+.import-result figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+}
+.import-result figcaption {
+  font: var(--t-caption);
+  color: var(--ink-2);
 }
 .rot-left {
   transform: rotate(-90deg);
@@ -1509,4 +1572,12 @@ textarea.text-input {
 }
 .source-link {
   color: var(--accent);
+}
+/* Secondary inspector action, after the item's own controls (REQ-01). */
+.inspector-foot {
+  align-self: flex-start;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-2);
+  width: 100%;
+  text-align: left;
 }
