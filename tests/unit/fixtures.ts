@@ -9,6 +9,7 @@ import tableware from "../../data/library/tableware.json";
 import plants from "../../data/library/plants.json";
 import lights from "../../data/library/lights.json";
 import signs from "../../data/library/signs.json";
+import photos from "../../data/library/photos.json";
 import { buildCatalog } from "../../src/domain/library/catalog";
 import { buildVenue, parseVenue } from "../../src/domain/venue/model";
 
@@ -23,6 +24,7 @@ export const libraryFiles = [
   plants,
   lights,
   signs,
+  photos,
 ];
 export const catalog = buildCatalog(libraryFiles);
 export const venue = buildVenue(parseVenue(venueJson));

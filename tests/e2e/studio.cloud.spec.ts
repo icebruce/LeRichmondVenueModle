@@ -1,5 +1,5 @@
 import { type Browser, type Page, expect, test } from "@playwright/test";
-import { settle } from "./helpers";
+import { importPhoto, settle } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -119,4 +119,28 @@ test("[SCN-04] version history lists earlier saves and restores one", async ({ b
   await a.getByTestId("versions").getByRole("button", { name: "Restore" }).first().click();
   await expect(a.getByTestId("toast")).toContainText("Restored");
   await a.context().close();
+});
+
+test("[IMP-06] [REQ-01] an imported item and a custom model request on the laptop appear on the phone", async ({
+  browser,
+}) => {
+  const a = await signIn(browser, "A");
+  await importPhoto(a, { colour: "#1f4a3a", type: "other", w: 50, h: 80 });
+  await a.getByTestId("import-name").fill("Ceremony sign");
+  await a.getByTestId("import-save").click();
+  await a.getByTestId("request-custom").click();
+  await a.getByTestId("request-notes").fill("Real 3D please: oak frame, white letters");
+  await a.getByTestId("request-save").click();
+  await expect(a.getByTestId("inspiration-panel")).toContainText("Requested");
+  await a.waitForTimeout(2500);
+  await a.context().close();
+  const b = await signIn(browser, "B");
+  await b.getByTestId("section-inspiration").click();
+  const panel = b.getByTestId("inspiration-panel");
+  await expect(panel).toContainText("Ceremony sign", { timeout: 20_000 });
+  await expect(panel).toContainText("Photo preview");
+  await panel.getByText("Ceremony sign").last().click();
+  await expect(b.getByTestId("request-form")).toContainText("Requested");
+  await expect(b.getByTestId("request-notes")).toHaveValue("Real 3D please: oak frame, white letters");
+  await b.context().close();
 });

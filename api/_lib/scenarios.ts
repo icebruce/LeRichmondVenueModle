@@ -14,12 +14,6 @@ export function parseBody(body: unknown): Record<string, unknown> | string {
   return r.success ? (r.data as Record<string, unknown>) : "That is not a valid scenario";
 }
 
-/** Scenario id from /api/scenarios/<id>[/...] (or the `id` query Vercel may add for [id] routes). */
-export function idFrom(request: Request): string {
-  const url = new URL(request.url);
-  return url.searchParams.get("id") ?? decodeURIComponent(url.pathname.split("/")[3] ?? "");
-}
-
 const parse = (raw: string | null) => (raw ? (JSON.parse(raw) as Record<string, unknown>) : null);
 
 export async function list(store: Store): Promise<Record<string, unknown>[]> {

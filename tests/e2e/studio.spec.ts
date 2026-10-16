@@ -1,5 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { type W, dragItem, item, openStudio, screenOf, setCamera, state } from "./helpers";
+import {
+  type W,
+  dragItem,
+  importPhoto,
+  item,
+  openStudio,
+  photoFile,
+  screenOf,
+  setCamera,
+  state,
+} from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -470,4 +480,55 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
   const after = await state(page);
   expect(after.order.length).toBe(2);
   expect(after.active?.guests.count).toBe(76);
+});
+
+test("[IMP-01] [IMP-02] [IMP-03] [IMP-04] [IMP-05] [IMP-06] [IMP-07] a photo becomes a labelled item used on every table; it survives a reload", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("section-inspiration").click();
+  await page.getByTestId("add-inspiration").click();
+  await page.getByTestId("import-link").fill("https://shop.example.com/gold-candelabra");
+  await page.getByTestId("photo-file").setInputFiles(await photoFile(page, "#c9a55e"));
+  await page.getByTestId("import-type-candle").click();
+  await page.getByTestId("import-next").click();
+  // Crop: drag the bottom-right corner in; the frame gets smaller.
+  const box = page.getByTestId("crop-box");
+  const before = (await box.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+  const corner = box.locator(".crop-handle.se");
+  const at = (await corner.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+  // The handle's inner half (its outer half lies outside the photo).
+  await page.mouse.move(at.x + at.width * 0.3, at.y + at.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(at.x - 40, at.y - 30, { steps: 4 });
+  await page.mouse.up();
+  const after = (await box.boundingBox()) ?? before;
+  expect(after.width).toBeLessThan(before.width - 20);
+  await page.getByTestId("import-width").fill("30");
+  await page.getByTestId("import-height").fill("60");
+  await page.getByTestId("import-next").click();
+  // A tall gold thing: a candelabra or tapers, labelled as an approximate model.
+  await expect(page.getByTestId("result-label")).toHaveText("Approximate 3D", { timeout: 20_000 });
+  await expect(page.getByRole("radio", { checked: true, name: /candelabra|taper/i })).toBeVisible();
+  await page.getByTestId("import-name").fill("Gold candelabra");
+  await page.getByTestId("import-save").click();
+  await expect(page.getByTestId("imported-detail")).toContainText("shop.example.com");
+  await page.getByTestId("use-on-tables").click();
+  const s = await state(page);
+  const id = (s.active?.style as Record<string, string>).candles ?? "";
+  expect(id).toMatch(/^imp-/);
+  // Something with no fitting model is a photo preview, never called 3D; it can be placed.
+  await page.getByTestId("detail-back").click();
+  await importPhoto(page, { colour: "#5d7690", type: "other", w: 60, h: 120 });
+  await expect(page.getByTestId("result-label")).toHaveText("Photo preview");
+  await page.getByTestId("import-save").click();
+  await page.getByTestId("place-imported").click();
+  const placed = (await state(page)).selection[0] ?? "";
+  expect((await item(page, placed)).libraryId).toMatch(/^imp-/);
+  // Both stay in the library after a reload.
+  await page.reload();
+  await openStudio(page);
+  await page.getByTestId("section-inspiration").click();
+  await expect(page.getByTestId("inspiration-panel")).toContainText("Gold candelabra");
+  await expect(page.getByTestId("inspiration-panel")).toContainText("Photo preview");
 });

@@ -96,3 +96,41 @@ export async function dragItem(page: Page, id: string, to: [number, number], hei
   await page.mouse.up();
   await page.waitForTimeout(150);
 }
+
+/** A photo for import tests: a coloured object on a white background, as a PNG made in the page. */
+export async function photoFile(page: Page, colour: string, w = 300, h = 400) {
+  const data = await page.evaluate(
+    ([c, width, height]) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width as number;
+      canvas.height = height as number;
+      const g = canvas.getContext("2d") as CanvasRenderingContext2D;
+      g.fillStyle = "#ffffff";
+      g.fillRect(0, 0, canvas.width, canvas.height);
+      g.fillStyle = c as string;
+      g.fillRect(canvas.width * 0.3, canvas.height * 0.1, canvas.width * 0.4, canvas.height * 0.8);
+      return canvas.toDataURL("image/png").split(",")[1] ?? "";
+    },
+    [colour, w, h],
+  );
+  return { name: "inspiration.png", mimeType: "image/png", buffer: Buffer.from(data, "base64") };
+}
+
+/** Runs the Inspiration import (IMP-01..05) up to the result step. */
+export async function importPhoto(
+  page: Page,
+  { colour, type, w, h, link }: { colour: string; type: string; w: number; h: number; link?: string },
+) {
+  // The rail button closes an open panel, so open Inspiration only if it is not showing.
+  if (!(await page.getByTestId("add-inspiration").isVisible()))
+    await page.getByTestId("section-inspiration").click();
+  await page.getByTestId("add-inspiration").click();
+  if (link) await page.getByTestId("import-link").fill(link);
+  await page.getByTestId("photo-file").setInputFiles(await photoFile(page, colour));
+  await page.getByTestId(`import-type-${type}`).click();
+  await page.getByTestId("import-next").click();
+  await page.getByTestId("import-width").fill(String(w));
+  await page.getByTestId("import-height").fill(String(h));
+  await page.getByTestId("import-next").click();
+  await expect(page.getByTestId("result-label")).toBeVisible({ timeout: 20_000 });
+}

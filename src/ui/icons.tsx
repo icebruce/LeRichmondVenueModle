@@ -29,6 +29,7 @@ const paths: Record<string, string> = {
   camera: "M3 7h3l2-2h4l2 2h3v9H3zM10 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z",
   decor: "M10 17v-6M10 11c-3 0-5-2-5-5 3 0 5 2 5 5Zm0 0c3 0 5-2 5-5-3 0-5 2-5 5ZM10 11c0-3 1-5 3-7M7 17h6",
   compare: "M3 4h6v12H3zM11 4h6v12h-6z",
+  photo: "M3 4h14v12H3zM3 13l4-4 3 3 2-2 5 5M12.5 7.5a1 1 0 1 1 0 .01",
   frame: "M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4M8 8h4v4H8z",
   people:
     "M7 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 17c0-3 2.5-5 5-5s5 2 5 5M14 9a2.5 2.5 0 1 0 0-5M15 12c2 .5 3 2.3 3 5",

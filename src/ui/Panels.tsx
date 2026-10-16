@@ -15,8 +15,11 @@ import { requestCamera, viewStore } from "../state/view";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
 import { useServices } from "./services";
 import { Icon } from "./icons";
+import { useStore } from "zustand";
+import { RESULT_LABELS } from "../domain/library/imported";
+import { libraryStore } from "../state/library";
 
-export type Section = "venue" | "layout" | "people" | "decor" | "compare";
+export type Section = "venue" | "layout" | "people" | "decor" | "inspiration" | "compare";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
@@ -206,7 +209,7 @@ function Toggle({
   );
 }
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   label,
   value,
   options,
@@ -293,16 +296,20 @@ function caption(e: LibraryEntry, catalog: Catalog): string {
   return [guests, size].filter(Boolean).join(" · ");
 }
 
-function Thumb({ entry }: { entry: LibraryEntry }) {
+/** The fidelity label every imported item carries (DESIGN_GUIDE §1.6); none on built-in items. */
+export function ResultBadge({ entry }: { entry: LibraryEntry }) {
+  if (!entry.imported) return null;
+  return <span className="badge">{RESULT_LABELS[entry.imported.result]}</span>;
+}
+
+export function Thumb({ entry, size = 44 }: { entry: LibraryEntry; size?: number }) {
+  // Imported items carry their own small photo; built-in ones a rendered thumbnail file.
+  const src = entry.thumbnail.startsWith("data:")
+    ? entry.thumbnail
+    : `${import.meta.env.BASE_URL}assets/${entry.thumbnail}`;
   return (
-    <span className="library-icon">
-      <img
-        src={`${import.meta.env.BASE_URL}assets/${entry.thumbnail}`}
-        alt=""
-        width={44}
-        height={44}
-        loading="lazy"
-      />
+    <span className={`library-icon ${size > 44 ? "large" : ""}`}>
+      <img src={src} alt="" width={size} height={size} loading="lazy" />
     </span>
   );
 }
@@ -425,17 +432,23 @@ const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
 
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
+  const imports = useStore(libraryStore, (s) => s.imports);
   const snapping = useEditor((s) => s.snapping);
   const placeable = useMemo(
     () =>
       [...catalog.values()].filter(
         // Table chairs are a décor choice; lounge seating is placed like any piece.
+        // Photo templates need a photo (Inspiration); removed imports stay out of the lists.
         (e) =>
           e.placement !== "table" &&
           e.placement !== "material" &&
-          !(e.model.kind === "parametric" && e.model.generator === "chair"),
+          !(e.model.kind === "parametric" && e.model.generator === "chair") &&
+          !(e.model.kind === "parametric" && e.model.generator === "photo" && !e.model.params.image) &&
+          !e.imported?.archived,
       ),
-    [catalog],
+    // The catalogue grows in place when an import arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [catalog, imports],
   );
   const [category, setCategory] = useState<Family>(lastCategory);
   const shown = placeable.filter((e) => e.family === category);
@@ -464,7 +477,9 @@ export function LayoutPanel() {
               <Thumb entry={e} />
               <span className="library-text">
                 <span className="library-name">{e.name}</span>
-                <span className="library-caption">{caption(e, catalog)}</span>
+                <span className="library-caption">
+                  {e.imported && <ResultBadge entry={e} />} {caption(e, catalog)}
+                </span>
               </span>
               <Icon name="plus" size={16} className="library-add" />
             </button>
@@ -520,7 +535,7 @@ function Swatches({
   );
 }
 
-function Chips({
+export function Chips({
   label,
   options,
   value,
@@ -575,11 +590,17 @@ export function DecorPanel() {
   const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
   const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
   const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
+  useStore(libraryStore, (s) => s.imports);
+  // Imported items join these lists with their label (IMP-06); removed ones only stay where used.
   const family = (f: string, generator?: string) =>
-    [...catalog.values()].filter(
-      (e) =>
-        e.family === f && (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
-    );
+    [...catalog.values()]
+      .filter(
+        (e) =>
+          e.family === f &&
+          (!e.imported?.archived || Object.values(shown).includes(e.id)) &&
+          (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
+      )
+      .map((e) => (e.imported ? { ...e, name: `${e.name} · ${RESULT_LABELS[e.imported.result]}` } : e));
   const colourOf = (id: string) => {
     const model = catalog.get(id)?.model;
     return model?.kind === "parametric" ? String(model.params.colour ?? "var(--sunk)") : "var(--sunk)";
@@ -1314,7 +1335,8 @@ export function Inspector() {
             ? `${itemTitle(items[0], labels, catalog)} and ${itemTitle(items[1], labels, catalog).replace(/^Table /, "table ")}`
             : many
               ? `${items.length} items`
-              : itemTitle(item, labels, catalog)}
+              : itemTitle(item, labels, catalog)}{" "}
+          {!many && entry && <ResultBadge entry={entry} />}
         </h2>
         <button type="button" className="plain-btn" onClick={() => editor.select([])}>
           Done
@@ -1386,6 +1408,20 @@ export function Inspector() {
         </p>
       ))}
       {fields}
+      {!many && entry && (
+        <button
+          type="button"
+          className="plain-btn"
+          onClick={() => {
+            // The form opens in Inspiration, where requests are listed (REQ-01).
+            editor.select([]);
+            viewStore.setState({ requestFor: entry.id });
+          }}
+          data-testid="inspector-request"
+        >
+          Request a custom model
+        </button>
+      )}
       {locked && (
         <p className="hint">
           Fixed at {venue.data.spots[String(item.options.spot)]?.label}. Choose “Anywhere” to move it.

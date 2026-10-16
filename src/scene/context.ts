@@ -9,7 +9,14 @@ import type { Editor, EditorState } from "../state/editor";
 import { type ViewState, viewStore } from "../state/view";
 
 /** `readOnly`: the side-by-side compare view, which shows a scenario but does not edit it. */
-export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor; readOnly?: boolean };
+export type Studio = {
+  venue: VenueModel;
+  catalog: Catalog;
+  editor: Editor;
+  readOnly?: boolean;
+  /** A stored photo (an import, a print) as a URL to draw, or null if it cannot be had now. */
+  imageUrl?: (id: string) => Promise<string | null>;
+};
 
 export const StudioContext = createContext<Studio | null>(null);
 

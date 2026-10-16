@@ -15,7 +15,12 @@ export type Piece = {
   parts: Part[];
   /** Words drawn as a texture (neon, a sign board, a projected monogram), if any. */
   text?: PieceText;
+  /** The couple's own photo on the piece (a print, a photo preview), if any (LIB-09, IMP-05). */
+  image?: PieceImage;
 };
+
+/** A photo panel: centre, size (m) and rotation about x, like `PieceText`; `id` is the stored image. */
+export type PieceImage = { id: string; x: number; y: number; z: number; w: number; h: number; tilt: number };
 
 export type PieceText = {
   value: string;
@@ -357,7 +362,8 @@ function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
 }
 
 function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
-  const colours = palette(o.palette ?? p.palette);
+  // An imported installation carries the photo's colours (IMP-05); others use a named palette.
+  const colours = typeof p.colours === "string" ? p.colours.split(",") : palette(o.palette ?? p.palette);
   const kind = str(p.kind, "");
   switch (kind) {
     case "arch": {
@@ -658,12 +664,66 @@ function event(p: Values, o: Values, size: Size, rand: () => number): Piece {
   }
 }
 
+/**
+ * The couple's photo (LIB-09, IMP-05), sized by the photo's real size in `params` (`w`, `h`, m):
+ * a framed print on an easel, or a photo preview standing on a small foot. A photo preview is a
+ * flat picture at real size, never a 3D model.
+ */
+function photo(p: Values): Piece {
+  const kind = str(p.kind, "");
+  const w = num(p.w, 0.6);
+  const h = num(p.h, 0.9);
+  const id = str(p.image, "");
+  if (kind === "standee") {
+    return {
+      width: w,
+      depth: 0.25,
+      height: h,
+      parts: [box("black", 0, 0, 0, Math.min(w, 0.3), 0.02, 0.25)],
+      image: { id, x: 0, y: h / 2, z: 0, w, h, tilt: 0 },
+    };
+  }
+  if (kind !== "print") throw new Error(`Unknown photo kind ${kind}`);
+  // A frame 4 cm wide around the print, leaning back on an easel like the welcome sign.
+  const f = 0.04;
+  const lean = 0.18;
+  const bottom = 0.65;
+  const fw = w + 2 * f;
+  const fh = h + 2 * f;
+  const top = bottom + fh * Math.cos(lean);
+  const spread = Math.max(0.3, fw / 2 - 0.05);
+  const parts: Part[] = [
+    // Front legs lean back with the frame, so they stand behind the print, not across it.
+    { ...rod("wood", [-spread, 0], [-spread + 0.1, top], 0.1, 0.015), rx: -lean },
+    { ...rod("wood", [spread, 0], [spread - 0.1, top], 0.1, 0.015), rx: -lean },
+    rod("wood", [0, 0], [0, top - 0.1], -0.27, 0.012),
+    box("wood", 0, bottom - 0.03, 0.08, fw + 0.04, 0.03, 0.06),
+    { ...box("black", 0, bottom, 0.06, fw, fh, 0.02), rx: -lean },
+  ];
+  return {
+    width: Math.max(fw + 0.04, 2 * spread + 0.03),
+    depth: 0.6,
+    height: top,
+    parts,
+    image: {
+      id,
+      x: 0,
+      y: bottom + (fh / 2) * Math.cos(lean) + 0.012 * Math.sin(lean),
+      z: 0.06 - (fh / 2) * Math.sin(lean) + 0.012 * Math.cos(lean),
+      w,
+      h,
+      tilt: -lean,
+    },
+  };
+}
+
 const PIECES: Record<string, (p: Values, o: Values, size: Size, rand: () => number) => Piece> = {
   plant: (p, _o, size, rand) => plant(p, size, rand),
   light,
   floralPiece: floral,
   sign,
   eventPiece: event,
+  photo: (p) => photo(p),
 };
 
 /** Generators that make a library piece (keys of the catalogue's `model.generator`). */

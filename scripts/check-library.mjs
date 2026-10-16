@@ -17,6 +17,7 @@ const maxSize = {
   plant: 4,
   light: 4,
   sign: 3,
+  photo: 3,
 };
 const maxTriangles = {
   table: 40000,
@@ -29,6 +30,7 @@ const maxTriangles = {
   plant: 30000,
   light: 15000,
   sign: 5000,
+  photo: 500,
 };
 const problems = [];
 const seen = new Set();

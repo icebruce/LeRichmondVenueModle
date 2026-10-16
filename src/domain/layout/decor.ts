@@ -454,8 +454,10 @@ export function tableDecor(
     // Florals take the centre spots; candles sit beside them when both are chosen.
     const shift = id === style.candles && style.florals !== "none" ? 0.22 : 0;
     const places = shape.kind === "cocktail" ? [[0, 0] as [number, number]] : at;
+    const own = ownLook(e.model.params, ctx);
     for (const [sx, sz] of places) {
-      for (const p of gen(e.model.params, ctx)) parts.push({ ...p, x: p.x + sx + shift, z: p.z + sz });
+      for (const p of scaled(gen(e.model.params, own.ctx), own.scale))
+        parts.push({ ...p, x: p.x + sx + shift, z: p.z + sz });
     }
   }
   if (extras.settings && shape.kind !== "cocktail") {
@@ -470,6 +472,46 @@ export function tableDecor(
     parts.push(...numberHolder(x, z));
   }
   return parts;
+}
+
+/**
+ * An imported centrepiece's own look (IMP-05): the photo's colours in place of the table's palette,
+ * and a uniform `scale` to its real height.
+ */
+function ownLook(params: Record<string, number | string | boolean>, ctx: Ctx): { ctx: Ctx; scale: number } {
+  const colours = typeof params.colours === "string" ? params.colours.split(",") : null;
+  const scale = typeof params.scale === "number" && params.scale > 0 ? params.scale : 1;
+  return { ctx: colours ? { ...ctx, colours } : ctx, scale };
+}
+
+/** Parts grown or shrunk about the table-top centre, every size and offset alike. */
+function scaled(parts: Part[], s: number): Part[] {
+  if (s === 1) return parts;
+  return parts.map((p) => ({
+    ...p,
+    x: p.x * s,
+    y: p.y * s,
+    z: p.z * s,
+    sx: p.sx * s,
+    sy: p.sy * s,
+    sz: p.sz * s,
+  }));
+}
+
+/** A centrepiece's natural height on the table (m), before any imported scale (IMP-04). */
+export function centrepieceHeight(
+  generator: string,
+  params: Record<string, number | string | boolean>,
+): number | null {
+  const gen = centrepieces[generator];
+  if (!gen) return null;
+  const ctx: Ctx = {
+    colours: ["#ffffff"],
+    rand: seededRandom(1),
+    scale: 1,
+    flower: FLOWER_TYPES.rose as Ctx["flower"],
+  };
+  return heightOf(gen(params, ctx));
 }
 
 /** Highest point of a set of parts above the table top (m), for realistic-height checks (DEC-03). */

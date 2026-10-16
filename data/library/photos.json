@@ -1,0 +1,48 @@
+{
+  "family": "photo",
+  "items": [
+    {
+      "id": "photo-standee",
+      "name": "Photo preview",
+      "family": "photo",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.6,
+        "d": 0.25,
+        "h": 0.9
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "photo",
+        "params": {
+          "kind": "standee",
+          "w": 0.6,
+          "h": 0.9
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "photo",
+        "params": {
+          "kind": "standee",
+          "w": 0.6,
+          "h": 0.9
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/photo-standee.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: photo",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 40,
+        "phoneTriangles": 40,
+        "drawCalls": 2
+      }
+    }
+  ]
+}

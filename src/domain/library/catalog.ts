@@ -1,3 +1,4 @@
+import { placeholderEntry } from "./imported";
 import { type LibraryEntry, libraryFileSchema } from "./schema";
 
 export type Catalog = ReadonlyMap<string, LibraryEntry>;
@@ -18,8 +19,10 @@ export function buildCatalog(files: unknown[]): Catalog {
 
 export function entry(catalog: Catalog, id: string): LibraryEntry {
   const e = catalog.get(id);
-  if (!e) throw new Error(`Unknown library item ${id}`);
-  return e;
+  if (e) return e;
+  // A partner's import this device has not loaded yet shows as a plain panel until it arrives.
+  if (id.startsWith("imp-")) return placeholderEntry(id);
+  throw new Error(`Unknown library item ${id}`);
 }
 
 /** The item's own option values over the entry's defaults. */

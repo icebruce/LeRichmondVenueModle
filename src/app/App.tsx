@@ -10,6 +10,7 @@ import { useView } from "../scene/context";
 import { createEditor } from "../state/editor";
 import { Thumbnail } from "../scene/Thumbnail";
 import { type Cloud, newId } from "./boot";
+import { decodePhoto, preparePhoto } from "../data/images";
 import { Login } from "../ui/Login";
 import { type Partner, type Services, ServicesContext } from "../ui/services";
 import { Counts, StudioUI } from "../ui/StudioUI";
@@ -94,6 +95,20 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
           fileName(`${scenario.name} plan`, "pdf"),
         );
         studio.editor.notify("Plan saved as a PDF");
+      },
+      library: {
+        decode: decodePhoto,
+        prepare: preparePhoto,
+        addImport: (item, image) => cloud.library.addImport(item, image),
+        archiveImport: (id) => cloud.library.archiveImport(id),
+        addImage: async (image) => {
+          const id = `img-${newId()}`;
+          await cloud.library.addImage(id, image);
+          return id;
+        },
+        saveRequest: (r) => cloud.library.saveRequest(r),
+        imageUrl: (id) => cloud.library.imageUrl(id),
+        newId,
       },
       saveView: async () => {
         const canvas = document.querySelector<HTMLCanvasElement>("[data-testid=studio-canvas] canvas");
