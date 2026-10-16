@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
-import { FLORAL_PALETTES, FLOWER_TYPES } from "../domain/layout/decor";
-import { advise } from "../domain/layout/advisories";
+import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS } from "../domain/layout/decor";
+import { adviseScenario } from "../domain/layout/advisories";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
@@ -18,6 +18,10 @@ import { Icon } from "./icons";
 export type Section = "venue" | "layout" | "people" | "decor" | "compare";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+
+/** A held −/+ starts repeating after HOLD_MS, then steps every REPEAT_MS. */
+const HOLD_MS = 400;
+const REPEAT_MS = 70;
 
 /** A −/+ button that repeats while held. */
 function RepeatButton({
@@ -49,8 +53,8 @@ function RepeatButton({
         stop();
         timer.current = window.setTimeout(() => {
           held.current = true;
-          timer.current = window.setInterval(() => step.current(), 70);
-        }, 400);
+          timer.current = window.setInterval(() => step.current(), REPEAT_MS);
+        }, HOLD_MS);
       }}
       onPointerUp={stop}
       onPointerLeave={stop}
@@ -288,20 +292,26 @@ function Checks() {
   const list = useAdvisories();
   const thresholds = useEditor((s) => s.scenarios[s.activeId]?.thresholds);
   const [open, setOpen] = useState(false);
+  const [all, setAll] = useState(false);
   if (!thresholds) return null;
+  // The tightest come first; three are enough to act on, the rest on request.
+  const shown = all ? list : list.slice(0, 3);
   return (
     <div className="field" data-testid="checks" id="checks">
-      <h3 className="group-title">Checks · advisory</h3>
+      <h3 className="group-title">
+        {list.length ? `${list.length} ${list.length === 1 ? "advisory" : "advisories"}` : "Checks"}
+      </h3>
       {list.length === 0 ? (
         <p className="hint">No advisories with your settings.</p>
       ) : (
         <ul className="advisories" aria-label="Advisories">
-          {list.map((a) => (
+          {shown.map((a) => (
             <li key={a.id}>
               {a.items.length ? (
                 <button type="button" className="advisory-row" onClick={() => editor.select(a.items)}>
                   <span className="dot" aria-hidden="true" />
                   <span>{a.message}</span>
+                  <Icon name="chevron" size={16} className="advisory-go" />
                 </button>
               ) : (
                 <span className="advisory-row">
@@ -312,6 +322,16 @@ function Checks() {
             </li>
           ))}
         </ul>
+      )}
+      {list.length > 3 && (
+        <button
+          type="button"
+          className="plain-btn"
+          onClick={() => setAll((v) => !v)}
+          data-testid="checks-all"
+        >
+          {all ? "Show fewer" : `Show all ${list.length}`}
+        </button>
       )}
       <button
         type="button"
@@ -371,15 +391,15 @@ function Checks() {
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
   const snapping = useEditor((s) => s.snapping);
-  const flagged = useAdvisories().length > 0;
   const placeable = useMemo(
     () => [...catalog.values()].filter((e) => e.placement === "floor" && e.family !== "chair"),
     [catalog],
   );
   return (
     <div className="panel-body" data-testid="layout-panel">
-      {flagged && <Checks />}
-      <h2 className="panel-title">Add to the room</h2>
+      <h2 className="panel-title">Layout</h2>
+      <Checks />
+      <h3 className="group-title">Add to the room</h3>
       <ul className="library" aria-label="Library">
         {placeable.map((e) => (
           <li key={e.id}>
@@ -400,7 +420,6 @@ export function LayoutPanel() {
         ))}
       </ul>
       <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
-      {!flagged && <Checks />}
       <p className="hint">
         {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
       </p>
@@ -465,7 +484,11 @@ function Chips({
   return (
     <div className="field">
       <span className="row-label">{label}</span>
-      <div className="chips" role="radiogroup" aria-label={label}>
+      <div
+        className={`chips ${options.length > 5 ? "chips-scroll" : ""}`}
+        role="radiogroup"
+        aria-label={label}
+      >
         {options.map((o) => (
           <button
             key={o.id}
@@ -507,6 +530,11 @@ export function DecorPanel() {
     return model?.kind === "parametric" ? String(model.params.colour ?? "var(--sunk)") : "var(--sunk)";
   };
   const none = { id: "none", name: "None" };
+  const [flowersOpen, setFlowersOpen] = useState(false);
+  // Flower types shape mounded arrangements; bud vases and the garland take only colours.
+  const floral = catalog.get(shown.florals)?.model;
+  const typed = floral?.kind === "parametric" && FLOWER_TYPE_GENERATORS.includes(floral.generator);
+  const labels = tableLabels(scenario.items, catalog);
   return (
     <div className="panel-body" data-testid="decor-panel">
       <h2 className="panel-title">Décor</h2>
@@ -515,7 +543,13 @@ export function DecorPanel() {
           label="Apply to"
           value={scope}
           options={[
-            { value: "selected", label: tables.length === 1 ? "This table" : `${tables.length} tables` },
+            {
+              value: "selected",
+              label:
+                tables[0] && tables.length === 1
+                  ? itemTitle(tables[0], labels, catalog)
+                  : `${tables.length} tables`,
+            },
             { value: "all", label: "All tables" },
           ]}
           onChange={setScope}
@@ -559,26 +593,46 @@ export function DecorPanel() {
         testId="florals"
       />
       {shown.florals !== "none" && (
-        <Chips
-          label="Flowers"
-          options={Object.entries(FLOWER_TYPES).map(([id, f]) => ({ id, name: f.label }))}
-          value={shown.flowerType}
-          onPick={(id) => apply({ flowerType: id })}
-          testId="flower-type"
-        />
-      )}
-      {shown.florals !== "none" && (
-        <Swatches
-          label="Flower colours"
-          options={Object.entries(FLORAL_PALETTES).map(([id, p]) => ({
-            id,
-            name: p.label,
-            colour: `linear-gradient(135deg, ${p.colours.join(", ")})`,
-          }))}
-          value={shown.floralColour}
-          onPick={(id) => apply({ floralColour: id })}
-          testId="floral-colour"
-        />
+        <>
+          <button
+            type="button"
+            className="disclosure"
+            aria-expanded={flowersOpen}
+            onClick={() => setFlowersOpen((o) => !o)}
+            data-testid="flowers"
+          >
+            <span className="row-label">Flowers</span>
+            <span className="row-value">
+              {typed ? `${FLOWER_TYPES[shown.flowerType]?.label} · ` : ""}
+              {FLORAL_PALETTES[shown.floralColour]?.label}
+            </span>
+            <Icon name="chevron" size={16} />
+          </button>
+          {flowersOpen && (
+            <>
+              {typed && (
+                <Chips
+                  label="Flower type"
+                  options={Object.entries(FLOWER_TYPES).map(([id, f]) => ({ id, name: f.label }))}
+                  value={shown.flowerType}
+                  onPick={(id) => apply({ flowerType: id })}
+                  testId="flower-type"
+                />
+              )}
+              <Swatches
+                label="Flower colours"
+                options={Object.entries(FLORAL_PALETTES).map(([id, p]) => ({
+                  id,
+                  name: p.label,
+                  colour: `linear-gradient(135deg, ${p.colours.join(", ")})`,
+                }))}
+                value={shown.floralColour}
+                onPick={(id) => apply({ floralColour: id })}
+                testId="floral-colour"
+              />
+            </>
+          )}
+        </>
       )}
       <Chips
         label="Chairs"
@@ -587,80 +641,83 @@ export function DecorPanel() {
         onPick={(id) => apply({ chair: id })}
         testId="chair"
       />
-      {scenario.style.settings && (
-        <Chips
-          label="Chargers"
-          options={[
-            { id: "gold", name: "Gold" },
-            { id: "silver", name: "Silver" },
-            { id: "glass", name: "Glass" },
-            none,
-          ]}
-          value={shown.charger}
-          onPick={(id) => apply({ charger: id })}
-          testId="charger"
-        />
-      )}
-      {scenario.style.settings && (
-        <Swatches
-          label="Napkins"
-          options={[
-            { id: "none", name: "None", colour: "var(--surface)" },
-            ...family("tableware", "napkin").map((e) => ({
-              id: e.id,
-              name: e.name.replace(" napkins", ""),
-              colour: colourOf(e.id),
-            })),
-          ]}
-          value={shown.napkin}
-          onPick={(id) => apply({ napkin: id })}
-          testId="napkin"
-        />
-      )}
-      <h3 className="group-title">Every table</h3>
-      <div className="field">
-        <span className="row-label">Tablecloth length</span>
-        <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
-          {(
-            [
-              ["floor", "To the floor"],
-              ["lap", "Lap length"],
-            ] as const
-          ).map(([v, l]) => (
-            <button
-              key={v}
-              type="button"
-              role="radio"
-              aria-checked={scenario.style.linenLength === v}
-              className={scenario.style.linenLength === v ? "on" : ""}
-              onClick={() => editor.setStyle("linenLength", v)}
-              data-testid={`linen-length-${v}`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-      <Toggle
-        label="Place settings"
-        checked={scenario.style.settings}
-        onChange={(v) => editor.setStyle("settings", v)}
-        testId="settings"
-      />
-      {scenario.style.settings && (
+      <section className="group" aria-label="Place settings">
         <Toggle
-          label="Menu cards"
-          checked={scenario.style.menus}
-          onChange={(v) => editor.setStyle("menus", v)}
-          testId="menus"
+          label="Place settings"
+          checked={scenario.style.settings}
+          onChange={(v) => editor.setStyle("settings", v)}
+          testId="settings"
         />
-      )}
-      <Toggle
-        label="Table numbers"
-        checked={scenario.style.tableNumbers}
-        onChange={(v) => editor.setStyle("tableNumbers", v)}
-        testId="table-numbers"
-      />
+        {scenario.style.settings && (
+          <>
+            <Chips
+              label="Chargers"
+              options={[
+                { id: "gold", name: "Gold" },
+                { id: "silver", name: "Silver" },
+                { id: "glass", name: "Glass" },
+                none,
+              ]}
+              value={shown.charger}
+              onPick={(id) => apply({ charger: id })}
+              testId="charger"
+            />
+            <Swatches
+              label="Napkins"
+              options={[
+                { id: "none", name: "None", colour: NONE_SWATCH },
+                ...family("tableware", "napkin").map((e) => ({
+                  id: e.id,
+                  name: e.name.replace(" napkins", ""),
+                  colour: colourOf(e.id),
+                })),
+              ]}
+              value={shown.napkin}
+              onPick={(id) => apply({ napkin: id })}
+              testId="napkin"
+            />
+            <Toggle
+              label="Menu cards"
+              checked={scenario.style.menus}
+              onChange={(v) => editor.setStyle("menus", v)}
+              testId="menus"
+            />
+          </>
+        )}
+      </section>
+      <section className="group" aria-label="Every table">
+        <h3 className="group-title">Every table</h3>
+        <p className="hint">These always apply to all tables.</p>
+        <div className="field">
+          <span className="row-label">Tablecloth length</span>
+          <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
+            {(
+              [
+                ["floor", "To the floor"],
+                ["lap", "Lap length"],
+              ] as const
+            ).map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={scenario.style.linenLength === v}
+                className={scenario.style.linenLength === v ? "on" : ""}
+                onClick={() => editor.setStyle("linenLength", v)}
+                data-testid={`linen-length-${v}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Toggle
+          label="Table numbers"
+          checked={scenario.style.tableNumbers}
+          onChange={(v) => editor.setStyle("tableNumbers", v)}
+          testId="table-numbers"
+        />
+      </section>
       {tables.length === 1 && tables[0]?.style && (
         <button
           type="button"
@@ -708,7 +765,7 @@ export function PeoplePanel() {
         </div>
         <div className="figure">
           <b data-testid="people-standing">{c.withoutSeat}</b>
-          <span>standing</span>
+          <span>without a seat</span>
         </div>
         <div className="figure">
           <b>{Math.max(0, c.seats - c.guests)}</b>
@@ -784,17 +841,22 @@ function Notes() {
           ))}
         </ul>
       )}
-      {!author && (
-        <div className="seg seg-fill" role="radiogroup" aria-label="Sign notes as">
+      {author ? (
+        <p className="hint">
+          Signed as Partner {author} ·{" "}
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => cloud.choosePartner(author === "A" ? "B" : "A")}
+          >
+            I’m Partner {author === "A" ? "B" : "A"}
+          </button>
+        </p>
+      ) : (
+        <div className="actions-row" aria-label="Sign notes as">
           {(["A", "B"] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              role="radio"
-              aria-checked={false}
-              onClick={() => cloud.choosePartner(p)}
-            >
-              Sign as Partner {p}
+            <button key={p} type="button" className="btn" onClick={() => cloud.choosePartner(p)}>
+              I’m Partner {p}
             </button>
           ))}
         </div>
@@ -841,7 +903,7 @@ function CompareControls() {
   );
   const rows = pair.map((s) => {
     const c = countLayout(s.items, s.guests.count, catalog);
-    const notes = advise(s.items, s.guests.count, s.thresholds, venue, catalog, s.venueToggles).length;
+    const notes = adviseScenario(s, venue, catalog).length;
     return [c.tables, c.seats, c.withoutSeat, `≈ ${Math.round(c.danceFloorM2)} m²`, notes] as const;
   });
   const labels = ["Tables", "Seats", "Without a seat", "Dance floor", "Advisories"];
@@ -885,14 +947,17 @@ function CompareControls() {
             </tr>
           </thead>
           <tbody>
-            {labels.map((l, i) => (
-              <tr key={l}>
-                <th scope="row">{l}</th>
-                {rows.map((r, j) => (
-                  <td key={j}>{r[i]}</td>
-                ))}
-              </tr>
-            ))}
+            {labels.map((l, i) => {
+              const differs = rows[0]?.[i] !== rows[1]?.[i];
+              return (
+                <tr key={l} className={differs ? "differs" : ""}>
+                  <th scope="row">{l}</th>
+                  {rows.map((r, j) => (
+                    <td key={j}>{r[i]}</td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -910,6 +975,9 @@ export function ComparePanel() {
     </div>
   );
 }
+
+/** "None" and "Hidden" swatches: a diagonal stroke, never a colour that could pass for white. */
+const NONE_SWATCH = "linear-gradient(135deg, transparent 46%, var(--line-2) 46% 54%, transparent 54%)";
 
 /** A painting's swatch: its palette as bands. */
 const palette = (colours: readonly string[]) => `linear-gradient(135deg, ${colours.join(", ")})`;
@@ -975,7 +1043,7 @@ export function VenuePanel() {
             {
               id: "hidden",
               name: "Hidden",
-              colour: "linear-gradient(135deg, transparent 46%, var(--line-2) 46% 54%, transparent 54%)",
+              colour: NONE_SWATCH,
             },
           ]}
           value={toggles?.paintings[p.id] ?? "current"}
@@ -1115,7 +1183,13 @@ export function Inspector() {
   return (
     <div className="panel-body" data-testid="inspector">
       <div className="panel-head">
-        <h2 className="panel-title">{many ? `${items.length} items` : itemTitle(item, labels, catalog)}</h2>
+        <h2 className="panel-title">
+          {items.length === 2 && items[0] && items[1]
+            ? `${itemTitle(items[0], labels, catalog)} and ${itemTitle(items[1], labels, catalog).replace(/^Table /, "table ")}`
+            : many
+              ? `${items.length} items`
+              : itemTitle(item, labels, catalog)}
+        </h2>
         <button type="button" className="plain-btn" onClick={() => editor.select([])}>
           Done
         </button>

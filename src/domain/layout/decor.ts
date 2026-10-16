@@ -44,6 +44,9 @@ export type Part = {
   colour?: string;
 };
 
+/** Floral generators built from a mound of blooms: the ones whose flower type can be chosen. */
+export const FLOWER_TYPE_GENERATORS: readonly string[] = ["lowMound", "tallArrangement", "compote"];
+
 /** Flower colours per palette (LIB-06: colours chosen per arrangement). */
 export const FLORAL_PALETTES: Record<string, { label: string; colours: string[] }> = {
   white: { label: "White", colours: ["#f6f3ec", "#ebe6da", "#f2efe4", "#e2e9d6"] },
@@ -71,8 +74,8 @@ export const FLOWER_TYPES: Record<
   peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4 },
   hydrangea: { label: "Hydrangea", bloom: [0.065, 0.085], count: 0.55, leafEvery: 5 },
   ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3 },
-  babysBreath: { label: "Baby's breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },
-  eucalyptus: { label: "Eucalyptus", bloom: [0.03, 0.04], count: 1, leafEvery: 1.4, leaf: "#c9dbd2" },
+  babysBreath: { label: "Baby’s breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },
+  eucalyptus: { label: "Eucalyptus", bloom: [0.03, 0.04], count: 1, leafEvery: 1.4, leaf: "#9fb5a8" },
   pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume" },
   blossom: { label: "Blossom branches", bloom: [0.016, 0.022], count: 1.6, leafEvery: 8, form: "branch" },
 };
@@ -145,9 +148,12 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
     } else if (f.form === "branch" && i % 5 === 0) {
       // Blossom: thin branches leaning out, small flowers along them.
       const lean = (ctx.rand() - 0.5) * 0.9;
-      parts.push({ ...cyl("black", px, py, pz, 0.004, 0.22), rz: lean, rx: (ctx.rand() - 0.5) * 0.6 });
+      parts.push({ ...cyl("black", px, py, pz, 0.004, 0.22), rz: lean });
+      // Flowers along the leaning branch (it tilts about z, so its tip moves in x and y).
       for (let j = 1; j <= 3; j++)
-        parts.push(ball("flower", px - Math.sin(lean) * 0.07 * j, py + 0.07 * j, pz, b1, colour));
+        parts.push(
+          ball("flower", px - Math.sin(lean) * 0.07 * j, py + Math.cos(lean) * 0.07 * j, pz, b1, colour),
+        );
     } else {
       parts.push(ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour));
     }
@@ -253,21 +259,24 @@ const centrepieces: Record<string, Gen> = {
 /** Generators that run the table's length instead of sitting at centre spots. */
 const runners: Record<
   string,
-  (length: number, ctx: Ctx, p: Record<string, number | string | boolean>) => Part[]
+  (length: number, ctx: Ctx, p: Record<string, number | string | boolean>, overhang: number) => Part[]
 > = {
-  // Velvet lies flat and drops over both ends; chiffon is wider, sheer and hangs longer (LIB-03).
-  runner: (length, _ctx, p) => {
+  // Velvet lies flat and drops over both ends, outside the tablecloth; chiffon is wider, sheer and
+  // hangs longer (LIB-03).
+  runner: (length, _ctx, p, overhang) => {
     const sheer = p.fabric === "chiffon";
     const slot: Slot = sheer ? "sheer" : "fabric";
     const colour = String(p.colour ?? "#ffffff");
     const w = sheer ? 0.5 : 0.36;
     const drop = sheer ? 0.45 : 0.28;
-    const parts: Part[] = [{ prim: "box", slot, x: 0, y: 0.002, z: 0, sx: length, sy: 0.004, sz: w, colour }];
+    const parts: Part[] = [
+      { prim: "box", slot, x: 0, y: 0.002, z: 0, sx: length + 2 * overhang, sy: 0.004, sz: w, colour },
+    ];
     for (const s of [-1, 1])
       parts.push({
         prim: "box",
         slot,
-        x: s * (length / 2 + 0.004),
+        x: s * (length / 2 + overhang),
         y: -drop,
         z: 0,
         sx: 0.006,
@@ -310,7 +319,7 @@ function spots(shape: Shape): [number, number][] {
   return [[0, 0]];
 }
 
-type Extras = { settings: boolean; menus: boolean; tableNumbers: boolean };
+type Extras = { settings: boolean; menus: boolean; tableNumbers: boolean; linenLength: "lap" | "floor" };
 
 /**
  * One place setting in front of a chair: charger, plate, two glasses, fork, knife; a folded napkin
@@ -410,6 +419,18 @@ export function tableDecor(
   };
   const parts: Part[] = [];
   const pieces = [style.runner, style.florals, style.candles];
+  // How far past the table edge the cloth hangs, so a runner's ends drop outside it (Items.tsx).
+  const cloth = catalog.get(style.linen)?.model;
+  const bare =
+    (shape.kind === "rectTable" && shape.farm) ||
+    (cloth?.kind === "parametric" && cloth.params.bare === true);
+  const overhang = bare
+    ? 0.004
+    : shape.kind === "rectTable"
+      ? 0.04
+      : extras.linenLength === "lap"
+        ? 0.065
+        : 0.085;
   const at = spots(shape);
   for (const id of pieces) {
     const e = catalog.get(id);
@@ -417,9 +438,10 @@ export function tableDecor(
     const g = e.model.generator;
     const runner = runners[g];
     if (runner) {
-      // Along a long table; across a round one.
-      const length = shape.kind === "rectTable" ? shape.length : "diameter" in shape ? shape.diameter : 0;
-      if (length > 0) parts.push(...runner(length, ctx, e.model.params));
+      // Along a long table; across a round one; none on a standing cocktail table.
+      const length =
+        shape.kind === "rectTable" ? shape.length : shape.kind === "roundTable" ? shape.diameter : 0;
+      if (length > 0) parts.push(...runner(length, ctx, e.model.params, overhang));
       continue;
     }
     const gen = centrepieces[g];

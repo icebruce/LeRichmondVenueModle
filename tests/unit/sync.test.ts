@@ -10,7 +10,8 @@ import { venueSampleScenario } from "../../src/domain/scenario/scenario";
 function device(
   name: "A" | "B",
   online: { up: boolean; dropNextCreateReply?: boolean } = { up: true },
-  initial = [venueSampleScenario(`${name}-start`, "2026-10-16T00:00:00.000Z")],
+  // Each device's own (renamed, so not an untouched venue sample) starting scenario.
+  initial = [{ ...venueSampleScenario(`${name}-start`, "2026-10-16T00:00:00.000Z"), name: `${name} start` }],
 ) {
   let cookie = "";
   let n = 0;
@@ -146,12 +147,12 @@ describe("cloud sync", () => {
     const { a, b } = await pair();
     const c = device("A", { up: true }, []);
     expect(await c.api.login("pw")).toBeNull();
-    const seed = c.editor.autoSeed?.id;
+    const seed = c.editor.store.getState().activeId;
     await c.sync.start();
     const ids = Object.keys(c.editor.store.getState().scenarios).sort();
     expect(ids).toEqual(["A-start", "B-start"]);
     expect(ids).not.toContain(seed);
-    expect((await c.api.list()).map((s) => s.id).sort()).toEqual(["A-start", "B-start"]);
+    expect((await c.api.list()).scenarios.map((s) => s.id).sort()).toEqual(["A-start", "B-start"]);
     for (const d of [a, b, c]) d.sync.stop();
   });
 
@@ -188,5 +189,90 @@ describe("cloud sync", () => {
     expect(s?.notes.map((x) => x.text)).toEqual(["Florals lower, please"]);
     a.sync.stop();
     b.sync.stop();
+  });
+
+  test("[SCN-02] a lost create reply followed by an edit and a plain save is not a conflict", async () => {
+    const { a, b } = await pair();
+    a.online.dropNextCreateReply = true;
+    a.editor.createScenario("blank");
+    const id = a.editor.store.getState().activeId;
+    await a.sync.pull();
+    a.editor.setGuests(42);
+    // The retry is a save pass (as after the retry timer or the next edit), not a pull.
+    await (a.sync as unknown as { run: () => Promise<void> }).run();
+    expect(a.editor.store.getState().conflict).toBeNull();
+    await a.sync.pull();
+    await b.sync.pull();
+    expect(b.editor.store.getState().scenarios[id]?.guests.count).toBe(42);
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-03] two conflicts are asked one after the other, none dropped", async () => {
+    const { a, b } = await pair();
+    await b.sync.pull();
+    for (const id of ["A-start", "B-start"]) {
+      a.editor.switchScenario(id);
+      a.editor.setGuests(90);
+    }
+    await a.sync.pull();
+    for (const id of ["A-start", "B-start"]) {
+      b.editor.switchScenario(id);
+      b.editor.setGuests(60);
+    }
+    await b.sync.pull();
+    const first = b.editor.store.getState().conflict?.id;
+    expect(first).toBeDefined();
+    await b.sync.resolve("theirs", () => "unused");
+    const second = b.editor.store.getState().conflict?.id;
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
+    await b.sync.resolve("theirs", () => "unused");
+    expect(b.editor.store.getState().conflict).toBeNull();
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-02] starting twice (React StrictMode) neither subscribes nor pulls twice", async () => {
+    const a = device("A");
+    expect(await a.api.login("pw")).toBeNull();
+    let lists = 0;
+    const list = a.api.list.bind(a.api);
+    a.api.list = () => {
+      lists += 1;
+      return list();
+    };
+    await Promise.all([a.sync.start(), a.sync.start()]);
+    expect(lists).toBe(1);
+    a.sync.stop();
+  });
+
+  test("[SCN-02] a shared scenario this version cannot read is left alone, not taken as deleted", async () => {
+    const { a, b } = await pair();
+    await b.sync.pull();
+    const list = b.api.list.bind(b.api);
+    b.api.list = async () => {
+      const r = await list();
+      return { scenarios: r.scenarios.filter((s) => s.id !== "A-start"), unreadable: ["A-start"] };
+    };
+    await b.sync.pull();
+    expect(b.editor.store.getState().scenarios["A-start"]).toBeDefined();
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-09] offline when the app starts: it still syncs once the connection is back", async () => {
+    const online = { up: false };
+    const a = device("A", online);
+    expect(await a.api.session()).toBe("on");
+    online.up = true;
+    expect(await a.api.login("pw")).toBeNull();
+    online.up = false;
+    await a.sync.start();
+    expect(a.editor.store.getState().saveState).toBe("offline");
+    online.up = true;
+    await a.sync.pull();
+    expect((await a.api.list()).scenarios.map((s) => s.id)).toContain("A-start");
+    a.sync.stop();
   });
 });

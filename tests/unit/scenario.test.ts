@@ -106,5 +106,30 @@ describe("conflict summary", () => {
       `Linen: ${catalog.get(mine.style.linen)?.name} here, ${catalog.get("linen-navy")?.name} in theirs`,
     ]);
     expect(differences(mine, structuredClone(mine), catalog)).toEqual([]);
+    // Every setting counts: a runner, a check setting or a painting is never "the same".
+    const runner = { ...structuredClone(mine), style: { ...mine.style, runner: "runner-velvet-emerald" } };
+    expect(differences(mine, runner, catalog)).toEqual([
+      `Runner: none here, ${catalog.get("runner-velvet-emerald")?.name} in theirs`,
+    ]);
+    const art = structuredClone(mine);
+    art.venueToggles.paintings = { horseman: "hidden" };
+    expect(differences(mine, art, catalog)).toEqual(["Venue furniture or paintings differ"]);
+  });
+});
+
+describe("drapery backdrop", () => {
+  test("[LIB-03] the drapery backdrop is a floor piece with its width and fabric as options", () => {
+    const catalog = buildCatalog(libraryFiles);
+    const item: Item = {
+      id: "d",
+      libraryId: "drapery-backdrop",
+      x: 3,
+      z: 13.6,
+      rotY: 0,
+      options: { width: 4, colour: "#ecd0c8" },
+    };
+    const shape = shapeOf(item, catalog);
+    expect(shape).toMatchObject({ kind: "backdrop", width: 4, colour: "#ecd0c8" });
+    expect(FLOOR_GENERATORS).toContain("backdrop");
   });
 });

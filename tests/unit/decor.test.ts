@@ -15,7 +15,7 @@ const shape = shapeOf(round, catalog);
 const decor = (
   patch: Partial<typeof DEFAULT_STYLE>,
   settings = false,
-  more = { menus: false, tableNumbers: false },
+  more = { menus: false, tableNumbers: false, linenLength: "floor" as "lap" | "floor" },
 ) =>
   tableDecor(
     shape,
@@ -53,14 +53,22 @@ describe("décor", () => {
   test("[LIB-03] runners: velvet lies flat and drops over the ends; chiffon is wider and sheer", () => {
     const velvet = decor({ runner: "runner-velvet-emerald" });
     expect(velvet.filter((p) => p.slot === "fabric")).toHaveLength(3);
-    expect(velvet.some((p) => p.y < 0)).toBe(true);
+    // The ends hang outside the floor-length cloth (radius + 0.03 at the top, + 0.07 at the floor).
+    const radius = shape.kind === "roundTable" ? shape.diameter / 2 : 0;
+    const drops = velvet.filter((p) => p.y < 0);
+    expect(drops).toHaveLength(2);
+    for (const d of drops) expect(Math.abs(d.x) - d.sx / 2).toBeGreaterThan(radius + 0.07);
     const chiffon = decor({ runner: "runner-chiffon-blush" });
     expect(chiffon.every((p) => p.slot === "sheer")).toBe(true);
     expect(Math.max(...chiffon.map((p) => p.sz))).toBeGreaterThan(Math.max(...velvet.map((p) => p.sz)));
   });
 
   test("[LIB-03] [LIB-04] napkins and menu cards on every plate; one number holder per table", () => {
-    const parts = decor({ napkin: "napkin-sage" }, true, { menus: true, tableNumbers: true });
+    const parts = decor({ napkin: "napkin-sage" }, true, {
+      menus: true,
+      tableNumbers: true,
+      linenLength: "floor",
+    });
     expect(parts.filter((p) => p.slot === "fabric")).toHaveLength(8);
     expect(parts.filter((p) => p.slot === "fabric").every((p) => p.colour === "#a3b19a")).toBe(true);
     // Eight menu cards plus the table number's card.

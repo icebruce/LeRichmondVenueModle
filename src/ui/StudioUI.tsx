@@ -3,7 +3,7 @@ import { useProgress } from "@react-three/drei";
 import { countLayout } from "../domain/layout/counts";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { advise } from "../domain/layout/advisories";
+import { adviseScenario } from "../domain/layout/advisories";
 import { useEditor, useStudio, useView } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
@@ -34,14 +34,7 @@ function useSummary(id?: string) {
     () => ({
       name: scenario.name,
       ...countLayout(scenario.items, scenario.guests.count, catalog),
-      advisories: advise(
-        scenario.items,
-        scenario.guests.count,
-        scenario.thresholds,
-        venue,
-        catalog,
-        scenario.venueToggles,
-      ).length,
+      advisories: adviseScenario(scenario, venue, catalog).length,
     }),
     [scenario, catalog, venue],
   );
@@ -341,7 +334,10 @@ export function StudioUI() {
     setSection("layout");
     setDetent((d) => (d === "peek" ? "half" : d));
     window.requestAnimationFrame(() =>
-      document.getElementById("checks")?.scrollIntoView({ block: "start", behavior: "smooth" }),
+      document.getElementById("checks")?.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      }),
     );
   };
 

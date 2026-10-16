@@ -125,9 +125,10 @@ export function advise(
   thresholds: Thresholds,
   venue: VenueModel,
   catalog: Catalog,
-  toggles: VenueToggles = { communalTable: false, barStools: false },
+  toggles: VenueToggles,
 ): Advisory[] {
   const out: Advisory[] = [];
+  const aisles: { gap: number; advisory: Advisory }[] = [];
   // Venue furniture the couple keeps counts too; hidden, it frees its floor (LAY-12).
   const furniture = toggledObstacles(venue, toggles);
   const labels = tableLabels(items, catalog);
@@ -144,32 +145,47 @@ export function advise(
       const gap = polygonGap(a.fp, b.fp);
       if (gap <= 0 || gap >= thresholds.aisleM) continue;
       const strip = aisleStrip(a.fp, b.fp);
-      out.push({
-        id: `aisle:${a.it.id}:${b.it.id}`,
-        kind: "aisle",
-        message: `Aisle ≈ ${m1(gap)} m between ${itemName(a.it, labels, catalog)} and ${itemName(b.it, labels, catalog)} — below your ${m1(thresholds.aisleM)} m setting`,
-        area: strip.area,
-        label: { text: `≈ ${m1(gap)} m`, at: strip.centre },
-        items: [a.it.id, b.it.id],
+      aisles.push({
+        gap,
+        advisory: {
+          id: `aisle:${a.it.id}:${b.it.id}`,
+          kind: "aisle",
+          message: `Aisle ≈ ${m1(gap)} m between ${itemName(a.it, labels, catalog)} and ${itemName(b.it, labels, catalog)} — below your ${m1(thresholds.aisleM)} m setting`,
+          area: strip.area,
+          label: { text: `Aisle ≈ ${m1(gap)} m`, at: strip.centre },
+          items: [a.it.id, b.it.id],
+        },
       });
     }
   }
 
   for (const { it, fp } of seated) {
+    // One message per piece of furniture (the bar stools are two strips: the nearer one counts).
+    const nearest = new Map<string, { o: (typeof furniture)[number]; gap: number }>();
     for (const o of furniture) {
       const gap = polygonGap(fp, o.polygon);
+      const seen = nearest.get(o.label);
+      if (!seen || gap < seen.gap) nearest.set(o.label, { o, gap });
+    }
+    for (const { o, gap } of nearest.values()) {
       if (gap <= 0 || gap >= thresholds.aisleM) continue;
       const strip = aisleStrip(fp, o.polygon);
-      out.push({
-        id: `aisle:${it.id}:${o.id}`,
-        kind: "aisle",
-        message: `Aisle ≈ ${m1(gap)} m between ${itemName(it, labels, catalog)} and ${o.label} — below your ${m1(thresholds.aisleM)} m setting`,
-        area: strip.area,
-        label: { text: `≈ ${m1(gap)} m`, at: strip.centre },
-        items: [it.id],
+      aisles.push({
+        gap,
+        advisory: {
+          id: `aisle:${it.id}:${o.id}`,
+          kind: "aisle",
+          message: `Aisle ≈ ${m1(gap)} m between ${itemName(it, labels, catalog)} and ${o.label} — below your ${m1(thresholds.aisleM)} m setting`,
+          area: strip.area,
+          label: { text: `Aisle ≈ ${m1(gap)} m`, at: strip.centre },
+          items: [it.id],
+        },
       });
     }
   }
+
+  // Tightest aisles first: what the couple should look at first.
+  out.push(...aisles.sort((a, b) => a.gap - b.gap).map((a) => a.advisory));
 
   // Clearances in front of the entrance, stair, kitchen pass and glazed doors.
   for (const zone of clearanceZones(venue, thresholds.clearanceM)) {
@@ -196,9 +212,12 @@ export function advise(
     out.push({
       id: `clearance:${zone.name}:${near.id}`,
       kind: "clearance",
-      message: `${near.name[0]?.toUpperCase()}${near.name.slice(1)} ≈ ${m1(near.d)} m from ${zone.name} — below your ${m1(thresholds.clearanceM)} m setting`,
+      message: `Clearance ≈ ${m1(near.d)} m at ${zone.name} (${near.name}) — below your ${m1(thresholds.clearanceM)} m setting`,
       area: zone.area,
-      label: { text: `≈ ${m1(near.d)} m`, at: [(near.p[0] + near.q[0]) / 2, (near.p[1] + near.q[1]) / 2] },
+      label: {
+        text: `Clear ≈ ${m1(near.d)} m`,
+        at: [(near.p[0] + near.q[0]) / 2, (near.p[1] + near.q[1]) / 2],
+      },
       items: inside.filter((x) => x.item).map((x) => x.id),
     });
   }
@@ -222,4 +241,14 @@ export function advise(
     });
   }
   return out;
+}
+
+/** A scenario's advisories, optionally for items moved by a drag still in progress (LAY-08, LAY-12). */
+export function adviseScenario(
+  s: Pick<Scenario, "items" | "guests" | "thresholds" | "venueToggles">,
+  venue: VenueModel,
+  catalog: Catalog,
+  items: readonly Item[] = s.items,
+): Advisory[] {
+  return advise(items, s.guests.count, s.thresholds, venue, catalog, s.venueToggles);
 }

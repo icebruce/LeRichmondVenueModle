@@ -66,7 +66,7 @@ button:disabled {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  --rail: 72px;
+  --rail: var(--rail-w);
   --top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
 }
 .ui > * {
@@ -506,7 +506,7 @@ button:disabled {
 }
 .library-caption {
   font: var(--t-footnote);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .library-add {
   color: var(--accent);
@@ -515,6 +515,48 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
+}
+/* Long sets scroll sideways in one row, so the panel stays short (DESIGN_GUIDE §1.5). */
+.chips-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  margin-inline: calc(-1 * var(--s-4));
+  padding-inline: var(--s-4);
+  padding-bottom: var(--s-1);
+}
+.chips-scroll .chip {
+  flex: none;
+}
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.disclosure .row-value {
+  flex: 1;
+  color: var(--ink);
+}
+.disclosure[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+.advisory-go {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-2);
+  transform: rotate(-90deg);
 }
 .chip {
   display: inline-flex;
@@ -664,9 +706,12 @@ button:disabled {
   text-align: right;
 }
 .compare-table th[scope="row"],
+.compare-table tr.differs td {
+  font-weight: 600;
+}
 .compare-table thead th:first-child {
   text-align: left;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-weight: 500;
 }
 .notes {
@@ -689,8 +734,8 @@ button:disabled {
   flex: none;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: var(--s-6);
+  height: var(--s-6);
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
@@ -717,12 +762,12 @@ button:disabled {
   background: var(--sunk);
 }
 .figure b {
-  font: var(--t-figure);
+  font: var(--t-headline);
   font-variant-numeric: tabular-nums;
 }
 .figure span {
   font: var(--t-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .advice {
   margin: 0;
@@ -768,7 +813,7 @@ button:disabled {
 }
 .count span {
   font: var(--t-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .count.warn b {
   color: var(--advisory-ink);
@@ -804,14 +849,22 @@ button:disabled {
 }
 .pane-name {
   flex-basis: 100%;
-  font: 600 15px/20px var(--font-display);
+  font: var(--t-body);
+  font-family: var(--font-display);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 @media (min-width: 768px) {
   .viewport.split {
-    left: 72px;
+    left: var(--rail-w);
+  }
+}
+/* Narrower desktops: each half's strip keeps to one line of counts. */
+@media (max-width: 1300px) {
+  .pane-counts .count:nth-child(4) {
+    display: none;
   }
 }
 
@@ -933,6 +986,13 @@ button:disabled {
   from {
     opacity: 0;
     transform: translate(var(--tx, 0), 6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rise {
+    from {
+      opacity: 0;
+    }
   }
 }
 .toast {
@@ -1137,14 +1197,12 @@ button:disabled {
     font: var(--t-footnote);
     font-weight: 600;
   }
-  .pane-counts {
-    flex-wrap: nowrap;
-    align-items: baseline;
-  }
+  /* Its own line, never cut: "copy" may be the only word that tells the halves apart. */
   .pane-counts .pane-name {
-    flex: 0 1 auto;
-    min-width: 0;
-    font: 600 13px/18px var(--font-display);
+    white-space: normal;
+    font: var(--t-footnote);
+    font-family: var(--font-display);
+    font-weight: 600;
   }
   /* One line per half: name, tables, seats, without a seat (the sheet has the rest). */
   .pane-counts .count:nth-child(4),

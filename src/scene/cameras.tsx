@@ -69,6 +69,7 @@ function MainCamera() {
   }, [presets]);
 
   const goTo = (key: CameraMode | string) => {
+    userMoved.current = false;
     const isMode = key in poses;
     const p = isMode ? poses[key as CameraMode] : presets[key];
     if (!p) return;
@@ -77,8 +78,11 @@ function MainCamera() {
     const target = controls.current?.target ?? new THREE.Vector3();
     const to = presetPose(p);
     // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
-    const visible = mode === "walk" || comparing ? size.width : size.width - insetRight;
-    const aspect = visible / Math.max(1, size.height);
+    const flat = mode === "walk" || comparing;
+    const visible = flat ? size.width : size.width - insetRight;
+    // Phone: fit the band between the top bar and the sheet, not the whole screen.
+    const band = flat ? size.height : size.height - insetTop - insetBottom;
+    const aspect = visible / Math.max(1, band);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
       const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
       to.position.sub(to.target).multiplyScalar(k).add(to.target);
@@ -91,13 +95,19 @@ function MainCamera() {
     };
   };
 
-  // Mode switch animates to that mode's starting pose (CAM-05); side by side, so does each change of
-  // the half's size (it settles a render or two after compare starts).
+  // Mode switch, and starting or ending compare, animate to the mode's starting pose (CAM-05). A
+  // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
+  // unless the couple has moved the view since: their view is never thrown away.
   const pane = comparing ? `${size.width}x${size.height}` : "";
+  const band = comparing ? "" : `${insetTop}:${insetBottom}`;
+  const userMoved = useRef(false);
+  const framed = useRef({ mode, comparing });
   useEffect(() => {
-    goTo(mode);
+    const switched = framed.current.mode !== mode || framed.current.comparing !== comparing;
+    framed.current = { mode, comparing };
+    if (switched || !userMoved.current) goTo(mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, comparing, pane]);
+  }, [mode, comparing, pane, band]);
 
   useEffect(
     () =>
@@ -185,6 +195,7 @@ function MainCamera() {
     <OrbitControls
       ref={controls}
       makeDefault
+      onStart={() => (userMoved.current = true)}
       enabled={controlsEnabled}
       enableRotate={!plan}
       enableDamping

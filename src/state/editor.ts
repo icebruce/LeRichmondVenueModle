@@ -52,8 +52,6 @@ export const ROTATE_STEP = Math.PI / 12;
 export function createEditor(deps: EditorDeps, initial: Scenario[]) {
   const { venue, catalog, now, newId } = deps;
   const seed = initial.length ? initial : [venueSampleScenario(newId(), now())];
-  /** The venue sample a new device starts on, as created (cloud sync drops it if never touched). */
-  const autoSeed = initial.length ? null : (seed[0] as Scenario);
   const first = seed[0] as Scenario;
   const history = new Map<string, { past: Step[]; future: Step[] }>();
   let toastSeq = 0;
@@ -158,7 +156,6 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
   }
 
   const api = {
-    autoSeed,
     store,
 
     active,

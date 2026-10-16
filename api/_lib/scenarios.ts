@@ -38,8 +38,9 @@ export async function create(
 ): Promise<Record<string, unknown> | null> {
   const id = String(scenario.id);
   const saved = { ...scenario, revision: 1 };
-  if (!(await store.setNew(key(id), JSON.stringify(saved)))) return null;
+  // Index first: a list skips ids without a scenario, so a failed write never hides one that exists.
   await store.sadd(INDEX, id);
+  if (!(await store.setNew(key(id), JSON.stringify(saved)))) return null;
   return saved;
 }
 

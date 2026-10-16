@@ -21,6 +21,10 @@ function tokens() {
     FILL: v("--sunk"),
     ACCENT: v("--accent"),
     SOFT: v("--accent-soft"),
+    PAPER: v("--surface"),
+    GROUND: v("--bg"),
+    SOLID: v("--line-2"),
+    GLASS: v("--ink-3"),
     UI: v("--font-ui"),
     DISPLAY: v("--font-display"),
   };
@@ -39,13 +43,13 @@ export function drawPlan(
   exportedOn: string,
 ): void {
   const { width: W, height: H } = PLAN_SIZE;
-  const { INK, INK_2, LINE, FILL, ACCENT, SOFT, UI, DISPLAY } = tokens();
+  const { INK, INK_2, LINE, FILL, ACCENT, SOFT, PAPER, GROUND, SOLID, GLASS, UI, DISPLAY } = tokens();
   canvas.width = PLAN_PIXELS.width;
   canvas.height = PLAN_PIXELS.height;
   const g = canvas.getContext("2d");
   if (!g) throw new Error("Canvas 2D is not available");
   g.scale(PLAN_PIXELS.width / W, PLAN_PIXELS.height / H);
-  g.fillStyle = "#ffffff";
+  g.fillStyle = PAPER;
   g.fillRect(0, 0, W, H);
 
   const margin = 60;
@@ -101,7 +105,7 @@ export function drawPlan(
   g.fillRect(margin, 108, W - margin * 2, 1);
 
   // Raised floor, bar, back bar, stair.
-  poly(venue.raised.outline, "#f6f3ee", INK_2, 1.2, [10, 7]);
+  poly(venue.raised.outline, GROUND, INK_2, 1.2, [10, 7]);
   // Label in the raised floor's open south-west corner, clear of the tables.
   const raisedBottom = Math.max(...venue.raised.outline.map((p) => p[1]));
   const raisedLeft = Math.min(...venue.raised.outline.filter((p) => p[1] === raisedBottom).map((p) => p[0]));
@@ -110,11 +114,10 @@ export function drawPlan(
   for (const o of venue.obstacles) {
     if (o.id.startsWith("banquette")) poly(o.polygon, FILL, LINE, 1);
     else if (o.id.startsWith("bar") || o.id === "back-bar" || o.id === "wine-wall")
-      poly(o.polygon, "#d9d6cc", INK_2, 1);
-    else if (o.id.startsWith("stair")) poly(o.polygon, "#e6e3da", INK_2, 1);
+      poly(o.polygon, SOLID, INK_2, 1);
+    else if (o.id.startsWith("stair")) poly(o.polygon, FILL, INK_2, 1);
   }
-  for (const o of toggledObstacles(venue, scenario.venueToggles))
-    poly(o.polygon, "#d9d6cc", INK_2, 1, [4, 4]);
+  for (const o of toggledObstacles(venue, scenario.venueToggles)) poly(o.polygon, SOLID, INK_2, 1, [4, 4]);
   const [bx0, bz0, bx1, bz1] = venue.data.bar.outer.value;
   text("Bar", ...P([(bx0 + bx1) / 2, (bz0 + bz1) / 2]), `600 18px ${UI}`, INK_2, "center");
   const [lx0, lz0, lx1, lz1] = venue.data.stair.landing;
@@ -148,7 +151,7 @@ export function drawPlan(
       g.beginPath();
       g.moveTo(...P(out(o.start, -0.12)));
       g.lineTo(...P(out(o.end, -0.12)));
-      g.strokeStyle = o.kind === "opening" || o.kind === "pass" ? "#ffffff" : "#9fb8c4";
+      g.strokeStyle = o.kind === "opening" || o.kind === "pass" ? PAPER : GLASS;
       g.lineWidth = o.kind === "opening" || o.kind === "pass" ? 0.24 * scale : 0.08 * scale;
       g.stroke();
       s0 = o.end;
@@ -196,7 +199,7 @@ export function drawPlan(
         continue;
       }
       poly(transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY), INK, null);
-      text("DJ", ...P([it.x, it.z]), `700 17px ${UI}`, "#ffffff", "center");
+      text("DJ", ...P([it.x, it.z]), `700 17px ${UI}`, PAPER, "center");
       continue;
     }
     if (shape.kind === "backdrop") {
@@ -213,13 +216,13 @@ export function drawPlan(
       const [cx, cy] = P([ch.x, ch.z]);
       g.beginPath();
       g.arc(cx, cy, 0.2 * scale, 0, Math.PI * 2);
-      g.fillStyle = "#ffffff";
+      g.fillStyle = PAPER;
       g.fill();
       g.strokeStyle = INK_2;
       g.lineWidth = 1.2;
       g.stroke();
     }
-    poly(topPoly, "#ffffff", INK, 2);
+    poly(topPoly, PAPER, INK, 2);
     const seats = seatsOf(shape);
     const name = labels.get(it.id);
     const [x, y] = P([it.x, it.z]);
@@ -242,7 +245,7 @@ export function drawPlan(
   const sbx = ox;
   const sby = oy + venue.depth * scale + 70;
   for (let m = 0; m < 5; m++) {
-    g.fillStyle = m % 2 ? "#ffffff" : INK;
+    g.fillStyle = m % 2 ? PAPER : INK;
     g.fillRect(sbx + m * scale, sby, scale, 8);
   }
   g.strokeStyle = INK;

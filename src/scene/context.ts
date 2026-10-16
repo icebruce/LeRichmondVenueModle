@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { type Advisory, advise } from "../domain/layout/advisories";
+import { type Advisory, adviseScenario } from "../domain/layout/advisories";
 import type { Scenario } from "../domain/scenario/schema";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
@@ -30,17 +30,10 @@ export function useView<T>(selector: (s: ViewState) => T): T {
 /** Advisory checks for the active scenario (LAY-08), recomputed when the layout or settings change. */
 export function useAdvisories(): Advisory[] {
   const { venue, catalog } = useStudio();
-  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const { items, guests, thresholds, venueToggles } = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  // Only what the checks read: a rename or a décor change does not re-run them.
   return useMemo(
-    () =>
-      advise(
-        scenario.items,
-        scenario.guests.count,
-        scenario.thresholds,
-        venue,
-        catalog,
-        scenario.venueToggles,
-      ),
-    [scenario.items, scenario.guests.count, scenario.thresholds, scenario.venueToggles, venue, catalog],
+    () => adviseScenario({ items, guests, thresholds, venueToggles }, venue, catalog),
+    [items, guests, thresholds, venueToggles, venue, catalog],
   );
 }

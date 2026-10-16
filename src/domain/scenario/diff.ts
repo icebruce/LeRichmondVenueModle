@@ -2,6 +2,23 @@ import { countLayout } from "../layout/counts";
 import type { Catalog } from "../library/catalog";
 import type { Scenario } from "./schema";
 
+const STYLE_LABELS: Partial<Record<keyof Scenario["style"], string>> = {
+  linen: "Linen",
+  linenLength: "Tablecloth length",
+  chair: "Chairs",
+  candles: "Candles",
+  florals: "Florals",
+  floralColour: "Flower colours",
+  flowerType: "Flowers",
+  charger: "Chargers",
+  runner: "Runner",
+  napkin: "Napkins",
+  settings: "Place settings",
+  menus: "Menu cards",
+  tableNumbers: "Table numbers",
+  lighting: "Lighting",
+};
+
 /**
  * What differs between this device's copy and the partner's (SCN-03), as short phrases for the
  * conflict dialog: "Tables: 9 here, 8 in theirs", "2 items placed differently".
@@ -29,14 +46,35 @@ export function differences(mine: Scenario, theirs: Scenario, catalog: Catalog):
   if (moved) out.push(`${moved} ${moved === 1 ? "item" : "items"} placed differently`);
   if (onlyHere) out.push(`${onlyHere} ${onlyHere === 1 ? "item" : "items"} only here`);
   if (onlyTheirs) out.push(`${onlyTheirs} ${onlyTheirs === 1 ? "item" : "items"} only in theirs`);
-  const name = (id: string) => (id === "none" ? "none" : (catalog.get(id)?.name ?? id));
-  const style = (label: string, x: string, y: string) => pair(label, name(x), name(y));
-  style("Linen", mine.style.linen, theirs.style.linen);
-  style("Chairs", mine.style.chair, theirs.style.chair);
-  style("Candles", mine.style.candles, theirs.style.candles);
-  style("Florals", mine.style.florals, theirs.style.florals);
+  const changed = mine.items.filter((i) => {
+    const t = theirsById.get(i.id);
+    return t && JSON.stringify(t.options) !== JSON.stringify(i.options);
+  }).length;
+  if (changed) out.push(`${changed} ${changed === 1 ? "item" : "items"} resized or reseated differently`);
+  // Every style setting, by its label: library ids read as names, switches as on/off.
+  const name = (v: unknown) =>
+    typeof v === "boolean"
+      ? v
+        ? "on"
+        : "off"
+      : v === "none"
+        ? "none"
+        : (catalog.get(String(v))?.name ?? String(v));
+  const keys = [
+    ...new Set([...Object.keys(mine.style), ...Object.keys(theirs.style)]),
+  ] as (keyof Scenario["style"])[];
+  for (const k of keys) pair(STYLE_LABELS[k] ?? k, name(mine.style[k]), name(theirs.style[k]));
   const dressing = (s: Scenario) => JSON.stringify(s.items.map((i) => [i.id, i.style ?? null]));
   if (dressing(mine) !== dressing(theirs)) out.push("Some tables are dressed differently");
+  if (JSON.stringify(mine.thresholds) !== JSON.stringify(theirs.thresholds))
+    out.push("Check settings differ");
+  if (JSON.stringify(mine.venueToggles) !== JSON.stringify(theirs.venueToggles))
+    out.push("Venue furniture or paintings differ");
+  pair("Moment", mine.phase ?? "dinner", theirs.phase ?? "dinner");
   if (mine.name !== theirs.name) out.push(`Name: “${mine.name}” here, “${theirs.name}” in theirs`);
+  // Never claim they match when something else differs (notes merge on their own).
+  const rest = (s: Scenario) =>
+    JSON.stringify({ ...s, revision: 0, updatedAt: "", updatedBy: "", notes: [] });
+  if (!out.length && rest(mine) !== rest(theirs)) out.push("They differ in settings not listed here");
   return out;
 }

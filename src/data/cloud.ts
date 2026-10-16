@@ -1,5 +1,5 @@
 import { get, set } from "idb-keyval";
-import { parseScenario } from "../domain/scenario/scenario";
+import { parseScenario, venueSampleScenario } from "../domain/scenario/scenario";
 import type { Scenario, VersionInfo } from "../domain/scenario/schema";
 import type { Editor } from "../state/editor";
 
@@ -55,19 +55,23 @@ export class CloudApi {
     }
   }
 
-  async list(): Promise<Scenario[]> {
+  /** The shared scenarios, and the ids of any this version of the app cannot read. */
+  async list(): Promise<{ scenarios: Scenario[]; unreadable: string[] }> {
     const res = await this.request("/api/scenarios");
     if (!res.ok) throw new Error(`List failed (${res.status})`);
     const body = (await res.json()) as { scenarios: unknown[] };
+    const scenarios: Scenario[] = [];
+    const unreadable: string[] = [];
     // One unreadable scenario (say, from a newer version of the app) must not stop the others.
-    return body.scenarios.flatMap((s) => {
+    for (const raw of body.scenarios) {
       try {
-        return [parseScenario(s)];
+        scenarios.push(parseScenario(raw));
       } catch (e) {
         console.error(e);
-        return [];
+        unreadable.push(String((raw as { id?: unknown })?.id ?? ""));
       }
-    });
+    }
+    return { scenarios, unreadable };
   }
 
   async get(id: string): Promise<Scenario | null> {
@@ -174,8 +178,10 @@ export class CloudSync {
   private started = false;
   private stopped = false;
   private unsub: (() => void) | null = null;
-  /** Creates sent but not confirmed (the reply may have been lost). */
-  private sent = new Map<string, Scenario>();
+  /** Shared scenarios this version of the app cannot read (left alone). */
+  private unreadable = new Set<string>();
+  /** Every create sent but not confirmed, per scenario (a lost reply, then edits and retries). */
+  private sent = new Map<string, Scenario[]>();
   /** Conflicts after the one on screen, asked one at a time. */
   private waiting = new Map<string, Conflict>();
 
@@ -261,10 +267,12 @@ export class CloudSync {
   }
 
   private async reconcileAll(): Promise<void> {
-    const server = await this.api.list();
+    const { scenarios: server, unreadable } = await this.api.list();
     this.pulled = true;
+    // Shared copies this version cannot read are neither deleted here nor overwritten.
+    this.unreadable = new Set(unreadable);
     this.dropUntouchedSeed(server);
-    const seen = new Set(server.map((s) => s.id));
+    const seen = new Set([...server.map((s) => s.id), ...unreadable]);
     for (const s of server) this.reconcile(s);
     const st = this.editor.store.getState();
     for (const id of Object.keys(st.scenarios)) {
@@ -282,27 +290,31 @@ export class CloudSync {
   }
 
   /**
-   * A new device starts on the venue sample. If the couple already share scenarios and it was not
-   * touched, it goes rather than adding another "venue sample" to the shared list.
+   * A new device starts on the venue sample. If the couple already share scenarios and this device
+   * has never shared anything, an untouched venue sample goes rather than becoming another "venue
+   * sample" in the shared list (recognised by content, so a reload before the first sync is fine).
    */
   private dropUntouchedSeed(server: Scenario[]) {
-    const seed = this.editor.autoSeed;
-    const local = seed && this.editor.store.getState().scenarios[seed.id];
-    if (!seed || !local || !server.length || this.bases.has(seed.id) || server.some((s) => s.id === seed.id))
-      return;
-    if (!sameContent(local, seed)) return;
+    if (!server.length || this.bases.size) return;
+    const st = this.editor.store.getState();
+    const untouched = Object.values(st.scenarios).filter(
+      (s) =>
+        !server.some((x) => x.id === s.id) &&
+        sameContent({ ...s, id: "-" }, venueSampleScenario("-", s.updatedAt)),
+    );
+    if (!untouched.length) return;
     for (const s of server)
       if (!this.editor.store.getState().scenarios[s.id]) this.editor.addScenario(s, false);
-    this.editor.dropScenario(seed.id);
+    for (const s of untouched) this.editor.dropScenario(s.id);
   }
 
   /** One server copy against this device's copy and the last shared one. */
   private reconcile(s: Scenario) {
     const local = this.editor.store.getState().scenarios[s.id];
     // A create from here whose reply was lost: that server copy is this device's own.
-    const sent = this.sent.get(s.id);
+    const sent = this.sent.get(s.id) ?? [];
     this.sent.delete(s.id);
-    if (!this.bases.has(s.id) && sent && sameContent(sent, s)) this.bases.set(s.id, s);
+    if (!this.bases.has(s.id) && sent.some((x) => sameContent(x, s))) this.bases.set(s.id, s);
     const base = this.bases.get(s.id);
     if (!local && base && base.revision === s.revision) {
       // Deleted here and not changed there since: the next flush deletes it on the server.
@@ -347,7 +359,7 @@ export class CloudSync {
     const st = this.editor.store.getState();
     for (const id of st.order) {
       const local = st.scenarios[id];
-      if (!local || this.undecided(id)) continue;
+      if (!local || this.undecided(id) || this.unreadable.has(id)) continue;
       const base = this.bases.get(id);
       if (base && sameContent(local, base)) continue;
       await this.push(local, base);
@@ -370,7 +382,7 @@ export class CloudSync {
     const by = this.author();
     const payload = { ...local, ...(by ? { updatedBy: by } : {}) };
     if (!base) {
-      this.sent.set(local.id, payload);
+      this.sent.set(local.id, [...(this.sent.get(local.id) ?? []), payload]);
       const created = await this.api.create(payload);
       if (created !== "exists") return this.accept(created);
       // Already there (an earlier create whose reply was lost, or the partner's): reconcile with it.

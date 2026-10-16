@@ -92,7 +92,7 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
   });
   // One table: select it, dress it navy, then make its style everyone's.
   await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
-  await expect(page.getByRole("radio", { name: "This table" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "Table 2" })).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("linen-linen-navy").click();
   expect((await style()).t2).toEqual({ linen: "linen-navy" });
   expect((await style()).style.linen).toBe("linen-white");

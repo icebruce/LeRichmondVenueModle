@@ -29,6 +29,9 @@
 - Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
 - Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine — as modelled.
 - Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
+- Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).
+- LIB-03 "drapery panels" is built as a placeable drapery backdrop (fabric panels on a frame, width and colour as options), e.g. behind the sweetheart table; wall or ceiling draping stays with step 3 (LIB-10). Interpretation to confirm with the owner.
+- Phone compare: the two halves stack above the sheet; the half-height sheet stays at peek while comparing (2026-10-16).
 - Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.

@@ -25,11 +25,7 @@ function thumbItem(
     item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
     style: { candles: "none", ...style },
   });
-  if (family === "linen" && generator === "runner")
-    return {
-      item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
-      style: { runner: id, candles: "none" },
-    };
+  if (family === "linen" && generator === "runner") return round({ runner: id });
   if (family === "linen") return round({ linen: id });
   if (family === "tableware")
     return {

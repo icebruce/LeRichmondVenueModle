@@ -2,11 +2,14 @@ import * as THREE from "three";
 import { useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { advise } from "../../domain/layout/advisories";
+import { adviseScenario } from "../../domain/layout/advisories";
 import { pointInPolygon } from "../../domain/geometry";
 import type { Scenario } from "../../domain/scenario/schema";
 import { viewStore } from "../../state/view";
 import { useEditor, useStudio, useView } from "../context";
+
+/** Below this much free view height (px), labels would cover the room. */
+const LABEL_MIN_BAND = 400;
 
 /**
  * Amber dashed outline on each advisory's floor area, with its short label (DESIGN_GUIDE §5);
@@ -14,8 +17,11 @@ import { useEditor, useStudio, useView } from "../context";
  */
 export function Advisories() {
   const { venue, catalog } = useStudio();
-  // In a small view (a phone's compare half) labels would cover the room; outlines stay.
-  const labelled = useThree((s) => s.size.height >= 400);
+  // In a small view (a phone's compare half, or the band above a half-height sheet) labels would
+  // cover the room; outlines stay.
+  const height = useThree((s) => s.size.height);
+  const covered = useView((s) => s.insetTop + s.insetBottom);
+  const labelled = height - covered >= LABEL_MIN_BAND;
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // While dragging, re-check only when the move changes by ~10 cm or ~5°, not on every pointer move.
   const dragKey = useView(({ drag: d }) =>
@@ -34,7 +40,7 @@ export function Advisories() {
           d.ids.includes(it.id) ? { ...it, x: it.x + d.dx, z: it.z + d.dz, rotY: it.rotY + d.dRot } : it,
         )
       : scenario.items;
-    return advise(items, scenario.guests.count, scenario.thresholds, venue, catalog, scenario.venueToggles);
+    return adviseScenario(scenario, venue, catalog, items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenario, dragKey, venue, catalog]);
   const floorY = (x: number, z: number) =>

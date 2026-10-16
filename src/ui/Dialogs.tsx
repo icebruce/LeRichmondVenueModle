@@ -66,9 +66,10 @@ export function ConflictDialog() {
           {changes.slice(0, 5).map((c) => (
             <li key={c}>{c}</li>
           ))}
+          {changes.length > 5 && <li>and {changes.length - 5} more</li>}
         </ul>
       ) : (
-        <p className="dialog-text">Both versions hold the same layout and décor.</p>
+        <p className="dialog-text">Both versions hold the same plan; only the save times differ.</p>
       )}
       <div className="dialog-actions">
         <button type="button" className="btn primary" disabled={busy} onClick={() => void pick("copy")}>

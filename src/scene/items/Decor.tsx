@@ -118,20 +118,23 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
 type Group = { key: string; prim: Prim; slot: Slot; solid: boolean };
 
 /**
- * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance, so the
- * heaviest décor stays inside the phone draw-call budget (ARCHITECTURE §7). Metal sheen is lost.
+ * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance with its
+ * slot material's colour, so the heaviest décor stays inside the phone draw-call budget
+ * (ARCHITECTURE §7). Metal sheen and the wax glow are lost there; flames still glow.
  */
-const SOLID: Partial<Record<Slot, string>> = {
-  wax: "#f3ecdf",
-  brass: "#b08d48",
-  silver: "#c9cbcc",
-  black: "#222222",
-  ceramic: "#f7f5f0",
-  paper: "#f4efe4",
-  flower: "#ffffff",
-  leaf: "#56704a",
-  fabric: "#ffffff",
-};
+const SOLID_SLOTS: ReadonlySet<Slot> = new Set([
+  "wax",
+  "brass",
+  "silver",
+  "black",
+  "ceramic",
+  "paper",
+  "flower",
+  "leaf",
+  "fabric",
+]);
+/** Foliage green; a part's own colour (eucalyptus) replaces it. */
+const LEAF = "#56704a";
 
 /**
  * Candles, florals and place settings on every table (DEC-02..03, LIB-04..06): world-space
@@ -189,7 +192,7 @@ export function TableDecor({
       ceramic: new THREE.MeshStandardMaterial({ color: "#f7f5f0", roughness: 0.35 }),
       paper: new THREE.MeshStandardMaterial({ color: "#f4efe4", roughness: 0.9 }),
       flower: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.8 }),
-      leaf: new THREE.MeshStandardMaterial({ color: "#56704a", roughness: 0.85 }),
+      leaf: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 }),
       fabric: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.95 }),
       sheer: new THREE.MeshStandardMaterial({
         color: "#ffffff",
@@ -206,7 +209,7 @@ export function TableDecor({
     for (const { p, parts } of perItem) {
       for (const part of parts) {
         if (part.slot === "flame" && !evening) continue;
-        const solid = low && SOLID[part.slot] !== undefined;
+        const solid = low && SOLID_SLOTS.has(part.slot);
         const key = `${part.prim}:${solid ? "solid" : part.slot}`;
         let g = map.get(key);
         if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, solid, parts: [] }));
@@ -263,7 +266,6 @@ export function TableDecor({
     const table = new THREE.Matrix4();
     const out = new THREE.Matrix4();
     const colour = new THREE.Color();
-    const tint = new THREE.Color();
     for (const { g, mesh } of meshes) {
       g.parts.forEach(({ p, part }, i) => {
         const item = moved(p.item, drag);
@@ -276,19 +278,19 @@ export function TableDecor({
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
         mesh.setMatrixAt(i, out);
-        if (g.solid) {
-          // Solid batch: the slot's own colour, times the part's (flowers, napkins, leaf tints).
-          colour.set(SOLID[part.slot] ?? "#ffffff");
-          if (part.colour) colour.multiply(tint.set(part.colour));
-          mesh.setColorAt(i, colour);
-        } else if (part.colour) mesh.setColorAt(i, colour.set(part.colour));
+        // A part's own colour (flowers, napkins, eucalyptus); else foliage green on leaves and, in a
+        // phone batch, the colour of the slot's own material.
+        const own = part.colour ?? (part.slot === "leaf" ? LEAF : null);
+        if (own) mesh.setColorAt(i, colour.set(own));
+        else if (g.solid)
+          mesh.setColorAt(i, colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color));
       });
       mesh.count = g.parts.length;
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
     }
-  }, [meshes, drag]);
+  }, [meshes, drag, materials]);
   return (
     <group name="table-decor">
       {meshes.map(({ g, mesh }) => (
