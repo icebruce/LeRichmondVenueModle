@@ -184,7 +184,7 @@ describe("walking", () => {
     const free = walkArea(venue, [t], catalog, off);
     expect(free([3, 12.5])).toBe(true);
     expect(free([3, 9])).toBe(false);
-    expect(free([7, 7])).toBe(false);
+    expect(free([7, 5])).toBe(false);
     expect(free([0.1, 5])).toBe(false);
     expect(free([8, 14.25])).toBe(false);
   });

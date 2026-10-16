@@ -19,11 +19,11 @@
       "sources": ["F01", "C"]
     },
     "ceiling": {
-      "value": 7.2,
+      "value": 6.5,
       "min": 6.5,
       "max": 8,
       "confidence": "L",
-      "sources": ["R01", "UV02"]
+      "sources": ["R01", "R02", "R04", "UV02"]
     },
     "wallThickness": {
       "value": 0.35,
@@ -49,7 +49,7 @@
           [16, 11.3],
           [11.2, 11.3],
           [11.2, 9.6],
-          [9.81, 7.2]
+          [9.81, 6.4]
         ],
         "confidence": "M",
         "sources": ["C", "F01"]
@@ -57,8 +57,8 @@
       "steps": {
         "value": [
           {
-            "from": [10.25, 7.95],
-            "to": [10.85, 8.98]
+            "from": [10.23, 7.36],
+            "to": [10.64, 8.32]
           },
           {
             "from": [13.0, 11.3],
@@ -93,7 +93,7 @@
           "start": 9.7,
           "end": 13.3,
           "sill": 0,
-          "head": 3.9
+          "head": 4.4
         },
         {
           "id": "garage-south",
@@ -101,13 +101,13 @@
           "start": 5.5,
           "end": 9.1,
           "sill": 0,
-          "head": 3.9
+          "head": 4.4
         },
         {
           "id": "exit-west",
           "kind": "door",
-          "start": 0.7,
-          "end": 1.7,
+          "start": 4.3,
+          "end": 5.2,
           "sill": 0,
           "head": 2.2
         }
@@ -115,7 +115,7 @@
       "panels": [
         {
           "start": 0,
-          "end": 2.7,
+          "end": 5.2,
           "finish": "greenPanel",
           "height": 3.9
         }
@@ -213,7 +213,7 @@
   ],
   "bar": {
     "outer": {
-      "value": [5.67, 2.16, 9.81, 7.2],
+      "value": [5.67, 2.16, 9.81, 6.4],
       "confidence": "L",
       "sources": ["F01", "R02", "U01"]
     },
@@ -230,19 +230,20 @@
   },
   "backBar": {
     "rect": {
-      "value": [5.67, 0, 11.13, 0.6],
+      "value": [5.67, 0, 10.6, 0.6],
       "confidence": "M",
       "sources": ["R02", "R03", "UV01"]
     },
     "height": 3.1,
     "canopyHeight": 3.35,
-    "rearCounter": [5.67, 0.6, 11.13, 1.2]
+    "rearCounter": [5.67, 0.6, 10.6, 1.2]
   },
   "mezzanine": {
     "edgeZ": 14.3,
     "xFrom": 0.6,
     "xTo": 16,
     "depth": 2.2,
+    "fasciaDepth": 0.9,
     "floorHeight": {
       "value": 3.8,
       "min": 3.5,
@@ -298,7 +299,7 @@
         "backHeight": 1.35
       },
       {
-        "x0": 11.3,
+        "x0": 11.8,
         "x1": 15.9,
         "z": 0,
         "depth": 0.6,
@@ -335,7 +336,7 @@
       }
     ],
     "wineWall": {
-      "rect": [15.4, 12.0, 15.95, 12.95],
+      "rect": [10.6, 0.0, 11.3, 1.4],
       "height": 3.0
     },
     "chandeliers": [
@@ -404,9 +405,14 @@
     },
     "steelGirders": {
       "axis": "x",
-      "positions": [4.8, 10.0],
+      "positions": [4.8],
       "width": 0.35,
       "depth": 0.9
+    },
+    "ducts": {
+      "positions": [1.1],
+      "radius": 0.28,
+      "drop": 1.05
     },
     "skylight": {
       "x": 7.74,
@@ -446,21 +452,21 @@
       "reference": "R01"
     },
     "R03": {
-      "position": [4.2, 1.5, 9.8],
-      "target": [8.6, 2.6, 0.5],
-      "fov": 70,
+      "position": [7.4, 1.5, 7.4],
+      "target": [3.2, 2.2, 1.4],
+      "fov": 90,
       "reference": "R03"
     },
     "R09": {
-      "position": [11.0, 1.5, 6.0],
-      "target": [14.5, 2.0, 13.8],
-      "fov": 65,
+      "position": [14.0, 1.8, 6.5],
+      "target": [12.8, 2.2, 14.3],
+      "fov": 60,
       "reference": "R09"
     },
     "UV01": {
-      "position": [9.0, 5.2, 14.5],
-      "target": [9.0, 1.5, 1.0],
-      "fov": 70,
+      "position": [12.0, 5.2, 14.5],
+      "target": [13.0, 2.0, 1.0],
+      "fov": 45,
       "reference": "UV01"
     },
     "UV02": {

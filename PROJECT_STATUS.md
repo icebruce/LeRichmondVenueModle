@@ -34,6 +34,7 @@
 - Scene budget, measured: 119 draw calls / 143k triangles (desktop tier), 106 / 76k (phone tier); budgets 250 / 1.5 M and 150 / 600 k. Measured without people (step 2).
 - Reviews run: UX (Apple-level bar), venue fidelity against R01/R03/R09/UV01/UV02, spec/code. First round: UX 3 blockers, spec 3 blockers, fidelity borderline. Fixed this round: phone sheet and top bar, selection and drag feedback, 44 px targets, panel-aware framing; linen white/ivory and floor/lap length; data-driven library (generators, options-driven inspector, phone versions); alignment snapping; walk collisions in the domain (bar, tables, railing, venue furniture); exact reference-view cameras; toast Undo only undoes its own step; saved scenarios kept when unreadable and never overwritten by `?fresh`.
 - Venue changes from the fidelity review: garage doors side by side (0.6 m pier); south wall dark green to 3.8 m; bar shortened to z 7.2; 4th street window; red-brick dado on north and east walls; honey deck, darker beams; brighter back bar; tiered brass chandelier.
+- Second fidelity round (verdict before it: borderline): R03, R09 and UV01 cameras re-aimed; ceiling 7.2 → 6.5 m and garage-door heads 3.9 → 4.4 m (ratio M, split between the two L); one steel girder and one duct removed; bar south edge → 6.4 m (about square); wine wall moved to the back bar's east end; west EXIT beside garage-south with green panelling to it; deeper mezzanine fascia; street windows off-white, three panes wide; lit kitchen behind the pass.
 - A polished build is not proof of fidelity: the owner's recognition check on the preview is the gate.
 
 ## Verified vs inferred
@@ -46,6 +47,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Stair: fidelity review (medium confidence) reads R09/UV02 as a second flight turning at the east-wall landing back west to the mezzanine front at 3.8 m. Not adopted: the owner described the stair climbing from the landing to the wall. Ask the owner at the step 1 gate.
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag and the joystick need a check on a real phone (pointer handling is tested in software only).
+- Not yet done from the reviews: two-finger rotate on phone (the inspector buttons rotate; the 3D handle is desktop-only); phone camera ignores the top bar and sheet when framing; sheet peek is 164 pt vs 96 pt in DESIGN_GUIDE §3.2 (counts line + actions need it; owner to confirm); Plan view still shows shadows and wall art; back bar reads as shelving rather than bottles; the two reviews disagree on the chandelier (tiered rings vs a dense brass cluster), so it waits for the owner's eye.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.

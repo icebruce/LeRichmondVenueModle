@@ -235,10 +235,10 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
       ]),
     );
     const ducts: THREE.BufferGeometry[] = [];
-    for (const z of [1.1, 12.6]) {
-      const c = new THREE.CylinderGeometry(0.28, 0.28, W + 0.7, 20);
+    for (const z of f.ducts.positions) {
+      const c = new THREE.CylinderGeometry(f.ducts.radius, f.ducts.radius, W + 0.7, 20);
       c.rotateZ(Math.PI / 2);
-      c.translate(W / 2, C - 1.05, z);
+      c.translate(W / 2, C - f.ducts.drop, z);
       ducts.push(c);
     }
     for (const row of f.pendantRows) {
@@ -277,7 +277,7 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
     const H = z.floorHeight.value;
     const z0 = z.edgeZ;
     const z1 = z0 + z.depth;
-    const fascia = boxGeo(z.xFrom, H - 0.45, z0 - 0.02, z.xTo, H, z0 + 0.25);
+    const fascia = boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, z.xTo, H, z0 + 0.25);
     const floor = boxGeo(z.xFrom, H - 0.02, z0, z.xTo, H, z1, TILE.floor);
     const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
     const bal: THREE.BufferGeometry[] = [];
@@ -286,7 +286,7 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
     bal.push(boxGeo(z.xFrom, H + 0.1, z0 + 0.045, z.xTo, H + 0.13, z0 + 0.08));
     const rail = boxGeo(z.xFrom, H + 0.98, z0 + 0.02, z.xTo, H + 1.04, z0 + 0.11);
     // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
-    const below = boxGeo(0, 0, z0 + 0.36, venue.width, H - 0.45, z1);
+    const below = boxGeo(0, 0, z0 + 0.36, venue.width, H - z.fasciaDepth, z1);
     return { fascia, floor, back, bal: merge(bal), rail, below };
   }, [venue]);
   return (

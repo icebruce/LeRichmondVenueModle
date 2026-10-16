@@ -87,6 +87,8 @@ export const venueSchema = z.object({
     xFrom: z.number(),
     xTo: z.number(),
     depth: z.number(),
+    /** Height of the dark fascia band along the mezzanine edge. */
+    fasciaDepth: z.number(),
     floorHeight: estimate,
     confidence,
     sources: z.array(z.string()),
@@ -158,6 +160,8 @@ export const venueSchema = z.object({
       width: z.number(),
       depth: z.number(),
     }),
+    /** Round ducts along x under the deck: z positions, radius and drop below the ceiling. */
+    ducts: z.object({ positions: z.array(z.number()), radius: z.number(), drop: z.number() }),
     skylight: z.object({ x: z.number(), z: z.number(), size: z.number() }),
     venueFurniture: z.object({
       communalTable: z.object({ rect: rect4, height: z.number() }),

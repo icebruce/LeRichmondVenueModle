@@ -56,6 +56,8 @@ function curtainGeo(width: number, height: number, folds: number): THREE.BufferG
 /** One wall's glazing, curtains, doors and openings, in world space. */
 function buildOpenings(wall: WallData) {
   const frames: THREE.BufferGeometry[] = [];
+  const lightFrames: THREE.BufferGeometry[] = [];
+  const kitchen: THREE.BufferGeometry[] = [];
   const glass: THREE.BufferGeometry[] = [];
   const curtains: THREE.BufferGeometry[] = [];
   const doors: THREE.BufferGeometry[] = [];
@@ -74,9 +76,10 @@ function buildOpenings(wall: WallData) {
       );
       add(glass, [local(0, o.sill, -0.07, w, o.head, -0.06)]);
     } else if (o.kind === "tallWindow") {
-      add(frames, gridFrame(o, 2, 4, 0.06));
+      // Street windows: off-white frames, three panes wide with a transom (R09, R10).
+      add(lightFrames, gridFrame(o, 3, 4, 0.06));
       add(glass, [local(0, o.sill, -0.07, w, o.head, -0.06)]);
-      add(frames, [local(-0.05, o.sill - 0.05, -0.15, w + 0.05, o.sill, 0.12)]);
+      add(lightFrames, [local(-0.05, o.sill - 0.05, -0.15, w + 0.05, o.sill, 0.12)]);
       const ch = o.head + 0.25;
       for (const [cx, cw] of [
         [-0.32, 0.8],
@@ -91,7 +94,8 @@ function buildOpenings(wall: WallData) {
       add(doors, [local(0.02, 0, -0.1, w - 0.02, o.head, -0.04)]);
       add(signs, [local(w / 2 - 0.18, o.head + 0.1, 0.0, w / 2 + 0.18, o.head + 0.28, 0.06)]);
     } else if (o.kind === "pass") {
-      add(warm, [local(0, 0, -1.6, w, o.head, -1.55)]);
+      // The kitchen behind the pass is brightly lit with white light on stainless (UV02).
+      add(kitchen, [local(0, 0, -0.34, w, o.head, -0.33)]);
       add(frames, [local(0, 0.95, -0.3, w, 1.0, 0.15)]);
       add(voids, [local(-0.05, 0, -1.55, 0, o.head, -0.2), local(w, 0, -1.55, w + 0.05, o.head, -0.2)]);
     } else if (o.kind === "opening" && o.sill === 0) {
@@ -101,6 +105,8 @@ function buildOpenings(wall: WallData) {
   }
   return {
     frames: merge(frames),
+    lightFrames: merge(lightFrames),
+    kitchen: merge(kitchen),
     glass: merge(glass),
     curtains: merge(curtains),
     doors: merge(doors),
@@ -123,6 +129,8 @@ export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: Readon
         .map(({ id, built }) => (
           <group key={id}>
             {built.frames && <mesh geometry={built.frames} material={m.blackMetal} castShadow />}
+            {built.lightFrames && <mesh geometry={built.lightFrames} material={m.windowFrame} castShadow />}
+            {built.kitchen && <mesh geometry={built.kitchen} material={m.kitchen} />}
             {built.glass && <mesh geometry={built.glass} material={m.glass} />}
             {built.doors && <mesh geometry={built.doors} material={m.greenPanel} />}
             {built.voids && <mesh geometry={built.voids} material={m.darkVoid} />}

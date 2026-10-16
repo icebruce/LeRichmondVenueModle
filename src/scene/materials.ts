@@ -91,6 +91,8 @@ export function useMaterials() {
       }),
       fridge: std({ color: "#c9d7cf", emissive: "#e8f2ea", emissiveIntensity: 0.35, roughness: 0.2 }),
       brass: std({ color: "#b8955f", metalness: 1, roughness: 0.32 }),
+      windowFrame: std({ color: "#e4e1d9", roughness: 0.6 }),
+      kitchen: std({ color: "#dfe3e0", emissive: "#f3f5f0", emissiveIntensity: 0.5, roughness: 0.3 }),
       blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
       bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 2.4, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
