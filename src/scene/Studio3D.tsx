@@ -7,7 +7,7 @@ import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { CameraRig, rig } from "./cameras";
+import { CameraRig, requestCamera, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio } from "./context";
 import { Items } from "./items/Items";
 import { useMaterials } from "./materials";
@@ -154,6 +154,7 @@ function TestHooks() {
     };
     w.__project = fn;
     (window as unknown as { __rig?: typeof rig }).__rig = rig;
+    (window as unknown as { __camera?: typeof requestCamera }).__camera = requestCamera;
     return () => {
       if (w.__project === fn) delete w.__project;
     };
@@ -169,7 +170,8 @@ function Scene({ quality }: { quality: Quality }) {
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
   const cut = useCutaway(mode);
-  const showCeiling = mode === "walk";
+  // Ceiling shows at eye level, and in dollhouse when the camera is inside the room (no wall cut).
+  const showCeiling = mode === "walk" || (mode === "dollhouse" && cut.size === 0);
   const background = useMemo(() => new THREE.Color(evening ? "#151715" : "#e8e6e0"), [evening]);
   return (
     <>
