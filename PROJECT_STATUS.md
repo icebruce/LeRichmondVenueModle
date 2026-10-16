@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 in progress (PR #2): people, décor, advisory checks and export built; cloud saving with login and notes, compare and paintings next.
+**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 in progress (PR #2): people, décor, advisory checks, export, shared cloud saving (password, conflicts, version history, notes) and side-by-side compare built; paintings next. Cloud saving needs the owner's one-time Vercel setup (README).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps

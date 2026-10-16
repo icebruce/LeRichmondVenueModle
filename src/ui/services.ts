@@ -8,6 +8,22 @@ export type Services = {
   exportPlan: (format: "png" | "pdf") => Promise<void>;
   /** What the camera shows now, as a PNG (EXP-02). */
   saveView: () => Promise<void>;
+  /** Shared cloud saving (ACC-01, SCN-02..05). */
+  cloud: CloudServices;
+};
+
+export type Partner = "A" | "B";
+export type VersionInfo = { revision: number; updatedAt: string; updatedBy?: string; name?: string };
+
+export type CloudServices = {
+  status: "on" | "signin" | "off";
+  partner: Partner | null;
+  /** null when signed in, else what to tell the couple. */
+  signIn: (password: string, partner: Partner) => Promise<string | null>;
+  choosePartner: (p: Partner) => void;
+  resolve: (choice: "mine" | "theirs" | "copy") => Promise<void>;
+  versions: (id: string) => Promise<VersionInfo[]>;
+  restore: (id: string, revision: number) => Promise<boolean>;
 };
 
 export const ServicesContext = createContext<Services | null>(null);

@@ -255,6 +255,31 @@ test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current vie
   expect(view.size).toBeGreaterThan(20_000);
 });
 
+test("[SCN-06] compare two scenarios side by side from the same camera, with their counts", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("scenario-menu").click();
+  await page.getByRole("menuitem", { name: "Duplicate" }).click();
+  await page.getByTestId("section-people").click();
+  await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
+  await page.getByTestId("section-compare").click();
+  await page
+    .getByRole("radiogroup", { name: "Beside this one" })
+    .getByRole("radio", { name: "Option A · Venue sample", exact: true })
+    .click();
+  await expect(page.getByTestId("compare-canvas")).toBeVisible();
+  const table = page.getByTestId("compare-table");
+  await expect(table).toContainText("Option A · Venue sample copy");
+  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("16");
+  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("15");
+  await page
+    .getByRole("radiogroup", { name: "Beside this one" })
+    .getByRole("radio", { name: "Nothing" })
+    .click();
+  await expect(page.getByTestId("compare-canvas")).toHaveCount(0);
+});
+
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {
   await openStudio(page);
   const [bx, by] = await screenOf(page, 7.7, 1.07, 6.85);

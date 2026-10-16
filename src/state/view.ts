@@ -28,6 +28,8 @@ export type ViewState = {
   insetBottom: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
+  /** Scenario shown side by side with the active one, from the same camera (SCN-06). */
+  compare: string | null;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
 };
@@ -43,6 +45,7 @@ export const viewStore = createStore<ViewState>(() => ({
   insetBottom: 0,
   focus: [8, 7],
   showPeople: true,
+  compare: null,
 }));
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */
@@ -55,6 +58,13 @@ export const walkInput = createStore<{ move: [number, number]; look: [number, nu
 export const cameraCommands = createStore<{ request: { key: string | null; n: number } }>(() => ({
   request: { key: null, n: 0 },
 }));
+
+/** The main view's camera, copied every frame by the side-by-side view (SCN-06). Not a store: per frame. */
+export const sharedPose = {
+  position: [0, 0, 0] as [number, number, number],
+  quaternion: [0, 0, 0, 1] as [number, number, number, number],
+  fov: 30,
+};
 
 export function requestCamera(key: string | null) {
   cameraCommands.setState((s) => ({ request: { key, n: s.request.n + 1 } }));

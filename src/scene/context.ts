@@ -8,7 +8,8 @@ import type { VenueModel } from "../domain/venue/model";
 import type { Editor, EditorState } from "../state/editor";
 import { type ViewState, viewStore } from "../state/view";
 
-export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor };
+/** `readOnly`: the side-by-side compare view, which shows a scenario but does not edit it. */
+export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor; readOnly?: boolean };
 
 export const StudioContext = createContext<Studio | null>(null);
 

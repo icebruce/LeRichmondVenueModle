@@ -7,7 +7,7 @@ import { useStore } from "zustand";
 import { pointInPolygon } from "../domain/geometry";
 import { walkArea } from "../domain/layout/walk";
 import type { CameraMode } from "../state/editor";
-import { cameraCommands, viewStore, walkInput } from "../state/view";
+import { cameraCommands, sharedPose, viewStore, walkInput } from "../state/view";
 import { useEditor, useStudio, useView } from "./context";
 
 export const EYE = 1.65;
@@ -25,7 +25,26 @@ function presetPose(p: { position: readonly number[]; target: readonly number[] 
 /** Whether a camera animation is running (read by walk controls and test hooks). */
 export const rig = { tweening: false };
 
-export function CameraRig() {
+/** Side-by-side compare (SCN-06): this camera copies the main one every frame. */
+function FollowCamera() {
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  useFrame(() => {
+    camera.position.set(...sharedPose.position);
+    camera.quaternion.set(...sharedPose.quaternion);
+    if (camera.fov !== sharedPose.fov) {
+      camera.fov = sharedPose.fov;
+      camera.updateProjectionMatrix();
+    }
+  });
+  return null;
+}
+
+export function CameraRig({ follow = false }: { follow?: boolean }) {
+  if (follow) return <FollowCamera />;
+  return <MainCamera />;
+}
+
+function MainCamera() {
   const { venue } = useStudio();
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useView((s) => s.controlsEnabled);
@@ -92,7 +111,9 @@ export function CameraRig() {
   const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
     const walk = mode === "walk";
-    const want = { x: walk ? 0 : insetRight, y: walk ? 0 : insetBottom - insetTop };
+    // Side by side, both halves frame alike (the panel may cover part of the right one).
+    const flat = walk || viewStore.getState().compare !== null;
+    const want = { x: flat ? 0 : insetRight, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };
@@ -110,6 +131,18 @@ export function CameraRig() {
     if (offset) camera.setViewOffset(fullW, fullH, next.x, next.y > 0 ? next.y : 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
+  });
+
+  // Publish the pose for the side-by-side compare view.
+  useFrame(() => {
+    sharedPose.position = [camera.position.x, camera.position.y, camera.position.z];
+    sharedPose.quaternion = [
+      camera.quaternion.x,
+      camera.quaternion.y,
+      camera.quaternion.z,
+      camera.quaternion.w,
+    ];
+    sharedPose.fov = camera.fov;
   });
 
   // Keep the view's floor centre current, for "Add" (it places items where the couple is looking).

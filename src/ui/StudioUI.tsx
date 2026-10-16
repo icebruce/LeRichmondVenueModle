@@ -6,14 +6,24 @@ import { ROTATE_STEP } from "../state/editor";
 import { useAdvisories, useEditor, useStudio } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
-import { DecorPanel, Inspector, LayoutPanel, PeoplePanel, type Section, VenuePanel } from "./Panels";
+import {
+  ComparePanel,
+  DecorPanel,
+  Inspector,
+  LayoutPanel,
+  PeoplePanel,
+  type Section,
+  VenuePanel,
+} from "./Panels";
 import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
+import { ConflictDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "venue", label: "Venue", icon: "venue" },
   { id: "layout", label: "Layout", icon: "layout" },
   { id: "people", label: "People", icon: "people" },
   { id: "decor", label: "Décor", icon: "decor" },
+  { id: "compare", label: "Compare", icon: "compare" },
 ];
 
 function useCounts() {
@@ -272,6 +282,8 @@ export function StudioUI() {
   const content =
     section === "decor" ? (
       <DecorPanel key={selection.join(",")} />
+    ) : section === "compare" ? (
+      <ComparePanel />
     ) : hasSelection ? (
       <Inspector />
     ) : section === "venue" ? (
@@ -362,6 +374,9 @@ export function StudioUI() {
         ))}
       </nav>
       <Toast />
+      <OfflineBanner />
+      <ConflictDialog />
+      <PartnerChooser />
       <Loading />
     </div>
   );

@@ -181,7 +181,7 @@ function TestHooks() {
   return null;
 }
 
-function Scene({ quality }: { quality: Quality }) {
+function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
   const { venue } = useStudio();
   const m = useMaterials();
   const mode = useEditor((s) => s.camera);
@@ -219,14 +219,23 @@ function Scene({ quality }: { quality: Quality }) {
       <Items m={m} evening={evening} quality={quality} />
       <People low={quality === "low"} />
       {mode !== "walk" && <Advisories />}
-      <CameraRig />
-      <TestHooks />
+      <CameraRig follow={follow} />
+      {!follow && <TestHooks />}
       <Effects evening={evening} quality={quality} />
     </>
   );
 }
 
-export function Studio3D({ studio, onReady }: { studio: Studio; onReady?: () => void }) {
+export function Studio3D({
+  studio,
+  onReady,
+  follow = false,
+}: {
+  studio: Studio;
+  onReady?: () => void;
+  /** The side-by-side compare view: same camera as the main view, read-only (SCN-06). */
+  follow?: boolean;
+}) {
   const quality = useMemo(() => detectQuality(), []);
   const dollhouse = studio.venue.data.cameraPresets.dollhouse;
   return (
@@ -245,13 +254,13 @@ export function Studio3D({ studio, onReady }: { studio: Studio; onReady?: () => 
         far: 200,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],
       }}
-      onPointerMissed={() => studio.editor.select([])}
+      onPointerMissed={() => !follow && studio.editor.select([])}
       onCreated={() => onReady?.()}
-      data-testid="studio-canvas"
+      data-testid={follow ? "compare-canvas" : "studio-canvas"}
     >
       <StudioContext.Provider value={studio}>
         <Suspense fallback={null}>
-          <Scene quality={quality} />
+          <Scene quality={quality} follow={follow} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

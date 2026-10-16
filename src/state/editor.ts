@@ -14,7 +14,9 @@ enablePatches();
 export type CameraMode = "dollhouse" | "plan" | "walk";
 export type Refusal = { itemId: string; reason: string; at: number };
 export type Toast = { id: number; text: string; undo?: () => void };
-export type SaveState = "saved" | "saving" | "error";
+export type SaveState = "saved" | "saving" | "error" | "offline";
+/** The partner saved a newer version while this device was editing (SCN-03). */
+export type Conflict = { id: string; theirs: Scenario };
 
 export type EditorState = {
   scenarios: Record<string, Scenario>;
@@ -28,6 +30,9 @@ export type EditorState = {
   saveState: SaveState;
   /** Bumped on every scenario change; persistence listens to it. */
   version: number;
+  /** Cloud saving shared between both partners is on (SCN-02); off = this device only. */
+  cloud: boolean;
+  conflict: Conflict | null;
   canUndo: boolean;
   canRedo: boolean;
 };
@@ -59,6 +64,8 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     toast: null,
     saveState: "saved",
     version: 0,
+    cloud: false,
+    conflict: null,
     canUndo: false,
     canRedo: false,
   }));
@@ -421,13 +428,75 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       return id;
     },
 
-    addScenario(s: Scenario) {
+    addScenario(s: Scenario, activate = true) {
       set((st) => ({
         scenarios: { ...st.scenarios, [s.id]: s },
-        order: [...st.order, s.id],
+        order: st.order.includes(s.id) ? st.order : [...st.order, s.id],
         version: st.version + 1,
       }));
-      api.switchScenario(s.id);
+      if (activate) api.switchScenario(s.id);
+    },
+
+    // ---- cloud (SCN-02..05): server copies replace local ones without an undo step ----
+
+    setCloud(cloud: boolean) {
+      set({ cloud });
+    },
+
+    setConflict(conflict: Conflict | null) {
+      set({ conflict });
+    },
+
+    /** Take the server's copy of a scenario (partner's newer version, a restored version). */
+    replaceScenario(s: Scenario) {
+      if (!get().scenarios[s.id]) return api.addScenario(s, false);
+      history.delete(s.id);
+      set((st) => ({
+        scenarios: { ...st.scenarios, [s.id]: s },
+        version: st.version + 1,
+        selection: st.activeId === s.id ? [] : st.selection,
+      }));
+      syncHistoryFlags();
+    },
+
+    /** The partner deleted a scenario this device had not changed. */
+    dropScenario(id: string) {
+      const st = get();
+      if (!st.scenarios[id] || st.order.length <= 1) return;
+      const order = st.order.filter((o) => o !== id);
+      set({
+        scenarios: Object.fromEntries(Object.entries(st.scenarios).filter(([k]) => k !== id)),
+        order,
+        version: st.version + 1,
+      });
+      if (st.activeId === id) api.switchScenario(order[0] as string);
+    },
+
+    /** Bring in notes merged with the partner's (not an undo step). */
+    setNotes(id: string, notes: Scenario["notes"]) {
+      const s = get().scenarios[id];
+      if (!s) return;
+      set((st) => ({ scenarios: { ...st.scenarios, [id]: { ...s, notes } }, version: st.version + 1 }));
+    },
+
+    /** Record the revision the server gave this scenario (not a user change). */
+    setRevision(id: string, revision: number) {
+      const s = get().scenarios[id];
+      if (!s || s.revision === revision) return;
+      set((st) => ({ scenarios: { ...st.scenarios, [id]: { ...s, revision } }, version: st.version + 1 }));
+    },
+
+    /** A note for the partner on the active scenario (SCN-05); not part of undo. */
+    addNote(text: string, author: "A" | "B") {
+      const trimmed = text.trim().slice(0, 2000);
+      if (!trimmed) return;
+      commit(
+        "Note",
+        (d) => {
+          d.notes.push({ id: newId(), author, text: trimmed, at: now() });
+        },
+        false,
+      );
     },
 
     duplicateScenario(id: string): string {

@@ -314,7 +314,7 @@ export function Items({
   evening: boolean;
   quality?: Quality;
 }) {
-  const { venue, catalog, editor } = useStudio();
+  const { venue, catalog, editor, readOnly } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
@@ -497,7 +497,7 @@ export function Items({
   }
 
   function onDown(e: ThreeEvent<PointerEvent>, p: Placed) {
-    if (camera === "walk" || e.button > 0) return;
+    if (readOnly || camera === "walk" || e.button > 0) return;
     e.stopPropagation();
     const id = p.item.id;
     const current = editor.store.getState().selection;
@@ -573,7 +573,7 @@ export function Items({
               onPointerDown={(e) => onDown(e, p)}
               onPointerOver={(e) => {
                 e.stopPropagation();
-                if (camera === "walk") return;
+                if (camera === "walk" || readOnly) return;
                 document.body.style.cursor = "grab";
                 viewStore.setState({ hover: p.item.id });
               }}

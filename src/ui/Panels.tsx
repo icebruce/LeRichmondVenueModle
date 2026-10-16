@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
 import { FLORAL_PALETTES } from "../domain/layout/decor";
+import { advise } from "../domain/layout/advisories";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
@@ -10,9 +11,10 @@ import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
+import { useServices } from "./services";
 import { Icon } from "./icons";
 
-export type Section = "venue" | "layout" | "people" | "decor";
+export type Section = "venue" | "layout" | "people" | "decor" | "compare";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
@@ -561,6 +563,142 @@ export function PeoplePanel() {
         People are simple neutral figures. Seated first; the rest stand near the bar, never on the dance floor
         at dinner. At the party the dance floor fills.
       </p>
+    </div>
+  );
+}
+
+/** Notes on the active scenario, signed Partner A or B (SCN-05): how the couple discusses a plan. */
+function Notes() {
+  const { editor } = useStudio();
+  const { cloud } = useServices();
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const [draft, setDraft] = useState("");
+  const author = cloud.partner ?? "A";
+  const send = () => {
+    editor.addNote(draft, author);
+    setDraft("");
+  };
+  return (
+    <div className="field" data-testid="notes">
+      <h3 className="group-title">Notes on {scenario.name}</h3>
+      {scenario.notes.length === 0 ? (
+        <p className="hint">No notes yet. Leave one for your partner.</p>
+      ) : (
+        <ul className="notes">
+          {scenario.notes.map((n) => (
+            <li key={n.id} className="note">
+              <span className="avatar" aria-hidden="true">
+                {n.author}
+              </span>
+              <div>
+                <b>Partner {n.author}</b>{" "}
+                <span className="note-time">
+                  {new Date(n.at).toLocaleString("en-CA", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <p>{n.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="note-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+      >
+        <label className="sr-only" htmlFor="note-input">
+          Add a note
+        </label>
+        <input
+          id="note-input"
+          className="text-input wide"
+          placeholder={`Write a note as Partner ${author}`}
+          value={draft}
+          maxLength={2000}
+          onChange={(e) => setDraft(e.currentTarget.value)}
+          data-testid="note-input"
+        />
+        <button type="submit" className="btn" disabled={!draft.trim()}>
+          Add
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/** Pick a second scenario to see beside this one, from the same camera, with both sets of counts (SCN-06). */
+function CompareControls() {
+  const { catalog, venue } = useStudio();
+  const st = useEditor((s) => s);
+  const compare = useView((s) => s.compare);
+  const others = st.order.filter((id) => id !== st.activeId);
+  const pair = [st.scenarios[st.activeId], compare ? st.scenarios[compare] : undefined].filter(
+    (s): s is Scenario => !!s,
+  );
+  const rows = pair.map((s) => {
+    const c = countLayout(s.items, s.guests.count, catalog);
+    const notes = advise(s.items, s.guests.count, s.thresholds, venue, catalog).length;
+    return [c.tables, c.seats, c.withoutSeat, `≈ ${Math.round(c.danceFloorM2)} m²`, notes] as const;
+  });
+  const labels = ["Tables", "Seats", "Without a seat", "Dance floor", "Advisories"];
+  if (others.length === 0)
+    return (
+      <p className="hint">Make a second scenario (duplicate this one from the scenario menu) to compare.</p>
+    );
+  return (
+    <div className="field">
+      <Chips
+        label="Beside this one"
+        options={[
+          { id: "none", name: "Nothing" },
+          ...others.map((id) => ({ id, name: st.scenarios[id]?.name ?? id })),
+        ]}
+        value={compare ?? "none"}
+        onPick={(id) => viewStore.setState({ compare: id === "none" ? null : id })}
+        testId="compare"
+      />
+      {pair.length === 2 && (
+        <table className="compare-table" data-testid="compare-table">
+          <thead>
+            <tr>
+              <th />
+              {pair.map((s) => (
+                <th key={s.id} scope="col">
+                  {s.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {labels.map((l, i) => (
+              <tr key={l}>
+                <th scope="row">{l}</th>
+                {rows.map((r, j) => (
+                  <td key={j}>{r[i]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/** Compare (SCN-06) and notes (SCN-05). */
+export function ComparePanel() {
+  return (
+    <div className="panel-body" data-testid="compare-panel">
+      <h2 className="panel-title">Compare and discuss</h2>
+      <CompareControls />
+      <Notes />
     </div>
   );
 }

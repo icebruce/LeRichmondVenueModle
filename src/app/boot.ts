@@ -10,6 +10,7 @@ import { buildVenue, parseVenue } from "../domain/venue/model";
 import { createEditor } from "../state/editor";
 import { FRESH_KEY, LOCAL_KEY, loadLocal, persistLocal } from "../data/local";
 import type { Studio } from "../scene/context";
+import { CloudApi, CloudSync, type SessionStatus, getPartner } from "../data/cloud";
 
 /** Short random id. `crypto.randomUUID` exists only on https and localhost, not a phone on LAN http. */
 export function newId(): string {
@@ -18,7 +19,9 @@ export function newId(): string {
   return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-export async function boot(): Promise<Studio> {
+export type Cloud = { status: SessionStatus; api: CloudApi; start: () => Promise<CloudSync> };
+
+export async function boot(): Promise<{ studio: Studio; cloud: Cloud }> {
   const venue = buildVenue(parseVenue(venueJson));
   const catalog = buildCatalog([tables, chairs, linens, eventPieces, candles, florals]);
   const fresh = new URLSearchParams(window.location.search).has("fresh");
@@ -35,5 +38,14 @@ export async function boot(): Promise<Studio> {
   const studio = { venue, catalog, editor };
   // Test hook for Playwright (read-only use in tests).
   (window as unknown as { __studio?: Studio }).__studio = studio;
-  return studio;
+  // Shared cloud saving (SCN-02) when the API is set up; ?fresh sessions stay on this device.
+  const api = new CloudApi();
+  const status: SessionStatus = fresh ? "off" : await api.session();
+  let sync: CloudSync | null = null;
+  const start = async () => {
+    sync ??= new CloudSync(editor, api, () => getPartner() ?? "A");
+    await sync.start();
+    return sync;
+  };
+  return { studio, cloud: { status, api, start } };
 }

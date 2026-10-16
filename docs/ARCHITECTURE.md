@@ -131,12 +131,12 @@ The inspector builds its controls from `options`, and library captions from the 
 | `POST /api/login`, `POST /api/logout`, `GET /api/session` | Shared password → signed httpOnly cookie (HMAC, 30 days). Rate-limited. |
 | `GET /api/scenarios`, `POST /api/scenarios` | List / create. |
 | `GET/PUT/DELETE /api/scenarios/:id` | PUT requires `If-Match: <revision>`; 409 on mismatch returns the server copy (`SCN-03`). |
-| `GET /api/scenarios/:id/versions`, `POST …/restore` | History (last 50 per scenario). |
+| `GET /api/scenarios/:id/versions`, `POST /api/scenarios/:id/versions` `{ revision }` | History (last 50 per scenario); POST restores one as the newest revision. |
 | `GET/POST /api/catalog` | Imported items metadata. |
 | `POST /api/uploads` | Image upload (§6.3). |
 | `GET/POST/PATCH /api/library-requests` | Custom model requests (REQ). Reads also accept `Authorization: Bearer <LIBRARY_REQUESTS_TOKEN>` for Claude sessions. |
 
-All request bodies validated with the shared zod schemas. Responses `Cache-Control: no-store`.
+All request bodies validated with the shared zod schemas. Responses `Cache-Control: no-store`. Without `APP_PASSWORD`, `SESSION_SECRET` (≥ 32 chars) and Upstash credentials the API answers 503 and the app stays local. Notes travel inside the scenario; if the partner only added notes, the client merges them and saves again instead of raising a conflict. Locally (`RS_DEV_API=1`) Vite serves the same handlers through `api/_lib/router.ts`, with `RS_MEMORY_STORE=1` for an in-memory store.
 
 ### 6.2 Offline and drafts
 
