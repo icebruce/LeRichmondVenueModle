@@ -48,6 +48,7 @@
 - Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.
+- Visual upgrade (look and performance) is a separate track in `VISUAL_STATUS.md`; it starts after 3b and finishes before the freeze (owner, 2026-10-16).
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)

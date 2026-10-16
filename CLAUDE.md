@@ -18,6 +18,7 @@ Private web app for planning a wedding reception (2026-11-21, ~75 guests) at **R
 | Venue reconstruction method | `docs/VENUE_MODEL.md` + `references/venue_evidence_matrix.md` |
 | Tests and traceability | `docs/TEST_STRATEGY.md` |
 | Plan, stage, decisions, open items | `PROJECT_STATUS.md` |
+| Visual upgrade track (look, performance tiers) | `VISUAL_STATUS.md` |
 
 `docs/handover/` is archived history, not a source of truth. If docs conflict or a spec is unclear, stop and ask; do not guess. Update a spec only for a real decision (new behaviour, contract or visual rule), stating the decision, not the reasoning trail.
 
