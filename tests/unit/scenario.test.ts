@@ -8,6 +8,7 @@ import { buildCatalog } from "../../src/domain/library/catalog";
 import { FLOOR_GENERATORS, type Item, shapeOf } from "../../src/domain/layout/items";
 import { checkPlacement, findFreeSpot } from "../../src/domain/layout/validate";
 import { libraryFiles, venue } from "./fixtures";
+import { differences } from "../../src/domain/scenario/diff";
 
 describe("scenario files", () => {
   test("[SCN-08] export then import restores the scenario exactly (with a fresh id)", () => {
@@ -68,7 +69,9 @@ describe("library", () => {
   });
 
   test("[LIB-03] [DEC-01] tablecloths: white, ivory, champagne, black, navy and bare wood, colours in the data", () => {
-    const linensIn = [...buildCatalog(libraryFiles).values()].filter((e) => e.family === "linen");
+    const linensIn = [...buildCatalog(libraryFiles).values()].filter(
+      (e) => e.family === "linen" && e.model.kind === "parametric" && e.model.generator === "linen",
+    );
     expect(linensIn.map((e) => e.id).sort()).toEqual([
       "linen-bare",
       "linen-black",
@@ -84,5 +87,24 @@ describe("library", () => {
 
   test("[LIB-12] a duplicate id across library files is rejected", () => {
     expect(() => buildCatalog([...libraryFiles, libraryFiles[0]])).toThrow(/Duplicate/);
+  });
+});
+
+describe("conflict summary", () => {
+  test("[SCN-03] the conflict dialog names what differs: moved tables, counts and linen", () => {
+    const mine = venueSampleScenario("a", "2026-10-15T00:00:00.000Z");
+    const theirs = structuredClone(mine);
+    const [t1, t2] = theirs.items;
+    if (t1) t1.x += 0.5;
+    if (t2) t2.z += 0.5;
+    theirs.guests.count = 80;
+    theirs.style.linen = "linen-navy";
+    const catalog = buildCatalog(libraryFiles);
+    expect(differences(mine, theirs, catalog)).toEqual([
+      "Guests: 75 here, 80 in theirs",
+      "2 items placed differently",
+      `Linen: ${catalog.get(mine.style.linen)?.name} here, ${catalog.get("linen-navy")?.name} in theirs`,
+    ]);
+    expect(differences(mine, structuredClone(mine), catalog)).toEqual([]);
   });
 });

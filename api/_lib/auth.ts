@@ -45,9 +45,12 @@ export async function sameSecret(a: string, b: string): Promise<boolean> {
   return diff === 0;
 }
 
+/** What a session signs: its expiry and the password, so changing the password ends all sessions. */
+const signed = (cfg: Config, exp: number | string) => `v2.${exp}.${cfg.password}`;
+
 export async function sessionCookie(cfg: Config, now = Date.now(), secure = true): Promise<string> {
   const exp = Math.floor(now / 1000) + SESSION_DAYS * 86400;
-  const value = `${exp}.${await hmac(cfg.secret, `v1.${exp}`)}`;
+  const value = `${exp}.${await hmac(cfg.secret, signed(cfg, exp))}`;
   return `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure ? "; Secure" : ""}`;
 }
 
@@ -68,5 +71,5 @@ export async function validSession(
   if (!value) return false;
   const [exp, sig] = value.split(".");
   if (!exp || !sig || Number(exp) * 1000 <= now) return false;
-  return sameSecret(sig, await hmac(cfg.secret, `v1.${exp}`));
+  return sameSecret(sig, await hmac(cfg.secret, signed(cfg, exp)));
 }

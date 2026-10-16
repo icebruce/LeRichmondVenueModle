@@ -225,6 +225,19 @@ export function ScenarioMenu() {
               role="menuitem"
               type="button"
               className="menu-item"
+              onClick={() => fileRef.current?.click()}
+            >
+              <span className="check">
+                <Icon name="upload" size={16} />
+              </span>
+              Open file…
+            </button>
+          </div>
+          <div className="menu-group" aria-label="Export">
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
               onClick={act(() => void services.exportPlan("pdf"))}
               data-testid="export-pdf"
             >
@@ -240,7 +253,9 @@ export function ScenarioMenu() {
               onClick={act(() => void services.exportPlan("png"))}
               data-testid="export-png"
             >
-              <span className="check" />
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
               Plan as an image (PNG)
             </button>
             <button
@@ -250,20 +265,13 @@ export function ScenarioMenu() {
               onClick={act(() => void services.saveView())}
               data-testid="save-view"
             >
-              <span className="check" />
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
               Save this view as an image
             </button>
-            <button
-              role="menuitem"
-              type="button"
-              className="menu-item"
-              onClick={() => fileRef.current?.click()}
-            >
-              <span className="check">
-                <Icon name="upload" size={16} />
-              </span>
-              Open file…
-            </button>
+          </div>
+          <div className="menu-group">
             <button
               role="menuitem"
               type="button"

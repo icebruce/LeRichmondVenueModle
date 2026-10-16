@@ -52,8 +52,10 @@ function MainCamera() {
   const insetRight = useView((s) => s.insetRight);
   const insetTop = useView((s) => s.insetTop);
   const insetBottom = useView((s) => s.insetBottom);
+  const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
+  const gl = useThree((s) => s.gl);
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
@@ -76,8 +78,12 @@ function MainCamera() {
     const target = controls.current?.target ?? new THREE.Vector3();
     const to = presetPose(p);
     // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
-    const visible = mode === "walk" ? size.width : size.width - insetRight;
-    const aspect = visible / Math.max(1, size.height);
+    // Read the pane's current size: side by side it changes in the same render as this call.
+    const pane = gl.domElement.parentElement;
+    const width = pane?.clientWidth || size.width;
+    const height = pane?.clientHeight || size.height;
+    const visible = mode === "walk" || comparing ? width : width - insetRight;
+    const aspect = visible / Math.max(1, height);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
       const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
       to.position.sub(to.target).multiplyScalar(k).add(to.target);
@@ -90,11 +96,12 @@ function MainCamera() {
     };
   };
 
-  // Mode switch animates to that mode's starting pose (CAM-05).
+  // Mode switch animates to that mode's starting pose (CAM-05); so does starting or ending a side by
+  // side compare, whose halves are narrower.
   useEffect(() => {
     goTo(mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, comparing]);
 
   useEffect(
     () =>
@@ -111,8 +118,8 @@ function MainCamera() {
   const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
     const walk = mode === "walk";
-    // Side by side, both halves frame alike (the panel may cover part of the right one).
-    const flat = walk || viewStore.getState().compare !== null;
+    // Side by side, the halves already sit beside the interface and frame alike.
+    const flat = walk || comparing;
     const want = { x: flat ? 0 : insetRight, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);

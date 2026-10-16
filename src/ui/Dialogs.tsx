@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useEditor, useStudio } from "../scene/context";
+import { differences } from "../domain/scenario/diff";
 import { type Partner, type VersionInfo, useServices } from "./services";
 
 const time = (iso: string) =>
@@ -43,9 +44,11 @@ function Modal({
 export function ConflictDialog() {
   const { cloud } = useServices();
   const conflict = useEditor((s) => s.conflict);
+  const { catalog } = useStudio();
   const mine = useEditor((s) => (conflict ? s.scenarios[conflict.id] : undefined));
   const [busy, setBusy] = useState(false);
   if (!conflict) return null;
+  const changes = mine ? differences(mine, conflict.theirs, catalog) : [];
   const who = conflict.theirs.updatedBy ? `Partner ${conflict.theirs.updatedBy}` : "Your partner";
   const pick = async (choice: "mine" | "theirs" | "copy") => {
     setBusy(true);
@@ -55,10 +58,18 @@ export function ConflictDialog() {
   return (
     <Modal title={`${who} changed “${conflict.theirs.name}”`}>
       <p className="dialog-text">
-        {who} saved a newer version at {time(conflict.theirs.updatedAt)} while this device was editing it
-        {mine ? ` (${mine.items.length} items here, ${conflict.theirs.items.length} in theirs)` : ""}. Nothing
-        has been overwritten.
+        {who} saved a newer version at {time(conflict.theirs.updatedAt)} while this device was editing it.
+        Nothing has been overwritten.
       </p>
+      {changes.length > 0 ? (
+        <ul className="changes" aria-label="What differs" data-testid="conflict-changes">
+          {changes.slice(0, 5).map((c) => (
+            <li key={c}>{c}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="dialog-text">Both versions hold the same layout and décor.</p>
+      )}
       <div className="dialog-actions">
         <button type="button" className="btn primary" disabled={busy} onClick={() => void pick("copy")}>
           Save mine as a copy

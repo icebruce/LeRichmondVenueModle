@@ -4,7 +4,7 @@ import { type Partner, useServices } from "./services";
 /** One shared password for both partners (ACC-01); the device remembers who it belongs to. */
 export function Login() {
   const { cloud } = useServices();
-  const [partner, setPartner] = useState<Partner>(cloud.partner ?? "A");
+  const [partner, setPartner] = useState<Partner | null>(cloud.partner);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
@@ -14,6 +14,8 @@ export function Login() {
         onSubmit={async (e) => {
           e.preventDefault();
           const password = String(new FormData(e.currentTarget).get("password") ?? "");
+          // No default: a note signed with the wrong name is worse than one more tap.
+          if (!partner) return setError("Choose who this device is for.");
           setBusy(true);
           setError(await cloud.signIn(password, partner));
           setBusy(false);
@@ -59,7 +61,8 @@ export function Login() {
           {busy ? "Opening…" : "Open the studio"}
         </button>
         <p className="hint">
-          Stays signed in on this device for 30 days. Notes you write are signed Partner {partner}.
+          Stays signed in on this device for 30 days.
+          {partner ? ` Notes you write are signed Partner ${partner}.` : ""}
         </p>
       </form>
     </main>

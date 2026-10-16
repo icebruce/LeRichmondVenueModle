@@ -21,9 +21,12 @@ export function PUT(request: Request): Promise<Response> {
   });
 }
 
+/** Delete revision `If-Match`; 409 with the server copy when the partner saved since. */
 export function DELETE(request: Request): Promise<Response> {
   return signedIn(request, async ({ store }) => {
-    await remove(store, idFrom(request));
-    return json({ ok: true });
+    const ifMatch = Number(request.headers.get("if-match"));
+    if (!Number.isInteger(ifMatch)) return json({ message: "Missing If-Match revision" }, 428);
+    const r = await remove(store, idFrom(request), ifMatch);
+    return r.ok ? json({ ok: true }) : json({ scenario: r.current }, 409);
   });
 }

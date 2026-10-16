@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { VersionInfo } from "../domain/scenario/schema";
 
 /** I/O the UI needs but may not implement itself (ARCHITECTURE §3: ui does not import data). */
 export type Services = {
@@ -13,7 +14,7 @@ export type Services = {
 };
 
 export type Partner = "A" | "B";
-export type VersionInfo = { revision: number; updatedAt: string; updatedBy?: string; name?: string };
+export type { VersionInfo };
 
 export type CloudServices = {
   status: "on" | "signin" | "off";

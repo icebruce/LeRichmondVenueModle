@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { type CloudSync, getPartner, setPartner } from "../data/cloud";
 import { downloadBlob, downloadScenario, fileName, readScenarioFile } from "../data/files";
-import { PLAN_SIZE, drawPlan } from "../data/plan";
+import { PLAN_PIXELS, drawPlan } from "./plan";
 import { jpegPagePdf } from "../domain/export/pdf";
 import type { Studio } from "../scene/context";
 import { StudioContext } from "../scene/context";
@@ -12,7 +12,7 @@ import { Thumbnail } from "../scene/Thumbnail";
 import { type Cloud, newId } from "./boot";
 import { Login } from "../ui/Login";
 import { type Partner, type Services, ServicesContext } from "../ui/services";
-import { StudioUI } from "../ui/StudioUI";
+import { Counts, StudioUI } from "../ui/StudioUI";
 
 const params = new URLSearchParams(window.location.search);
 /** Printed on exports. */
@@ -30,15 +30,8 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
   const [partner, setPartnerState] = useState<Partner | null>(getPartner);
   const sync = useRef<CloudSync | null>(null);
   useEffect(() => {
-    if (status !== "on" || sync.current) return;
-    let cancelled = false;
-    void cloud.start().then((s) => {
-      if (cancelled) s.stop();
-      else sync.current = s;
-    });
-    return () => {
-      cancelled = true;
-    };
+    // start() is idempotent and the sync lives as long as the page, so StrictMode's double run is safe.
+    if (status === "on") void cloud.start().then((s) => (sync.current = s));
   }, [status, cloud]);
 
   const services = useMemo<Services>(
@@ -81,6 +74,7 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
       },
       exportPlan: async (format) => {
         const scenario = studio.editor.active();
+        studio.editor.notify("Preparing the plan…");
         const canvas = document.createElement("canvas");
         const today = new Date().toLocaleDateString("en-CA", {
           year: "numeric",
@@ -90,14 +84,16 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
         drawPlan(canvas, scenario, studio.venue, studio.catalog, EVENT, today);
         if (format === "png") {
           downloadBlob(await toBlob(canvas, "image/png"), fileName(`${scenario.name} plan`, "png"));
+          studio.editor.notify("Plan saved as an image");
           return;
         }
         const jpeg = new Uint8Array(await (await toBlob(canvas, "image/jpeg", 0.92)).arrayBuffer());
-        const pdf = jpegPagePdf(jpeg, PLAN_SIZE.width, PLAN_SIZE.height);
+        const pdf = jpegPagePdf(jpeg, PLAN_PIXELS.width, PLAN_PIXELS.height);
         downloadBlob(
           new Blob([pdf.slice().buffer], { type: "application/pdf" }),
           fileName(`${scenario.name} plan`, "pdf"),
         );
+        studio.editor.notify("Plan saved as a PDF");
       },
       saveView: async () => {
         const canvas = document.querySelector<HTMLCanvasElement>("[data-testid=studio-canvas] canvas");
@@ -111,6 +107,14 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
     [studio, status, partner, cloud],
   );
   const compare = useCompare(studio);
+  // Side by side, the halves share the area the interface leaves free (DESIGN_GUIDE §3).
+  const insetRight = useView((s) => s.insetRight);
+  const insetTop = useView((s) => s.insetTop);
+  const insetBottom = useView((s) => s.insetBottom);
+  const activeId = useSyncExternalStore(
+    studio.editor.store.subscribe,
+    () => studio.editor.store.getState().activeId,
+  );
   if (thumb) return <Thumbnail base={studio} id={thumb} />;
   if (status === "signin")
     return (
@@ -122,14 +126,18 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
     <StudioContext.Provider value={studio}>
       <ServicesContext.Provider value={services}>
         <div className="studio">
-          <div className={`viewport ${compare ? "split" : ""}`}>
+          <div
+            className={`viewport ${compare ? "split" : ""}`}
+            style={compare ? { top: insetTop, right: insetRight, bottom: insetBottom } : undefined}
+          >
             <div className="pane">
               <Studio3D studio={studio} />
+              {compare && !bare && <Counts id={activeId} />}
             </div>
             {compare && (
               <div className="pane" aria-label={`Compared with ${compare.name}`}>
                 <Studio3D studio={compare.studio} follow />
-                <span className="pane-label glass">{compare.name}</span>
+                {!bare && <Counts id={compare.id} />}
               </div>
             )}
           </div>
@@ -144,7 +152,7 @@ export function App({ studio, cloud }: { studio: Studio; cloud: Cloud }) {
  * The scenario shown beside the active one (SCN-06): a read-only copy kept in step with the main
  * editor, so edits to either scenario show in both halves.
  */
-function useCompare(studio: Studio): { studio: Studio; name: string } | null {
+function useCompare(studio: Studio): { studio: Studio; name: string; id: string } | null {
   const id = useView((s) => s.compare);
   const mirror = useMemo(() => {
     const s = id ? studio.editor.store.getState().scenarios[id] : undefined;
@@ -168,5 +176,5 @@ function useCompare(studio: Studio): { studio: Studio; name: string } | null {
       read();
     });
   }, [mirror, id, studio]);
-  return mirror && name !== null ? { studio: mirror, name } : null;
+  return mirror && id && name !== null ? { studio: mirror, name, id } : null;
 }

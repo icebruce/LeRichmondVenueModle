@@ -1,5 +1,4 @@
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../domain/geometry";
-import { advise } from "../domain/layout/advisories";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { chairsWorld, seatsOf, shapeOf } from "../domain/layout/items";
 import { spotFor, toggledObstacles } from "../domain/layout/validate";
@@ -7,16 +6,25 @@ import type { Catalog } from "../domain/library/catalog";
 import type { Scenario } from "../domain/scenario/schema";
 import { type VenueModel, alongWall, wallFrame } from "../domain/venue/model";
 
-/** Letter landscape at 150 dpi. */
+/** Letter landscape, laid out at 150 dpi and drawn at 2× (300 dpi) so print stays sharp. */
 export const PLAN_SIZE = { width: 1650, height: 1275 } as const;
+export const PLAN_PIXELS = { width: PLAN_SIZE.width * 2, height: PLAN_SIZE.height * 2 } as const;
 
-const INK = "#202522";
-const INK_2 = "#5c605b";
-const LINE = "#b9b7ae";
-const FILL = "#eeede8";
-const ACCENT = "#98775b";
-const UI = '-apple-system, "Segoe UI", Inter, Roboto, sans-serif';
-const DISPLAY = '"Iowan Old Style", "Palatino Linotype", Georgia, serif';
+/** The plan's colours and faces come from the design tokens (tokens.css). */
+function tokens() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name: string) => css.getPropertyValue(name).trim();
+  return {
+    INK: v("--ink"),
+    INK_2: v("--ink-2"),
+    LINE: v("--line-2"),
+    FILL: v("--sunk"),
+    ACCENT: v("--accent"),
+    SOFT: v("--accent-soft"),
+    UI: v("--font-ui"),
+    DISPLAY: v("--font-display"),
+  };
+}
 
 /**
  * The layout for the venue (EXP-01): top-down plan with table numbers and seats, a table list,
@@ -31,10 +39,12 @@ export function drawPlan(
   exportedOn: string,
 ): void {
   const { width: W, height: H } = PLAN_SIZE;
-  canvas.width = W;
-  canvas.height = H;
+  const { INK, INK_2, LINE, FILL, ACCENT, SOFT, UI, DISPLAY } = tokens();
+  canvas.width = PLAN_PIXELS.width;
+  canvas.height = PLAN_PIXELS.height;
   const g = canvas.getContext("2d");
   if (!g) throw new Error("Canvas 2D is not available");
+  g.scale(PLAN_PIXELS.width / W, PLAN_PIXELS.height / H);
   g.fillStyle = "#ffffff";
   g.fillRect(0, 0, W, H);
 
@@ -96,7 +106,7 @@ export function drawPlan(
   const raisedBottom = Math.max(...venue.raised.outline.map((p) => p[1]));
   const raisedLeft = Math.min(...venue.raised.outline.filter((p) => p[1] === raisedBottom).map((p) => p[0]));
   const [rx, ry] = P([raisedLeft + 0.15, raisedBottom - 0.3]);
-  text(`Raised floor (≈ +${venue.raised.height.toFixed(1)} m)`, rx, ry, `500 15px ${UI}`, INK_2);
+  text(`Raised floor (≈ +${venue.raised.height.toFixed(1)} m)`, rx, ry, `500 17px ${UI}`, INK_2);
   for (const o of venue.obstacles) {
     if (o.id.startsWith("banquette")) poly(o.polygon, FILL, LINE, 1);
     else if (o.id.startsWith("bar") || o.id === "back-bar" || o.id === "wine-wall")
@@ -108,12 +118,12 @@ export function drawPlan(
   const [bx0, bz0, bx1, bz1] = venue.data.bar.outer.value;
   text("Bar", ...P([(bx0 + bx1) / 2, (bz0 + bz1) / 2]), `600 18px ${UI}`, INK_2, "center");
   const [lx0, lz0, lx1, lz1] = venue.data.stair.landing;
-  text("Entrance", ...P([(lx0 + lx1) / 2, (lz0 + lz1) / 2]), `600 14px ${UI}`, INK_2, "center");
+  text("Entrance", ...P([(lx0 + lx1) / 2, (lz0 + lz1) / 2]), `600 17px ${UI}`, INK_2, "center");
   const [sx0] = venue.data.stair.upperLanding;
   text(
     "Stair",
     ...P([(lx1 + sx0) / 2, venue.data.stair.flight.to[1] - 0.6]),
-    `500 14px ${UI}`,
+    `500 17px ${UI}`,
     INK_2,
     "center",
   );
@@ -150,7 +160,7 @@ export function drawPlan(
     g.save();
     g.translate(x, y);
     g.rotate(rot);
-    text(s, 0, 0, `500 14px ${UI}`, INK_2, "center");
+    text(s, 0, 0, `500 17px ${UI}`, INK_2, "center");
     g.restore();
   };
   label("Glass doors to the terrace", [-0.55, venue.depth / 2], -Math.PI / 2);
@@ -166,14 +176,14 @@ export function drawPlan(
     const entry = catalog.get(it.libraryId);
     if (shape.kind === "danceFloor") {
       const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
-      poly(fp, "#efe2d0", ACCENT, 1.5);
+      poly(fp, SOFT, ACCENT, 1.5);
       const [x, y] = P([it.x, it.z]);
       text("Dance floor", x, y - 10, `600 18px ${UI}`, INK, "center");
       text(
         `≈ ${shape.width.toFixed(1)} × ${shape.depth.toFixed(1)} m`,
         x,
         y + 14,
-        `500 14px ${UI}`,
+        `500 17px ${UI}`,
         INK_2,
         "center",
       );
@@ -182,11 +192,17 @@ export function drawPlan(
     if (shape.kind === "djBooth") {
       if (spotFor(it, venue)?.level === "mezzanine") {
         const [x, y] = P([it.x, venue.depth - 0.35]);
-        text("DJ on the mezzanine edge", x, y, `600 14px ${UI}`, INK, "center");
+        text("DJ on the mezzanine edge", x, y, `600 17px ${UI}`, INK, "center");
         continue;
       }
       poly(transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY), INK, null);
-      text("DJ", ...P([it.x, it.z]), `700 14px ${UI}`, "#ffffff", "center");
+      text("DJ", ...P([it.x, it.z]), `700 17px ${UI}`, "#ffffff", "center");
+      continue;
+    }
+    if (shape.kind === "backdrop") {
+      poly(transform(centredRect(shape.width, 0.12), it.x, it.z, it.rotY), SOFT, ACCENT, 1.5);
+      const [x, y] = P([it.x, it.z]);
+      text("Drapery", x, y - 18, `500 17px ${UI}`, INK_2, "center");
       continue;
     }
     const topPoly =
@@ -207,8 +223,8 @@ export function drawPlan(
     const seats = seatsOf(shape);
     const name = labels.get(it.id);
     const [x, y] = P([it.x, it.z]);
-    if (name) text(name, x, seats ? y - 7 : y, `700 22px ${UI}`, INK, "center");
-    if (seats) text(`${seats} seats`, x, y + 15, `500 12px ${UI}`, INK_2, "center");
+    if (name) text(name, x, seats ? y - 10 : y, `700 24px ${UI}`, INK, "center");
+    if (seats) text(`${seats} seats`, x, y + 13, `500 19px ${UI}`, INK_2, "center");
     if (seats) rows.push({ label: name ?? "", type: entry?.name ?? "Table", seats });
   }
 
@@ -222,7 +238,7 @@ export function drawPlan(
   g.closePath();
   g.fillStyle = INK;
   g.fill();
-  text("N", nx, ny + 42, `700 14px ${UI}`, INK, "center");
+  text("N", nx, ny + 42, `700 17px ${UI}`, INK, "center");
   const sbx = ox;
   const sby = oy + venue.depth * scale + 70;
   for (let m = 0; m < 5; m++) {
@@ -232,8 +248,8 @@ export function drawPlan(
   g.strokeStyle = INK;
   g.lineWidth = 1;
   g.strokeRect(sbx, sby, 5 * scale, 8);
-  text("0", sbx, sby + 22, `500 13px ${UI}`, INK_2, "center");
-  text("5 m (approx.)", sbx + 5 * scale, sby + 22, `500 13px ${UI}`, INK_2, "center");
+  text("0", sbx, sby + 22, `500 17px ${UI}`, INK_2, "center");
+  text("5 m (approx.)", sbx + 5 * scale, sby + 22, `500 17px ${UI}`, INK_2, "center");
 
   // Table list and totals.
   const lx = W - margin - listW;
@@ -241,16 +257,16 @@ export function drawPlan(
   text("Tables", lx, ly, `600 22px ${UI}`);
   ly += 40;
   const col = [lx, lx + 90, lx + listW];
-  text("Table", col[0] ?? lx, ly, `600 15px ${UI}`, INK_2);
-  text("Type", col[1] ?? lx, ly, `600 15px ${UI}`, INK_2);
-  text("Seats", col[2] ?? lx, ly, `600 15px ${UI}`, INK_2, "right");
+  text("Table", col[0] ?? lx, ly, `600 17px ${UI}`, INK_2);
+  text("Type", col[1] ?? lx, ly, `600 17px ${UI}`, INK_2);
+  text("Seats", col[2] ?? lx, ly, `600 17px ${UI}`, INK_2, "right");
   ly += 12;
   g.fillStyle = LINE;
   g.fillRect(lx, ly, listW, 1);
   for (const r of rows) {
     ly += 30;
     text(r.label, col[0] ?? lx, ly, `600 17px ${UI}`);
-    text(r.type, col[1] ?? lx, ly, `400 16px ${UI}`);
+    text(r.type, col[1] ?? lx, ly, `400 17px ${UI}`);
     text(String(r.seats), col[2] ?? lx, ly, `500 17px ${UI}`, INK, "right");
   }
   const c = countLayout(scenario.items, scenario.guests.count, catalog);
@@ -268,19 +284,8 @@ export function drawPlan(
     `Tablecloths: ${(catalog.get(scenario.style.linen)?.name ?? "").replace(" tablecloth", "").toLowerCase()}, ${scenario.style.linenLength === "lap" ? "lap length" : "to the floor"}`,
   ];
   for (const f of facts) {
-    text(f, lx, ly, `400 16px ${UI}`);
+    text(f, lx, ly, `400 17px ${UI}`);
     ly += 28;
-  }
-  const notes = advise(scenario.items, scenario.guests.count, scenario.thresholds, venue, catalog);
-  if (notes.length) {
-    ly += 10;
-    text(
-      `${notes.length} advisory ${notes.length === 1 ? "note" : "notes"} (see the app)`,
-      lx,
-      ly,
-      `500 15px ${UI}`,
-      "#b7791f",
-    );
   }
 
   // Legend and footer.
@@ -291,15 +296,15 @@ export function drawPlan(
     "Approximate dimensions, for discussion with the venue. Room sizes are estimated from photos.",
     margin,
     fy,
-    `500 16px ${UI}`,
+    `500 17px ${UI}`,
     INK,
   );
-  text(`Exported ${exportedOn} · Richmond Studio`, W - margin, fy, `400 14px ${UI}`, INK_2, "right");
+  text(`Exported ${exportedOn} · Richmond Studio`, W - margin, fy, `400 17px ${UI}`, INK_2, "right");
   text(
     "○ chair   ▭ table with number and seats   ‒ ‒ raised floor",
     margin,
-    fy + 28,
-    `400 14px ${UI}`,
+    fy + 30,
+    `400 17px ${UI}`,
     INK_2,
   );
 }

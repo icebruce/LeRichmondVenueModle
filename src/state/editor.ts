@@ -37,11 +37,14 @@ export type EditorState = {
   canRedo: boolean;
 };
 
-type Step = { label: string; redo: Patch[]; undo: Patch[] };
+type Step = { label: string; redo: Patch[]; undo: Patch[]; at?: number };
 
 export type EditorDeps = { venue: VenueModel; catalog: Catalog; now: () => string; newId: () => string };
 
 const HISTORY_LIMIT = 100;
+/** Steps with these labels made within MERGE_MS of each other undo together. */
+const MERGED = new Set(["Guests", "Check settings"]);
+const MERGE_MS = 800;
 export const GRID = 0.1;
 /** One rotate step. Positive rotY turns counter-clockwise seen from above, so "+15°" (clockwise) is −ROTATE_STEP. */
 export const ROTATE_STEP = Math.PI / 12;
@@ -49,6 +52,8 @@ export const ROTATE_STEP = Math.PI / 12;
 export function createEditor(deps: EditorDeps, initial: Scenario[]) {
   const { venue, catalog, now, newId } = deps;
   const seed = initial.length ? initial : [venueSampleScenario(newId(), now())];
+  /** The venue sample a new device starts on, as created (cloud sync drops it if never touched). */
+  const autoSeed = initial.length ? null : (seed[0] as Scenario);
   const first = seed[0] as Scenario;
   const history = new Map<string, { past: Step[]; future: Step[] }>();
   let toastSeq = 0;
@@ -92,7 +97,16 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     if (!redo.some((p) => p.path[0] !== "updatedAt")) return; // nothing but the timestamp changed
     if (record) {
       const h = hist(id);
-      h.past.push({ label, redo, undo });
+      const last = h.past.at(-1);
+      // Holding or scrubbing a control (guests, check settings) is one undo step, not dozens.
+      if (MERGED.has(label) && last?.label === label && Date.now() - (last.at ?? 0) < MERGE_MS) {
+        h.past[h.past.length - 1] = {
+          label,
+          redo: [...last.redo, ...redo],
+          undo: [...undo, ...last.undo],
+          at: Date.now(),
+        };
+      } else h.past.push({ label, redo, undo, at: Date.now() });
       if (h.past.length > HISTORY_LIMIT) h.past.shift();
       h.future = [];
     }
@@ -144,6 +158,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
   }
 
   const api = {
+    autoSeed,
     store,
 
     active,

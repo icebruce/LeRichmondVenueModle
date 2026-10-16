@@ -12,8 +12,18 @@ import { createEditor } from "../../src/state/editor";
 
 const round: Item = { id: "r", libraryId: "table-round", x: 4, z: 11, rotY: 0, options: { seats: 8 } };
 const shape = shapeOf(round, catalog);
-const decor = (patch: Partial<typeof DEFAULT_STYLE>, settings = false) =>
-  tableDecor(shape, { ...styleOf(round, DEFAULT_STYLE), candles: "none", ...patch }, catalog, settings, 1);
+const decor = (
+  patch: Partial<typeof DEFAULT_STYLE>,
+  settings = false,
+  more = { menus: false, tableNumbers: false },
+) =>
+  tableDecor(
+    shape,
+    { ...styleOf(round, DEFAULT_STYLE), candles: "none", ...patch },
+    catalog,
+    { settings, ...more },
+    1,
+  );
 
 describe("décor", () => {
   test("[DEC-03] florals have realistic heights: low ≤ 30 cm, tall 80–120 cm", () => {
@@ -40,8 +50,41 @@ describe("décor", () => {
     expect(decor({ charger: "none" }, true).filter((p) => p.slot === "brass")).toHaveLength(0);
   });
 
-  test("[LIB-05] [LIB-06] every candle and floral entry uses a known décor generator", () => {
-    for (const e of [...catalog.values()].filter((x) => x.family === "candle" || x.family === "floral")) {
+  test("[LIB-03] runners: velvet lies flat and drops over the ends; chiffon is wider and sheer", () => {
+    const velvet = decor({ runner: "runner-velvet-emerald" });
+    expect(velvet.filter((p) => p.slot === "fabric")).toHaveLength(3);
+    expect(velvet.some((p) => p.y < 0)).toBe(true);
+    const chiffon = decor({ runner: "runner-chiffon-blush" });
+    expect(chiffon.every((p) => p.slot === "sheer")).toBe(true);
+    expect(Math.max(...chiffon.map((p) => p.sz))).toBeGreaterThan(Math.max(...velvet.map((p) => p.sz)));
+  });
+
+  test("[LIB-03] [LIB-04] napkins and menu cards on every plate; one number holder per table", () => {
+    const parts = decor({ napkin: "napkin-sage" }, true, { menus: true, tableNumbers: true });
+    expect(parts.filter((p) => p.slot === "fabric")).toHaveLength(8);
+    expect(parts.filter((p) => p.slot === "fabric").every((p) => p.colour === "#a3b19a")).toBe(true);
+    // Eight menu cards plus the table number's card.
+    expect(parts.filter((p) => p.slot === "paper")).toHaveLength(9);
+    expect(decor({ napkin: "none" }, true).filter((p) => p.slot === "fabric")).toHaveLength(0);
+  });
+
+  test("[LIB-06] flower types change the arrangement: big peonies, many tiny baby's breath", () => {
+    const blooms = (flowerType: string) =>
+      decor({ florals: "floral-low", flowerType }).filter((p) => p.slot === "flower");
+    const size = (ps: { sx: number }[]) => ps.reduce((a, p) => a + p.sx, 0) / ps.length;
+    expect(size(blooms("peony"))).toBeGreaterThan(size(blooms("rose")));
+    expect(blooms("babysBreath").length).toBeGreaterThan(blooms("rose").length * 2);
+    expect(decor({ florals: "floral-low", flowerType: "blossom" }).some((p) => p.slot === "black")).toBe(
+      true,
+    );
+  });
+
+  test("[LIB-03] [LIB-04] [LIB-05] [LIB-06] every table-top entry uses a known décor generator", () => {
+    const tableTop = (f: string) => ["candle", "floral", "tableware"].includes(f);
+    const runner = (g: string) => g === "runner";
+    for (const e of [...catalog.values()].filter(
+      (x) => tableTop(x.family) || (x.model.kind === "parametric" && runner(x.model.generator)),
+    )) {
       expect(e.model.kind === "parametric" && DECOR_GENERATORS.includes(e.model.generator)).toBe(true);
     }
   });
@@ -83,7 +126,8 @@ describe("scenario files", () => {
       updatedAt: "2026-10-15T00:00:00.000Z",
     };
     const s = parseScenario(v1);
-    expect(s.schemaVersion).toBe(2);
+    expect(s.schemaVersion).toBe(3);
+    expect(s.style).toMatchObject({ runner: "none", napkin: "none", menus: false, tableNumbers: false });
     expect(s.style).toMatchObject({ linen: "linen-white", linenLength: "lap", candles: "candle-votives" });
     expect(s.venueToggles.paintings).toEqual({});
   });

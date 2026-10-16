@@ -6,118 +6,452 @@
       "name": "White tablecloth",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#f7f6f2" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": {
+          "colour": "#f7f6f2"
+        }
+      },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "colour": "#f7f6f2", "quality": "low" }
+        "params": {
+          "colour": "#f7f6f2",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-white.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
     },
     {
       "id": "linen-ivory",
       "name": "Ivory tablecloth",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#eee3cb" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": {
+          "colour": "#eee3cb"
+        }
+      },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "colour": "#eee3cb", "quality": "low" }
+        "params": {
+          "colour": "#eee3cb",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-ivory.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
     },
     {
       "id": "linen-champagne",
       "name": "Champagne tablecloth",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#e6d3b3" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": {
+          "colour": "#e6d3b3"
+        }
+      },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "colour": "#e6d3b3", "quality": "low" }
+        "params": {
+          "colour": "#e6d3b3",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-champagne.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
     },
     {
       "id": "linen-black",
       "name": "Black tablecloth",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#1d1d1f" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": {
+          "colour": "#1d1d1f"
+        }
+      },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "colour": "#1d1d1f", "quality": "low" }
+        "params": {
+          "colour": "#1d1d1f",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-black.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
     },
     {
       "id": "linen-navy",
       "name": "Navy tablecloth",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#1f2a44" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": {
+          "colour": "#1f2a44"
+        }
+      },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "colour": "#1f2a44", "quality": "low" }
+        "params": {
+          "colour": "#1f2a44",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-navy.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
     },
     {
       "id": "linen-bare",
       "name": "Bare wood (no cloth)",
       "family": "linen",
       "placement": "material",
-      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizeM": {
+        "w": 1,
+        "d": 1,
+        "h": 0
+      },
       "sizePresets": [],
       "model": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "bare": true, "colour": "#8a6a4a" }
+        "params": {
+          "bare": true,
+          "colour": "#8a6a4a"
+        }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "linen",
-        "params": { "bare": true, "colour": "#8a6a4a", "quality": "low" }
+        "params": {
+          "bare": true,
+          "colour": "#8a6a4a",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/linen-bare.webp",
-      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio material",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "runner-velvet-emerald",
+      "name": "Emerald velvet runner",
+      "family": "linen",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.5,
+        "d": 0.5,
+        "h": 0.01
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#1f4a3a",
+          "fabric": "velvet"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#1f4a3a",
+          "fabric": "velvet",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/runner-velvet-emerald.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: runner",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 36,
+        "phoneTriangles": 9,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "runner-velvet-burgundy",
+      "name": "Burgundy velvet runner",
+      "family": "linen",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.5,
+        "d": 0.5,
+        "h": 0.01
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#5e1a26",
+          "fabric": "velvet"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#5e1a26",
+          "fabric": "velvet",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/runner-velvet-burgundy.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: runner",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 36,
+        "phoneTriangles": 9,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "runner-velvet-dusty-blue",
+      "name": "Dusty blue velvet runner",
+      "family": "linen",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.5,
+        "d": 0.5,
+        "h": 0.01
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#5d7690",
+          "fabric": "velvet"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#5d7690",
+          "fabric": "velvet",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/runner-velvet-dusty-blue.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: runner",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 36,
+        "phoneTriangles": 9,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "runner-chiffon-ivory",
+      "name": "Ivory chiffon runner",
+      "family": "linen",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.5,
+        "d": 0.5,
+        "h": 0.01
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#f2ece0",
+          "fabric": "chiffon"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#f2ece0",
+          "fabric": "chiffon",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/runner-chiffon-ivory.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: runner",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 36,
+        "phoneTriangles": 9,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "runner-chiffon-blush",
+      "name": "Blush chiffon runner",
+      "family": "linen",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.5,
+        "d": 0.5,
+        "h": 0.01
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#ecd0c8",
+          "fabric": "chiffon"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "runner",
+        "params": {
+          "colour": "#ecd0c8",
+          "fabric": "chiffon",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/runner-chiffon-blush.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: runner",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 36,
+        "phoneTriangles": 9,
+        "drawCalls": 1
+      }
     }
   ]
 }

@@ -7,7 +7,11 @@ import { createEditor } from "../../src/state/editor";
 import { venueSampleScenario } from "../../src/domain/scenario/scenario";
 
 /** A device: its own editor and cookie jar, talking to the real API handlers. */
-function device(name: "A" | "B", online = { up: true }) {
+function device(
+  name: "A" | "B",
+  online: { up: boolean; dropNextCreateReply?: boolean } = { up: true },
+  initial = [venueSampleScenario(`${name}-start`, "2026-10-16T00:00:00.000Z")],
+) {
   let cookie = "";
   let n = 0;
   const fetchFn = (async (path: string, init: RequestInit = {}) => {
@@ -20,12 +24,17 @@ function device(name: "A" | "B", online = { up: true }) {
     );
     const set = res.headers.get("set-cookie");
     if (set) cookie = set.split(";")[0] ?? "";
+    // The server saved it, but the reply never reaches the phone.
+    if (online.dropNextCreateReply && init.method === "POST" && path === "/api/scenarios") {
+      online.dropNextCreateReply = false;
+      throw new TypeError("Failed to fetch");
+    }
     return res;
   }) as typeof fetch;
   const api = new CloudApi(fetchFn);
   const editor = createEditor(
     { venue, catalog, now: () => new Date().toISOString(), newId: () => `${name}${++n}` },
-    [venueSampleScenario(`${name}-start`, "2026-10-16T00:00:00.000Z")],
+    initial,
   );
   const sync = new CloudSync(editor, api, () => name, false);
   return { api, editor, sync, online };
@@ -113,6 +122,70 @@ describe("cloud sync", () => {
     await a.sync.pull();
     await b.sync.pull();
     expect(b.editor.store.getState().scenarios["A-start"]?.guests.count).toBe(101);
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-02] a create whose reply was lost is reconciled, not retried forever", async () => {
+    const { a, b } = await pair();
+    a.online.dropNextCreateReply = true;
+    a.editor.createScenario("blank");
+    const id = a.editor.store.getState().activeId;
+    await a.sync.pull();
+    expect(a.editor.store.getState().saveState).toBe("offline");
+    a.editor.setGuests(42);
+    await a.sync.pull();
+    await b.sync.pull();
+    expect(b.editor.store.getState().scenarios[id]?.guests.count).toBe(42);
+    expect(a.editor.store.getState().conflict).toBeNull();
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-02] a new device's untouched venue sample is not added to a shared list", async () => {
+    const { a, b } = await pair();
+    const c = device("A", { up: true }, []);
+    expect(await c.api.login("pw")).toBeNull();
+    const seed = c.editor.autoSeed?.id;
+    await c.sync.start();
+    const ids = Object.keys(c.editor.store.getState().scenarios).sort();
+    expect(ids).toEqual(["A-start", "B-start"]);
+    expect(ids).not.toContain(seed);
+    expect((await c.api.list()).map((s) => s.id).sort()).toEqual(["A-start", "B-start"]);
+    for (const d of [a, b, c]) d.sync.stop();
+  });
+
+  test("[SCN-03] deleting a scenario the partner changed since keeps their version and says so", async () => {
+    const { a, b } = await pair();
+    await b.sync.pull();
+    b.editor.switchScenario("A-start");
+    b.editor.setGuests(66);
+    await b.sync.pull();
+    a.editor.switchScenario("A-start");
+    a.editor.deleteScenario("A-start");
+    await a.sync.pull();
+    const st = a.editor.store.getState();
+    expect(st.scenarios["A-start"]?.guests.count).toBe(66);
+    expect(st.toast?.text).toMatch(/changed on the other device/);
+    a.sync.stop();
+    b.sync.stop();
+  });
+
+  test("[SCN-03] “keep mine” keeps the partner's notes too", async () => {
+    const { a, b } = await pair();
+    await b.sync.pull();
+    a.editor.switchScenario("A-start");
+    a.editor.addNote("Florals lower, please", "A");
+    a.editor.setGuests(90);
+    await a.sync.pull();
+    b.editor.switchScenario("A-start");
+    b.editor.setGuests(60);
+    await b.sync.pull();
+    await b.sync.resolve("mine", () => "unused");
+    await a.sync.pull();
+    const s = a.editor.store.getState().scenarios["A-start"];
+    expect(s?.guests.count).toBe(60);
+    expect(s?.notes.map((x) => x.text)).toEqual(["Florals lower, please"]);
     a.sync.stop();
     b.sync.stop();
   });

@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
-import { FLORAL_PALETTES } from "../domain/layout/decor";
+import { FLORAL_PALETTES, FLOWER_TYPES } from "../domain/layout/decor";
 import { advise } from "../domain/layout/advisories";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
@@ -19,6 +19,53 @@ export type Section = "venue" | "layout" | "people" | "decor" | "compare";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
+/** A −/+ button that repeats while held. */
+function RepeatButton({
+  label,
+  icon,
+  disabled,
+  onStep,
+}: {
+  label: string;
+  icon: "minus" | "plus";
+  disabled: boolean;
+  onStep: () => void;
+}) {
+  const timer = useRef<number | undefined>(undefined);
+  const held = useRef(false);
+  const step = useRef(onStep);
+  useEffect(() => {
+    step.current = onStep;
+  });
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const stop = () => window.clearTimeout(timer.current);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onPointerDown={() => {
+        held.current = false;
+        stop();
+        timer.current = window.setTimeout(() => {
+          held.current = true;
+          timer.current = window.setInterval(() => step.current(), 70);
+        }, 400);
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onClick={() => {
+        if (!held.current) step.current();
+        held.current = false;
+      }}
+    >
+      <Icon name={icon} size={16} />
+    </button>
+  );
+}
+
+/** Counts and sizes. A `figure` stepper (counts, DESIGN_GUIDE §4) also scrubs by dragging the number. */
 function Stepper({
   label,
   value,
@@ -28,6 +75,7 @@ function Stepper({
   format = (v: number) => String(v),
   onChange,
   testId,
+  figure = false,
 }: {
   label: string;
   value: number;
@@ -37,33 +85,94 @@ function Stepper({
   format?: (v: number) => string;
   onChange: (v: number) => void;
   testId?: string;
+  figure?: boolean;
 }) {
-  const round = (v: number) => Math.round(v * 100) / 100;
+  // Held buttons fire faster than React re-renders, so steps build on the last value sent.
+  const latest = useRef(value);
+  useEffect(() => {
+    latest.current = value;
+  }, [value]);
+  const scrub = useRef<{ x: number; from: number } | null>(null);
+  const set = (v: number) => {
+    const next = Math.round(Math.min(max, Math.max(min, v)) * 100) / 100;
+    if (next === latest.current) return;
+    latest.current = next;
+    onChange(next);
+  };
   return (
-    <div className="row">
+    <div className={`row ${figure ? "row-figure" : ""}`}>
       <span className="row-label">{label}</span>
       <div className="stepper" data-testid={testId}>
-        <button
-          type="button"
-          aria-label={`Fewer: ${label}`}
+        <RepeatButton
+          label={`Fewer: ${label}`}
+          icon="minus"
           disabled={value <= min}
-          onClick={() => onChange(round(Math.max(min, value - step)))}
+          onStep={() => set(latest.current - step)}
+        />
+        <output
+          aria-live="polite"
+          aria-label={label}
+          className={figure ? "scrub" : ""}
+          onPointerDown={(e) => {
+            if (!figure) return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            scrub.current = { x: e.clientX, from: latest.current };
+          }}
+          onPointerMove={(e) => {
+            if (scrub.current) set(scrub.current.from + Math.round((e.clientX - scrub.current.x) / 8) * step);
+          }}
+          onPointerUp={() => (scrub.current = null)}
+          onPointerCancel={() => (scrub.current = null)}
         >
-          <Icon name="minus" size={16} />
-        </button>
-        <output aria-live="polite" aria-label={label}>
           {format(value)}
         </output>
-        <button
-          type="button"
-          aria-label={`More: ${label}`}
+        <RepeatButton
+          label={`More: ${label}`}
+          icon="plus"
           disabled={value >= max}
-          onClick={() => onChange(round(Math.min(max, value + step)))}
-        >
-          <Icon name="plus" size={16} />
-        </button>
+          onStep={() => set(latest.current + step)}
+        />
       </div>
     </div>
+  );
+}
+
+/** Continuous values (thresholds, DESIGN_GUIDE §4): always shows the value and unit. */
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  format,
+  onChange,
+  testId,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+  onChange: (v: number) => void;
+  testId?: string;
+}) {
+  return (
+    <label className="field slider">
+      <span className="slider-head">
+        <span className="row-label">{label}</span>
+        <output>{format(value)}</output>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.currentTarget.value))}
+        data-testid={testId}
+      />
+    </label>
   );
 }
 
@@ -153,7 +262,9 @@ function caption(e: LibraryEntry, catalog: Catalog): string {
           ? `Standing · ≈ ${metres(shape.diameter)}`
           : shape.kind === "danceFloor"
             ? `Resizable · ≈ ${shape.width} × ${shape.depth} m`
-            : `≈ ${shape.width} × ${shape.depth} m`;
+            : shape.kind === "backdrop"
+              ? `Fabric panels · ≈ ${shape.width} × ${shape.height} m`
+              : `≈ ${shape.width} × ${shape.depth} m`;
   return [guests, size].filter(Boolean).join(" · ");
 }
 
@@ -179,7 +290,7 @@ function Checks() {
   const [open, setOpen] = useState(false);
   if (!thresholds) return null;
   return (
-    <div className="field" data-testid="checks">
+    <div className="field" data-testid="checks" id="checks">
       <h3 className="group-title">Checks · advisory</h3>
       {list.length === 0 ? (
         <p className="hint">No advisories with your settings.</p>
@@ -187,15 +298,17 @@ function Checks() {
         <ul className="advisories" aria-label="Advisories">
           {list.map((a) => (
             <li key={a.id}>
-              <button
-                type="button"
-                className="advisory-row"
-                onClick={() => a.items.length && editor.select(a.items)}
-                disabled={!a.items.length}
-              >
-                <span className="dot" aria-hidden="true" />
-                <span>{a.message}</span>
-              </button>
+              {a.items.length ? (
+                <button type="button" className="advisory-row" onClick={() => editor.select(a.items)}>
+                  <span className="dot" aria-hidden="true" />
+                  <span>{a.message}</span>
+                </button>
+              ) : (
+                <span className="advisory-row">
+                  <span className="dot" aria-hidden="true" />
+                  <span>{a.message}</span>
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -211,7 +324,7 @@ function Checks() {
       </button>
       {open && (
         <>
-          <Stepper
+          <Slider
             label="Aisle between chair backs"
             value={thresholds.aisleM}
             min={0.6}
@@ -221,7 +334,7 @@ function Checks() {
             onChange={(v) => editor.setThreshold("aisleM", v)}
             testId="aisle"
           />
-          <Stepper
+          <Slider
             label="Clear in front of doors"
             value={thresholds.clearanceM}
             min={0.6}
@@ -230,7 +343,7 @@ function Checks() {
             format={metres}
             onChange={(v) => editor.setThreshold("clearanceM", v)}
           />
-          <Stepper
+          <Slider
             label="Space per dancer"
             value={thresholds.m2PerDancer}
             min={0.3}
@@ -239,7 +352,7 @@ function Checks() {
             format={(v) => `${v.toFixed(2)} m²`}
             onChange={(v) => editor.setThreshold("m2PerDancer", v)}
           />
-          <Stepper
+          <Slider
             label="Guests dancing at once"
             value={Math.round(thresholds.dancingShare * 100)}
             min={10}
@@ -258,12 +371,14 @@ function Checks() {
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
   const snapping = useEditor((s) => s.snapping);
+  const flagged = useAdvisories().length > 0;
   const placeable = useMemo(
     () => [...catalog.values()].filter((e) => e.placement === "floor" && e.family !== "chair"),
     [catalog],
   );
   return (
     <div className="panel-body" data-testid="layout-panel">
+      {flagged && <Checks />}
       <h2 className="panel-title">Add to the room</h2>
       <ul className="library" aria-label="Library">
         {placeable.map((e) => (
@@ -285,7 +400,7 @@ export function LayoutPanel() {
         ))}
       </ul>
       <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
-      <Checks />
+      {!flagged && <Checks />}
       <p className="hint">
         {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
       </p>
@@ -310,7 +425,8 @@ function Swatches({
   return (
     <div className="field">
       <span className="row-label">
-        {label} <span className="row-value">{current?.name}</span>
+        {label}
+        {current && <span className="row-value"> · {current.name}</span>}
       </span>
       <div className="swatches" role="radiogroup" aria-label={label}>
         {options.map((o) => (
@@ -381,10 +497,14 @@ export function DecorPanel() {
   const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
   const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
   const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
-  const family = (f: string) => [...catalog.values()].filter((e) => e.family === f);
+  const family = (f: string, generator?: string) =>
+    [...catalog.values()].filter(
+      (e) =>
+        e.family === f && (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
+    );
   const colourOf = (id: string) => {
     const model = catalog.get(id)?.model;
-    return model?.kind === "parametric" ? String(model.params.colour ?? "#ccc") : "#ccc";
+    return model?.kind === "parametric" ? String(model.params.colour ?? "var(--sunk)") : "var(--sunk)";
   };
   const none = { id: "none", name: "None" };
   return (
@@ -405,7 +525,7 @@ export function DecorPanel() {
       )}
       <Swatches
         label="Linen"
-        options={family("linen").map((e) => ({
+        options={family("linen", "linen").map((e) => ({
           id: e.id,
           name: e.name.replace(" tablecloth", ""),
           colour: colourOf(e.id),
@@ -414,26 +534,16 @@ export function DecorPanel() {
         onPick={(id) => apply({ linen: id })}
         testId="linen"
       />
-      <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
-        {(
-          [
-            ["floor", "To the floor"],
-            ["lap", "Lap length"],
-          ] as const
-        ).map(([v, l]) => (
-          <button
-            key={v}
-            type="button"
-            role="radio"
-            aria-checked={scenario.style.linenLength === v}
-            className={scenario.style.linenLength === v ? "on" : ""}
-            onClick={() => editor.setStyle("linenLength", v)}
-            data-testid={`linen-length-${v}`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+      <Chips
+        label="Runner"
+        options={[
+          none,
+          ...family("linen", "runner").map((e) => ({ id: e.id, name: e.name.replace(" runner", "") })),
+        ]}
+        value={shown.runner}
+        onPick={(id) => apply({ runner: id })}
+        testId="runner"
+      />
       <Chips
         label="Candles"
         options={[none, ...family("candle").map((e) => ({ id: e.id, name: e.name }))]}
@@ -448,6 +558,15 @@ export function DecorPanel() {
         onPick={(id) => apply({ florals: id })}
         testId="florals"
       />
+      {shown.florals !== "none" && (
+        <Chips
+          label="Flowers"
+          options={Object.entries(FLOWER_TYPES).map(([id, f]) => ({ id, name: f.label }))}
+          value={shown.flowerType}
+          onPick={(id) => apply({ flowerType: id })}
+          testId="flower-type"
+        />
+      )}
       {shown.florals !== "none" && (
         <Swatches
           label="Flower colours"
@@ -468,12 +587,6 @@ export function DecorPanel() {
         onPick={(id) => apply({ chair: id })}
         testId="chair"
       />
-      <Toggle
-        label="Place settings"
-        checked={scenario.style.settings}
-        onChange={(v) => editor.setStyle("settings", v)}
-        testId="settings"
-      />
       {scenario.style.settings && (
         <Chips
           label="Chargers"
@@ -488,6 +601,66 @@ export function DecorPanel() {
           testId="charger"
         />
       )}
+      {scenario.style.settings && (
+        <Swatches
+          label="Napkins"
+          options={[
+            { id: "none", name: "None", colour: "var(--surface)" },
+            ...family("tableware", "napkin").map((e) => ({
+              id: e.id,
+              name: e.name.replace(" napkins", ""),
+              colour: colourOf(e.id),
+            })),
+          ]}
+          value={shown.napkin}
+          onPick={(id) => apply({ napkin: id })}
+          testId="napkin"
+        />
+      )}
+      <h3 className="group-title">Every table</h3>
+      <div className="field">
+        <span className="row-label">Tablecloth length</span>
+        <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
+          {(
+            [
+              ["floor", "To the floor"],
+              ["lap", "Lap length"],
+            ] as const
+          ).map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={scenario.style.linenLength === v}
+              className={scenario.style.linenLength === v ? "on" : ""}
+              onClick={() => editor.setStyle("linenLength", v)}
+              data-testid={`linen-length-${v}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Toggle
+        label="Place settings"
+        checked={scenario.style.settings}
+        onChange={(v) => editor.setStyle("settings", v)}
+        testId="settings"
+      />
+      {scenario.style.settings && (
+        <Toggle
+          label="Menu cards"
+          checked={scenario.style.menus}
+          onChange={(v) => editor.setStyle("menus", v)}
+          testId="menus"
+        />
+      )}
+      <Toggle
+        label="Table numbers"
+        checked={scenario.style.tableNumbers}
+        onChange={(v) => editor.setStyle("tableNumbers", v)}
+        testId="table-numbers"
+      />
       {tables.length === 1 && tables[0]?.style && (
         <button
           type="button"
@@ -513,7 +686,9 @@ export function PeoplePanel() {
     [scenario.items, scenario.guests.count, catalog],
   );
   const seated = Math.min(c.seats, c.guests);
-  const tablesNeeded = Math.ceil(c.withoutSeat / 8);
+  // Suggest tables like the ones already placed (8 when there are none yet).
+  const perTable = c.tables ? Math.max(1, Math.round(c.seats / c.tables)) : 8;
+  const tablesNeeded = Math.ceil(c.withoutSeat / perTable);
   return (
     <div className="panel-body" data-testid="people-panel">
       <h2 className="panel-title">Guests</h2>
@@ -524,6 +699,7 @@ export function PeoplePanel() {
         max={200}
         onChange={(v) => editor.setGuests(v)}
         testId="guests"
+        figure
       />
       <div className="figures" aria-label="Seating">
         <div className="figure">
@@ -542,7 +718,7 @@ export function PeoplePanel() {
       {c.withoutSeat > 0 && (
         <p className="advice" role="note">
           {c.withoutSeat} {c.withoutSeat === 1 ? "guest" : "guests"} without a seat. Add {tablesNeeded}{" "}
-          {tablesNeeded === 1 ? "table" : "tables"} of 8, or raise seats on existing tables.
+          {tablesNeeded === 1 ? "table" : "tables"} of {perTable}, or raise seats on existing tables.
         </p>
       )}
       <Segmented
@@ -574,8 +750,9 @@ function Notes() {
   const { cloud } = useServices();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const [draft, setDraft] = useState("");
-  const author = cloud.partner ?? "A";
+  const author = cloud.partner;
   const send = () => {
+    if (!author) return;
     editor.addNote(draft, author);
     setDraft("");
   };
@@ -607,6 +784,21 @@ function Notes() {
           ))}
         </ul>
       )}
+      {!author && (
+        <div className="seg seg-fill" role="radiogroup" aria-label="Sign notes as">
+          {(["A", "B"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={false}
+              onClick={() => cloud.choosePartner(p)}
+            >
+              Sign as Partner {p}
+            </button>
+          ))}
+        </div>
+      )}
       <form
         className="note-form"
         onSubmit={(e) => {
@@ -620,7 +812,8 @@ function Notes() {
         <input
           id="note-input"
           className="text-input wide"
-          placeholder={`Write a note as Partner ${author}`}
+          placeholder={author ? `Write a note as Partner ${author}` : "Choose who you are first"}
+          disabled={!author}
           value={draft}
           maxLength={2000}
           onChange={(e) => setDraft(e.currentTarget.value)}
@@ -636,8 +829,11 @@ function Notes() {
 
 /** Pick a second scenario to see beside this one, from the same camera, with both sets of counts (SCN-06). */
 function CompareControls() {
-  const { catalog, venue } = useStudio();
-  const st = useEditor((s) => s);
+  const { catalog, venue, editor } = useStudio();
+  const order = useEditor((s) => s.order);
+  const activeId = useEditor((s) => s.activeId);
+  const scenarios = useEditor((s) => s.scenarios);
+  const st = { order, activeId, scenarios };
   const compare = useView((s) => s.compare);
   const others = st.order.filter((id) => id !== st.activeId);
   const pair = [st.scenarios[st.activeId], compare ? st.scenarios[compare] : undefined].filter(
@@ -645,20 +841,34 @@ function CompareControls() {
   );
   const rows = pair.map((s) => {
     const c = countLayout(s.items, s.guests.count, catalog);
-    const notes = advise(s.items, s.guests.count, s.thresholds, venue, catalog).length;
+    const notes = advise(s.items, s.guests.count, s.thresholds, venue, catalog, s.venueToggles).length;
     return [c.tables, c.seats, c.withoutSeat, `≈ ${Math.round(c.danceFloorM2)} m²`, notes] as const;
   });
   const labels = ["Tables", "Seats", "Without a seat", "Dance floor", "Advisories"];
   if (others.length === 0)
     return (
-      <p className="hint">Make a second scenario (duplicate this one from the scenario menu) to compare.</p>
+      <div className="field">
+        <p className="hint">Compare needs a second scenario: start one from a copy of this one.</p>
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => {
+            const from = st.activeId;
+            editor.duplicateScenario(from);
+            viewStore.setState({ compare: from });
+          }}
+          data-testid="compare-duplicate"
+        >
+          Duplicate this scenario
+        </button>
+      </div>
     );
   return (
     <div className="field">
       <Chips
-        label="Beside this one"
+        label="Compare with"
         options={[
-          { id: "none", name: "Nothing" },
+          { id: "none", name: "Off" },
           ...others.map((id) => ({ id, name: st.scenarios[id]?.name ?? id })),
         ]}
         value={compare ?? "none"}
@@ -670,11 +880,8 @@ function CompareControls() {
           <thead>
             <tr>
               <th />
-              {pair.map((s) => (
-                <th key={s.id} scope="col">
-                  {s.name}
-                </th>
-              ))}
+              <th scope="col">This one</th>
+              <th scope="col">Other</th>
             </tr>
           </thead>
           <tbody>
@@ -703,6 +910,9 @@ export function ComparePanel() {
     </div>
   );
 }
+
+/** A painting's swatch: its palette as bands. */
+const palette = (colours: readonly string[]) => `linear-gradient(135deg, ${colours.join(", ")})`;
 
 const VIEWS: { key: string; label: string; detail: string }[] = [
   { key: "R01", label: "From the stair", detail: "Looking over the bar to the glass doors" },
@@ -756,13 +966,17 @@ export function VenuePanel() {
       />
       <h3 className="group-title">Paintings</h3>
       {venue.data.fixtures.paintings.map((p) => (
-        <Chips
+        <Swatches
           key={p.id}
           label={p.label}
           options={[
-            { id: "current", name: "Current" },
-            ...ARTWORKS.map((a) => ({ id: a.id, name: a.name })),
-            { id: "hidden", name: "Hidden" },
+            { id: "current", name: "Current", colour: palette(p.palette) },
+            ...ARTWORKS.map((a) => ({ id: a.id, name: a.name, colour: palette(a.palette) })),
+            {
+              id: "hidden",
+              name: "Hidden",
+              colour: "linear-gradient(135deg, transparent 46%, var(--line-2) 46% 54%, transparent 54%)",
+            },
           ]}
           value={toggles?.paintings[p.id] ?? "current"}
           onPick={(id) => editor.setPainting(p.id, id === "current" ? null : id)}

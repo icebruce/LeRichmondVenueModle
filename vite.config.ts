@@ -10,7 +10,7 @@ function devApi(): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
     if (!req.url?.startsWith("/api/")) return next();
     void (async () => {
-      const { route } = await import("./api/_lib/router");
+      const { route } = await import("./api/_lib/router.js");
       const chunks: Buffer[] = [];
       for await (const c of req) chunks.push(c as Buffer);
       const body = chunks.length ? Buffer.concat(chunks) : undefined;

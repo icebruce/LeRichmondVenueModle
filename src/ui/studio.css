@@ -61,14 +61,6 @@ button:disabled {
 .viewport.split .pane + .pane {
   border-left: 2px solid var(--surface);
 }
-.pane-label {
-  position: absolute;
-  bottom: var(--s-5);
-  left: var(--s-4);
-  padding: var(--s-1) var(--s-3);
-  font: var(--t-footnote);
-  pointer-events: none;
-}
 .ui {
   position: absolute;
   inset: 0;
@@ -138,6 +130,7 @@ button:disabled {
 }
 .rename input,
 .text-input {
+  box-sizing: border-box;
   font: var(--t-callout);
   border: 1px solid var(--line-2);
   border-radius: var(--r-control);
@@ -355,10 +348,9 @@ button:disabled {
   margin: 0;
 }
 .group-title {
-  font: var(--t-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-3);
+  font: var(--t-footnote);
+  font-weight: 600;
+  color: var(--ink-2);
   margin: var(--s-2) 0 0;
 }
 .row {
@@ -427,8 +419,37 @@ button:disabled {
 .stepper output {
   min-width: 3ch;
   text-align: center;
+  white-space: nowrap;
   font: var(--t-headline);
   font-variant-numeric: tabular-nums;
+}
+.stepper output.scrub {
+  min-width: 4ch;
+  font: var(--t-figure);
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+.slider {
+  gap: var(--s-1);
+}
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+.slider-head output {
+  font: var(--t-callout);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.slider input {
+  width: 100%;
+  min-height: var(--target);
+  margin: 0;
+  accent-color: var(--accent);
 }
 .library {
   list-style: none;
@@ -525,7 +546,8 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--accent);
-  font: 600 15px/1 var(--font-ui);
+  font: var(--t-body);
+  font-weight: 600;
   min-height: var(--target);
   padding: 0 var(--s-2);
 }
@@ -620,15 +642,11 @@ button:disabled {
   font: var(--t-footnote);
   text-align: left;
 }
-.advisory-row:disabled {
-  opacity: 1;
-  cursor: default;
-}
 .advisory-row .dot {
   flex: none;
   width: var(--s-2);
   height: var(--s-2);
-  margin-top: 5px;
+  margin-top: var(--s-1);
   border-radius: 50%;
   background: var(--advisory);
 }
@@ -715,7 +733,7 @@ button:disabled {
 }
 .hint {
   font: var(--t-footnote);
-  color: var(--ink-3);
+  color: var(--ink-2);
   margin: 0;
 }
 .refusal {
@@ -752,7 +770,48 @@ button:disabled {
   color: var(--ink-3);
 }
 .count.warn b {
-  color: var(--advisory);
+  color: var(--advisory-ink);
+}
+.count-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--r-control);
+}
+.count-btn span {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.counts-line > span,
+.counts-line .link-btn {
+  white-space: nowrap;
+}
+.pane-counts {
+  left: var(--s-3);
+  bottom: var(--s-3);
+  max-width: calc(100% - 2 * var(--s-3));
+  pointer-events: none;
+}
+.pane-name {
+  flex-basis: 100%;
+  font: 600 15px/20px var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 768px) {
+  .viewport.split {
+    left: 72px;
+  }
 }
 
 /* ---------- toast, walk, labels, loading ---------- */
@@ -765,7 +824,7 @@ button:disabled {
   align-items: center;
   gap: var(--s-3);
   padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
-  min-height: 44px;
+  min-height: var(--target);
   border-radius: 22px;
   background: var(--toast-bg);
   color: var(--on-dark);
@@ -796,6 +855,17 @@ button:disabled {
   background: var(--label-bg);
   border-radius: var(--r-control);
   padding: var(--s-1) var(--s-2);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.advisory-label {
+  font: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--advisory-ink);
+  background: var(--label-bg);
+  border: 1px solid var(--advisory);
+  border-radius: var(--r-control);
+  padding: 0 var(--s-1);
   pointer-events: none;
   white-space: nowrap;
 }
@@ -930,6 +1000,15 @@ button:disabled {
   font: var(--t-body);
   color: var(--ink-2);
 }
+.changes {
+  margin: 0;
+  padding-left: var(--s-5);
+  font: var(--t-callout);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
 .dialog-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1039,7 +1118,25 @@ button:disabled {
     color: var(--ink-2);
   }
   .counts-line .warn {
-    color: var(--advisory);
+    color: var(--advisory-ink);
+  }
+  .pane-counts {
+    left: var(--s-2);
+    bottom: var(--s-2);
+    gap: 0 var(--s-2);
+    padding: var(--s-1) var(--s-2);
+  }
+  .pane-counts .count {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--s-1);
+  }
+  .pane-counts .count b {
+    font: var(--t-footnote);
+    font-weight: 600;
+  }
+  .pane-counts .pane-name {
+    font: 600 13px/18px var(--font-display);
   }
   .tabbar {
     display: grid;

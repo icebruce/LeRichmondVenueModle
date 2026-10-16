@@ -6,14 +6,46 @@
       "name": "Dance floor",
       "family": "eventPiece",
       "placement": "floor",
-      "sizeM": { "w": 6.0, "d": 3.6, "h": 0.03 },
+      "sizeM": {
+        "w": 6.0,
+        "d": 3.6,
+        "h": 0.03
+      },
       "sizePresets": [
-        { "label": "Small · 3.6 × 3.6 m", "options": { "width": 3.6, "depth": 3.6 } },
-        { "label": "Medium · 4.8 × 3.6 m", "options": { "width": 4.8, "depth": 3.6 } },
-        { "label": "Large · 6 × 4.2 m", "options": { "width": 6, "depth": 4.2 } }
+        {
+          "label": "Small · 3.6 × 3.6 m",
+          "options": {
+            "width": 3.6,
+            "depth": 3.6
+          }
+        },
+        {
+          "label": "Medium · 4.8 × 3.6 m",
+          "options": {
+            "width": 4.8,
+            "depth": 3.6
+          }
+        },
+        {
+          "label": "Large · 6 × 4.2 m",
+          "options": {
+            "width": 6,
+            "depth": 4.2
+          }
+        }
       ],
-      "model": { "kind": "parametric", "generator": "danceFloor", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "danceFloor", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "danceFloor",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "danceFloor",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [
         {
           "type": "number",
@@ -40,45 +72,168 @@
           "key": "finish",
           "label": "Finish",
           "choices": [
-            { "value": "wood", "label": "Wood" },
-            { "value": "white", "label": "White" },
-            { "value": "black", "label": "Black" }
+            {
+              "value": "wood",
+              "label": "Wood"
+            },
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "black",
+              "label": "Black"
+            }
           ],
           "default": "wood"
         }
       ],
       "seats": false,
       "thumbnail": "thumbs/dance-floor.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: danceFloor", "licence": "Project" },
-      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 2 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: danceFloor",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2000,
+        "phoneTriangles": 500,
+        "drawCalls": 2
+      }
     },
     {
       "id": "dj-booth",
       "name": "DJ booth",
       "family": "eventPiece",
       "placement": "floor",
-      "sizeM": { "w": 1.8, "d": 0.8, "h": 1.05 },
+      "sizeM": {
+        "w": 1.8,
+        "d": 0.8,
+        "h": 1.05
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "djBooth", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "djBooth", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "djBooth",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "djBooth",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [
         {
           "type": "choice",
           "key": "spot",
           "label": "Position",
           "choices": [
-            { "value": "free", "label": "Anywhere" },
-            { "value": "dj1", "label": "Option 1" },
-            { "value": "dj2", "label": "Option 2" },
-            { "value": "dj3", "label": "Option 3 · mezzanine" }
+            {
+              "value": "free",
+              "label": "Anywhere"
+            },
+            {
+              "value": "dj1",
+              "label": "Option 1"
+            },
+            {
+              "value": "dj2",
+              "label": "Option 2"
+            },
+            {
+              "value": "dj3",
+              "label": "Option 3 · mezzanine"
+            }
           ],
           "default": "free"
         }
       ],
       "seats": false,
       "thumbnail": "thumbs/dj-booth.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: djBooth", "licence": "Project" },
-      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 5 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: djBooth",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 6000,
+        "phoneTriangles": 1500,
+        "drawCalls": 5
+      }
+    },
+    {
+      "id": "drapery-backdrop",
+      "name": "Drapery backdrop",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 3.0,
+        "d": 0.4,
+        "h": 2.6
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "backdrop",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "backdrop",
+        "params": {
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 2,
+          "max": 4.5,
+          "step": 0.5,
+          "default": 3.0,
+          "unit": "m"
+        },
+        {
+          "type": "choice",
+          "key": "colour",
+          "label": "Fabric",
+          "choices": [
+            {
+              "value": "#f2ece0",
+              "label": "Ivory"
+            },
+            {
+              "value": "#ecd0c8",
+              "label": "Blush"
+            },
+            {
+              "value": "#e3d2b0",
+              "label": "Champagne"
+            },
+            {
+              "value": "#a3b19a",
+              "label": "Sage"
+            }
+          ],
+          "default": "#f2ece0"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/drapery-backdrop.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: backdrop",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 1200,
+        "phoneTriangles": 400,
+        "drawCalls": 3
+      }
     }
   ]
 }

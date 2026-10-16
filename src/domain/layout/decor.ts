@@ -1,3 +1,4 @@
+import { seededRandom } from "../random";
 import type { Catalog } from "../library/catalog";
 import type { TableStyle } from "../scenario/schema";
 import type { Chair, Shape } from "./items";
@@ -23,7 +24,9 @@ export type Slot =
   | "ceramic"
   | "paper"
   | "flower"
-  | "leaf";
+  | "leaf"
+  | "fabric"
+  | "sheer";
 export type Part = {
   prim: Prim;
   slot: Slot;
@@ -49,10 +52,40 @@ export const FLORAL_PALETTES: Record<string, { label: string; colours: string[] 
   garden: { label: "Garden", colours: ["#f1d27a", "#f2a65e", "#e9e2d0", "#c97c8f"] },
 };
 
+/**
+ * Flower types (LIB-06): bloom size, how many blooms an arrangement holds (× the base count), and
+ * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable.
+ */
+export const FLOWER_TYPES: Record<
+  string,
+  {
+    label: string;
+    bloom: [number, number];
+    count: number;
+    leafEvery: number;
+    leaf?: string;
+    form?: "plume" | "branch";
+  }
+> = {
+  rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3 },
+  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4 },
+  hydrangea: { label: "Hydrangea", bloom: [0.065, 0.085], count: 0.55, leafEvery: 5 },
+  ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3 },
+  babysBreath: { label: "Baby's breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },
+  eucalyptus: { label: "Eucalyptus", bloom: [0.03, 0.04], count: 1, leafEvery: 1.4, leaf: "#c9dbd2" },
+  pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume" },
+  blossom: { label: "Blossom branches", bloom: [0.016, 0.022], count: 1.6, leafEvery: 8, form: "branch" },
+};
+
 const CHARGERS: Record<string, Slot> = { gold: "brass", silver: "silver", glass: "glass" };
 
 type Gen = (p: Record<string, number | string | boolean>, ctx: Ctx) => Part[];
-type Ctx = { colours: string[]; rand: () => number; scale: number };
+type Ctx = {
+  colours: string[];
+  rand: () => number;
+  scale: number;
+  flower: NonNullable<(typeof FLOWER_TYPES)[string]>;
+};
 
 const cyl = (slot: Slot, x: number, y: number, z: number, r: number, h: number): Part => ({
   prim: "cylinder",
@@ -82,22 +115,42 @@ const candle = (x: number, y: number, z: number, r: number, h: number): Part[] =
   { ...ball("flame", x, y + h + 0.018, z, 0.011), sy: 0.022 },
 ];
 
-/** A mound of flowers and leaves, `r` wide and `h` high, sitting on y. */
+/** A leaf: a flattened ball, tinted for silvery foliage (eucalyptus). */
+const leaf = (x: number, y: number, z: number, r: number, ctx: Ctx): Part => ({
+  ...ball("leaf", x, y, z, r, ctx.flower.leaf),
+  sy: r / 2,
+});
+
+/**
+ * A mound of flowers and leaves, `r` wide and `h` high, sitting on y. `n` is the bloom count for
+ * roses; other flower types scale it (fewer big peonies, many tiny baby's breath).
+ */
 function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, n: number): Part[] {
+  const f = ctx.flower;
+  const count = Math.max(6, Math.round(n * f.count));
+  const [b0, b1] = f.bloom;
   const parts: Part[] = [];
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < count; i++) {
     const a = i * 2.39996;
-    const k = Math.sqrt((i + 0.5) / n);
+    const k = Math.sqrt((i + 0.5) / count);
     const px = x + Math.cos(a) * r * k;
     const pz = z + Math.sin(a) * r * k;
     const py = y + h * (1 - k * k) * 0.75 + 0.02;
-    const flower = i % 3 !== 2;
     const colour = ctx.colours[Math.floor(ctx.rand() * ctx.colours.length)] ?? "#ffffff";
-    parts.push(
-      flower
-        ? ball("flower", px, py, pz, 0.035 + ctx.rand() * 0.02, colour)
-        : { ...ball("leaf", px, py - 0.01, pz, 0.04), sy: 0.02 },
-    );
+    if (i % f.leafEvery < 1 && i > 0) {
+      parts.push(leaf(px, py - 0.01, pz, 0.04, ctx));
+    } else if (f.form === "plume" && i % 3 === 0) {
+      // Pampas: tall soft plumes rising out of the mound.
+      parts.push({ ...ball("flower", px, py + 0.12, pz, 0.03, colour), sy: 0.13 });
+    } else if (f.form === "branch" && i % 5 === 0) {
+      // Blossom: thin branches leaning out, small flowers along them.
+      const lean = (ctx.rand() - 0.5) * 0.9;
+      parts.push({ ...cyl("black", px, py, pz, 0.004, 0.22), rz: lean, rx: (ctx.rand() - 0.5) * 0.6 });
+      for (let j = 1; j <= 3; j++)
+        parts.push(ball("flower", px - Math.sin(lean) * 0.07 * j, py + 0.07 * j, pz, b1, colour));
+    } else {
+      parts.push(ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour));
+    }
   }
   return parts;
 }
@@ -198,7 +251,32 @@ const centrepieces: Record<string, Gen> = {
 };
 
 /** Generators that run the table's length instead of sitting at centre spots. */
-const runners: Record<string, (length: number, ctx: Ctx) => Part[]> = {
+const runners: Record<
+  string,
+  (length: number, ctx: Ctx, p: Record<string, number | string | boolean>) => Part[]
+> = {
+  // Velvet lies flat and drops over both ends; chiffon is wider, sheer and hangs longer (LIB-03).
+  runner: (length, _ctx, p) => {
+    const sheer = p.fabric === "chiffon";
+    const slot: Slot = sheer ? "sheer" : "fabric";
+    const colour = String(p.colour ?? "#ffffff");
+    const w = sheer ? 0.5 : 0.36;
+    const drop = sheer ? 0.45 : 0.28;
+    const parts: Part[] = [{ prim: "box", slot, x: 0, y: 0.002, z: 0, sx: length, sy: 0.004, sz: w, colour }];
+    for (const s of [-1, 1])
+      parts.push({
+        prim: "box",
+        slot,
+        x: s * (length / 2 + 0.004),
+        y: -drop,
+        z: 0,
+        sx: 0.006,
+        sy: drop,
+        sz: w,
+        colour,
+      });
+    return parts;
+  },
   garland: (length, ctx) => {
     const parts: Part[] = [];
     const n = Math.max(8, Math.round(length / 0.07));
@@ -213,7 +291,14 @@ const runners: Record<string, (length: number, ctx: Ctx) => Part[]> = {
   },
 };
 
-export const DECOR_GENERATORS: readonly string[] = [...Object.keys(centrepieces), ...Object.keys(runners)];
+/** Every generator a table-top library entry may name; napkins, menus and numbers are setting parts. */
+export const DECOR_GENERATORS: readonly string[] = [
+  ...Object.keys(centrepieces),
+  ...Object.keys(runners),
+  "napkin",
+  "menuCard",
+  "tableNumber",
+];
 
 /** Centre spots along a table: one per ~0.9 m on long tables, one on round and small ones. */
 function spots(shape: Shape): [number, number][] {
@@ -225,16 +310,13 @@ function spots(shape: Shape): [number, number][] {
   return [[0, 0]];
 }
 
-function seeded(seed: number): () => number {
-  let a = seed >>> 0 || 1;
-  return () => {
-    a = (Math.imul(a, 1664525) + 1013904223) >>> 0;
-    return a / 4294967296;
-  };
-}
+type Extras = { settings: boolean; menus: boolean; tableNumbers: boolean };
 
-/** One place setting in front of a chair: charger, plate, two glasses, fork, knife. */
-function setting(ch: Chair, edge: number, charger: string): Part[] {
+/**
+ * One place setting in front of a chair: charger, plate, two glasses, fork, knife; a folded napkin
+ * and a menu card on the plate when chosen (LIB-03, LIB-04).
+ */
+function setting(ch: Chair, edge: number, charger: string, napkin: string | null, menu: boolean): Part[] {
   // Chair front direction (sin rotY, cos rotY); the setting sits on the table edge it faces.
   const fx = Math.sin(ch.rotY);
   const fz = Math.cos(ch.rotY);
@@ -267,7 +349,44 @@ function setting(ch: Chair, edge: number, charger: string): Part[] {
       ry: ch.rotY,
     });
   }
+  let top = 0.02;
+  if (napkin) {
+    parts.push({
+      prim: "box",
+      slot: "fabric",
+      x: cx,
+      y: top,
+      z: cz,
+      sx: 0.11,
+      sy: 0.014,
+      sz: 0.19,
+      ry: ch.rotY,
+      colour: napkin,
+    });
+    top += 0.014;
+  }
+  if (menu)
+    parts.push({
+      prim: "box",
+      slot: "paper",
+      x: cx,
+      y: top,
+      z: cz,
+      sx: 0.1,
+      sy: 0.003,
+      sz: 0.16,
+      ry: ch.rotY,
+    });
   return parts;
+}
+
+/** Brass table-number holder with its card, standing beside the centrepiece (LIB-04). */
+function numberHolder(x: number, z: number): Part[] {
+  return [
+    cyl("brass", x, 0, z, 0.035, 0.008),
+    cyl("brass", x, 0.008, z, 0.004, 0.12),
+    { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003 },
+  ];
 }
 
 /**
@@ -278,26 +397,29 @@ export function tableDecor(
   shape: Shape,
   style: TableStyle,
   catalog: Catalog,
-  settings: boolean,
+  extras: Extras,
   seed: number,
 ): Part[] {
   if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail") return [];
-  const rand = seeded(seed);
+  const rand = seededRandom(seed);
   const ctx: Ctx = {
     colours: FLORAL_PALETTES[style.floralColour]?.colours ?? FLORAL_PALETTES.white?.colours ?? ["#ffffff"],
     rand,
     scale: shape.kind === "cocktail" ? 0.6 : 1,
+    flower: FLOWER_TYPES[style.flowerType] ?? (FLOWER_TYPES.rose as Ctx["flower"]),
   };
   const parts: Part[] = [];
-  const pieces = [style.florals, style.candles];
+  const pieces = [style.runner, style.florals, style.candles];
   const at = spots(shape);
   for (const id of pieces) {
     const e = catalog.get(id);
     if (!e || e.model.kind !== "parametric") continue;
     const g = e.model.generator;
     const runner = runners[g];
-    if (runner && shape.kind === "rectTable") {
-      parts.push(...runner(shape.length, ctx));
+    if (runner) {
+      // Along a long table; across a round one.
+      const length = shape.kind === "rectTable" ? shape.length : "diameter" in shape ? shape.diameter : 0;
+      if (length > 0) parts.push(...runner(length, ctx, e.model.params));
       continue;
     }
     const gen = centrepieces[g];
@@ -309,9 +431,16 @@ export function tableDecor(
       for (const p of gen(e.model.params, ctx)) parts.push({ ...p, x: p.x + sx + shift, z: p.z + sz });
     }
   }
-  if (settings && shape.kind !== "cocktail") {
+  if (extras.settings && shape.kind !== "cocktail") {
     const edge = shape.kind === "rectTable" ? 0.32 + 0.2 : 0.3 + 0.22;
-    for (const ch of shape.chairs) parts.push(...setting(ch, edge, style.charger));
+    const n = catalog.get(style.napkin)?.model;
+    const napkin = n?.kind === "parametric" ? String(n.params.colour ?? "#ffffff") : null;
+    for (const ch of shape.chairs) parts.push(...setting(ch, edge, style.charger, napkin, extras.menus));
+  }
+  if (extras.tableNumbers && shape.kind !== "cocktail") {
+    const [x, z] =
+      shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
+    parts.push(...numberHolder(x, z));
   }
   return parts;
 }

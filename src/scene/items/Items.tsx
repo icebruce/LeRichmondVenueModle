@@ -165,6 +165,7 @@ function TableBody({
       </group>
     );
   }
+  if (shape.kind === "backdrop") return <Backdrop shape={shape} m={m} />;
   return (
     <group>
       <mesh position={[0, 0.5, 0]} material={m.djFacade} castShadow>
@@ -193,7 +194,48 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
       return { poly: centredRect(shape.width + 0.05, shape.depth + 0.05), y: 0.035 };
     case "djBooth":
       return { poly: centredRect(shape.width, shape.depth), y: 1.06 };
+    case "backdrop":
+      return { poly: centredRect(shape.width, 0.12), y: shape.height + 0.02 };
   }
+}
+
+/**
+ * Drapery backdrop (LIB-03): a black frame with one folded sheet of fabric, drawn as a single
+ * wavy plane so it costs one draw call however wide it is.
+ */
+function Backdrop({ shape, m }: { shape: Extract<Shape, { kind: "backdrop" }>; m: Materials }) {
+  const { width: w, height: h, colour } = shape;
+  const cloth = useMemo(() => {
+    const g = new THREE.PlaneGeometry(w, h - 0.06, Math.round(w * 24), 1);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) / 0.28) * Math.PI) * 0.035);
+    g.computeVertexNormals();
+    return g;
+  }, [w, h]);
+  const fabric = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.92, side: THREE.DoubleSide }),
+    [colour],
+  );
+  useEffect(
+    () => () => {
+      cloth.dispose();
+      fabric.dispose();
+    },
+    [cloth, fabric],
+  );
+  return (
+    <group>
+      <mesh geometry={cloth} material={fabric} position={[0, (h - 0.06) / 2, 0]} castShadow receiveShadow />
+      <mesh position={[0, h - 0.02, 0]} material={m.blackMetal}>
+        <boxGeometry args={[w + 0.06, 0.04, 0.04]} />
+      </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[(s * (w + 0.02)) / 2, h / 2, 0]} material={m.blackMetal}>
+          <boxGeometry args={[0.03, h, 0.03]} />
+        </mesh>
+      ))}
+    </group>
+  );
 }
 
 type Tone = "selected" | "hover" | "refused" | "ghost";

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { catalog, venue } from "./fixtures";
 import { createEditor } from "../../src/state/editor";
 import { venueSampleScenario } from "../../src/domain/scenario/scenario";
@@ -121,5 +121,19 @@ describe("scenarios", () => {
     editor.switchScenario("A");
     expect(editor.store.getState().canUndo).toBe(true);
     expect(b).toBeTruthy();
+  });
+
+  test("[LAY-06] holding or scrubbing the guest count is one undo step", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-16T10:00:00Z"));
+    const { editor } = setup();
+    for (let n = 76; n <= 120; n++) editor.setGuests(n);
+    vi.setSystemTime(new Date("2026-10-16T10:00:05Z"));
+    editor.setGuests(130);
+    editor.undo();
+    expect(editor.active().guests.count).toBe(120);
+    editor.undo();
+    expect(editor.active().guests.count).toBe(75);
+    vi.useRealTimers();
   });
 });

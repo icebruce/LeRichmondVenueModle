@@ -154,7 +154,7 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] [PPL-03] 15 tables and 150 people stay inside the draw-call and triangle budgets", async ({
+test("[PLT-03] [PPL-03] [LIB-04] 15 fully set tables and 150 people stay inside the draw-call and triangle budgets", async ({
   page,
 }) => {
   for (const [quality, calls, triangles] of [
@@ -171,12 +171,23 @@ test("[PLT-03] [PPL-03] 15 tables and 150 people stay inside the draw-call and t
         createScenario: (kind: "blank" | "sample") => string;
         addItem: (id: string, at: [number, number], o?: Record<string, number>) => string | null;
         setGuests: (n: number) => void;
+        applyStyle: (target: "all", patch: Record<string, string>) => void;
+        setStyle: (key: string, value: boolean) => void;
         active: () => { items: { libraryId: string }[] };
       };
-      // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing.
+      // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing; the
+      // heaviest décor: tall arrangements, 5-arm candelabra, runners and full place settings.
       ed.createScenario("blank");
       for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
       ed.setGuests(150);
+      ed.applyStyle("all", {
+        florals: "floral-tall",
+        candles: "candelabra-5",
+        runner: "runner-chiffon-ivory",
+        napkin: "napkin-sage",
+        charger: "gold",
+      });
+      for (const k of ["settings", "menus", "tableNumbers"]) ed.setStyle(k, true);
       return ed.active().items.length;
     });
     expect(tables).toBe(15);
@@ -222,7 +233,7 @@ test("[LAY-08] advisory checks follow the couple's settings and never block", as
   await expect(page.getByTestId("count-advisories")).toHaveText("6");
   await expect(page.getByTestId("checks")).toContainText("Aisle ≈ 0.4 m between table 5 and table 6");
   await page.getByTestId("check-settings").click();
-  for (let i = 0; i < 4; i++) await page.getByTestId("aisle").getByRole("button", { name: /Fewer/ }).click();
+  await page.getByTestId("aisle").fill("0.6");
   // At 0.6 m the 0.7–0.8 m aisles pass; the 0.4 m one and the exit door remain.
   await expect(page.getByTestId("count-advisories")).not.toHaveText("6");
   await expect(page.getByTestId("checks")).not.toContainText("Aisle ≈ 0.8 m");
@@ -265,18 +276,24 @@ test("[SCN-06] compare two scenarios side by side from the same camera, with the
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
   await page.getByTestId("section-compare").click();
   await page
-    .getByRole("radiogroup", { name: "Beside this one" })
+    .getByRole("radiogroup", { name: "Compare with" })
     .getByRole("radio", { name: "Option A · Venue sample", exact: true })
     .click();
   await expect(page.getByTestId("compare-canvas")).toBeVisible();
+  // Each half is named, with its own counts; the side panel sits beside them, not over one.
+  const panes = page.getByTestId("pane-counts");
+  await expect(panes).toHaveCount(2);
+  await expect(panes.first()).toContainText("Option A · Venue sample copy");
+  await expect(panes.first()).toContainText("16without a seat");
+  await expect(panes.last()).toContainText("Option A · Venue sample");
+  await expect(panes.last()).toContainText("15without a seat");
+  const right = await panes.last().boundingBox();
+  const panel = await page.getByRole("complementary").boundingBox();
+  expect((right?.x ?? 0) + (right?.width ?? 0)).toBeLessThanOrEqual(panel?.x ?? 0);
   const table = page.getByTestId("compare-table");
-  await expect(table).toContainText("Option A · Venue sample copy");
   await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("16");
   await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("15");
-  await page
-    .getByRole("radiogroup", { name: "Beside this one" })
-    .getByRole("radio", { name: "Nothing" })
-    .click();
+  await page.getByRole("radiogroup", { name: "Compare with" }).getByRole("radio", { name: "Off" }).click();
   await expect(page.getByTestId("compare-canvas")).toHaveCount(0);
 });
 

@@ -94,6 +94,53 @@ describe("cloud API", () => {
     });
   });
 
+  test("[ACC-01] guesses sent all at once are still limited", async () => {
+    const ip = { "x-forwarded-for": "198.51.100.7" };
+    const statuses = await Promise.all(
+      Array.from({ length: 40 }, () =>
+        call("POST", "/api/login", { password: "guess" }, ip).then((r) => r.status),
+      ),
+    );
+    expect(statuses.filter((x) => x === 401)).toHaveLength(8);
+    expect(statuses.filter((x) => x === 429)).toHaveLength(32);
+  });
+
+  test("[ACC-01] changing the password ends existing sessions", async () => {
+    await signIn();
+    expect((await call("GET", "/api/session")).status).toBe(200);
+    process.env.APP_PASSWORD = "autumn-wedding";
+    expect((await call("GET", "/api/session")).status).toBe(401);
+  });
+
+  test("[SCN-03] two saves over the same revision at once: one wins, the other gets the winner's copy", async () => {
+    await signIn();
+    const s = venueSampleScenario("api-3", "2026-10-16T00:00:00.000Z");
+    await call("POST", "/api/scenarios", { scenario: s });
+    const [x, y] = await Promise.all(
+      ["Laptop", "Phone"].map((name) =>
+        call("PUT", "/api/scenarios/api-3", { scenario: { ...s, name } }, { "if-match": "1" }),
+      ),
+    );
+    expect([x?.status, y?.status].sort()).toEqual([200, 409]);
+    const v = (await (await call("GET", "/api/scenarios/api-3/versions")).json()) as { versions: unknown[] };
+    expect(v.versions).toHaveLength(1);
+  });
+
+  test("[SCN-03] deleting over a newer revision is refused with the partner's copy", async () => {
+    await signIn();
+    const s = venueSampleScenario("api-4", "2026-10-16T00:00:00.000Z");
+    await call("POST", "/api/scenarios", { scenario: s });
+    await call("PUT", "/api/scenarios/api-4", { scenario: { ...s, name: "Newer" } }, { "if-match": "1" });
+    const refused = await call("DELETE", "/api/scenarios/api-4", undefined, { "if-match": "1" });
+    expect(refused.status).toBe(409);
+    expect(((await refused.json()) as { scenario: { name: string } }).scenario.name).toBe("Newer");
+    expect((await call("DELETE", "/api/scenarios/api-4", undefined, { "if-match": "2" })).status).toBe(200);
+    expect((await call("GET", "/api/scenarios/api-4")).status).toBe(404);
+    // Its history goes with it, so a scenario re-created under the same id starts clean.
+    const v = (await (await call("GET", "/api/scenarios/api-4/versions")).json()) as { versions: unknown[] };
+    expect(v.versions).toHaveLength(0);
+  });
+
   test("[ACC-01] without a password, secret and storage configured, the API says so (the app stays local)", async () => {
     delete process.env.APP_PASSWORD;
     const res = await call("GET", "/api/session");

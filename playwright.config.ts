@@ -54,10 +54,12 @@ export default defineConfig({
     {
       name: "cloud",
       testMatch: "e2e/**/*.cloud.spec.ts",
+      // Two devices render at once on a software GPU: a small window and more time.
+      timeout: 240_000,
       use: {
         ...devices["Desktop Chrome"],
         baseURL: "http://localhost:4174",
-        viewport: { width: 1280, height: 800 },
+        viewport: { width: 960, height: 600 },
         launchOptions,
       },
     },

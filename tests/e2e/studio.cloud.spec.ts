@@ -26,7 +26,7 @@ async function signIn(browser: Browser, partner: "A" | "B") {
   await page.waitForFunction(() => (window as unknown as { __project?: unknown }).__project, null, {
     timeout: 60_000,
   });
-  await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
+  await expect(page.locator(".loading")).toHaveCount(0, { timeout: 120_000 });
   await settle(page);
   await expect(page.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
   return page;
@@ -36,6 +36,9 @@ test("[ACC-01] the studio asks for the shared password; a wrong one is refused",
   await page.goto("/?quality=low");
   await expect(page.getByRole("button", { name: "Open the studio" })).toBeVisible();
   await page.getByLabel("Password").fill("not-it");
+  await page.getByRole("button", { name: "Open the studio" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Choose who this device is for.");
+  await page.getByRole("radio", { name: "Partner B" }).click();
   await page.getByRole("button", { name: "Open the studio" }).click();
   await expect(page.getByRole("alert")).toHaveText("That password isn't right");
 });
@@ -58,11 +61,11 @@ test("[SCN-02] [SCN-05] a change and a note on the laptop appear on the phone af
   await expect(a.getByTestId("notes")).toContainText("Partner A");
   await expect(a.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
   await a.waitForTimeout(2500);
+  await a.context().close();
   const b = await signIn(browser, "B");
   const sb = await state(b);
   expect(sb.scenarios[id]?.guests.count).toBe(88);
   expect(sb.scenarios[id]?.notes.map((n) => n.text)).toEqual(["Long tables feel fuller."]);
-  await a.context().close();
   await b.context().close();
 });
 

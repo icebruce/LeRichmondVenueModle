@@ -1,3 +1,4 @@
+import { seededRandom } from "../random";
 import { type Vec2, pointInPolygon } from "../geometry";
 import type { Catalog } from "../library/catalog";
 import type { VenueModel } from "../venue/model";
@@ -11,18 +12,6 @@ export type Crowd = { seated: Person[]; standing: Person[]; unplaced: number };
 /** Standing guests keep this much room each (m between neighbours). */
 const STAND_PITCH = 0.7;
 const DANCE_PITCH = 0.6;
-
-/** Small seeded generator so the same layout and seed always give the same crowd (PPL-02). */
-function random(seed: number): () => number {
-  let a = seed >>> 0 || 1;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function grid(x0: number, z0: number, x1: number, z1: number, pitch: number): Vec2[] {
   const out: Vec2[] = [];
@@ -44,7 +33,7 @@ export function placePeople(
   toggles: VenueToggles,
   seed: number,
 ): Crowd {
-  const rand = random(seed);
+  const rand = seededRandom(seed);
   const seated: Person[] = [];
   for (const it of items) {
     for (const ch of chairsWorld(it, shapeOf(it, catalog))) {

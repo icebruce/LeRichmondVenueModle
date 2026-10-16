@@ -11,13 +11,31 @@ import { Items } from "./items/Items";
 import { useMaterials } from "./materials";
 
 /** What to draw for a library entry that is not itself placeable: a small table dressed with it. */
-function thumbItem(id: string, family: string | undefined): { item: Item; style?: Partial<TableStyle> } {
+function thumbItem(
+  id: string,
+  family: string | undefined,
+  generator: string | undefined,
+): {
+  item: Item;
+  style?: Partial<TableStyle>;
+  extras?: { settings: boolean; menus: boolean; tableNumbers: boolean };
+} {
   const at = { x: 8, z: 7, rotY: 0.5 };
   const round = (style: Partial<TableStyle>) => ({
     item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
     style: { candles: "none", ...style },
   });
+  if (family === "linen" && generator === "runner")
+    return {
+      item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
+      style: { runner: id, candles: "none" },
+    };
   if (family === "linen") return round({ linen: id });
+  if (family === "tableware")
+    return {
+      ...round({ napkin: generator === "napkin" ? id : "none" }),
+      extras: { settings: true, menus: generator === "menuCard", tableNumbers: generator === "tableNumber" },
+    };
   if (family === "candle") return round({ candles: id });
   if (family === "floral")
     return id === "floral-runner"
@@ -51,11 +69,12 @@ function ThumbScene() {
 /** Renders one library item on a transparent background for its catalogue thumbnail (LIB-11). */
 export function Thumbnail({ base, id }: { base: Studio; id: string }) {
   const studio = useMemo(() => {
-    const { item, style } = thumbItem(id, base.catalog.get(id)?.family);
-    const s = newScenario("thumb", "thumb", new Date(0).toISOString(), [item]);
-    s.style = { ...s.style, ...style, settings: false, lighting: "day" };
-    const editor = createEditor({ ...base, now: () => s.updatedAt, newId: () => "x" }, [s]);
     const own = base.catalog.get(id);
+    const generator = own?.model.kind === "parametric" ? own.model.generator : undefined;
+    const { item, style, extras } = thumbItem(id, own?.family, generator);
+    const s = newScenario("thumb", "thumb", new Date(0).toISOString(), [item]);
+    s.style = { ...s.style, ...style, settings: false, ...extras, lighting: "day" };
+    const editor = createEditor({ ...base, now: () => s.updatedAt, newId: () => "x" }, [s]);
     // Table-top pieces are framed close up on the table top; everything else whole.
     if (own && own.placement === "table" && id !== "floral-runner") {
       const h = own.sizeM.h;

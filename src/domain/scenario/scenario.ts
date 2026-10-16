@@ -9,7 +9,12 @@ export const DEFAULT_STYLE: Scenario["style"] = {
   florals: "none",
   floralColour: "white",
   charger: "gold",
+  runner: "none",
+  napkin: "none",
+  flowerType: "rose",
   settings: true,
+  menus: false,
+  tableNumbers: false,
   lighting: "evening",
 };
 
@@ -87,12 +92,25 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     },
     venueToggles: { paintings: {}, ...(raw.venueToggles as object) },
   }),
+  // v3 (step 2): runners, napkins, flower types, menu cards and table numbers.
+  2: (raw) => ({
+    ...raw,
+    schemaVersion: 3,
+    style: {
+      runner: "none",
+      napkin: "none",
+      flowerType: "rose",
+      menus: false,
+      tableNumbers: false,
+      ...(raw.style as object),
+    },
+  }),
 };
 
 /** A table's décor: its own override over the scenario style (DEC-05). */
 export function styleOf(item: Item, style: Scenario["style"]): TableStyle {
-  const { linen, chair, candles, florals, floralColour, charger } = style;
-  return { linen, chair, candles, florals, floralColour, charger, ...item.style };
+  const { linen, chair, candles, florals, floralColour, charger, runner, napkin, flowerType } = style;
+  return { linen, chair, candles, florals, floralColour, charger, runner, napkin, flowerType, ...item.style };
 }
 
 export function parseScenario(raw: unknown): Scenario {

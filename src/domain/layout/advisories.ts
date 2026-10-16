@@ -1,42 +1,99 @@
-import { type Polygon, type Vec2, distanceToSegment, polygonsOverlap, rect } from "../geometry";
+import { type Polygon, type Vec2, closestOnSegment, polygonsOverlap, rect } from "../geometry";
 import type { Catalog } from "../library/catalog";
 import type { Scenario } from "../scenario/schema";
 import { alongWall } from "../venue/model";
 import type { VenueModel } from "../venue/model";
 import { tableLabels } from "./counts";
 import { type Item, footprint, seatsOf, shapeOf } from "./items";
-import { itemName } from "./validate";
+import { type VenueToggles, itemName, toggledObstacles } from "./validate";
 
 export type Thresholds = Scenario["thresholds"];
 
 /**
- * A layout advisory (LAY-08): never blocks anything. `area` is what the scene highlights, `items`
- * are the tables involved (shown in their inspector).
+ * A layout advisory (LAY-08): never blocks anything. `area` is what the scene highlights, with a
+ * short `label` ("≈ 0.7 m"); `items` are the tables involved (shown in their inspector).
  */
 export type Advisory = {
   id: string;
   kind: "aisle" | "clearance" | "dance";
   message: string;
   area: Polygon | null;
+  label: { text: string; at: Vec2 } | null;
   items: string[];
 };
 
-/** Shortest distance between two polygons (0 if they touch or overlap). */
-export function polygonGap(a: Polygon, b: Polygon): number {
-  if (polygonsOverlap(a, b)) return 0;
-  const edges = (p: Polygon) => p.map((v, i) => [v, p[(i + 1) % p.length] as Vec2] as const);
-  let best = Infinity;
-  for (const v of a) for (const [s, e] of edges(b)) best = Math.min(best, distanceToSegment(v, s, e));
-  for (const v of b) for (const [s, e] of edges(a)) best = Math.min(best, distanceToSegment(v, s, e));
+const dist = (a: Vec2, b: Vec2) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+/** The nearest points of two outlines (a segment counts as a two-point outline): [on a, on b]. */
+function closestPair(a: Polygon, b: Polygon): [Vec2, Vec2] {
+  const edges = (p: Polygon): (readonly [Vec2, Vec2])[] =>
+    p.map((v, i) => [v, p[(i + 1) % p.length] as Vec2] as const).slice(0, p.length === 2 ? 1 : p.length);
+  let best: [Vec2, Vec2] = [a[0] as Vec2, b[0] as Vec2];
+  const consider = (p: Vec2, q: Vec2) => {
+    if (dist(p, q) < dist(...best)) best = [p, q];
+  };
+  for (const v of a) for (const [s, e] of edges(b)) consider(v, closestOnSegment(v, s, e));
+  for (const v of b) for (const [s, e] of edges(a)) consider(closestOnSegment(v, s, e), v);
   return best;
 }
 
-/** Floor areas to keep clear (m from the opening): entrance and stair landing, kitchen pass, glazed doors. */
-export function clearanceZones(venue: VenueModel, depth: number): { name: string; area: Polygon }[] {
-  const zones: { name: string; area: Polygon }[] = [];
+/** Shortest distance between two polygons (0 if they touch or overlap). */
+export function polygonGap(a: Polygon, b: Polygon): number {
+  return polygonsOverlap(a, b) ? 0 : dist(...closestPair(a, b));
+}
+
+/**
+ * The aisle itself: the strip of floor between two chair zones, as long as the stretch where they
+ * face each other (at least 0.6 m, so a corner-to-corner pinch still shows).
+ */
+function aisleStrip(a: Polygon, b: Polygon): { area: Polygon; centre: Vec2 } {
+  const [p, q] = closestPair(a, b);
+  const gap = Math.max(dist(p, q), 1e-6);
+  const d: Vec2 = [(q[0] - p[0]) / gap, (q[1] - p[1]) / gap];
+  const n: Vec2 = [-d[1], d[0]];
+  const mid: Vec2 = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const span = (poly: Polygon) => {
+    const t = poly.map((v) => (v[0] - mid[0]) * n[0] + (v[1] - mid[1]) * n[1]);
+    return [Math.min(...t), Math.max(...t)] as const;
+  };
+  const [a0, a1] = span(a);
+  const [b0, b1] = span(b);
+  let lo = Math.max(a0, b0);
+  let hi = Math.min(a1, b1);
+  if (hi - lo < 0.6) [lo, hi] = [(lo + hi) / 2 - 0.3, (lo + hi) / 2 + 0.3];
+  const at = (t: number, s: number): Vec2 => [
+    mid[0] + n[0] * t + d[0] * s * (gap / 2),
+    mid[1] + n[1] * t + d[1] * s * (gap / 2),
+  ];
+  return { area: [at(lo, -1), at(hi, -1), at(hi, 1), at(lo, 1)], centre: at((lo + hi) / 2, 0) };
+}
+
+type Zone = { name: string; area: Polygon; from: Polygon };
+
+/**
+ * Floor areas to keep clear (`depth` m from the opening, the `from` line): entrance and stair
+ * landing, kitchen pass, glazed doors, exit door.
+ */
+export function clearanceZones(venue: VenueModel, depth: number): Zone[] {
+  const zones: Zone[] = [];
   const [lx0, lz0, lx1, lz1] = venue.data.stair.landing;
-  zones.push({ name: "the entrance and stair landing", area: rect(lx0 - depth, lz0 - depth, lx1, lz0) });
-  zones.push({ name: "the entrance and stair landing", area: rect(lx0 - depth, lz0, lx0, lz1) });
+  const landing = "the entrance and stair landing";
+  zones.push({
+    name: landing,
+    area: rect(lx0 - depth, lz0 - depth, lx1, lz0),
+    from: [
+      [lx0, lz0],
+      [lx1, lz0],
+    ],
+  });
+  zones.push({
+    name: landing,
+    area: rect(lx0 - depth, lz0, lx0, lz1),
+    from: [
+      [lx0, lz0],
+      [lx0, lz1],
+    ],
+  });
   for (const wall of venue.data.walls) {
     for (const o of wall.openings) {
       const name =
@@ -48,14 +105,11 @@ export function clearanceZones(venue: VenueModel, depth: number): { name: string
               ? "the exit door"
               : null;
       if (!name) continue;
+      const from: Polygon = [alongWall(wall, o.start, 0), alongWall(wall, o.end, 0)];
       zones.push({
         name,
-        area: [
-          alongWall(wall, o.start, 0),
-          alongWall(wall, o.end, 0),
-          alongWall(wall, o.end, depth),
-          alongWall(wall, o.start, depth),
-        ],
+        area: [...from, alongWall(wall, o.end, depth), alongWall(wall, o.start, depth)],
+        from,
       });
     }
   }
@@ -71,8 +125,11 @@ export function advise(
   thresholds: Thresholds,
   venue: VenueModel,
   catalog: Catalog,
+  toggles: VenueToggles = { communalTable: false, barStools: false },
 ): Advisory[] {
   const out: Advisory[] = [];
+  // Venue furniture the couple keeps counts too; hidden, it frees its floor (LAY-12).
+  const furniture = toggledObstacles(venue, toggles);
   const labels = tableLabels(items, catalog);
   const seated = items
     .map((it) => ({ it, shape: shapeOf(it, catalog) }))
@@ -86,31 +143,63 @@ export function advise(
       const b = seated[j] as { it: Item; fp: Polygon };
       const gap = polygonGap(a.fp, b.fp);
       if (gap <= 0 || gap >= thresholds.aisleM) continue;
-      const mid: Vec2 = [(a.it.x + b.it.x) / 2, (a.it.z + b.it.z) / 2];
+      const strip = aisleStrip(a.fp, b.fp);
       out.push({
         id: `aisle:${a.it.id}:${b.it.id}`,
         kind: "aisle",
         message: `Aisle ≈ ${m1(gap)} m between ${itemName(a.it, labels, catalog)} and ${itemName(b.it, labels, catalog)} — below your ${m1(thresholds.aisleM)} m setting`,
-        area: rect(mid[0] - 0.35, mid[1] - 0.35, mid[0] + 0.35, mid[1] + 0.35),
+        area: strip.area,
+        label: { text: `≈ ${m1(gap)} m`, at: strip.centre },
         items: [a.it.id, b.it.id],
+      });
+    }
+  }
+
+  for (const { it, fp } of seated) {
+    for (const o of furniture) {
+      const gap = polygonGap(fp, o.polygon);
+      if (gap <= 0 || gap >= thresholds.aisleM) continue;
+      const strip = aisleStrip(fp, o.polygon);
+      out.push({
+        id: `aisle:${it.id}:${o.id}`,
+        kind: "aisle",
+        message: `Aisle ≈ ${m1(gap)} m between ${itemName(it, labels, catalog)} and ${o.label} — below your ${m1(thresholds.aisleM)} m setting`,
+        area: strip.area,
+        label: { text: `≈ ${m1(gap)} m`, at: strip.centre },
+        items: [it.id],
       });
     }
   }
 
   // Clearances in front of the entrance, stair, kitchen pass and glazed doors.
   for (const zone of clearanceZones(venue, thresholds.clearanceM)) {
-    const inside = items.filter(
-      (it) =>
-        shapeOf(it, catalog).kind !== "danceFloor" && polygonsOverlap(footprint(it, catalog), zone.area),
-    );
+    // Placed items (not the dance floor, which is meant to be walked on) and shown furniture.
+    const inside = [
+      ...items
+        .filter((it) => shapeOf(it, catalog).kind !== "danceFloor")
+        .map((it) => ({
+          id: it.id,
+          item: true,
+          name: itemName(it, labels, catalog),
+          fp: footprint(it, catalog),
+        })),
+      ...furniture.map((o) => ({ id: o.id, item: false, name: o.label, fp: o.polygon })),
+    ].filter((x) => polygonsOverlap(x.fp, zone.area));
     if (!inside.length) continue;
-    const first = inside[0] as Item;
+    // Name what is nearest the opening, with how far it is.
+    const near = inside
+      .map((x) => {
+        const [p, q] = closestPair(x.fp, zone.from);
+        return { ...x, p, q, d: polygonsOverlap(x.fp, zone.from) ? 0 : dist(p, q) };
+      })
+      .reduce((m, x) => (x.d < m.d ? x : m));
     out.push({
-      id: `clearance:${zone.name}:${first.id}`,
+      id: `clearance:${zone.name}:${near.id}`,
       kind: "clearance",
-      message: `Less than ${m1(thresholds.clearanceM)} m clear in front of ${zone.name} (${itemName(first, labels, catalog)})`,
+      message: `${near.name[0]?.toUpperCase()}${near.name.slice(1)} ≈ ${m1(near.d)} m from ${zone.name} — below your ${m1(thresholds.clearanceM)} m setting`,
       area: zone.area,
-      items: inside.map((it) => it.id),
+      label: { text: `≈ ${m1(near.d)} m`, at: [(near.p[0] + near.q[0]) / 2, (near.p[1] + near.q[1]) / 2] },
+      items: inside.filter((x) => x.item).map((x) => x.id),
     });
   }
 
@@ -128,6 +217,7 @@ export function advise(
           ? `No dance floor yet — about ${Math.round(need)} m² suits ${guests} guests`
           : `Dance floor ≈ ${Math.round(floor)} m² — below the ≈ ${Math.round(need)} m² your settings suggest for ${guests} guests`,
       area: null,
+      label: null,
       items: [],
     });
   }

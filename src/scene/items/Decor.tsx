@@ -141,13 +141,7 @@ export function TableDecor({
     () =>
       placed.map((p, i) => ({
         p,
-        parts: tableDecor(
-          p.shape,
-          styleOf(p.item, scenario.style),
-          catalog,
-          scenario.style.settings,
-          i * 97 + 13,
-        ),
+        parts: tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
       })),
     [placed, scenario.style, catalog],
   );
@@ -175,6 +169,14 @@ export function TableDecor({
       paper: new THREE.MeshStandardMaterial({ color: "#f4efe4", roughness: 0.9 }),
       flower: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.8 }),
       leaf: new THREE.MeshStandardMaterial({ color: "#56704a", roughness: 0.85 }),
+      fabric: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.95 }),
+      sheer: new THREE.MeshStandardMaterial({
+        color: "#ffffff",
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide,
+      }),
     }),
     [m, evening],
   );
@@ -196,7 +198,7 @@ export function TableDecor({
       groups.map((g) => {
         const mesh = new THREE.InstancedMesh(prims[g.prim], materials[g.slot], Math.max(1, g.parts.length));
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
-        mesh.castShadow = !low && g.slot !== "flame" && g.slot !== "glass" && g.slot !== "water";
+        mesh.castShadow = !low && !["flame", "glass", "water", "sheer"].includes(g.slot);
         return { g, mesh };
       }),
     [groups, prims, materials, low],
@@ -215,7 +217,17 @@ export function TableDecor({
   );
   useEffect(
     () => () => {
-      for (const k of ["wax", "water", "silver", "ceramic", "paper", "flower", "leaf"] as const)
+      for (const k of [
+        "wax",
+        "water",
+        "silver",
+        "ceramic",
+        "paper",
+        "flower",
+        "leaf",
+        "fabric",
+        "sheer",
+      ] as const)
         materials[k].dispose();
     },
     [materials],

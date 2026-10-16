@@ -20,6 +20,13 @@ describe("advisories", () => {
     const aisle = a.find((x) => x.kind === "aisle");
     expect(aisle?.message).toBe("Aisle ≈ 0.8 m between table 1 and table 2 — below your 1.0 m setting");
     expect(aisle?.items).toEqual(["a", "b"]);
+    // The highlight is the aisle itself: the 0.8 m strip between the chair zones, along the tables.
+    expect(aisle?.label?.text).toBe("≈ 0.8 m");
+    const zs = (aisle?.area ?? []).map((p) => p[1]);
+    const xs = (aisle?.area ?? []).map((p) => p[0]);
+    expect(Math.min(...zs)).toBeCloseTo(5.0, 1);
+    expect(Math.max(...zs)).toBeCloseTo(5.8, 1);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(3);
     const relaxed = advise(
       [t("a", 4, 4), t("b", 4, 6.8)],
       16,
@@ -33,7 +40,7 @@ describe("advisories", () => {
   test("[LAY-08] a table in front of the kitchen pass is flagged; the dance floor there is not", () => {
     const pass: Item = { ...t("p", 7.0, 12.7), rotY: 0 };
     expect(advise([pass], 0, DEFAULT_THRESHOLDS, venue, catalog).map((x) => x.message)).toContain(
-      "Less than 1.2 m clear in front of the kitchen pass (table 1)",
+      "Table 1 ≈ 0.6 m from the kitchen pass — below your 1.2 m setting",
     );
     const floor: Item = {
       id: "f",
@@ -65,7 +72,24 @@ describe("advisories", () => {
       "Aisle ≈ 0.6 m between table 4 and table 5 — below your 1.0 m setting",
       "Aisle ≈ 0.4 m between table 5 and table 6 — below your 1.0 m setting",
       "Aisle ≈ 0.8 m between table 6 and table 7 — below your 1.0 m setting",
-      "Less than 1.2 m clear in front of the exit door (the DJ booth)",
+      "The DJ booth ≈ 0.4 m from the exit door — below your 1.2 m setting",
     ]);
+  });
+
+  test("[LAY-12] shown venue furniture counts for the checks; hidden, it frees its floor", () => {
+    // Communal table with stools spans x 3.15–5.0; a turned table 8 at x 6.4 leaves ≈ 0.4 m.
+    const near: Item = { ...t("n", 6.4, 5), rotY: Math.PI / 2 };
+    const shown = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, {
+      communalTable: true,
+      barStools: false,
+    });
+    expect(shown.map((x) => x.message)).toContain(
+      "Aisle ≈ 0.4 m between table 1 and the communal high table — below your 1.0 m setting",
+    );
+    const hidden = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, {
+      communalTable: false,
+      barStools: false,
+    });
+    expect(hidden.some((x) => x.message.includes("communal"))).toBe(false);
   });
 });

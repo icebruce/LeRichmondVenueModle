@@ -32,7 +32,15 @@ export function useAdvisories(): Advisory[] {
   const { venue, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   return useMemo(
-    () => advise(scenario.items, scenario.guests.count, scenario.thresholds, venue, catalog),
-    [scenario.items, scenario.guests.count, scenario.thresholds, venue, catalog],
+    () =>
+      advise(
+        scenario.items,
+        scenario.guests.count,
+        scenario.thresholds,
+        venue,
+        catalog,
+        scenario.venueToggles,
+      ),
+    [scenario.items, scenario.guests.count, scenario.thresholds, scenario.venueToggles, venue, catalog],
   );
 }
