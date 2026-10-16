@@ -11,6 +11,8 @@ export const families = [
   "plant",
   "light",
   "sign",
+  /** Photo previews of imported things with no fitting model (IMP-05). */
+  "photo",
 ] as const;
 export type Family = (typeof families)[number];
 
@@ -87,7 +89,94 @@ export const libraryEntrySchema = z.object({
     drawCalls: z.number().int().positive(),
   }),
   requestId: z.string().optional(),
+  /** Set on items the couple imported from a photo (IMP-05): what the result is, honestly labelled. */
+  imported: z
+    .object({
+      result: z.enum(["material", "approximate", "photo"]),
+      imageId: z.string(),
+      link: z.string().optional(),
+      /** Removed from the library lists; scenarios that use it still show it. */
+      archived: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type LibraryEntry = z.infer<typeof libraryEntrySchema>;
 
 export const libraryFileSchema = z.object({ family: z.enum(families), items: z.array(libraryEntrySchema) });
+
+const hex = z.string().regex(/^#[0-9a-f]{6}$/i);
+/** Images the couple added (imports, request photos): `img-` + random id, stored privately (§6.3). */
+export const imageIdSchema = z.string().regex(/^img-[a-z0-9]{6,16}$/);
+/** Only web links are kept, as the item's source; the app never fetches them (IMP-07). */
+const link = z
+  .string()
+  .max(500)
+  .regex(/^https?:\/\/[^\s]+$/i, "That is not a web link");
+
+/** What the couple says the photo shows (IMP-02). */
+export const importTypes = [
+  "fabric",
+  "candle",
+  "centrepiece",
+  "florals",
+  "chair",
+  "table",
+  "plant",
+  "light",
+  "print",
+  "other",
+] as const;
+export type ImportType = (typeof importTypes)[number];
+
+/**
+ * An item imported from a photo (IMP-01..07): a library model (`baseId`) adjusted from the photo
+ * (`params` over the model's own), its real size, colours and the cropped photo. Shared by both
+ * partners; never edited after saving except to remove it from the library or put it back (`archived`).
+ */
+export const importedSchema = z.object({
+  id: z.string().regex(/^imp-[a-z0-9]{6,16}$/),
+  name: z.string().trim().min(1).max(60),
+  type: z.enum(importTypes),
+  result: z.enum(["material", "approximate", "photo"]),
+  baseId: z.string().regex(/^[a-z0-9-]+$/),
+  params: z.record(z.string(), paramValue),
+  sizeCm: z.object({ w: z.number().min(1).max(2000), h: z.number().min(1).max(1000) }),
+  colours: z.array(hex).max(4),
+  imageId: imageIdSchema,
+  /** A small JPEG of the crop for library lists (data URL). */
+  thumb: z
+    .string()
+    .regex(/^data:image\/(jpeg|webp|png);base64,/)
+    .max(60_000),
+  link: link.optional(),
+  createdAt: z.iso.datetime(),
+  createdBy: z.enum(["A", "B"]).nullable(),
+  archived: z.boolean(),
+  /** When `archived` last changed (removed, or put back with Undo); the later change wins. */
+  updatedAt: z.iso.datetime().optional(),
+});
+export type Imported = z.infer<typeof importedSchema>;
+
+/**
+ * A custom model request (REQ-01, REQ-02): kept privately in the app, never in Git (REQ-04).
+ * "In library" is not stored: it shows once a library entry carries this request's id.
+ */
+export const customRequestSchema = z.object({
+  id: z.string().regex(/^req-[a-z0-9]{6,16}$/),
+  /** The library or imported item it starts from. */
+  itemId: z.string().regex(/^[a-z0-9-]+$/),
+  name: z.string().trim().min(1).max(60),
+  sizeCm: z.object({
+    w: z.number().min(1).max(2000),
+    d: z.number().min(1).max(2000).optional(),
+    h: z.number().min(1).max(1000),
+  }),
+  placement: z.enum(["floor", "table", "wall", "ceiling", "hanging"]),
+  notes: z.string().max(1000),
+  imageIds: z.array(imageIdSchema).max(6),
+  status: z.enum(["requested", "in_progress"]),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  createdBy: z.enum(["A", "B"]).nullable(),
+});
+export type CustomRequest = z.infer<typeof customRequestSchema>;

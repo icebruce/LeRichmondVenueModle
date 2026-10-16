@@ -12,7 +12,9 @@ Spec: `docs/PRODUCT_SPEC.md` §5.7 (LIB), §5.9 (REQ). Structure: `docs/ARCHITEC
 - **From the app:** `GET /api/library-requests?status=requested` with `Authorization: Bearer $LIBRARY_REQUESTS_TOKEN` (env var in the Claude environment, never in Git). If the app host is blocked by the network policy, tell the owner which host to allow, or ask them to attach the photos in chat.
 - **From chat:** photos the owner attached.
 - Record: what it is, real size (ask only if missing), placement (table / floor / wall / ceiling / hanging), colours, must-match details, which scenario it is for.
-- Set the request to `in_progress` (PATCH) when you start.
+- The token is read-only. Ask the owner to set the request to "In progress" in the app (Inspiration → the request) when you start; it shows "In library" by itself once your entry carries `"requestId": "<request id>"`.
+- Request photos: `GET /api/uploads/<image id>` with the same token.
+- Skip requests already delivered: any whose id appears as `requestId` in `data/library/*.json` (the server never stores "In library").
 - Save reference photos only to a gitignored folder (`references/private_media/requests/`). Never commit them.
 
 ## 2. Choose the approach (cheapest that meets the request)
@@ -57,4 +59,4 @@ Render the item in the venue (table and floor placement, evening + day) and comp
 
 - Commit on the working branch: `feat(library): add <name> (REQ <id>)`.
 - Pull request with the Vercel preview link, the render-vs-photo pair (sent to the owner in chat, not committed), and what is approximate.
-- After merge: PATCH the request to `in_library` with the item id.
+- Set `requestId` on the new entry: after merge the request shows "In library" with a button to place or use the item.

@@ -507,6 +507,9 @@ button:disabled {
 .library-caption {
   font: var(--t-footnote);
   color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .library-add {
   color: var(--accent);
@@ -1346,4 +1349,235 @@ button:disabled {
     background: var(--pad-knob);
     box-shadow: var(--shadow);
   }
+}
+
+/* Inspiration (IMP, REQ) ----------------------------------------------------------------------- */
+/* Fidelity label on imported items (DESIGN_GUIDE §4 Badge): caption size, hairline, never colour-only. */
+.badge {
+  display: inline-block;
+  padding: 1px var(--s-1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-control);
+  font: var(--t-caption);
+  color: var(--ink-2);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.library-icon.large,
+.library-icon.large img {
+  width: 96px;
+  height: 96px;
+}
+.file-btn {
+  position: relative;
+  justify-content: center;
+  cursor: pointer;
+}
+.file-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.photo-drop {
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+  padding: var(--s-3);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-card);
+  font: var(--t-footnote);
+  color: var(--ink-2);
+  text-align: center;
+}
+.photo-drop.over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.import-photo {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: var(--r-card);
+  object-fit: contain;
+  align-self: center;
+}
+/* Crop (IMP-03): a 22 px margin keeps whole 44 pt corner handles inside the panel; only the dimming is clipped. */
+.crop-area {
+  position: relative;
+  align-self: center;
+  max-width: 100%;
+  padding: 22px;
+  touch-action: none;
+  user-select: none;
+}
+.crop-photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-control);
+}
+.crop-photo img {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+}
+.crop-dim {
+  position: absolute;
+  box-shadow: 0 0 0 9999px var(--dim);
+  pointer-events: none;
+}
+.crop-layer {
+  position: absolute;
+  inset: 22px;
+}
+.crop-box {
+  position: absolute;
+  border: 2px solid var(--accent);
+  cursor: move;
+}
+.crop-box:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Corner handles: 22 pt marks in 44 pt targets (DESIGN_GUIDE §2.5). */
+.crop-handle {
+  position: absolute;
+  width: var(--target);
+  height: var(--target);
+}
+.crop-handle::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+}
+.crop-handle.nw {
+  left: -22px;
+  top: -22px;
+  cursor: nwse-resize;
+}
+.crop-handle.ne {
+  right: -22px;
+  top: -22px;
+  cursor: nesw-resize;
+}
+.crop-handle.sw {
+  left: -22px;
+  bottom: -22px;
+  cursor: nesw-resize;
+}
+.crop-handle.se {
+  right: -22px;
+  bottom: -22px;
+  cursor: nwse-resize;
+}
+.size-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--s-2);
+}
+.size-row .text-input {
+  width: 100%;
+}
+.import-result {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+}
+.import-result > img {
+  border-radius: var(--r-control);
+  object-fit: cover;
+  background: var(--sunk);
+}
+.swatch-dot {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-left: var(--s-1);
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  vertical-align: middle;
+}
+.request-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.request-photos img,
+.photo-missing {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-control);
+  object-fit: cover;
+  background: var(--sunk);
+}
+textarea.text-input {
+  resize: vertical;
+  font: var(--t-body);
+  padding: var(--s-2);
+}
+.hint.error {
+  color: var(--error-ink);
+}
+/* The wizard's back row and its main action stay in reach in a half-height phone sheet (§3.2). */
+.sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-block: var(--s-2);
+  background: var(--surface);
+}
+/* The camera button only where there is a camera to open; on desktop "Choose a photo" leads. */
+.camera-only {
+  display: none;
+}
+@media (pointer: coarse) {
+  .camera-only {
+    display: inline-flex;
+  }
+}
+@media (pointer: fine) {
+  .primary-on-desktop {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+}
+.import-result figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+}
+.import-result figcaption {
+  font: var(--t-caption);
+  color: var(--ink-2);
+}
+.rot-left {
+  transform: rotate(-90deg);
+}
+.rot-right {
+  transform: rotate(90deg);
+}
+.source-link {
+  color: var(--accent);
+}
+/* Secondary inspector action, after the item's own controls (REQ-01). */
+.inspector-foot {
+  align-self: flex-start;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-2);
+  width: 100%;
+  text-align: left;
 }

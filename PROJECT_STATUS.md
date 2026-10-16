@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1 and 2 merged (PR #1, PR #2; owner-approved 2026-10-16). Step 3 in progress as two PRs: 3a library completion and Sit here (in review), then 3b inspiration import and custom model requests. Cloud saving needs the owner's one-time Vercel setup (README; not done yet).
+**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is PR #4 against `main`, reviewed and waiting for the owner. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -10,8 +10,8 @@
 | 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | Done |
 | 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
-| 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | In review |
-| 3b | Inspiration import; custom model requests; framed print from the owner's photo; polish | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Not started |
+| 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
+| 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | In review |
 
 ## Decisions
 
@@ -35,14 +35,41 @@
 - Step 3 ships as two PRs: 3a library completion + Sit here, 3b inspiration import + custom model requests (owner, 2026-10-16).
 - Imported photos are stored in Upstash with the scenarios, shrunk to ≤ 500 KB first; no new service (owner, 2026-10-16).
 - Step-3 pieces (plants, lights, floral installations, signs, event pieces, cake and gift tables) are data plus small generators drawn with the shared instanced primitives; hanging and ceiling pieces never block the floor. Lights glow through emissive bulbs and soft beams, not real lamps (phone budget). The framed print from the owner's photo moves to 3b (needs photo storage).
-- Sit here: select a table → "Sit here" → tap a chair; the view sits at 1.2 m facing the table, look-around only; "Stand up" or Esc returns. Differs from CAM-04's "tap any chair" (chairs are too small to tap reliably from the default view); awaiting owner confirmation before the spec row changes.
+- Sit here: select a table → "Sit here" → tap a chair; the view sits at 1.2 m facing the table, look-around only; "Stand up" or Esc returns (owner-approved 2026-10-16; CAM-04 row updated). The library category chips, seat targets and seated bar are approved too.
+- Floral installations take a flower type like table arrangements; on installations it changes bloom size, leaves and leaf colour, never adds blooms (budget) (owner, 2026-10-16).
+- Step 3a merged (PR #3, 2026-10-16).
 - Step-3 pieces are built to their catalogue size (`sizeM`); plant species proportions are data. A hanging or projected piece over a table gives the first click to the table; with the table selected, the next click reaches the piece (2026-10-16).
+- Step 3b is a second PR on its own branch, stacked on 3a (owner, 2026-10-16).
+- Exact 3D (GLB) import is deferred; exact models come through custom requests that Claude builds (owner, 2026-10-16).
+- Imports: the photo picks the closest built-in model by proportions, real height and colour; results are labelled Material, Approximate 3D or Photo preview; imported items are shared, never edited after saving, and only removed from the lists. Prints and photo previews show the couple's photo; "Sign or print" makes a framed print on an easel (2026-10-16).
+- Custom requests: the requests token is read-only (spec REQ-03); the couple sets "In progress" in the app, and "In library" shows once a built-in entry carries the request id (2026-10-16).
 - Lounge armchair and loveseat (LIB-02 step 3) are placeable pieces in a "Lounge" library category, not table chairs (2026-10-16).
 - Phone compare: the two halves stack above the sheet; the half-height sheet stays at peek while comparing (2026-10-16).
 - Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
+
+## Next steps (handover, 2026-10-16)
+
+Where things stand:
+
+- **Step 3a** merged (PR #3, 997a528). The owner approved its calls on 2026-10-16.
+- **Step 3b** is PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
+  - Built: IMP-01..07, REQ-01..04, the LIB-09 print, and flower types on floral installations.
+  - Reviewed once by UX (1 blocker, 6 majors) and once by spec (3 majors); all fixed.
+  - Tests: 103 unit tests and the full browser suite (30) pass locally. 65/65 must-haves for steps 1–3 traced (REQ-03 and REQ-04 as manual gates).
+  - Waits on the owner: approve the visuals (the crop frame is new) and merge.
+
+To do, in order:
+
+1. Owner: review PR #4 on its preview and merge it.
+2. Verify the cloud setup on the deployed site, either by the owner, or from here once `*.vercel.app` is allowed in this environment's network settings:
+   - the first shared save (Upstash scripting);
+   - an import seen on the second device.
+3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README; also allow the site's domain there). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
+4. Owner gate for step 3: import a real centrepiece; one custom request delivered.
+5. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
 
 ## Step 1 quality (2026-10-16)
 
@@ -72,10 +99,11 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
-- Owner's one-time cloud setup (Upstash + APP_PASSWORD + SESSION_SECRET) not done yet; sharing of imports (3b) is tested locally until then.
-- Owner to confirm: the Sit here flow above (CAM-04); the three new UI patterns (DESIGN_GUIDE §4: category chips, seat targets, seated bar).
-- Floral installations (arch, wall, pedestal, hanging) take a colour palette but not a flower type yet; table florals do (LIB-06). Raise with the owner whether installations need flower types.
-- Phone draw calls in the dressed-room test leave about 11 calls of headroom under 150; each piece with words adds one. Re-measure in 3b.
+- Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET. Not yet verified from here (this environment's network policy blocks vercel.app): the first shared save and an import seen on the second device. `LIBRARY_REQUESTS_TOKEN` is not set yet; REQ-03's acceptance (one real request delivered through a PR) needs it in Vercel and in the Claude environment.
+- Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
+- Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
+- "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
+- A photo added to a request form that is then abandoned stays stored (small; no cleanup yet).
 - LIB-08 "visible effect in evening mode" is checked by unit test (bulbs, beams, glows) and by the evening screenshots in the PR; no evening visual baseline yet.
 
 ## Media ingestion (2026-10-15)

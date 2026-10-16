@@ -17,6 +17,10 @@
   --advisory-ink: #8a5a12;
   --blocked: #c2412d;
   --blocked-soft: #fbe9e6;
+  /* Text of a failed action the couple can retry (a photo that would not open), not a refused move. */
+  --error-ink: #a8361f;
+  /* Photo outside the crop frame. */
+  --dim: rgb(20 18 16 / 0.45);
   --toast-bg: rgba(32, 37, 34, 0.92);
   --accent-on-dark: #e7c9a5;
   --ok: #3f7d58;

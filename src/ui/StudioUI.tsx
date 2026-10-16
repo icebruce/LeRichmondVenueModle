@@ -18,12 +18,14 @@ import {
 } from "./Panels";
 import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
 import { ConflictDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
+import { InspirationPanel } from "./Inspiration";
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "venue", label: "Venue", icon: "venue" },
   { id: "layout", label: "Layout", icon: "layout" },
   { id: "people", label: "People", icon: "people" },
   { id: "decor", label: "Décor", icon: "decor" },
+  { id: "inspiration", label: "Inspiration", icon: "photo" },
   { id: "compare", label: "Compare", icon: "compare" },
 ];
 
@@ -291,6 +293,16 @@ export function StudioUI() {
   useEffect(() => {
     if (selection.length) viewStore.setState({ pickSeat: null });
   }, [selection]);
+  // "Request a custom model" in the inspector opens the form in Inspiration (REQ-01).
+  useEffect(
+    () =>
+      viewStore.subscribe((s, prev) => {
+        if (!s.requestFor || s.requestFor === prev.requestFor) return;
+        setSection("inspiration");
+        setDetent((d) => (d === "peek" ? "half" : d));
+      }),
+    [],
+  );
   const compare = useView((s) => s.compare);
   // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
   const detent: Detent = phone && compare && chosen === "half" ? "peek" : chosen;
@@ -342,6 +354,8 @@ export function StudioUI() {
       <LayoutPanel />
     ) : section === "people" ? (
       <PeoplePanel />
+    ) : section === "inspiration" ? (
+      <InspirationPanel />
     ) : null;
 
   // The advisory count opens the list of checks (Layout, scrolled to them).

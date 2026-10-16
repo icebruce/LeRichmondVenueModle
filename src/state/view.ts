@@ -32,6 +32,8 @@ export type ViewState = {
   compare: string | null;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
+  /** Library item to start a custom model request from (REQ-01), opened in Inspiration. */
+  requestFor: string | null;
   /** Sit here (CAM-04): the table whose chairs are offered as seats, then the chosen seat. */
   pickSeat: string | null;
   seat: {
@@ -59,6 +61,7 @@ export const viewStore = createStore<ViewState>(() => ({
   compare: null,
   pickSeat: null,
   seat: null,
+  requestFor: null,
 }));
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import {
@@ -25,7 +25,7 @@ import type { Materials } from "../materials";
 import type { Quality } from "../quality";
 import { type Placed, LIFT, TOP, moved } from "./common";
 import { Chairs, TableDecor } from "./Decor";
-import { type PieceText, makePiece } from "../../domain/layout/pieces";
+import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
 
 /** The item an intersected mesh belongs to (its `item-<id>` group), if any. */
@@ -294,7 +294,56 @@ function PieceBody({ shape, evening }: { shape: Extract<Shape, { kind: "piece" }
         <meshBasicMaterial visible={false} />
       </mesh>
       {piece.text && <PieceWords text={piece.text} evening={evening} />}
+      {piece.image && <PiecePhoto image={piece.image} />}
     </group>
+  );
+}
+
+/** Photos load once per page and are shared by every piece that shows them. */
+const photos = new Map<string, Promise<THREE.Texture | null>>();
+
+/**
+ * The couple's photo on a piece (LIB-09 print, IMP-05 photo preview), double-sided so a preview
+ * reads from behind too. A neutral panel shows until the photo arrives (or if it never does).
+ */
+function PiecePhoto({ image }: { image: PieceImage }) {
+  const { imageUrl } = useStudio();
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  useEffect(() => {
+    if (!image.id || !imageUrl) return;
+    let live = true;
+    let p = photos.get(image.id);
+    if (!p) {
+      p = imageUrl(image.id).then((url) =>
+        url
+          ? new THREE.TextureLoader().loadAsync(url).then((t) => {
+              t.colorSpace = THREE.SRGBColorSpace;
+              return t;
+            })
+          : null,
+      );
+      // A failed load is not remembered, so the photo is asked for again next time.
+      p.then(
+        (t) => t ?? photos.delete(image.id),
+        () => photos.delete(image.id),
+      );
+      photos.set(image.id, p);
+    }
+    p.then((t) => live && setTexture(t)).catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [image.id, imageUrl]);
+  return (
+    <mesh position={[image.x, image.y, image.z]} rotation={[image.tilt, 0, 0]}>
+      <planeGeometry args={[image.w, image.h]} />
+      <meshStandardMaterial
+        map={texture}
+        color={texture ? "#ffffff" : "#d9d3c7"}
+        roughness={0.8}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
   );
 }
 

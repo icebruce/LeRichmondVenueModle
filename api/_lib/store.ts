@@ -7,6 +7,7 @@ export type Cas = { ok: true } | { ok: false; current: string | null };
 
 export interface Store {
   get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<void>;
   del(key: string): Promise<void>;
   /** Increment a counter; the first increment starts its expiry (seconds). One atomic step. */
   incr(key: string, ttlSeconds: number): Promise<number>;
@@ -62,6 +63,9 @@ export class MemoryStore implements Store {
   async get(key: string) {
     this.live(key);
     return this.values.get(key) ?? null;
+  }
+  async set(key: string, value: string) {
+    this.values.set(key, value);
   }
   async del(key: string) {
     this.values.delete(key);
@@ -130,6 +134,9 @@ export class UpstashStore implements Store {
   }
   async get(key: string) {
     return ((await this.call("GET", key)) as string | null) ?? null;
+  }
+  async set(key: string, value: string) {
+    await this.call("SET", key, value);
   }
   async del(key: string) {
     await this.call("DEL", key);

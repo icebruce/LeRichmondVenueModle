@@ -225,6 +225,46 @@
         },
         {
           "type": "choice",
+          "key": "flowerType",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "rose",
+              "label": "Rose"
+            },
+            {
+              "value": "peony",
+              "label": "Peony"
+            },
+            {
+              "value": "hydrangea",
+              "label": "Hydrangea"
+            },
+            {
+              "value": "ranunculus",
+              "label": "Ranunculus"
+            },
+            {
+              "value": "babysBreath",
+              "label": "Baby’s breath"
+            },
+            {
+              "value": "eucalyptus",
+              "label": "Eucalyptus"
+            },
+            {
+              "value": "pampas",
+              "label": "Pampas"
+            },
+            {
+              "value": "blossom",
+              "label": "Blossom branches"
+            }
+          ],
+          "default": "rose"
+        },
+        {
+          "type": "choice",
           "key": "palette",
           "label": "Flowers",
           "choices": [
@@ -300,6 +340,46 @@
         },
         {
           "type": "choice",
+          "key": "flowerType",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "rose",
+              "label": "Rose"
+            },
+            {
+              "value": "peony",
+              "label": "Peony"
+            },
+            {
+              "value": "hydrangea",
+              "label": "Hydrangea"
+            },
+            {
+              "value": "ranunculus",
+              "label": "Ranunculus"
+            },
+            {
+              "value": "babysBreath",
+              "label": "Baby’s breath"
+            },
+            {
+              "value": "eucalyptus",
+              "label": "Eucalyptus"
+            },
+            {
+              "value": "pampas",
+              "label": "Pampas"
+            },
+            {
+              "value": "blossom",
+              "label": "Blossom branches"
+            }
+          ],
+          "default": "rose"
+        },
+        {
+          "type": "choice",
           "key": "palette",
           "label": "Flowers",
           "choices": [
@@ -363,6 +443,46 @@
         }
       },
       "options": [
+        {
+          "type": "choice",
+          "key": "flowerType",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "rose",
+              "label": "Rose"
+            },
+            {
+              "value": "peony",
+              "label": "Peony"
+            },
+            {
+              "value": "hydrangea",
+              "label": "Hydrangea"
+            },
+            {
+              "value": "ranunculus",
+              "label": "Ranunculus"
+            },
+            {
+              "value": "babysBreath",
+              "label": "Baby’s breath"
+            },
+            {
+              "value": "eucalyptus",
+              "label": "Eucalyptus"
+            },
+            {
+              "value": "pampas",
+              "label": "Pampas"
+            },
+            {
+              "value": "blossom",
+              "label": "Blossom branches"
+            }
+          ],
+          "default": "rose"
+        },
         {
           "type": "choice",
           "key": "palette",
@@ -447,6 +567,46 @@
           "step": 0.1,
           "default": 2.6,
           "unit": "m"
+        },
+        {
+          "type": "choice",
+          "key": "flowerType",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "rose",
+              "label": "Rose"
+            },
+            {
+              "value": "peony",
+              "label": "Peony"
+            },
+            {
+              "value": "hydrangea",
+              "label": "Hydrangea"
+            },
+            {
+              "value": "ranunculus",
+              "label": "Ranunculus"
+            },
+            {
+              "value": "babysBreath",
+              "label": "Baby’s breath"
+            },
+            {
+              "value": "eucalyptus",
+              "label": "Eucalyptus"
+            },
+            {
+              "value": "pampas",
+              "label": "Pampas"
+            },
+            {
+              "value": "blossom",
+              "label": "Blossom branches"
+            }
+          ],
+          "default": "rose"
         },
         {
           "type": "choice",

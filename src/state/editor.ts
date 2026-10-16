@@ -50,7 +50,8 @@ export const GRID = 0.1;
 export const ROTATE_STEP = Math.PI / 12;
 
 export function createEditor(deps: EditorDeps, initial: Scenario[]) {
-  const { venue, catalog, now, newId } = deps;
+  // The catalogue is read through `deps` each time: imported items join it while the app runs (IMP-06).
+  const { venue, now, newId } = deps;
   const seed = initial.length ? initial : [venueSampleScenario(newId(), now())];
   const first = seed[0] as Scenario;
   const history = new Map<string, { past: Step[]; future: Step[] }>();
@@ -142,9 +143,9 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     const items = active().items;
     const ids = new Set(changed.map((c) => c.id));
     const others = [...items.filter((i) => !ids.has(i.id)), ...changed];
-    const labels = tableLabels(others, catalog);
+    const labels = tableLabels(others, deps.catalog);
     for (const c of changed) {
-      const r = checkPlacement(c, others, venue, catalog, obstacles(), labels);
+      const r = checkPlacement(c, others, venue, deps.catalog, obstacles(), labels);
       if (!r.ok) return r.reason;
     }
     return null;
@@ -184,14 +185,15 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       set({ saveState });
     },
 
-    notify(text: string) {
-      toast(text);
+    /** A message, with Undo when `undo` is given (e.g. putting back a removed import). */
+    notify(text: string, undo?: () => void) {
+      toast(text, undo);
     },
 
     /** Add a library item near `preferred`; refuses with a message when nothing fits (LAY-01). */
     addItem(libraryId: string, preferred: [number, number], options: ItemOptions = {}): string | null {
       const base: Item = { id: newId(), libraryId, x: preferred[0], z: preferred[1], rotY: 0, options };
-      const spot = findFreeSpot(base, preferred, active().items, venue, catalog, obstacles());
+      const spot = findFreeSpot(base, preferred, active().items, venue, deps.catalog, obstacles());
       if (!spot) {
         toast("No free space for that here. Move or remove something first.");
         return null;
@@ -280,7 +282,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
           [src.x + 0.6, src.z + 0.6],
           [...items, ...created],
           venue,
-          catalog,
+          deps.catalog,
           obstacles(),
         );
         if (spot) created.push({ ...copy, ...spot });
@@ -347,7 +349,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       if (value) {
         const toggles = { ...active().venueToggles, [key]: true };
         const blocked = active().items.find((it) => {
-          const r = checkPlacement(it, active().items, venue, catalog, toggledObstacles(venue, toggles));
+          const r = checkPlacement(it, active().items, venue, deps.catalog, toggledObstacles(venue, toggles));
           return !r.ok;
         });
         if (blocked) return refuse(blocked.id, "Something is placed where that furniture stands");

@@ -59,7 +59,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | CAM-01 | M | 1 | **Dollhouse**: orbiting 3/4 view, ceiling hidden, walls facing the camera cut low automatically, far walls full height. Default angle matches photo R01 (from south-east looking north-west). | Orbiting a full turn always shows the interior; no wall blocks the view. |
 | CAM-02 | M | 1 | **Top-down**: orthographic plan for placing. | Tables keep their true proportions; labels readable. |
 | CAM-03 | M | 1 | **Walk**: eye height 1.65 m; keyboard + mouse on desktop, touch joystick + drag-to-look on phone; cannot pass through walls, bar or tables. | Walking from the entrance to the dance floor and around the bar works without clipping. |
-| CAM-04 | S | 3 | **Sit here**: tap any chair to see the room from that seat. | View is at seated eye height (1.2 m) facing the table centre. |
+| CAM-04 | S | 3 | **Sit here**: select a table, choose "Sit here", then tap one of its chairs to see the room from that seat. | View is at seated eye height (1.2 m) facing the table centre. |
 | CAM-05 | M | 1 | Camera changes animate smoothly (≤ 600 ms); a Reset view control always exists. | No jump cuts; reset returns to the default angle. |
 
 ### 5.3 Lighting — LGT
@@ -116,7 +116,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 | LIB-03 | M | 1–2 | **Linens** (P): tablecloth lap or floor length in any colour (step 1: white, ivory); runners velvet/chiffon/greenery, napkins, drapery panels (step 2). | — |
 | LIB-04 | M | 2 | **Tableware** (P): chargers gold/silver/glass, plates, glassware set, cutlery, menu card, table number holder; instanced. | 15 fully set tables stay within budgets. |
 | LIB-05 | M | 2 | **Candles** (P/CC0): votives, pillars (3 heights), tapers + candlesticks, candelabra 3/5-arm, hurricanes, floating candles, lanterns. Glow in evening. | — |
-| LIB-06 | M | 2–3 | **Florals** (P): low mound, bud vases, tall arrangement on stand, compote, garland runner (step 2); hanging installation, arch, flower wall, pedestal (step 3). Flower types: rose, peony, hydrangea, ranunculus, baby's breath, eucalyptus, pampas, blossom branches; colours chosen per arrangement. | Read correctly at table distance; generic up close is acceptable. |
+| LIB-06 | M | 2–3 | **Florals** (P): low mound, bud vases, tall arrangement on stand, compote, garland runner (step 2); hanging installation, arch, flower wall, pedestal (step 3). Flower types (table arrangements and installations): rose, peony, hydrangea, ranunculus, baby's breath, eucalyptus, pampas, blossom branches; colours chosen per arrangement. | Read correctly at table distance; generic up close is acceptable. |
 | LIB-07 | M | 3 | **Plants** (CC0/P): fiddle-leaf fig, olive tree, kentia palm, monstera, fern, blossom tree. | — |
 | LIB-08 | M | 3 | **Lights** (P/CC0): fairy/string lights, Edison strands, uplights with colour, pin spots, crystal chandelier, disco ball, DJ lights, projected monogram with custom text. | Visible effect in evening mode. |
 | LIB-09 | M | 3 | **Signs and prints** (P): framed print or poster from the owner's image, welcome sign on easel, seating chart board, neon sign with custom text, table numbers. | Owner image renders on the print; text is editable. |
