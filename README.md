@@ -2,7 +2,7 @@
 
 A private, browser-based 3D planner for a wedding reception at **Restaurant Le Richmond** (Montreal), main restaurant floor only. Place tables, the dance floor and the DJ; see how 75 guests fill the room; try linens, candles and florals; save scenarios and compare them — on laptop or phone.
 
-**Stage:** planning complete, lo-fi mockup in review, no app code yet. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
+**Stage:** step 1 built — 3D venue, three cameras, layout tools, local scenarios. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ## Documents
 
@@ -23,6 +23,20 @@ A private, browser-based 3D planner for a wedding reception at **Restaurant Le R
 
 Venue photos and videos belong to their owners. They are linked, not stored: this repository is public. Claude fetches them into gitignored folders when needed (`scripts/collect_venue_media.py`). Owner-supplied screenshots are described in the evidence matrix, not committed.
 
-## Hosting
+## Hosting on Vercel (one-time setup, about 5 minutes)
 
-Vercel (free plan) from this repository; every branch gets a preview link. Setup steps arrive with step 2 (shared login and cloud saving).
+1. Sign in at vercel.com with your GitHub account.
+2. **Add New → Project → Import** `icebruce/LeRichmondVenueModle`.
+3. Leave the detected settings (Framework: Vite, build `npm run build`, output `dist`) and press **Deploy**.
+4. From then on every pushed branch gets its own preview link (shown on the pull request), and `main` is the live site.
+
+Step 2 adds the shared password and cloud saving; it will need two environment variables and the free Upstash Redis integration, with exact steps at that time.
+
+## Running locally (optional)
+
+```bash
+npm ci
+npm run dev        # http://localhost:5173
+npm run check      # typecheck, lint, format, unit tests, library check
+npm run build && npm run test:e2e
+```
