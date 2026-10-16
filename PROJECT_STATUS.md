@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is draft PR #4 against `main`; its UX and spec reviews are still to run. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
+**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is PR #4 against `main`, reviewed and waiting for the owner. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -55,18 +55,19 @@
 Where things stand:
 
 - **Step 3a** merged (PR #3, 997a528). The owner approved its calls on 2026-10-16.
-- **Step 3b** is draft PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
+- **Step 3b** is PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
   - Built: IMP-01..07, REQ-01..04, the LIB-09 print, and flower types on floral installations.
-  - Tests: unit tests plus the full browser suite (30) pass locally, including the import flow and a two-device share of an import and a request. 65/65 must-haves for steps 1–3 traced.
-  - Not done yet: the UX and spec reviews (both stopped on a usage limit). Screenshots were captured once but not reviewed.
+  - Reviewed once by UX (1 blocker, 6 majors) and once by spec (3 majors); all fixed.
+  - Tests: 103 unit tests and the full browser suite (30) pass locally. 65/65 must-haves for steps 1–3 traced (REQ-03 and REQ-04 as manual gates).
+  - Waits on the owner: approve the visuals (the crop frame is new) and merge.
 
 To do, in order:
 
-1. Run the `ux-reviewer` and `spec-reviewer` on 3b. Fix their blockers and majors, rerun `npm run check`, `npm run build` and the full Playwright suite, push, then mark PR #4 ready. The owner approves visuals and merges.
+1. Owner: review PR #4 on its preview and merge it.
 2. Verify the cloud setup on the deployed site, either by the owner, or from here once `*.vercel.app` is allowed in this environment's network settings:
    - the first shared save (Upstash scripting);
    - an import seen on the second device.
-3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
+3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README; also allow the site's domain there). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
 4. Owner gate for step 3: import a real centrepiece; one custom request delivered.
 5. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
 
