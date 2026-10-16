@@ -43,6 +43,14 @@ Until this is done the app works as before: each device saves its own scenarios.
 
 If both of you edit the same scenario at once, the second save asks: keep mine, take theirs, or save mine as a copy. Nothing is overwritten silently.
 
+Imported photos and custom model requests (Inspiration) are shared the same way once this is on.
+
+### Letting Claude read custom model requests (step 3, optional, 2 minutes)
+
+1. Make a random token of 24 or more characters (a password manager's generator is fine).
+2. Vercel → **Settings → Environment Variables**: add `LIBRARY_REQUESTS_TOKEN` with it, then redeploy.
+3. Give the same token to the Claude environment as an environment variable of the same name. It can only read requests and their photos; it cannot change anything.
+
 ## Running locally (optional)
 
 ```bash
