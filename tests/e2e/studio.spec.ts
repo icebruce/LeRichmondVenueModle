@@ -60,10 +60,68 @@ test("[LIB-01] [LIB-02] add a round table and a dance floor from the library", a
   await page.getByTestId("add-table-round").click();
   await expect(page.getByTestId("inspector")).toContainText("Table 1");
   await page.getByRole("button", { name: "Done" }).click();
+  await page.getByTestId("category-eventPiece").click();
   await page.getByTestId("add-dance-floor").click();
   const s = await state(page);
   expect(s.active?.items.map((i) => i.libraryId).sort()).toEqual(["dance-floor", "table-round"]);
   await expect(page.getByTestId("count-seats")).toHaveText("8");
+});
+
+test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lights over a table pick the table first, a neon sign's words", async ({
+  page,
+}) => {
+  await openStudio(page, "fresh");
+  await page.getByTestId("category-plant").click();
+  await page.getByTestId("add-plant-olive").click();
+  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByTestId("category-light").click();
+  await page.getByTestId("add-light-string").click();
+  await page.getByRole("button", { name: "Done" }).click();
+  // Hung over table 2, the strand is allowed; seen from above, a click there picks the table first.
+  const strand = (await state(page)).active?.items.find((i) => i.libraryId === "light-string")?.id ?? "";
+  const t2 = await item(page, "t2");
+  await page.evaluate(
+    ({ id, x, z }) => {
+      const ed = (window as unknown as W).__studio.editor as unknown as {
+        moveItems: (m: { id: string; x: number; z: number }[]) => void;
+        select: (ids: string[]) => void;
+      };
+      ed.moveItems([{ id, x, z }]);
+      ed.select([]);
+    },
+    { id: strand, x: t2.x, z: t2.z },
+  );
+  await setCamera(page, "plan");
+  const [sx, sy] = await screenOf(page, t2.x, 2.8, t2.z);
+  await page.mouse.click(sx, sy);
+  expect((await state(page)).selection).toEqual(["t2"]);
+  // With the table selected, a press-and-drag there still moves the table, not the strand.
+  const strandAt = await item(page, strand);
+  const [tx, ty] = await screenOf(page, t2.x + 0.3, 2.8, t2.z);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move((sx + tx) / 2, (sy + ty) / 2, { steps: 4 });
+  await page.mouse.move(tx, ty, { steps: 4 });
+  await page.mouse.up();
+  expect((await item(page, "t2")).x).not.toBeCloseTo(t2.x, 2);
+  expect(await item(page, strand)).toMatchObject({ x: strandAt.x, z: strandAt.z });
+  expect((await state(page)).selection).toEqual(["t2"]);
+  // A plain click on the selected table reaches the strand.
+  await page.mouse.click(tx, ty);
+  await expect.poll(async () => (await state(page)).selection).toEqual([strand]);
+  await setCamera(page, "dollhouse");
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
+  await page.getByTestId("category-sign").click();
+  await page.getByTestId("add-sign-neon").click();
+  await page.getByTestId("text").fill("Ana & Ben");
+  await page.getByTestId("text").press("Enter");
+  const s = await state(page);
+  const ids = s.active?.items.map((i) => i.libraryId) ?? [];
+  expect(ids).toEqual(expect.arrayContaining(["plant-olive", "light-string", "sign-neon"]));
+  const neon = s.active?.items.find((i) => i.libraryId === "sign-neon") as unknown as {
+    options: { text?: string };
+  };
+  expect(neon.options.text).toBe("Ana & Ben");
 });
 
 test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the selected one", async ({
@@ -80,6 +138,9 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
       return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
   await page.getByTestId("section-decor").click();
+  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from the library.
+  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
+  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
   await page.getByTestId("linen-linen-white").click();
   await page.getByTestId("linen-length-lap").click();
   await page.getByTestId("candles-candle-tapers").click();
@@ -154,7 +215,7 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] [PPL-03] [LIB-04] 15 fully set tables and 150 people stay inside the draw-call and triangle budgets", async ({
+test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
   page,
 }) => {
   for (const [quality, calls, triangles] of [
@@ -188,9 +249,25 @@ test("[PLT-03] [PPL-03] [LIB-04] 15 fully set tables and 150 people stay inside 
         charger: "gold",
       });
       for (const k of ["settings", "menus", "tableNumbers"]) ed.setStyle(k, true);
+      // And a dressed room: lights, plants, florals and signs from step 3.
+      for (const [id, x, z] of [
+        ["light-string", 5, 4],
+        ["light-string", 5, 9],
+        ["light-uplight", 0.6, 3],
+        ["light-uplight", 0.6, 7],
+        ["light-disco", 4.5, 11],
+        ["light-chandelier", 11, 6],
+        ["floral-arch", 2.8, 14],
+        ["floral-wall", 15, 7],
+        ["plant-olive", 15.5, 2],
+        ["plant-kentia", 12, 12.4],
+        ["sign-neon", 9, 0.4],
+        ["sign-welcome", 14, 13],
+      ] as const)
+        ed.addItem(id, [x, z]);
       return ed.active().items.length;
     });
-    expect(tables).toBe(15);
+    expect(tables).toBe(27);
     await page.waitForTimeout(2000);
     const info = await page.evaluate(() =>
       (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
@@ -295,6 +372,33 @@ test("[SCN-06] compare two scenarios side by side from the same camera, with the
   await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("15");
   await page.getByRole("radiogroup", { name: "Compare with" }).getByRole("radio", { name: "Off" }).click();
   await expect(page.getByTestId("compare-canvas")).toHaveCount(0);
+});
+
+test("[CAM-04] sit at a chair: seated eye height, facing the table; stand up returns", async ({ page }) => {
+  await openStudio(page);
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
+  await page.getByTestId("sit-here").click();
+  await page.getByTestId("seat-1").click();
+  await expect(page.getByTestId("seated")).toContainText("table 2");
+  // The camera moves down to the seat (it starts once walk mode is set up).
+  await page.waitForFunction(
+    () => ((window as unknown as { __pose: () => number[] }).__pose()[1] ?? 9) < 1.6,
+    null,
+    { timeout: 30_000 },
+  );
+  const pose = await page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
+  const t2 = await item(page, "t2");
+  // Seated eye height (1.2 m above the floor it stands on) at the edge of table 2.
+  expect(pose[1] ?? 0).toBeGreaterThan(1.15);
+  expect(pose[1] ?? 0).toBeLessThan(1.25);
+  expect(Math.hypot((pose[0] ?? 0) - t2.x, (pose[2] ?? 0) - t2.z)).toBeLessThan(2.2);
+  // Facing the table's centre: the view's heading points at it within 10°.
+  const facing = await page.evaluate(() => (window as unknown as { __facing: () => number[] }).__facing());
+  const heading = Math.atan2(facing[0] ?? 0, facing[2] ?? 0);
+  const toTable = Math.atan2(t2.x - (pose[0] ?? 0), t2.z - (pose[2] ?? 0));
+  expect(Math.abs(Math.atan2(Math.sin(heading - toTable), Math.cos(heading - toTable)))).toBeLessThan(0.18);
+  await page.getByRole("button", { name: "Stand up" }).click();
+  expect((await state(page)).camera).toBe("dollhouse");
 });
 
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {

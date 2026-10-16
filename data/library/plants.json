@@ -1,0 +1,291 @@
+{
+  "family": "plant",
+  "items": [
+    {
+      "id": "plant-fiddle-leaf",
+      "name": "Fiddle-leaf fig",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.7,
+        "d": 0.7,
+        "h": 1.95
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.42,
+          "crown": 0.45,
+          "leaves": 40,
+          "leaf": 0.1
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.42,
+          "crown": 0.45,
+          "leaves": 40,
+          "leaf": 0.1,
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-fiddle-leaf.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 5200,
+        "phoneTriangles": 950,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-olive",
+      "name": "Olive tree",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.9,
+        "d": 0.9,
+        "h": 2.0
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.45,
+          "crown": 0.4,
+          "leaves": 90,
+          "leaf": 0.045,
+          "colour": "#a3ae94"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.45,
+          "crown": 0.4,
+          "leaves": 90,
+          "leaf": 0.045,
+          "colour": "#a3ae94",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-olive.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 11400,
+        "phoneTriangles": 2000,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-kentia",
+      "name": "Kentia palm",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.0,
+        "d": 1.0,
+        "h": 2.0
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.45,
+          "crown": 0.55,
+          "leaves": 9,
+          "leaf": 0.09,
+          "look": "fronds"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.45,
+          "crown": 0.55,
+          "leaves": 9,
+          "leaf": 0.09,
+          "look": "fronds",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-kentia.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 9700,
+        "phoneTriangles": 2350,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-monstera",
+      "name": "Monstera",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.9,
+        "d": 0.9,
+        "h": 0.9
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.4,
+          "crown": 0.6,
+          "leaves": 18,
+          "leaf": 0.17,
+          "colour": "#3f6b3a"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.4,
+          "crown": 0.6,
+          "leaves": 18,
+          "leaf": 0.17,
+          "colour": "#3f6b3a",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-monstera.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2400,
+        "phoneTriangles": 450,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-fern",
+      "name": "Fern",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.65,
+        "d": 0.65,
+        "h": 0.65
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.35,
+          "crown": 0.6,
+          "leaves": 70,
+          "leaf": 0.05,
+          "colour": "#6f8f4e"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.35,
+          "crown": 0.6,
+          "leaves": 70,
+          "leaf": 0.05,
+          "colour": "#6f8f4e",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-fern.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 8850,
+        "phoneTriangles": 1550,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-blossom",
+      "name": "Blossom tree",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.0,
+        "d": 1.0,
+        "h": 2.4
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.5,
+          "crown": 0.35,
+          "leaves": 120,
+          "leaf": 0.04,
+          "look": "blossom"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "pot": 0.5,
+          "crown": 0.35,
+          "leaves": 120,
+          "leaf": 0.04,
+          "look": "blossom",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-blossom.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 15100,
+        "phoneTriangles": 2600,
+        "drawCalls": 2
+      }
+    }
+  ]
+}

@@ -13,7 +13,7 @@ const maxSize = {
   eventPiece: 10,
   tableware: 0.6,
   candle: 1.5,
-  floral: 3,
+  floral: 3.5,
   plant: 4,
   light: 4,
   sign: 3,

@@ -2,7 +2,15 @@ import * as THREE from "three";
 import { useEffect, useMemo, useRef } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
-import { type Item, type Shape, footprint, localFootprint, shapeOf } from "../../domain/layout/items";
+import {
+  type Item,
+  type Shape,
+  blocksFloor,
+  chairsWorld,
+  footprint,
+  localFootprint,
+  shapeOf,
+} from "../../domain/layout/items";
 import { alignSnap } from "../../domain/layout/align";
 import { checkPlacement, levelHeight, spotFor, toggledObstacles } from "../../domain/layout/validate";
 import { tableLabels } from "../../domain/layout/counts";
@@ -17,7 +25,14 @@ import type { Materials } from "../materials";
 import type { Quality } from "../quality";
 import { type Placed, LIFT, TOP, moved } from "./common";
 import { Chairs, TableDecor } from "./Decor";
+import { type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
+
+/** The item an intersected mesh belongs to (its `item-<id>` group), if any. */
+function itemIdOf(o: THREE.Object3D | null): string | null {
+  for (; o; o = o.parent) if (o.name.startsWith("item-")) return o.name.slice(5);
+  return null;
+}
 
 const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 /** A lap-length cloth hangs this far below the table top (LIB-03). */
@@ -67,12 +82,14 @@ function TableBody({
   lap,
   m,
   segments,
+  evening,
 }: {
   shape: Shape;
   linen: THREE.Material | null;
   lap: boolean;
   m: Materials;
   segments: number;
+  evening: boolean;
 }) {
   // Floor length reaches the floor; lap length stops LAP_DROP below the top and shows the legs.
   const clothH = lap ? LAP_DROP : TOP;
@@ -153,7 +170,13 @@ function TableBody({
   }
   if (shape.kind === "danceFloor") {
     const mat =
-      shape.finish === "white" ? m.danceWhite : shape.finish === "black" ? m.danceBlack : m.danceWood;
+      shape.finish === "led"
+        ? ledFloor(evening, shape.width, shape.depth)
+        : shape.finish === "white"
+          ? m.danceWhite
+          : shape.finish === "black"
+            ? m.danceBlack
+            : m.danceWood;
     return (
       <group>
         <mesh position={[0, 0.0125, 0]} material={mat} receiveShadow>
@@ -166,9 +189,10 @@ function TableBody({
     );
   }
   if (shape.kind === "backdrop") return <Backdrop shape={shape} m={m} />;
+  if (shape.kind === "piece") return <PieceBody shape={shape} evening={evening} />;
   return (
     <group>
-      <mesh position={[0, 0.5, 0]} material={m.djFacade} castShadow>
+      <mesh position={[0, 0.5, 0]} material={djFront(shape.front, m, evening, shape.width)} castShadow>
         <boxGeometry args={[shape.width, 1.0, shape.depth]} />
       </mesh>
       <mesh position={[0, 1.02, -0.05]} material={m.blackMetal}>
@@ -196,7 +220,147 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
       return { poly: centredRect(shape.width, shape.depth), y: 1.06 };
     case "backdrop":
       return { poly: centredRect(shape.width, 0.12), y: shape.height + 0.02 };
+    case "piece":
+      return { poly: centredRect(shape.width, shape.depth), y: shape.height + 0.02 };
   }
+}
+
+/** LED dance floor (LIB-10): a grid of lit 60 cm tiles, glowing in the evening. Shared per size. */
+const led = new Map<string, THREE.MeshStandardMaterial>();
+function ledFloor(evening: boolean, width: number, depth: number): THREE.MeshStandardMaterial {
+  const key = `${evening}|${width}|${depth}`;
+  let mat = led.get(key);
+  if (!mat) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d") as CanvasRenderingContext2D;
+    g.fillStyle = "#101014";
+    g.fillRect(0, 0, 256, 256);
+    // 4 × 4 tiles of soft light per texture repeat, in a cool white.
+    for (let i = 0; i < 4; i++)
+      for (let j = 0; j < 4; j++) {
+        const grd = g.createRadialGradient(32 + i * 64, 32 + j * 64, 4, 32 + i * 64, 32 + j * 64, 30);
+        grd.addColorStop(0, "#ffffff");
+        grd.addColorStop(1, "#7c7f9a");
+        g.fillStyle = grd;
+        g.fillRect(i * 64 + 3, j * 64 + 3, 58, 58);
+      }
+    const map = new THREE.CanvasTexture(c);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    // The texture holds 4 × 4 tiles of 60 cm, so the tiles keep their size on any floor.
+    map.repeat.set(width / 2.4, depth / 2.4);
+    mat = new THREE.MeshStandardMaterial({
+      map,
+      emissiveMap: map,
+      emissive: "#ffffff",
+      emissiveIntensity: evening ? 1.2 : 0.1,
+      roughness: 0.2,
+    });
+    led.set(key, mat);
+  }
+  return mat;
+}
+
+/** DJ booth front (LIB-10): black, white, mirror or lit LED. */
+const fronts = new Map<string, THREE.Material>();
+function djFront(front: string, m: Materials, evening: boolean, width: number): THREE.Material {
+  if (front === "black") return m.djFacade;
+  if (front === "led") return ledFloor(evening, width, 1);
+  let mat = fronts.get(front);
+  if (!mat) {
+    mat =
+      front === "mirror"
+        ? new THREE.MeshStandardMaterial({ color: "#d9dcdf", metalness: 1, roughness: 0.08 })
+        : new THREE.MeshStandardMaterial({ color: "#f4f2ee", roughness: 0.35 });
+    fronts.set(front, mat);
+  }
+  return mat;
+}
+
+/**
+ * A library piece's own body (its parts are drawn with the table décor, instanced): an invisible
+ * box to pick it up by, and its words when it has some (neon, sign boards, a projected monogram).
+ */
+function PieceBody({ shape, evening }: { shape: Extract<Shape, { kind: "piece" }>; evening: boolean }) {
+  const piece = makePiece(shape.generator, shape.params, shape.options, shape.size);
+  // A hung piece is picked by its body (from 30 cm under where it hangs), not the air beneath it.
+  const hang = shape.options.hang;
+  const hitH = shape.blocks || typeof hang !== "number" ? shape.height : shape.height - hang + 0.3;
+  return (
+    <group>
+      <mesh position={[0, shape.height - hitH / 2, 0]}>
+        <boxGeometry args={[shape.width, hitH, shape.depth]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
+      {piece.text && <PieceWords text={piece.text} evening={evening} />}
+    </group>
+  );
+}
+
+/** Words drawn on a canvas texture (LIB-08 monogram, LIB-09 neon and signs). */
+function PieceWords({ text, evening }: { text: PieceText; evening: boolean }) {
+  const texture = useMemo(() => wordsTexture(text), [text]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  const glow = text.look !== "board";
+  return (
+    <mesh position={[text.x, text.y, text.z]} rotation={[text.tilt, 0, 0]} renderOrder={glow ? 7 : 0}>
+      <planeGeometry args={[text.w, text.h]} />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        depthWrite={!glow}
+        toneMapped={!glow}
+        blending={glow ? THREE.AdditiveBlending : THREE.NormalBlending}
+        // A projection is light: faint in daylight, bright in the evening.
+        opacity={text.look === "projection" && !evening ? 0.25 : 1}
+      />
+    </mesh>
+  );
+}
+
+function wordsTexture(text: PieceText): THREE.CanvasTexture {
+  const W = 1024;
+  const H = Math.round((W * text.h) / text.w);
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const g = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const script = '"Snell Roundhand", "Segoe Script", "Brush Script MT", cursive';
+  const serif = '"Iowan Old Style", "Palatino Linotype", Georgia, serif';
+  const face = text.look === "board" ? serif : script;
+  const weight = text.look === "board" ? "500" : "700";
+  let size = H * (text.look === "board" ? 0.22 : 0.5);
+  g.font = `${weight} ${size}px ${face}`;
+  while (g.measureText(text.value).width > W * 0.88 && size > 12) {
+    size *= 0.92;
+    g.font = `${weight} ${size}px ${face}`;
+  }
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  if (text.look === "board") {
+    g.fillStyle = text.colour;
+    g.fillText(text.value, W / 2, H / 2);
+  } else {
+    // Neon and projected light: a wide halo in the tube's colour, then a lit core that keeps
+    // its colour (lightened), so blush stays blush rather than turning white.
+    const core = `color-mix(in srgb, ${text.colour} 55%, white)`;
+    g.lineJoin = "round";
+    g.shadowColor = text.colour;
+    for (const blur of [size * 0.6, size * 0.3]) {
+      g.shadowBlur = blur;
+      g.strokeStyle = text.colour;
+      g.lineWidth = size * 0.08;
+      g.strokeText(text.value, W / 2, H / 2);
+    }
+    g.shadowBlur = size * 0.1;
+    g.fillStyle = CSS.supports?.("color", core) ? core : text.colour;
+    g.fillText(text.value, W / 2, H / 2);
+  }
+  const t = new THREE.CanvasTexture(canvas);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
 }
 
 /**
@@ -363,6 +527,10 @@ export function Items({
   const drag = useView((s) => s.drag);
   const hover = useView((s) => s.hover);
   const placed = usePlaced(scenario);
+  const blocking = useMemo(
+    () => new Set(placed.filter((p) => blocksFloor(p.shape)).map((p) => p.item.id)),
+    [placed],
+  );
   const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const toPlane = useFloorPointer();
   const getThree = useThree((s) => s.get);
@@ -540,9 +708,31 @@ export function Items({
 
   function onDown(e: ThreeEvent<PointerEvent>, p: Placed) {
     if (readOnly || camera === "walk" || e.button > 0) return;
-    e.stopPropagation();
     const id = p.item.id;
     const current = editor.store.getState().selection;
+    // A hanging or projected piece over a table gives way to the table (from above it covers it),
+    // so pressing there selects and drags the table. A plain click on the already selected table
+    // (no movement) then selects the piece.
+    if (!blocksFloor(p.shape)) {
+      const under = e.intersections
+        .map((i) => itemIdOf(i.object))
+        .find((other) => other && other !== id && blocking.has(other));
+      if (under && !current.includes(id)) {
+        if (current.includes(under)) {
+          const [x0, y0] = [e.clientX, e.clientY];
+          const up = (ev: PointerEvent) => {
+            if (ev.pointerId !== e.pointerId) return;
+            window.removeEventListener("pointerup", up);
+            // After the table's own release has run, so its drag (if any) ends first.
+            if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4)
+              window.setTimeout(() => editor.select([id]));
+          };
+          window.addEventListener("pointerup", up);
+        }
+        return;
+      }
+    }
+    e.stopPropagation();
     const ids = e.shiftKey
       ? current.includes(id)
         ? current.filter((s) => s !== id)
@@ -631,6 +821,7 @@ export function Items({
                 lap={lap}
                 m={m}
                 segments={segments}
+                evening={evening}
               />
               {tone && camera !== "walk" && <Outline shape={p.shape} tone={tone} dark={evening} />}
               {showLabels && labels.get(p.item.id) && (
@@ -656,6 +847,61 @@ export function Items({
         <Guides drag={drag} y={placed.find((p) => p.item.id === drag.ids[0])?.y ?? 0} dark={evening} />
       )}
       {drag && <DragLabel drag={drag} placed={placed} />}
+      <SeatPicker placed={placed} />
+    </group>
+  );
+}
+
+/**
+ * Sit here (CAM-04): after "Sit here" on a table, each of its chairs offers a seat; choosing one
+ * moves the camera there, at seated eye height, facing the table.
+ */
+function SeatPicker({ placed }: { placed: Placed[] }) {
+  const { editor } = useStudio();
+  const id = useView((s) => s.pickSeat);
+  const p = id ? placed.find((x) => x.item.id === id) : undefined;
+  if (!p) return null;
+  return (
+    <group name="seats">
+      {chairsWorld(p.item, p.shape).map((ch, i) => (
+        <Html key={i} center position={[ch.x, p.y + 0.55, ch.z]} zIndexRange={[9, 0]}>
+          <button
+            type="button"
+            className="seat-pick"
+            aria-label={`Sit in seat ${i + 1}`}
+            data-testid={`seat-${i + 1}`}
+            onClick={() => {
+              viewStore.setState({
+                pickSeat: null,
+                seat: {
+                  x: ch.x,
+                  y: p.y,
+                  z: ch.z,
+                  look: [p.item.x, p.item.z],
+                  table: p.item.id,
+                  from: editor.store.getState().camera,
+                },
+              });
+              editor.select([]);
+              editor.setCamera("walk");
+            }}
+          >
+            {/* A chair glyph (scene code keeps its own; ui icons are out of its layer). */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M7 3v9M17 3v9M7 7h10M5 12h14v3H5zM7 15v6M17 15v6" />
+            </svg>
+          </button>
+        </Html>
+      ))}
     </group>
   );
 }

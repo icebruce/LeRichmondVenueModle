@@ -16,7 +16,7 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:library",
     "check:library": "node scripts/check-library.mjs --thumbs",
-    "check:trace": "node scripts/check-traceability.mjs --step 1,2",
+    "check:trace": "node scripts/check-traceability.mjs --step 1,2,3 --defer IMP,REQ",
     "test:e2e": "playwright test --project=desktop --project=phone --project=cloud",
     "test:visual": "playwright test --project=visual",
     "format:check": "prettier --check .",

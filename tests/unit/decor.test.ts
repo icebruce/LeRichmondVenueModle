@@ -88,11 +88,8 @@ describe("décor", () => {
   });
 
   test("[LIB-03] [LIB-04] [LIB-05] [LIB-06] every table-top entry uses a known décor generator", () => {
-    const tableTop = (f: string) => ["candle", "floral", "tableware"].includes(f);
-    const runner = (g: string) => g === "runner";
-    for (const e of [...catalog.values()].filter(
-      (x) => tableTop(x.family) || (x.model.kind === "parametric" && runner(x.model.generator)),
-    )) {
+    // Everything that sits on a table top, runners included (floor florals are pieces, below).
+    for (const e of [...catalog.values()].filter((x) => x.placement === "table")) {
       expect(e.model.kind === "parametric" && DECOR_GENERATORS.includes(e.model.generator)).toBe(true);
     }
   });

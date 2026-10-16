@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { chairsWorld } from "../../domain/layout/items";
 import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
+import { makePiece } from "../../domain/layout/pieces";
 import { styleOf } from "../../domain/scenario/scenario";
 import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
@@ -10,6 +11,36 @@ import { type Placed, LIFT, TOP, moved } from "./common";
 import { chairGeometry } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
+
+/** Alpha ramps for light: a beam fading along its length, a glow fading from its centre. */
+const fades = (() => {
+  if (typeof document === "undefined") return { beam: null, glow: null };
+  const make = (draw: (g: CanvasRenderingContext2D) => void) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    draw(c.getContext("2d") as CanvasRenderingContext2D);
+    return new THREE.CanvasTexture(c);
+  };
+  return {
+    // Cone uv v runs base (0) to tip (1): bright at the tip (the fixture), gone at the base.
+    beam: make((g) => {
+      const grd = g.createLinearGradient(0, 64, 0, 0);
+      grd.addColorStop(0, "#000");
+      grd.addColorStop(0.75, "#555");
+      grd.addColorStop(1, "#fff");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 64, 64);
+    }),
+    glow: make((g) => {
+      const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grd.addColorStop(0, "#fff");
+      grd.addColorStop(0.4, "#888");
+      grd.addColorStop(1, "#000");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 64, 64);
+    }),
+  };
+})();
 
 /** Unit primitives for décor parts (see domain/layout/decor.ts for the conventions). */
 function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
@@ -20,6 +51,7 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
     box: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0),
     cone: new THREE.ConeGeometry(1, 1, r).translate(0, 0.5, 0),
     bowl: new THREE.ConeGeometry(1, 1, r).rotateX(Math.PI).translate(0, 0.5, 0),
+    plane: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
   };
 }
 
@@ -123,6 +155,7 @@ type Group = { key: string; prim: Prim; slot: Slot; solid: boolean };
  * (ARCHITECTURE §7). Metal sheen and the wax glow are lost there; flames still glow.
  */
 const SOLID_SLOTS: ReadonlySet<Slot> = new Set([
+  "wood",
   "wax",
   "brass",
   "silver",
@@ -160,9 +193,19 @@ export function TableDecor({
     () =>
       placed.map((p, i) => ({
         p,
-        parts: tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
+        // Pieces stand on the floor; table décor sits on the table top.
+        base: p.shape.kind === "piece" ? 0 : p.shape.kind === "cocktail" ? p.shape.height : TOP,
+        parts:
+          p.shape.kind === "piece"
+            ? makePiece(
+                p.shape.generator,
+                low ? p.shape.lowParams : p.shape.params,
+                p.shape.options,
+                p.shape.size,
+              ).parts
+            : tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
       })),
-    [placed, scenario.style, catalog],
+    [placed, scenario.style, catalog, low],
   );
   const prims = useMemo(() => primitives(low), [low]);
   const solidMaterial = useMemo(
@@ -201,19 +244,53 @@ export function TableDecor({
         opacity: 0.6,
         side: THREE.DoubleSide,
       }),
+      wood: new THREE.MeshStandardMaterial({ color: "#7a5a3c", roughness: 0.75 }),
+      // Lights (LIB-08): bulbs glow in the evening; coloured beams show only then.
+      bulb: new THREE.MeshStandardMaterial({
+        color: "#fff1d6",
+        emissive: "#ffc77a",
+        emissiveIntensity: evening ? 3 : 0.25,
+        toneMapped: !evening,
+      }),
+      // Beams fade from the fixture outward; glows are soft round pools (washes, glints, halos).
+      beam: new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        alphaMap: fades.beam,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+      glow: new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        alphaMap: fades.glow,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      }),
+      mirror: new THREE.MeshStandardMaterial({
+        color: "#e6e8ea",
+        metalness: 1,
+        roughness: 0.12,
+        flatShading: true,
+      }),
     }),
     [m, evening],
   );
   const groups = useMemo(() => {
-    const map = new Map<string, Group & { parts: { p: Placed; part: Part }[] }>();
-    for (const { p, parts } of perItem) {
+    const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
+    for (const { p, parts, base } of perItem) {
       for (const part of parts) {
-        if (part.slot === "flame" && !evening) continue;
+        if ((part.slot === "flame" || part.slot === "beam" || part.slot === "glow") && !evening) continue;
         const solid = low && SOLID_SLOTS.has(part.slot);
         const key = `${part.prim}:${solid ? "solid" : part.slot}`;
         let g = map.get(key);
         if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, solid, parts: [] }));
-        g.parts.push({ p, part });
+        g.parts.push({ p, part, base });
       }
     }
     return [...map.values()];
@@ -227,7 +304,8 @@ export function TableDecor({
           Math.max(1, g.parts.length),
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
-        mesh.castShadow = !low && !["flame", "glass", "water", "sheer"].includes(g.slot);
+        mesh.castShadow =
+          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow"].includes(g.slot);
         return { g, mesh };
       }),
     [groups, prims, materials, solidMaterial, low],
@@ -256,6 +334,11 @@ export function TableDecor({
         "leaf",
         "fabric",
         "sheer",
+        "wood",
+        "bulb",
+        "beam",
+        "glow",
+        "mirror",
       ] as const)
         materials[k].dispose();
     },
@@ -267,11 +350,10 @@ export function TableDecor({
     const out = new THREE.Matrix4();
     const colour = new THREE.Color();
     for (const { g, mesh } of meshes) {
-      g.parts.forEach(({ p, part }, i) => {
+      g.parts.forEach(({ p, part, base }, i) => {
         const item = moved(p.item, drag);
         const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
-        const top = p.shape.kind === "cocktail" ? p.shape.height : TOP;
-        table.makeRotationY(item.rotY).setPosition(item.x, p.y + top + lift, item.z);
+        table.makeRotationY(item.rotY).setPosition(item.x, p.y + base + lift, item.z);
         local.position.set(part.x, part.y, part.z);
         local.rotation.set(part.rx ?? 0, part.ry ?? 0, part.rz ?? 0);
         local.scale.set(part.sx, part.sy, part.sz);

@@ -32,7 +32,7 @@ describe("library", () => {
       expect(e.budget.triangles).toBeGreaterThan(0);
       expect(e.budget.phoneTriangles).toBeLessThanOrEqual(e.budget.triangles);
       expect(e.lowModel).toBeDefined();
-      if (e.placement === "floor" && e.family !== "chair" && e.model.kind === "parametric")
+      if (e.placement === "floor" && e.model.kind === "parametric" && e.model.generator !== "chair")
         expect(FLOOR_GENERATORS).toContain(e.model.generator);
     }
   });

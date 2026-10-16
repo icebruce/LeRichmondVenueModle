@@ -1,0 +1,187 @@
+{
+  "family": "sign",
+  "items": [
+    {
+      "id": "sign-welcome",
+      "name": "Welcome sign on an easel",
+      "family": "sign",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.7,
+        "d": 0.6,
+        "h": 1.75
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "welcome"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "welcome",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "text",
+          "key": "text",
+          "label": "Words",
+          "default": "Welcome",
+          "maxLength": 32
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/sign-welcome.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: sign",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 250,
+        "phoneTriangles": 150,
+        "drawCalls": 3
+      }
+    },
+    {
+      "id": "sign-chart",
+      "name": "Seating chart board",
+      "family": "sign",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.0,
+        "d": 0.6,
+        "h": 1.85
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "chart"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "chart",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "text",
+          "key": "text",
+          "label": "Heading",
+          "default": "Find your seat",
+          "maxLength": 32
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/sign-chart.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: sign",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 250,
+        "phoneTriangles": 150,
+        "drawCalls": 3
+      }
+    },
+    {
+      "id": "sign-neon",
+      "name": "Neon sign",
+      "family": "sign",
+      "placement": "wall",
+      "sizeM": {
+        "w": 1.2,
+        "d": 0.15,
+        "h": 1.85
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "neon"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "sign",
+        "params": {
+          "kind": "neon",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "text",
+          "key": "text",
+          "label": "Words",
+          "default": "Better together",
+          "maxLength": 24
+        },
+        {
+          "type": "choice",
+          "key": "colour",
+          "label": "Colour",
+          "choices": [
+            {
+              "value": "blush",
+              "label": "Blush"
+            },
+            {
+              "value": "amber",
+              "label": "Amber"
+            },
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "blue",
+              "label": "Blue"
+            },
+            {
+              "value": "lavender",
+              "label": "Lavender"
+            }
+          ],
+          "default": "blush"
+        },
+        {
+          "type": "number",
+          "key": "hang",
+          "label": "Hangs at",
+          "min": 1.2,
+          "max": 2.4,
+          "step": 0.1,
+          "default": 1.6,
+          "unit": "m"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/sign-neon.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: sign",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 50,
+        "phoneTriangles": 50,
+        "drawCalls": 2
+      }
+    }
+  ]
+}

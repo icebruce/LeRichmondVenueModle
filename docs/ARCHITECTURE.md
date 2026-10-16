@@ -17,7 +17,7 @@
 | Validation | zod | At real boundaries only: venue data load, scenario import, API requests. |
 | Local persistence | IndexedDB (`idb-keyval`) | Drafts, offline queue, image cache. |
 | Server | Vercel Functions (Node 22) in `api/` | Plain handlers, no framework. |
-| Storage | Upstash Redis (REST) | Scenarios, versions, notes, catalogue metadata. Image storage: §6.3. |
+| Storage | Upstash Redis (REST) | Scenarios, versions, notes, catalogue metadata and imported images (§6.3). |
 | Tests | Vitest, Playwright (Chromium; mobile emulation) | See `TEST_STRATEGY.md`. |
 | Lint/format | ESLint (typescript-eslint strict, react-hooks, import boundaries), Prettier | Enforced by hooks and CI. |
 | Hosting | Vercel Hobby, Git integration | Preview URL per branch, production = `main`. |
@@ -103,12 +103,17 @@ Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `a
 data/library/<family>.json      Entries: id, name, family, placement, sizeM {w,d,h}, sizePresets,
                                 model {kind:"parametric", generator, params} | {kind:"glb", file},
                                 lowModel (phone version: same shape, or generator params.quality "low"),
-                                options [{type:number|choice|boolean, key, label, default, …}],
+                                options [{type:number|choice|boolean|text, key, label, default, …}],
                                 thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
                                 budget {triangles, phoneTriangles, drawCalls}
 src/domain/layout/items.ts       Shape generators keyed by model.generator (rectTable, roundTable,
-                                cocktail, danceFloor, djBooth): sizes from sizeM/params/options, never ids
-src/scene/items/                 Meshes per shape kind; chairs and candles instanced
+                                cocktail, danceFloor, djBooth, backdrop, and every piece generator):
+                                sizes from sizeM/params/options, never ids
+src/domain/layout/decor.ts       Table décor as unit-primitive parts (candles, florals, runners, settings)
+src/domain/layout/pieces.ts      Step-3 pieces (plant, light, floralPiece, sign, eventPiece) as the same
+                                parts plus size, whether they block the floor, and optional words
+src/scene/items/                 Meshes per shape kind; chairs instanced; table décor and pieces drawn
+                                together, one instanced mesh per primitive and material
 public/assets/models/            GLB files (CC0 adapted or custom-built), meshopt-compressed
 public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
 ```
@@ -146,7 +151,7 @@ Edits apply locally at once and are written to IndexedDB; a sync queue pushes th
 
 ### 6.3 Images
 
-Client resizes to ≤ 1600 px long edge, WebP/JPEG, EXIF stripped, ≤ 500 KB, before upload. Storage target decided in step 3 by measured limits: Upstash (if within its value-size limit) or Vercel Blob. Images are private to the app and never committed to Git.
+Client resizes to ≤ 1600 px long edge, WebP/JPEG, EXIF stripped, ≤ 500 KB, before upload. Stored in Upstash with the scenarios (within its value-size limit; owner decision 2026-10-16), so no new service. Images are private to the app and never committed to Git.
 
 ## 7. Budgets
 

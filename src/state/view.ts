@@ -32,6 +32,17 @@ export type ViewState = {
   compare: string | null;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
+  /** Sit here (CAM-04): the table whose chairs are offered as seats, then the chosen seat. */
+  pickSeat: string | null;
+  seat: {
+    x: number;
+    y: number;
+    z: number;
+    look: [number, number];
+    table: string;
+    /** The camera to return to on "Stand up". */
+    from: "dollhouse" | "plan" | "walk";
+  } | null;
 };
 
 /** Shared by the scene (renders it) and the UI (writes panel inset, reads drag state). */
@@ -46,6 +57,8 @@ export const viewStore = createStore<ViewState>(() => ({
   focus: [8, 7],
   showPeople: true,
   compare: null,
+  pickSeat: null,
+  seat: null,
 }));
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */
