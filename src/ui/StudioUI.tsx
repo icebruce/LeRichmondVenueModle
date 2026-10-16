@@ -229,6 +229,31 @@ export function StudioUI() {
   useEffect(() => {
     viewStore.setState({ insetRight: showPanel && !phone ? 352 : 0 });
   }, [showPanel, phone]);
+
+  // Phone: the camera centres the room between the top bar and the sheet (measured after the
+  // sheet's height transition).
+  const ui = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!phone || camera === "walk") {
+      viewStore.setState({ insetTop: 0, insetBottom: 0 });
+      return;
+    }
+    const measure = () => {
+      const root = ui.current;
+      if (!root) return;
+      const h = root.clientHeight;
+      const top = root.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
+      const sheet = root.querySelector(".panel, .tabbar")?.getBoundingClientRect().top ?? h;
+      viewStore.setState({ insetTop: Math.round(top), insetBottom: Math.round(h - sheet) });
+    };
+    measure();
+    const t = window.setTimeout(measure, 300);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("resize", measure);
+    };
+  }, [phone, camera, showPanel, detent, hasSelection]);
   const content = hasSelection ? (
     <Inspector />
   ) : section === "venue" ? (
@@ -246,7 +271,7 @@ export function StudioUI() {
   const sheet = !phone ? "none" : showPanel ? detent : "none";
 
   return (
-    <div className={`ui cam-${camera}`} data-sheet={sheet}>
+    <div className={`ui cam-${camera}`} data-sheet={sheet} ref={ui}>
       <header className="topbar">
         <ScenarioMenu />
         <CameraSwitch />

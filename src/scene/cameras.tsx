@@ -31,6 +31,8 @@ export function CameraRig() {
   const controlsEnabled = useView((s) => s.controlsEnabled);
   const view = useView((s) => s.view);
   const insetRight = useView((s) => s.insetRight);
+  const insetTop = useView((s) => s.insetTop);
+  const insetBottom = useView((s) => s.insetBottom);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
@@ -84,22 +86,28 @@ export function CameraRig() {
     [mode],
   );
 
-  // Frame the room beside the desktop panel, not under it (DESIGN_GUIDE §3.1): shift the principal
-  // point left by half the covered width, easing as the panel opens and closes.
-  const inset = useRef(0);
+  // Frame the room in the part of the screen the interface leaves free (DESIGN_GUIDE §3.1, §3.2):
+  // shift the principal point by half the covered width (desktop panel) and height (phone top bar
+  // and sheet), easing as they change. Zoom compensates so the room keeps its size on screen.
+  const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
-    const want = mode === "walk" ? 0 : insetRight;
-    const next =
-      Math.abs(want - inset.current) < 0.5
-        ? want
-        : inset.current + (want - inset.current) * Math.min(1, dt * 10);
+    const walk = mode === "walk";
+    const want = { x: walk ? 0 : insetRight, y: walk ? 0 : insetBottom - insetTop };
+    const ease = (from: number, to: number) =>
+      Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
+    const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };
     const w = size.width;
-    const h = size.height;
-    const aspect = (w + next) / Math.max(1, h);
-    if (next === inset.current && camera.aspect === aspect && next > 0 === !!camera.view?.enabled) return;
+    const h = Math.max(1, size.height);
+    const fullW = w + next.x;
+    const fullH = h + Math.abs(next.y);
+    const aspect = fullW / fullH;
+    const offset = next.x !== 0 || next.y !== 0;
+    const same = next.x === inset.current.x && next.y === inset.current.y;
+    if (same && camera.aspect === aspect && offset === !!camera.view?.enabled) return;
     inset.current = next;
     camera.aspect = aspect;
-    if (next > 0) camera.setViewOffset(w + next, h, next, 0, w, h);
+    camera.zoom = h / fullH;
+    if (offset) camera.setViewOffset(fullW, fullH, next.x, next.y > 0 ? next.y : 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
   });

@@ -51,7 +51,7 @@ function useCutaway(mode: CameraMode, view: string | null): Cutaway {
   return state;
 }
 
-function Lighting({ evening, quality }: { evening: boolean; quality: Quality }) {
+function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quality; plan: boolean }) {
   const { venue } = useStudio();
   const shadowSize = quality === "high" ? 2048 : 1024;
   const fixtures = venue.data.fixtures.chandeliers;
@@ -64,7 +64,8 @@ function Lighting({ evening, quality }: { evening: boolean; quality: Quality }) 
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 0.35 : 2.4}
         color={evening ? "#ffcf9a" : "#fff4e6"}
-        castShadow
+        // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
+        castShadow={!plan}
         shadow-mapSize={[shadowSize, shadowSize]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
@@ -195,13 +196,18 @@ function Scene({ quality }: { quality: Quality }) {
   return (
     <>
       <primitive attach="background" object={background} />
-      <Lighting evening={evening} quality={quality} />
+      <Lighting evening={evening} quality={quality} plan={mode === "plan"} />
       <Walls venue={venue} m={m} cutWalls={cut} />
       <Floors venue={venue} m={m} />
       <Railing venue={venue} m={m} />
       <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
       <BackBar venue={venue} m={m} />
-      <Furnishings venue={venue} m={m} communalTable={scenario.venueToggles.communalTable} />
+      <Furnishings
+        venue={venue}
+        m={m}
+        communalTable={scenario.venueToggles.communalTable}
+        art={mode !== "plan"}
+      />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
       {!cut.has("south") && <Mezzanine venue={venue} m={m} />}

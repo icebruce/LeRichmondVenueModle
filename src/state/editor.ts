@@ -187,13 +187,21 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     },
 
     /** Final position after a drag (one history step). Returns false and explains when refused. */
-    moveItems(moves: { id: string; x: number; z: number }[]): boolean {
+    /** Move (and optionally turn) items as one undo step; a drag with a two-finger twist uses rotY. */
+    moveItems(moves: { id: string; x: number; z: number; rotY?: number }[]): boolean {
       const items = active().items;
       const changed = moves.map((m) => {
         const it = items.find((i) => i.id === m.id) as Item;
         const x = get().snapping ? snap(m.x, GRID) : m.x;
         const z = get().snapping ? snap(m.z, GRID) : m.z;
-        return { ...it, x, z, options: spotFor(it, venue) ? { ...it.options, spot: "free" } : it.options };
+        const rotY = m.rotY === undefined ? it.rotY : normalizeAngle(m.rotY);
+        return {
+          ...it,
+          x,
+          z,
+          rotY,
+          options: spotFor(it, venue) ? { ...it.options, spot: "free" } : it.options,
+        };
       });
       const reason = validate(changed);
       if (reason) return refuse(changed[0]?.id ?? "", reason);

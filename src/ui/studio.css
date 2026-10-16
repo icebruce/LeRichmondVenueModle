@@ -206,6 +206,9 @@ button:disabled {
     background var(--m-fast),
     color var(--m-fast);
 }
+.seg button svg {
+  flex: none;
+}
 .seg button.on {
   background: var(--surface);
   color: var(--ink);

@@ -465,7 +465,41 @@ export function Items({
       drag: { kind, ids, dx: 0, dz: 0, dRot: 0, valid: true, reason: null, guides: [] },
     });
     const snapping = editor.store.getState().snapping;
+    // Phone: a second finger during a drag twists the item about its centre (DESIGN_GUIDE §3.2).
+    const fingers = new Map<number, [number, number]>([[pointerId, [e.clientX, e.clientY]]]);
+    let twist: { id: number; a0: number; dx: number; dz: number } | null = null;
+    const fingerAngle = (t: { id: number }) => {
+      const p = fingers.get(pointerId);
+      const q = fingers.get(t.id);
+      return p && q ? Math.atan2(q[1] - p[1], q[0] - p[0]) : 0;
+    };
+    const publish = (dx: number, dz: number, dRot: number, guides: Drag["guides"]) => {
+      const next = base.map((b) => ({ ...b, x: b.x + dx, z: b.z + dz, rotY: b.rotY + dRot }));
+      const all = [...others, ...next];
+      const check = next
+        .map((it) => checkPlacement(it, all, venue, catalog, extra, labels))
+        .find((r) => !r.ok);
+      viewStore.setState({
+        drag: {
+          kind: twist ? "move" : kind,
+          ids,
+          dx,
+          dz,
+          dRot,
+          valid: !check,
+          reason: check && !check.ok ? check.reason : null,
+          guides,
+        },
+      });
+    };
     const move = (ev: PointerEvent) => {
+      if (fingers.has(ev.pointerId)) fingers.set(ev.pointerId, [ev.clientX, ev.clientY]);
+      if (twist) {
+        let dRot = -(fingerAngle(twist) - twist.a0);
+        if (!ev.altKey) dRot = Math.round(dRot / ROTATE_STEP) * ROTATE_STEP;
+        publish(twist.dx, twist.dz, dRot, []);
+        return;
+      }
       if (ev.pointerId !== pointerId) return;
       const p = toPlane(ev.clientX, ev.clientY, y);
       if (!p) return;
@@ -494,23 +528,7 @@ export function Items({
         dRot = -(a - a0);
         if (!ev.altKey) dRot = Math.round(dRot / ROTATE_STEP) * ROTATE_STEP;
       }
-      const next = base.map((b) => ({ ...b, x: b.x + dx, z: b.z + dz, rotY: b.rotY + dRot }));
-      const all = [...others, ...next];
-      const check = next
-        .map((it) => checkPlacement(it, all, venue, catalog, extra, labels))
-        .find((r) => !r.ok);
-      viewStore.setState({
-        drag: {
-          kind,
-          ids,
-          dx,
-          dz,
-          dRot,
-          valid: !check,
-          reason: check && !check.ok ? check.reason : null,
-          guides,
-        },
-      });
+      publish(dx, dz, dRot, guides);
     };
     const stop = () => {
       window.removeEventListener("pointermove", move);
@@ -520,25 +538,37 @@ export function Items({
       setControls(true);
     };
     const up = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
+      if (!fingers.has(ev.pointerId)) return;
       stop();
       const d = viewStore.getState().drag;
       viewStore.setState({ drag: null });
       if (!d) return;
-      if (d.kind === "move" && (Math.abs(d.dx) > 1e-3 || Math.abs(d.dz) > 1e-3)) {
-        editor.moveItems(base.map((b) => ({ id: b.id, x: b.x + d.dx, z: b.z + d.dz })));
-      } else if (d.kind === "rotate" && Math.abs(d.dRot) > 1e-3) {
+      const moved = Math.abs(d.dx) > 1e-3 || Math.abs(d.dz) > 1e-3;
+      const turned = Math.abs(d.dRot) > 1e-3;
+      if (d.kind === "move" && (moved || turned)) {
+        editor.moveItems(
+          base.map((b) => ({ id: b.id, x: b.x + d.dx, z: b.z + d.dz, rotY: b.rotY + d.dRot })),
+        );
+      } else if (d.kind === "rotate" && turned) {
         editor.rotateItems(ids, d.dRot);
       }
     };
-    // The system took the pointer, or a second finger started a pinch: drop the drag, move nothing.
+    // The system took the pointer: drop the drag, move nothing.
     const cancel = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
+      if (!fingers.has(ev.pointerId)) return;
       stop();
       viewStore.setState({ drag: null });
     };
     const second = (ev: PointerEvent) => {
       if (ev.pointerId === pointerId) return;
+      if (kind === "move" && ev.pointerType === "touch" && !twist) {
+        fingers.set(ev.pointerId, [ev.clientX, ev.clientY]);
+        const d = viewStore.getState().drag;
+        twist = { id: ev.pointerId, a0: 0, dx: d?.dx ?? 0, dz: d?.dz ?? 0 };
+        twist.a0 = fingerAngle(twist);
+        return;
+      }
+      // Any other extra pointer (a third finger, a mouse click) ends the gesture without a change.
       stop();
       viewStore.setState({ drag: null });
     };

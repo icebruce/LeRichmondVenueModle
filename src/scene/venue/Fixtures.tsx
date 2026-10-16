@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import type { OpeningData, WallData } from "../../domain/venue/schema";
@@ -172,6 +172,8 @@ export function Backdrops({ venue, m, evening }: P) {
   );
 }
 
+const SHELVES = [1.35, 1.8, 2.25];
+
 export function BackBar({ venue, m }: Omit<P, "evening">) {
   const g = useMemo(() => {
     const b = venue.data.backBar;
@@ -185,8 +187,13 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       fridges.push(boxGeo(x, 0.1, rc[3] + 0.002, x + 0.65, 0.85, rc[3] + 0.01));
     const frame: THREE.BufferGeometry[] = [];
     const shelves: THREE.BufferGeometry[] = [];
-    for (const y of [1.25, 1.65, 2.05, 2.45])
-      shelves.push(boxGeo(x0 + 0.1, y, z0 + 0.05, x1 - 0.1, y + 0.03, z1 - 0.1));
+    const strips: THREE.BufferGeometry[] = [];
+    // Three backlit glass shelves of bottles up to about 2.5 m, over a dark back panel (R02, R03).
+    for (const y of SHELVES) {
+      shelves.push(boxGeo(x0 + 0.1, y, z0 + 0.05, x1 - 0.1, y + 0.02, z1 - 0.05));
+      strips.push(boxGeo(x0 + 0.1, y + 0.36, z0 + 0.04, x1 - 0.1, y + 0.38, z0 + 0.07));
+    }
+    frame.push(boxGeo(x0, 0.95, z0, x1, b.height, z0 + 0.04));
     for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 6)
       frame.push(boxGeo(x - 0.04, 0.95, z0, x + 0.04, b.height, z1));
     frame.push(boxGeo(x0, b.height - 0.1, z0, x1, b.height, z1));
@@ -204,6 +211,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       fridges: merge(fridges),
       frame: merge(frame),
       shelves: merge(shelves),
+      strips: merge(strips),
       canopy,
       neon,
       neonBack,
@@ -212,20 +220,41 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
   const bottles = useMemo(() => {
     const [x0, z0, x1] = venue.data.backBar.rect.value;
     const geo = new THREE.CylinderGeometry(0.035, 0.04, 0.3, 8);
-    const mesh = new THREE.InstancedMesh(geo, m.bottles, 240);
+    const mat = new THREE.MeshStandardMaterial({
+      color: "#ffffff",
+      roughness: 0.15,
+      emissive: "#3a2410",
+      emissiveIntensity: 0.35,
+    });
+    const mesh = new THREE.InstancedMesh(geo, mat, 260);
+    // Amber spirits, dark green wine, clear gin and vodka, deep brown liqueurs.
+    const tints = ["#b8742a", "#2f3d22", "#d9dccf", "#4a2615", "#c98f3b"].map((c) => new THREE.Color(c));
     const t = new THREE.Object3D();
     let n = 0;
-    for (const y of [1.28, 1.68, 2.08, 2.48]) {
-      for (let x = x0 + 0.2; x < x1 - 0.2 && n < 240; x += 0.09) {
-        t.position.set(x, y + 0.15, z0 + 0.25 + ((n * 7) % 3) * 0.06);
-        t.scale.setScalar(0.85 + ((n * 13) % 5) * 0.06);
+    for (const y of SHELVES) {
+      for (let x = x0 + 0.2; x < x1 - 0.2 && n < 260; x += 0.085) {
+        // Gaps between groups of bottles, as on a working back bar.
+        if ((Math.floor(x * 7.3) + Math.round(y * 10)) % 9 === 0) continue;
+        const h = 0.8 + ((n * 13) % 7) * 0.07;
+        t.position.set(x, y + 0.02 + 0.15 * h, z0 + 0.22 + ((n * 7) % 3) * 0.06);
+        t.scale.set(1, h, 1);
         t.updateMatrix();
-        mesh.setMatrixAt(n++, t.matrix);
+        mesh.setMatrixAt(n, t.matrix);
+        mesh.setColorAt(n, tints[(n * 5 + Math.round(x * 3)) % tints.length] as THREE.Color);
+        n++;
       }
     }
     mesh.count = n;
     return mesh;
-  }, [venue, m]);
+  }, [venue]);
+  useEffect(
+    () => () => {
+      bottles.geometry.dispose();
+      (bottles.material as THREE.Material).dispose();
+      bottles.dispose();
+    },
+    [bottles],
+  );
   return (
     <group name="back-bar">
       <mesh geometry={g.cabinet} material={m.backBarWood} />
@@ -233,7 +262,8 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       <mesh geometry={g.counterTop} material={m.marble} />
       {g.fridges && <mesh geometry={g.fridges} material={m.fridge} />}
       {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
-      {g.shelves && <mesh geometry={g.shelves} material={m.shelfGlow} />}
+      {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
+      {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
       <mesh geometry={g.canopy} material={m.steel} />
       <mesh geometry={g.neonBack} material={m.blackMetal} />
       <mesh geometry={g.neon} material={m.exitSign} />
@@ -242,7 +272,12 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
   );
 }
 
-export function Furnishings({ venue, m, communalTable }: Omit<P, "evening"> & { communalTable: boolean }) {
+export function Furnishings({
+  venue,
+  m,
+  communalTable,
+  art,
+}: Omit<P, "evening"> & { communalTable: boolean; art: boolean }) {
   const g = useMemo(() => {
     const f = venue.data.fixtures;
     const seats: THREE.BufferGeometry[] = [];
@@ -255,10 +290,10 @@ export function Furnishings({ venue, m, communalTable }: Omit<P, "evening"> & { 
     const [wx0, wz0, wx1, wz1] = f.wineWall.rect;
     const wine = boxGeo(wx0, 0, wz0, wx1, f.wineWall.height, wz1);
     const wineCanopy = boxGeo(
-      wx0 - 0.3,
+      wx0 - 0.15,
       f.wineWall.height,
       wz0 - 0.2,
-      venue.width,
+      wx1 + 0.15,
       f.wineWall.height + 0.12,
       wz1 + 0.2,
     );
@@ -281,18 +316,20 @@ export function Furnishings({ venue, m, communalTable }: Omit<P, "evening"> & { 
       <mesh geometry={g.wine} material={m.wineFrame} />
       <mesh geometry={g.wineCanopy} material={m.steel} />
       {communalTable && <mesh geometry={g.communal} material={m.barBase} castShadow />}
-      {paintings.map((p) => (
-        <group key={p.id}>
-          <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.035]}>
-            <boxGeometry args={[p.x1 - p.x0 + 0.06, p.y1 - p.y0 + 0.06, 0.04]} />
-            <meshStandardMaterial color="#1b1a19" roughness={0.6} />
-          </mesh>
-          <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.06]}>
-            <planeGeometry args={[p.x1 - p.x0, p.y1 - p.y0]} />
-            <meshStandardMaterial map={p.tex} roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
+      {/* Plan view is a flat working drawing: no wall art lying outside the walls. */}
+      {art &&
+        paintings.map((p) => (
+          <group key={p.id}>
+            <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.035]}>
+              <boxGeometry args={[p.x1 - p.x0 + 0.06, p.y1 - p.y0 + 0.06, 0.04]} />
+              <meshStandardMaterial color="#1b1a19" roughness={0.6} />
+            </mesh>
+            <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.06]}>
+              <planeGeometry args={[p.x1 - p.x0, p.y1 - p.y0]} />
+              <meshStandardMaterial map={p.tex} roughness={0.7} />
+            </mesh>
+          </group>
+        ))}
     </group>
   );
 }

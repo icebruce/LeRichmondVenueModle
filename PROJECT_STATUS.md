@@ -49,7 +49,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Raised floor height and step positions; stair run and turn (evidence matrix §6).
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag and the joystick need a check on a real phone (pointer handling is tested in software only).
-- Not yet done from the reviews: two-finger rotate on phone (the inspector buttons rotate; the 3D handle is desktop-only); phone camera ignores the top bar and sheet when framing; sheet peek is 164 pt vs 96 pt in DESIGN_GUIDE §3.2 (counts line + actions need it; owner to confirm); Plan view still shows shadows and wall art; back bar reads as shelving rather than bottles; main chandelier position (z) still unconfirmed.
+- Main chandelier position (z) still unconfirmed.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.

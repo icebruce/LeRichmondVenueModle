@@ -23,6 +23,9 @@ export type ViewState = {
   view: string | null;
   /** Pixels on the right covered by the desktop panel; the camera frames the room beside it. */
   insetRight: number;
+  /** Phone: pixels covered by the top bar and by the tab bar plus bottom sheet. */
+  insetTop: number;
+  insetBottom: number;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
 };
@@ -34,6 +37,8 @@ export const viewStore = createStore<ViewState>(() => ({
   controlsEnabled: true,
   view: null,
   insetRight: 0,
+  insetTop: 0,
+  insetBottom: 0,
   focus: [8, 7],
 }));
 
