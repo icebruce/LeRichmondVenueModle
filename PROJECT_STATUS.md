@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 in progress: people and décor built; advisories, export, cloud saving with login and notes, compare and paintings next.
+**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 in progress (PR #2): people, décor and advisory checks built; export, cloud saving with login and notes, compare and paintings next.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -50,6 +50,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Main chandelier position (z) still unconfirmed.
+- Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.

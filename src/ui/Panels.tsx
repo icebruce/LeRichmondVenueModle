@@ -9,7 +9,7 @@ import type { ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
-import { useEditor, useStudio, useView } from "../scene/context";
+import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
 import { Icon } from "./icons";
 
 export type Section = "venue" | "layout" | "people" | "decor";
@@ -168,6 +168,90 @@ function Thumb({ entry }: { entry: LibraryEntry }) {
   );
 }
 
+/** Advisory checks and their settings (LAY-08). Rows select the tables involved. */
+function Checks() {
+  const { editor } = useStudio();
+  const list = useAdvisories();
+  const thresholds = useEditor((s) => s.scenarios[s.activeId]?.thresholds);
+  const [open, setOpen] = useState(false);
+  if (!thresholds) return null;
+  return (
+    <div className="field" data-testid="checks">
+      <h3 className="group-title">Checks · advisory</h3>
+      {list.length === 0 ? (
+        <p className="hint">No advisories with your settings.</p>
+      ) : (
+        <ul className="advisories" aria-label="Advisories">
+          {list.map((a) => (
+            <li key={a.id}>
+              <button
+                type="button"
+                className="advisory-row"
+                onClick={() => a.items.length && editor.select(a.items)}
+                disabled={!a.items.length}
+              >
+                <span className="dot" aria-hidden="true" />
+                <span>{a.message}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        className="plain-btn"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        data-testid="check-settings"
+      >
+        {open ? "Hide check settings" : "Check settings"}
+      </button>
+      {open && (
+        <>
+          <Stepper
+            label="Aisle between chair backs"
+            value={thresholds.aisleM}
+            min={0.6}
+            max={2}
+            step={0.1}
+            format={metres}
+            onChange={(v) => editor.setThreshold("aisleM", v)}
+            testId="aisle"
+          />
+          <Stepper
+            label="Clear in front of doors"
+            value={thresholds.clearanceM}
+            min={0.6}
+            max={2.5}
+            step={0.1}
+            format={metres}
+            onChange={(v) => editor.setThreshold("clearanceM", v)}
+          />
+          <Stepper
+            label="Space per dancer"
+            value={thresholds.m2PerDancer}
+            min={0.3}
+            max={1}
+            step={0.05}
+            format={(v) => `${v.toFixed(2)} m²`}
+            onChange={(v) => editor.setThreshold("m2PerDancer", v)}
+          />
+          <Stepper
+            label="Guests dancing at once"
+            value={Math.round(thresholds.dancingShare * 100)}
+            min={10}
+            max={80}
+            step={5}
+            format={(v) => `${v}%`}
+            onChange={(v) => editor.setThreshold("dancingShare", v / 100)}
+          />
+        </>
+      )}
+      <p className="hint">Checks are approximate aids, not code or capacity compliance.</p>
+    </div>
+  );
+}
+
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
   const snapping = useEditor((s) => s.snapping);
@@ -198,6 +282,7 @@ export function LayoutPanel() {
         ))}
       </ul>
       <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
+      <Checks />
       <p className="hint">
         {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
       </p>
@@ -611,6 +696,7 @@ export function Inspector() {
   const selection = useEditor((s) => s.selection);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const refusal = useEditor((s) => s.refusal);
+  const advisories = useAdvisories();
   const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const items = scenario.items.filter((i) => selection.includes(i.id));
   const [labelDraft, setLabelDraft] = useState<string | null>(null);
@@ -655,6 +741,7 @@ export function Inspector() {
   );
 
   const myRefusal = refusal && ids.includes(refusal.itemId) ? refusal.reason : null;
+  const mine = advisories.filter((a) => a.items.some((id) => ids.includes(id)));
 
   // Key actions sit right under the title so the phone sheet's peek height shows them (DESIGN_GUIDE §3.2).
   return (
@@ -711,6 +798,11 @@ export function Inspector() {
           {myRefusal}. Nothing was moved.
         </p>
       )}
+      {mine.map((a) => (
+        <p key={a.id} className="advice" data-testid="item-advisory">
+          {a.message} (advisory)
+        </p>
+      ))}
       {fields}
       {locked && (
         <p className="hint">

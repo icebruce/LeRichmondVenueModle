@@ -3,7 +3,7 @@ import { useProgress } from "@react-three/drei";
 import { countLayout } from "../domain/layout/counts";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { useEditor, useStudio } from "../scene/context";
+import { useAdvisories, useEditor, useStudio } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
 import { DecorPanel, Inspector, LayoutPanel, PeoplePanel, type Section, VenuePanel } from "./Panels";
@@ -28,6 +28,7 @@ function useCounts() {
 /** Desktop: floating counts strip, bottom-left (LAY-07). */
 function Counts() {
   const c = useCounts();
+  const advisories = useAdvisories().length;
   return (
     <div className="counts glass" aria-label="Counts" data-testid="counts">
       <div className="count">
@@ -50,6 +51,10 @@ function Counts() {
         <b>≈ {Math.round(c.danceFloorM2)} m²</b>
         <span>dance floor</span>
       </div>
+      <div className={`count ${advisories ? "warn" : ""}`}>
+        <b data-testid="count-advisories">{advisories}</b>
+        <span>{advisories === 1 ? "advisory" : "advisories"}</span>
+      </div>
     </div>
   );
 }
@@ -57,10 +62,17 @@ function Counts() {
 /** Phone: the same counts as one line at the top of the sheet, so the room keeps the screen. */
 function CountsLine() {
   const c = useCounts();
+  const advisories = useAdvisories().length;
   return (
     <p className="counts-line" aria-label="Counts">
       {c.tables} tables · {c.seats} seats · {c.guests} guests
       {c.withoutSeat > 0 && <span className="warn"> · {c.withoutSeat} without a seat</span>}
+      {advisories > 0 && (
+        <span className="warn">
+          {" "}
+          · {advisories} {advisories === 1 ? "advisory" : "advisories"}
+        </span>
+      )}
     </p>
   );
 }

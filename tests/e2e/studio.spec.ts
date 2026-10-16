@@ -217,6 +217,19 @@ test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills t
   ).toBe("dinner");
 });
 
+test("[LAY-08] advisory checks follow the couple's settings and never block", async ({ page }) => {
+  await openStudio(page);
+  await expect(page.getByTestId("count-advisories")).toHaveText("6");
+  await expect(page.getByTestId("checks")).toContainText("Aisle ≈ 0.4 m between table 5 and table 6");
+  await page.getByTestId("check-settings").click();
+  for (let i = 0; i < 4; i++) await page.getByTestId("aisle").getByRole("button", { name: /Fewer/ }).click();
+  // At 0.6 m the 0.7–0.8 m aisles pass; the 0.4 m one and the exit door remain.
+  await expect(page.getByTestId("count-advisories")).not.toHaveText("6");
+  await expect(page.getByTestId("checks")).not.toContainText("Aisle ≈ 0.8 m");
+  await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
+  expect((await state(page)).selection.sort()).toEqual(["t5", "t6"]);
+});
+
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {
   await openStudio(page);
   const [bx, by] = await screenOf(page, 7.7, 1.07, 6.85);

@@ -300,6 +300,13 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       });
     },
 
+    /** Advisory thresholds (LAY-08): aisle, clearance, m² per dancer, share dancing. */
+    setThreshold(key: keyof Scenario["thresholds"], value: number) {
+      commit("Check settings", (d) => {
+        d.thresholds[key] = value;
+      });
+    },
+
     setGuests(count: number) {
       commit("Guests", (d) => {
         d.guests.count = Math.max(0, Math.min(400, Math.round(count)));
