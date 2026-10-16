@@ -103,12 +103,17 @@ Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `a
 data/library/<family>.json      Entries: id, name, family, placement, sizeM {w,d,h}, sizePresets,
                                 model {kind:"parametric", generator, params} | {kind:"glb", file},
                                 lowModel (phone version: same shape, or generator params.quality "low"),
-                                options [{type:number|choice|boolean, key, label, default, …}],
+                                options [{type:number|choice|boolean|text, key, label, default, …}],
                                 thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
                                 budget {triangles, phoneTriangles, drawCalls}
 src/domain/layout/items.ts       Shape generators keyed by model.generator (rectTable, roundTable,
-                                cocktail, danceFloor, djBooth): sizes from sizeM/params/options, never ids
-src/scene/items/                 Meshes per shape kind; chairs and candles instanced
+                                cocktail, danceFloor, djBooth, backdrop, and every piece generator):
+                                sizes from sizeM/params/options, never ids
+src/domain/layout/decor.ts       Table décor as unit-primitive parts (candles, florals, runners, settings)
+src/domain/layout/pieces.ts      Step-3 pieces (plant, light, floralPiece, sign, eventPiece) as the same
+                                parts plus size, whether they block the floor, and optional words
+src/scene/items/                 Meshes per shape kind; chairs instanced; table décor and pieces drawn
+                                together, one instanced mesh per primitive and material
 public/assets/models/            GLB files (CC0 adapted or custom-built), meshopt-compressed
 public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
 ```
