@@ -86,7 +86,7 @@ One icon set (Lucide, 1.75 px stroke, 20 px in controls). Every interactive targ
 ### 3.2 Phone (< 768 px)
 
 - Full-screen viewport. Bottom tab bar with the same six sections (icons + short labels).
-- **Bottom sheet** replaces the inspector: three detents (peek 96 pt with the key action, half, full). Swipe down to dismiss.
+- **Bottom sheet** replaces the inspector: three detents (peek 164 pt: counts line, title and the key actions; half; full — owner-approved 2026-10-16). Swipe down to dismiss.
 - Camera switch as a segmented control at the top; Undo floating bottom-left above the tab bar.
 - Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item.
 

@@ -205,7 +205,7 @@ function Scene({ quality }: { quality: Quality }) {
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
       {!cut.has("south") && <Mezzanine venue={venue} m={m} />}
-      <Stair venue={venue} m={m} upper={!cut.has("south")} />
+      <Stair venue={venue} m={m} />
       {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
       <Items m={m} evening={evening} quality={quality} />

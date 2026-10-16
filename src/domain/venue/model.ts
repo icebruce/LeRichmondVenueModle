@@ -102,6 +102,7 @@ export function buildVenue(d: VenueData): VenueModel {
   const [lx0, lz0, lx1, lz1] = d.stair.landing;
   const fl = d.stair.flight;
   const [ux0, uz0, ux1, uz1] = d.stair.upperLanding;
+  const f2 = d.stair.upperFlight;
   const [wx0, wz0, wx1, wz1] = d.fixtures.wineWall.rect;
 
   const obstacles: Obstacle[] = [
@@ -119,6 +120,16 @@ export function buildVenue(d: VenueData): VenueModel {
       ),
     },
     { id: "stair-upper", label: "the stair", polygon: rect(ux0, uz0, ux1, uz1) },
+    {
+      id: "stair-second-flight",
+      label: "the stair",
+      polygon: rect(
+        Math.min(f2.from[0], f2.to[0]),
+        Math.min(f2.from[1], f2.to[1]),
+        Math.max(f2.from[0], f2.to[0]),
+        Math.max(f2.from[1], f2.to[1]),
+      ),
+    },
     { id: "wine-wall", label: "the wine wall", polygon: rect(wx0, wz0, wx1, wz1) },
     ...d.fixtures.banquettes
       .filter((b) => !b.disabled && b.x0 !== undefined && b.x1 !== undefined)

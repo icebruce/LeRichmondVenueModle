@@ -61,8 +61,8 @@
             "to": [10.64, 8.32]
           },
           {
-            "from": [13.0, 11.3],
-            "to": [14.2, 11.3]
+            "from": [11.4, 11.3],
+            "to": [12.5, 11.3]
           }
         ],
         "confidence": "L",
@@ -174,14 +174,6 @@
       "height": 3.8,
       "openings": [
         {
-          "id": "stair-up",
-          "kind": "opening",
-          "start": 0,
-          "end": 0.8,
-          "sill": 1.62,
-          "head": 3.8
-        },
-        {
           "id": "corridor",
           "kind": "opening",
           "start": 3.3,
@@ -262,9 +254,15 @@
       "rise": 1.62,
       "treads": 9
     },
-    "upperLanding": [15.2, 13.1, 16, 14.3],
-    "confidence": "L",
-    "sources": ["C", "R09", "UV02"]
+    "upperLanding": [15.2, 11.9, 16, 14.3],
+    "upperFlight": {
+      "from": [15.2, 11.9],
+      "to": [12.7, 13.1],
+      "treads": 12
+    },
+    "topLanding": [11.4, 11.9, 12.7, 14.3],
+    "confidence": "M",
+    "sources": ["C", "R01", "R09", "UV02", "owner 2026-10-16"]
   },
   "spots": {
     "dj1": {
@@ -344,9 +342,9 @@
         "kind": "brassCluster",
         "x": 7.74,
         "z": 4.4,
-        "bottom": 3.1,
-        "top": 5.4,
-        "radius": 1.0
+        "bottom": 3.3,
+        "top": 5.3,
+        "radius": 0.7
       },
       {
         "kind": "birdcage",

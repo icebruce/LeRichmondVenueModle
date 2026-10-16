@@ -95,8 +95,14 @@ export const venueSchema = z.object({
   }),
   stair: z.object({
     landing: rect4,
+    /** Lower flight from the entrance landing east to the east-wall landing, rising `rise`. */
     flight: z.object({ from: vec2, to: vec2, rise: z.number(), treads: z.number().int().positive() }),
+    /** Turn landing against the east wall, at the lower flight's top. */
     upperLanding: rect4,
+    /** Second flight back west from the turn landing up to the mezzanine floor. */
+    upperFlight: z.object({ from: vec2, to: vec2, treads: z.number().int().positive() }),
+    /** Head of the second flight at mezzanine height, joining the mezzanine edge. */
+    topLanding: rect4,
     confidence,
     sources: z.array(z.string()),
   }),

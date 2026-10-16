@@ -316,26 +316,34 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
         const stem = new THREE.CylinderGeometry(0.03, 0.03, C - c.bottom, 6);
         stem.translate(c.x, (C + c.bottom) / 2, c.z);
         wires.push(stem);
-        // Tiered brass rings of cylinder lamps around the stem, widest at the bottom (R03).
-        const tiers = 4;
-        for (let k = 0; k < tiers; k++) {
-          const rad = c.radius * (1 - k * 0.2);
-          const y = c.bottom + (((top - c.bottom) * k) / (tiers - 1)) * 0.85;
-          const ring = new THREE.TorusGeometry(rad, 0.012, 4, 40);
-          ring.rotateX(Math.PI / 2);
-          ring.translate(c.x, y + 0.02, c.z);
-          wires.push(ring);
-          const n = Math.round(16 * (rad / c.radius));
-          for (let i = 0; i < n; i++) {
-            const a = (i / n) * Math.PI * 2 + k * 0.4;
-            t.position.set(c.x + Math.cos(a) * rad, y + 0.09, c.z + Math.sin(a) * rad);
-            t.scale.set(1, 1, 1);
-            t.updateMatrix();
-            tubes.push(t.matrix.clone());
-            t.position.y = y - 0.04;
-            t.updateMatrix();
-            bulbs.push(t.matrix.clone());
+        // Dense cluster of short vertical brass cylinders with bare bulbs, each on a thin arm from
+        // the central stem, filling an upright ovoid (R02, R03; owner-confirmed 2026-10-16).
+        const cy = (c.bottom + top) / 2;
+        const ry = (top - c.bottom) / 2;
+        const count = 84;
+        for (let i = 0; i < count; i++) {
+          const shell = i % 3 === 0 ? 0.55 : 1;
+          const v = 1 - (2 * (i + 0.5)) / count;
+          const ring = Math.sqrt(1 - v * v);
+          const a = i * 2.39996;
+          const lx = Math.cos(a) * ring * c.radius * shell;
+          const lz = Math.sin(a) * ring * c.radius * shell;
+          const y = cy + v * ry * 0.92;
+          const reach = Math.hypot(lx, lz);
+          if (reach > 0.05) {
+            const arm = new THREE.CylinderGeometry(0.006, 0.006, reach, 4);
+            arm.rotateZ(Math.PI / 2);
+            arm.rotateY(-Math.atan2(lz, lx));
+            arm.translate(c.x + lx / 2, y + 0.17, c.z + lz / 2);
+            wires.push(arm);
           }
+          t.position.set(c.x + lx, y + 0.09, c.z + lz);
+          t.scale.set(1, 1, 1);
+          t.updateMatrix();
+          tubes.push(t.matrix.clone());
+          t.position.y = y - 0.04;
+          t.updateMatrix();
+          bulbs.push(t.matrix.clone());
         }
       } else {
         const h = c.height ?? 1.2;

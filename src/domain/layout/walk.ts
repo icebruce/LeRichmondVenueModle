@@ -8,7 +8,8 @@ import { type VenueToggles, toggledObstacles } from "./validate";
 export const WALK_RADIUS = 0.28;
 
 /**
- * Where a guest at eye level may stand: inside the room, clear of the bar, stair, fixtures, the
+ * Where a guest at eye level may stand: inside the room (the entrance landing included), clear of
+ * the bar, stair flights, fixtures, the
  * venue furniture that is switched on, the raised-floor railing (steps stay open) and every placed
  * item except the dance floor, which is walked on.
  */
@@ -20,7 +21,8 @@ export function walkArea(
   radius = WALK_RADIUS,
 ): (p: Vec2) => boolean {
   const blockers: Polygon[] = [
-    ...venue.obstacles.map((o) => o.polygon),
+    // The entrance landing is floor a guest arrives on; it only blocks furniture.
+    ...venue.obstacles.filter((o) => o.id !== "stair-landing").map((o) => o.polygon),
     ...toggledObstacles(venue, toggles).map((o) => o.polygon),
     ...items.filter((it) => shapeOf(it, catalog).kind !== "danceFloor").map((it) => footprint(it, catalog)),
   ];

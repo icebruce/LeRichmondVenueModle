@@ -220,6 +220,8 @@ button:disabled {
   gap: var(--s-2);
 }
 .icon-btn.glass {
+  background: var(--surface-glass);
+  color: var(--ink-2);
   width: calc(var(--target) + 10px);
   height: calc(var(--target) + 10px);
   border-radius: var(--r-card);

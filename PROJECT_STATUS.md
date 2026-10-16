@@ -24,6 +24,9 @@
 - Docs structure and tooling chosen on their merits; WeddingRunbookPlanner was a reference only.
 - Pull request per step with Vercel preview for owner review.
 - Library: ~90 items across tables, chairs, linens, tableware, candles, florals, plants, lights, signs, event pieces; custom pieces added later through in-app requests built by Claude (owner-approved 2026-10-15).
+- Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
+- Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
+- Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
@@ -44,10 +47,9 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 ## Open items
 
 - Raised floor height and step positions; stair run and turn (evidence matrix §6).
-- Stair: fidelity review (medium confidence) reads R09/UV02 as a second flight turning at the east-wall landing back west to the mezzanine front at 3.8 m. Not adopted: the owner described the stair climbing from the landing to the wall. Ask the owner at the step 1 gate.
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag and the joystick need a check on a real phone (pointer handling is tested in software only).
-- Not yet done from the reviews: two-finger rotate on phone (the inspector buttons rotate; the 3D handle is desktop-only); phone camera ignores the top bar and sheet when framing; sheet peek is 164 pt vs 96 pt in DESIGN_GUIDE §3.2 (counts line + actions need it; owner to confirm); Plan view still shows shadows and wall art; back bar reads as shelving rather than bottles; the two reviews disagree on the chandelier (tiered rings vs a dense brass cluster), so it waits for the owner's eye.
+- Not yet done from the reviews: two-finger rotate on phone (the inspector buttons rotate; the 3D handle is desktop-only); phone camera ignores the top bar and sheet when framing; sheet peek is 164 pt vs 96 pt in DESIGN_GUIDE §3.2 (counts line + actions need it; owner to confirm); Plan view still shows shadows and wall art; back bar reads as shelving rather than bottles; main chandelier position (z) still unconfirmed.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.

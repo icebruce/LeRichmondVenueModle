@@ -57,7 +57,7 @@ describe("placement", () => {
   });
 
   test("[VEN-04] a table straddling the raised floor edge is refused", () => {
-    const r = checkPlacement(table({ x: 13.6, z: 11.3 }), [], venue, catalog);
+    const r = checkPlacement(table({ x: 11.2, z: 10.4 }), [], venue, catalog);
     expect(r).toEqual({ ok: false, reason: "Straddles the raised floor edge" });
   });
 
@@ -187,6 +187,14 @@ describe("walking", () => {
     expect(free([7, 5])).toBe(false);
     expect(free([0.1, 5])).toBe(false);
     expect(free([8, 14.25])).toBe(false);
+  });
+
+  test("[CAM-03] walking starts on the entrance landing; both stair flights block", () => {
+    const free = walkArea(venue, [], catalog, off);
+    const start = venue.data.cameraPresets.walkStart?.position ?? [0, 0, 0];
+    expect(free([start[0] ?? 0, start[2] ?? 0])).toBe(true);
+    expect(free([14, 13.7])).toBe(false);
+    expect(free([14, 12.5])).toBe(false);
   });
 
   test("[CAM-03] the dance floor is walked on; venue furniture blocks only when shown", () => {
