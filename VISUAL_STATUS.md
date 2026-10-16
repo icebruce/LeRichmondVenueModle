@@ -15,7 +15,7 @@ Each step ships on its own; stopping after any step leaves a consistent result.
 
 | Step | Delivers | Gate | State |
 |---|---|---|---|
-| P | Full-plan prototype (local branch `proto/visual-lookdev`, not merged): every V1–V6 visual at prototype quality; two reference pictures, `docs/visual/target-overview-evening.webp` and `docs/visual/target-eye-level-evening.webp` | Owner accepts the pictures as the visual target | Done (2026-10-16) |
+| P | Full-plan prototype (throwaway, discarded; the plan carries everything it showed): every V1–V6 visual at prototype quality; two reference pictures, `docs/visual/target-overview-evening.webp` and `docs/visual/target-eye-level-evening.webp` | Owner accepts the pictures as the visual target | Done (2026-10-16) |
 | V0 | Performance: profile; fix the view-switch and menu lag; render only when something changes; merge static venue meshes by material; static shadows drawn once; Auto quality monitor; baseline shots and numbers | Targets below met on the owner's devices | Not started |
 | V1 | Light and presentation: evening light hierarchy (lower fill, walls fading into the dark above head height, painted light pools under the chandeliers and on the bar top, warm uplight washes on the brick piers, darker edges); bevelled edges; painted-on contact shadows under tables and chairs; reflection environment; tone; light wall caps and a plinth under the room; compressed textures with a 1K phone set (required: the new textures add ~6 MB); graphics tiers + setting | Owner approves look on the preview | Not started |
 | V2 | Room surfaces at real-world scale (CC0, Poly Haven): slate floor tiles (`large_floor_tiles_02`, 0.65 m tiles, per-tile tone, darker warm joints), dark hardwood (`old_wood_floor`), buff brick (`yellow_brick`) with soft patch variation, red-brick dado (`red_brick`); garage-door frames, pier bands, green panelled wall | Fidelity review vs R02/R03/R04 | Not started |
@@ -78,6 +78,5 @@ CI checks draw calls and triangles per tier (software rendering makes frame rate
 ## Open items
 
 - Phone models (exact iPhone and Android) to fix the targets.
-- Prototype branch `proto/visual-lookdev` exists only in the session that built it; pushing it (and a Vercel preview to feel frame rate on the phones) needs the owner's go-ahead.
 - New spec rows when built: bar flowers (VEN), graphics setting (PLT). New budget rows in `ARCHITECTURE.md` §7: GPU memory, view-switch freeze.
 - Menu-open lag cause not yet profiled (V0).
