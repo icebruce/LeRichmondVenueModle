@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is PR #4 against `main`, reviewed and waiting for the owner. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
+**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4). Step 3 gate open: one real custom request and one real centrepiece import. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -11,7 +11,7 @@
 | 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
-| 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | In review |
+| 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
 
 ## Decisions
 
@@ -50,26 +50,20 @@
 - New items are added at the centre of the current view.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
-## Next steps (handover, 2026-10-16)
+## Next steps (2026-10-16)
 
 Where things stand:
 
-- **Step 3a** merged (PR #3, 997a528). The owner approved its calls on 2026-10-16.
-- **Step 3b** is PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
-  - Built: IMP-01..07, REQ-01..04, the LIB-09 print, and flower types on floral installations.
-  - Reviewed once by UX (1 blocker, 6 majors) and once by spec (3 majors); all fixed.
-  - Tests: 103 unit tests and the full browser suite (30) pass locally. 65/65 must-haves for steps 1–3 traced (REQ-03 and REQ-04 as manual gates).
-  - Waits on the owner: approve the visuals (the crop frame is new) and merge.
+- **Step 3b** merged (PR #4, 5665b3b).
+- Open items closed (2026-10-16): a request's photos upload only when the request is sent, so an abandoned form leaves nothing in the cloud (REQ-01); evening visual baseline with every light type (LIB-08).
+- `LIBRARY_REQUESTS_TOKEN` is set in Vercel and in the Claude environment; verified from here: `GET /api/library-requests` with the token answers 200 (cloud store configured), no requests yet.
 
 To do, in order:
 
-1. Owner: review PR #4 on its preview and merge it.
-2. Verify the cloud setup on the deployed site, either by the owner, or from here once `*.vercel.app` is allowed in this environment's network settings:
-   - the first shared save (Upstash scripting);
-   - an import seen on the second device.
-3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README; also allow the site's domain there). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
-4. Owner gate for step 3: import a real centrepiece; one custom request delivered.
-5. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
+1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "In library" (REQ-03 acceptance).
+2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
+3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
+4. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
 
 ## Step 1 quality (2026-10-16)
 
@@ -98,13 +92,12 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Main chandelier position (z) still unconfirmed.
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
+- Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
-- Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET. Not yet verified from here (this environment's network policy blocks vercel.app): the first shared save and an import seen on the second device. `LIBRARY_REQUESTS_TOKEN` is not set yet; REQ-03's acceptance (one real request delivered through a PR) needs it in Vercel and in the Claude environment.
+- Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET, LIBRARY_REQUESTS_TOKEN. Token read verified from here; the first shared save and an import seen on the second device are owner checks (Claude cannot sign in).
 - Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
 - Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
 - "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
-- A photo added to a request form that is then abandoned stays stored (small; no cleanup yet).
-- LIB-08 "visible effect in evening mode" is checked by unit test (bulbs, beams, glows) and by the evening screenshots in the PR; no evening visual baseline yet.
 
 ## Media ingestion (2026-10-15)
 

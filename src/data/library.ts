@@ -199,10 +199,9 @@ export class LibrarySync {
     return this.sync();
   }
 
-  /** Keeps a photo on this device and queues it for the cloud. */
+  /** Keeps a request photo on this device; it goes to the cloud with the request that uses it. */
   async addImage(id: string, blob: Blob): Promise<void> {
     await set(this.imageKey(id), blob);
-    await this.change({ images: [id] });
   }
 
   /** IMP-06: the item joins the library at once; the partner sees it after their next sync. */
@@ -221,9 +220,18 @@ export class LibrarySync {
     await this.change({ archives: [id] });
   }
 
+  /**
+   * Sends the request with the photos added since its last save, so photos of a form left
+   * unsent never reach the cloud. An import's photo is already sent with the import.
+   */
   async saveRequest(request: CustomRequest): Promise<void> {
+    const { requests, imports } = libraryStore.getState();
+    const before = requests.find((r) => r.id === request.id)?.imageIds ?? [];
+    const images = request.imageIds.filter(
+      (id) => !before.includes(id) && !imports.some((i) => i.imageId === id),
+    );
     libraryStore.setState((s) => ({ requests: mergeRequests(s.requests, [request]) }));
-    await this.change({ requests: [request.id] });
+    await this.change({ images, requests: [request.id] });
   }
 
   /** A stored photo as a URL the scene and lists can show: from this device, else the cloud. */

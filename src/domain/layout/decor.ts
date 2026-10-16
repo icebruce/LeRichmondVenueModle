@@ -220,6 +220,46 @@ const centrepieces: Record<string, Gen> = {
     }
     return parts;
   },
+  // Three glass cylinders (20 / 25 / 30 cm) of white candle sand, a wick burning on top, on a ring
+  // of eucalyptus with baby's breath (REQ req-f6462824).
+  sandCylinders: () => {
+    const parts = (
+      [
+        [0.05, -0.035, 0.3],
+        [-0.065, -0.03, 0.25],
+        [-0.005, 0.06, 0.2],
+      ] as const
+    ).flatMap(([x, z, h]) => [
+      cyl("glass", x, 0, z, 0.045, h),
+      cyl("wax", x, 0.004, z, 0.041, h - 0.035),
+      { ...ball("flame", x, h - 0.035 + 0.018, z, 0.011), sy: 0.022 },
+    ]);
+    // Eucalyptus: round, slightly domed leaves (flat cones, light on phones) tilted every way,
+    // mounded around the glass; baby's breath as small white florets among them.
+    for (let i = 0; i < 30; i++) {
+      const a = i * 2.39996;
+      const r = 0.09 + (i % 5) * 0.014;
+      parts.push({
+        prim: "cone",
+        slot: "leaf",
+        x: Math.cos(a) * r,
+        y: 0.008 + (i % 4) * 0.016,
+        z: Math.sin(a) * r,
+        sx: 0.028,
+        sy: 0.006,
+        sz: 0.028,
+        rx: ((i % 7) - 3) * 0.3,
+        rz: ((i % 5) - 2) * 0.35,
+        colour: "#7f9c86",
+      });
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.4;
+      const r = 0.115 + (i % 3) * 0.014;
+      parts.push(ball("flower", Math.cos(a) * r, 0.055 + (i % 2) * 0.012, Math.sin(a) * r, 0.012, "#f6f3ec"));
+    }
+    return parts;
+  },
   hurricane: () => [cyl("glass", 0, 0, 0, 0.08, 0.34), ...candle(0, 0, 0, 0.04, 0.14)],
   lantern: () => [
     { prim: "box", slot: "black", x: 0, y: 0, z: 0, sx: 0.16, sy: 0.015, sz: 0.16 },
