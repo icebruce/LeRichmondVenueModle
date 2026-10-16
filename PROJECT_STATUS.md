@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1 and 2 merged (PR #1, PR #2; owner-approved 2026-10-16). Step 3 built as two PRs: 3a (PR #3, CI green, awaiting owner review) and 3b (draft PR #4 stacked on 3a, reviews still to run). See **Next steps** below. Cloud saving needs the owner's one-time Vercel setup (README; not done yet).
+**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is draft PR #4 against `main`; its UX and spec reviews are still to run. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -35,7 +35,9 @@
 - Step 3 ships as two PRs: 3a library completion + Sit here, 3b inspiration import + custom model requests (owner, 2026-10-16).
 - Imported photos are stored in Upstash with the scenarios, shrunk to ≤ 500 KB first; no new service (owner, 2026-10-16).
 - Step-3 pieces (plants, lights, floral installations, signs, event pieces, cake and gift tables) are data plus small generators drawn with the shared instanced primitives; hanging and ceiling pieces never block the floor. Lights glow through emissive bulbs and soft beams, not real lamps (phone budget). The framed print from the owner's photo moves to 3b (needs photo storage).
-- Sit here: select a table → "Sit here" → tap a chair; the view sits at 1.2 m facing the table, look-around only; "Stand up" or Esc returns. Differs from CAM-04's "tap any chair" (chairs are too small to tap reliably from the default view); awaiting owner confirmation before the spec row changes.
+- Sit here: select a table → "Sit here" → tap a chair; the view sits at 1.2 m facing the table, look-around only; "Stand up" or Esc returns (owner-approved 2026-10-16; CAM-04 row updated). The library category chips, seat targets and seated bar are approved too.
+- Floral installations take a flower type like table arrangements; on installations it changes bloom size, leaves and leaf colour, never adds blooms (budget) (owner, 2026-10-16).
+- Step 3a merged (PR #3, 2026-10-16).
 - Step-3 pieces are built to their catalogue size (`sizeM`); plant species proportions are data. A hanging or projected piece over a table gives the first click to the table; with the table selected, the next click reaches the piece (2026-10-16).
 - Step 3b is a second PR on its own branch, stacked on 3a (owner, 2026-10-16).
 - Exact 3D (GLB) import is deferred; exact models come through custom requests that Claude builds (owner, 2026-10-16).
@@ -52,22 +54,19 @@
 
 Where things stand:
 
-- **PR #3, step 3a** (branch `ccr-32f95f5c-e6p10x`). CI green; Vercel preview ready.
-  - Two UX and spec review rounds done.
-  - Waits on the owner: approve the visuals and confirm the three items under Open items (Sit here flow, new UI patterns, flower types on installations).
-- **Step 3b** (branch `ccr-32f95f5c-e6p10x-3b`, stacked on 3a). Draft PR #4; retarget it to `main` once #3 merges. Full suite: 30 browser tests pass locally.
-  - Built: IMP-01..07, REQ-01..04 and the LIB-09 print.
-  - Tests: 100 unit tests; browser tests include the import flow and a two-device share of an import and a request. 65/65 must-haves for steps 1–3 traced.
-  - Not done yet: the UX and spec reviews (both stopped on a usage limit) and DoD screenshots. Screenshots were captured once, but not reviewed.
+- **Step 3a** merged (PR #3, 997a528). The owner approved its calls on 2026-10-16.
+- **Step 3b** is draft PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
+  - Built: IMP-01..07, REQ-01..04, the LIB-09 print, and flower types on floral installations.
+  - Tests: unit tests plus the full browser suite (30) pass locally, including the import flow and a two-device share of an import and a request. 65/65 must-haves for steps 1–3 traced.
+  - Not done yet: the UX and spec reviews (both stopped on a usage limit). Screenshots were captured once but not reviewed.
 
 To do, in order:
 
-1. Run the `ux-reviewer` and `spec-reviewer` on 3b. Fix their blockers and majors, rerun `npm run check`, `npm run build` and the full Playwright suite, push, then mark the 3b PR ready.
-2. Owner: merge PR #3 after review, then retarget the 3b PR to `main`.
-3. Owner: the one-time cloud setup (Upstash, `APP_PASSWORD`, `SESSION_SECRET`), plus `LIBRARY_REQUESTS_TOKEN` in Vercel and in the Claude environment (README). Then verify on the preview:
+1. Run the `ux-reviewer` and `spec-reviewer` on 3b. Fix their blockers and majors, rerun `npm run check`, `npm run build` and the full Playwright suite, push, then mark PR #4 ready. The owner approves visuals and merges.
+2. Verify the cloud setup on the deployed site, either by the owner, or from here once `*.vercel.app` is allowed in this environment's network settings:
    - the first shared save (Upstash scripting);
-   - an import seen on the second device;
-   - one real custom request delivered through a PR (REQ-03 acceptance).
+   - an import seen on the second device.
+3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
 4. Owner gate for step 3: import a real centrepiece; one custom request delivered.
 5. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
 
@@ -99,9 +98,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
-- Owner's one-time cloud setup (Upstash + APP_PASSWORD + SESSION_SECRET) not done yet; sharing of imports and requests is tested against the local API until then. REQ-03's acceptance (one real request delivered through a PR) also needs `LIBRARY_REQUESTS_TOKEN` set in Vercel and in the Claude environment.
-- Owner to confirm: the Sit here flow above (CAM-04); the three new UI patterns (DESIGN_GUIDE §4: category chips, seat targets, seated bar).
-- Floral installations (arch, wall, pedestal, hanging) take a colour palette but not a flower type yet; table florals do (LIB-06). Raise with the owner whether installations need flower types.
+- Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET. Not yet verified from here (this environment's network policy blocks vercel.app): the first shared save and an import seen on the second device. `LIBRARY_REQUESTS_TOKEN` is not set yet; REQ-03's acceptance (one real request delivered through a PR) needs it in Vercel and in the Claude environment.
 - Phone draw calls in the dressed-room test leave about 11 calls of headroom under 150; each piece with words adds one. Re-measure in 3b.
 - LIB-08 "visible effect in evening mode" is checked by unit test (bulbs, beams, glows) and by the evening screenshots in the PR; no evening visual baseline yet.
 

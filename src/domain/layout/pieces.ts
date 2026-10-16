@@ -1,4 +1,4 @@
-import { FLORAL_PALETTES, type Part, type Slot } from "./decor";
+import { FLORAL_PALETTES, FLOWER_TYPES, type Part, type Slot } from "./decor";
 import { seededRandom } from "../random";
 
 /**
@@ -97,6 +97,7 @@ function cloud(
   rand: () => number,
   leafShare = 0.35,
   bloom = 0.05,
+  leafColour?: string,
 ): Part[] {
   const parts: Part[] = [];
   for (let i = 0; i < n; i++) {
@@ -108,7 +109,8 @@ function cloud(
     const x = cx + Math.cos(a) * s * rx * k;
     const y = cy + u * ry * k;
     const z = cz + Math.sin(a) * s * rz * k;
-    if (rand() < leafShare) parts.push({ ...ball("leaf", x, y, z, bloom * 1.1), sy: bloom * 0.5 });
+    if (rand() < leafShare)
+      parts.push({ ...ball("leaf", x, y, z, bloom * 1.1, leafColour), sy: bloom * 0.5 });
     else parts.push(ball("flower", x, y, z, bloom * (0.8 + rand() * 0.5), colours[i % colours.length]));
   }
   return parts;
@@ -361,7 +363,25 @@ function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
   }
 }
 
+/**
+ * A flower type on an installation (LIB-06), as table arrangements read it: bloom size relative to
+ * roses, how often a leaf replaces a bloom, and a leaf colour. Never more blooms than roses, so a
+ * baby's-breath arch stays inside its triangle budget (it reads as smaller blooms instead).
+ */
+function flowerLook(o: Values) {
+  const f =
+    FLOWER_TYPES[str(o.flowerType, "rose")] ??
+    (FLOWER_TYPES.rose as NonNullable<(typeof FLOWER_TYPES)[string]>);
+  return {
+    k: (f.bloom[0] + f.bloom[1]) / 2 / 0.0425,
+    count: Math.min(1, f.count),
+    leaf: 1 / f.leafEvery,
+    leafColour: f.leaf,
+  };
+}
+
 function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
+  const look = flowerLook(o);
   // An imported installation carries the photo's colours (IMP-05); others use a named palette.
   const colours = typeof p.colours === "string" ? p.colours.split(",") : palette(o.palette ?? p.palette);
   const kind = str(p.kind, "");
@@ -383,19 +403,19 @@ function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
                 h - r + Math.sin(((t - 0.33) / 0.34) * Math.PI) * r,
               ];
       for (let i = 0; i < 24; i++) parts.push(rod("brass", at(i / 24), at((i + 1) / 24), 0, 0.012));
-      for (let i = 0; i < Math.round(110 * share(p)); i++) {
+      for (let i = 0; i < Math.round(110 * share(p) * look.count); i++) {
         const t = 0.15 + rand() * 0.55;
         const [x, y] = at(t);
         const z = (rand() - 0.5) * 0.25;
         parts.push(
-          rand() < 0.3
-            ? { ...ball("leaf", x + (rand() - 0.5) * 0.15, y, z, 0.07), sy: 0.03 }
+          rand() < look.leaf
+            ? { ...ball("leaf", x + (rand() - 0.5) * 0.15, y, z, 0.07, look.leafColour), sy: 0.03 }
             : ball(
                 "flower",
                 x + (rand() - 0.5) * 0.15,
                 y + (rand() - 0.5) * 0.1,
                 z,
-                0.045 + rand() * 0.03,
+                (0.045 + rand() * 0.03) * look.k,
                 colours[i % colours.length],
               ),
         );
@@ -414,14 +434,15 @@ function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
           // Jittered and varied, so it reads as massed flowers rather than a grid.
           const jx = x + (rand() - 0.5) * step * 0.5;
           const jy = y + (rand() - 0.5) * step * 0.5;
-          const r = step * (0.45 + rand() * 0.2);
+          // Bloom size follows the flower type, but never so small the board shows through.
+          const r = step * (0.45 + rand() * 0.2) * Math.max(0.7, Math.min(1.3, look.k));
           // Kept on the board, so the wall is no wider or taller than its size.
           const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
           const cx = clamp(jx, -w / 2 + r * 1.2, w / 2 - r * 1.2);
           const cy = clamp(jy, r * 1.2, h - r * 1.2);
           parts.push(
-            rand() < 0.2
-              ? { ...ball("leaf", cx, cy, 0, r * 1.2), sz: step * 0.3 }
+            rand() < look.leaf * 0.6
+              ? { ...ball("leaf", cx, cy, 0, r * 1.2, look.leafColour), sz: step * 0.3 }
               : ball("flower", cx, cy, 0, r, c),
           );
         }
@@ -438,7 +459,20 @@ function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
         parts: [
           cyl("ceramic", 0, 0, 0, 0.18, column),
           cyl("ceramic", 0, column, 0, 0.22, 0.04),
-          ...cloud(0, size.h - 0.3, 0, r, 0.25, r, Math.round(70 * share(p)), colours, rand),
+          ...cloud(
+            0,
+            size.h - 0.3,
+            0,
+            r,
+            0.25,
+            r,
+            Math.round(70 * share(p) * look.count),
+            colours,
+            rand,
+            look.leaf,
+            0.05 * look.k,
+            look.leafColour,
+          ),
         ],
       };
     }
@@ -446,11 +480,24 @@ function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
       // Hanging installation: a cloud of flowers and greenery above a table or the dance floor.
       const hang = num(o.hang, 2.6);
       const w = num(o.width, size.w);
-      const n = Math.round(w * 55 * share(p));
+      const n = Math.round(w * 55 * share(p) * look.count);
       const parts: Part[] = [
         cyl("black", -w / 3, hang + 0.3, 0, 0.004, 1.5),
         cyl("black", w / 3, hang + 0.3, 0, 0.004, 1.5),
-        ...cloud(0, hang + 0.25, 0, w / 2 - 0.05, 0.25, size.d / 2 - 0.05, n, colours, rand, 0.45),
+        ...cloud(
+          0,
+          hang + 0.25,
+          0,
+          w / 2 - 0.05,
+          0.25,
+          size.d / 2 - 0.05,
+          n,
+          colours,
+          rand,
+          Math.min(0.6, look.leaf * 1.35),
+          0.05 * look.k,
+          look.leafColour,
+        ),
       ];
       return { width: w, depth: size.d, height: hang + 0.5, parts };
     }

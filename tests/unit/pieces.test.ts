@@ -161,4 +161,27 @@ describe("step-3 library pieces", () => {
   test("[LIB-12] a new piece kind with no generator code fails loudly", () => {
     expect(() => makePiece("light", { kind: "lava" }, {}, { w: 1, d: 1, h: 1 })).toThrow(/lava/);
   });
+
+  test("[LIB-06] flower types change installations: big peonies, small baby's breath, grey-green eucalyptus", () => {
+    const pedestal = catalog.get("floral-pedestal");
+    if (!pedestal || pedestal.model.kind !== "parametric") throw new Error("no pedestal");
+    const params = pedestal.model.params;
+    const blooms = (flowerType: string) =>
+      makePiece(
+        "floralPiece",
+        params,
+        { ...resolveOptions(pedestal, {}), flowerType } as Record<string, string>,
+        pedestal.sizeM,
+      ).parts;
+    const size = (ps: Part[]) => {
+      const f = ps.filter((p) => p.slot === "flower");
+      return f.reduce((a, p) => a + p.sx, 0) / f.length;
+    };
+    expect(size(blooms("peony"))).toBeGreaterThan(size(blooms("rose")) * 1.2);
+    expect(size(blooms("babysBreath"))).toBeLessThan(size(blooms("rose")) * 0.6);
+    expect(blooms("eucalyptus").some((p) => p.slot === "leaf" && p.colour === "#9fb5a8")).toBe(true);
+    // Never more blooms than roses, so every flower type stays inside the budget.
+    expect(blooms("babysBreath").length).toBeLessThanOrEqual(blooms("rose").length);
+    expect(pedestal.options.some((o) => o.key === "flowerType")).toBe(true);
+  });
 });
