@@ -23,8 +23,10 @@ async function signIn(browser: Browser, partner: "A" | "B") {
   await page.getByLabel("Password").fill("wedding-test");
   await page.getByRole("radio", { name: `Partner ${partner}` }).click();
   await page.getByRole("button", { name: "Open the studio" }).click();
+  // The partner's page is often still rendering beside this one; on CI's software WebGL the second
+  // studio can take over a minute to start, so wait as long as for loading below.
   await page.waitForFunction(() => (window as unknown as { __project?: unknown }).__project, null, {
-    timeout: 60_000,
+    timeout: 120_000,
   });
   await expect(page.locator(".loading")).toHaveCount(0, { timeout: 120_000 });
   await settle(page);
