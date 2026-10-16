@@ -88,3 +88,25 @@ describe("scenario files", () => {
     expect(s.venueToggles.paintings).toEqual({});
   });
 });
+
+describe("paintings", () => {
+  test("[VEN-05] each painting can stay, be hidden or be swapped; the choice is saved and undoable", async () => {
+    const { artFor, ARTWORKS } = await import("../../src/domain/venue/art");
+    const own = ["#111111", "#222222", "#333333"];
+    expect(artFor(undefined, own)).toEqual({ hidden: false, palette: own });
+    expect(artFor("hidden", own)).toEqual({ hidden: true });
+    expect(artFor("botanical", own)).toEqual({ hidden: false, palette: ARTWORKS[0]?.palette });
+    let n = 0;
+    const editor = createEditor(
+      { venue, catalog, now: () => "2026-10-16T00:00:00.000Z", newId: () => `id${++n}` },
+      [venueSampleScenario("A", "2026-10-16T00:00:00.000Z")],
+    );
+    editor.setPainting("popart", "hidden");
+    editor.setPainting("horseman", "gold");
+    expect(editor.active().venueToggles.paintings).toEqual({ popart: "hidden", horseman: "gold" });
+    editor.setPainting("popart", null);
+    expect(editor.active().venueToggles.paintings).toEqual({ horseman: "gold" });
+    editor.undo();
+    expect(editor.active().venueToggles.paintings.popart).toBe("hidden");
+  });
+});

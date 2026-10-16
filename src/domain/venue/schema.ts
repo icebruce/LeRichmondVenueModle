@@ -125,6 +125,8 @@ export const venueSchema = z.object({
     paintings: z.array(
       z.object({
         id: z.string(),
+        /** How the couple refers to it ("Horseman painting"). */
+        label: z.string(),
         wall: z.literal("north"),
         x0: z.number(),
         x1: z.number(),

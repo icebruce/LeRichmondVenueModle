@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
+import { artFor } from "../../domain/venue/art";
 import type { OpeningData, WallData } from "../../domain/venue/schema";
 import { type Materials, boxGeo } from "../materials";
 import { paintingTexture } from "../textures";
@@ -289,7 +290,8 @@ export function Furnishings({
   m,
   communalTable,
   art,
-}: Omit<P, "evening"> & { communalTable: boolean; art: boolean }) {
+  choices,
+}: Omit<P, "evening"> & { communalTable: boolean; art: boolean; choices: Record<string, string> }) {
   const g = useMemo(() => {
     const f = venue.data.fixtures;
     const seats: THREE.BufferGeometry[] = [];
@@ -313,13 +315,20 @@ export function Furnishings({
     const communal = boxGeo(cx0, 0, cz0, cx1, f.venueFurniture.communalTable.height, cz1);
     return { seats: merge(seats), backs: merge(backs), wine, wineCanopy, communal };
   }, [venue]);
+  // Hidden or swapped per scenario (VEN-05).
   const paintings = useMemo(
     () =>
-      venue.data.fixtures.paintings.map((p, i) => ({
-        ...p,
-        tex: paintingTexture(p.palette, 11 + i * 31),
-      })),
-    [venue],
+      venue.data.fixtures.paintings.flatMap((p, i) => {
+        const a = artFor(choices[p.id], p.palette);
+        return a.hidden ? [] : [{ ...p, tex: paintingTexture(a.palette, 11 + i * 31) }];
+      }),
+    [venue, choices],
+  );
+  useEffect(
+    () => () => {
+      for (const p of paintings) p.tex.dispose();
+    },
+    [paintings],
   );
   return (
     <group name="furnishings">

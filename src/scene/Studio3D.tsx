@@ -209,6 +209,7 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
         m={m}
         communalTable={scenario.venueToggles.communalTable}
         art={mode !== "plan"}
+        choices={scenario.venueToggles.paintings}
       />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}

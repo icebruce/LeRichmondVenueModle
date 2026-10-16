@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
 import { FLORAL_PALETTES } from "../domain/layout/decor";
 import { advise } from "../domain/layout/advisories";
+import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
@@ -753,6 +754,21 @@ export function VenuePanel() {
         onChange={(v) => editor.setVenueToggle("barStools", v)}
         testId="toggle-stools"
       />
+      <h3 className="group-title">Paintings</h3>
+      {venue.data.fixtures.paintings.map((p) => (
+        <Chips
+          key={p.id}
+          label={p.label}
+          options={[
+            { id: "current", name: "Current" },
+            ...ARTWORKS.map((a) => ({ id: a.id, name: a.name })),
+            { id: "hidden", name: "Hidden" },
+          ]}
+          value={toggles?.paintings[p.id] ?? "current"}
+          onPick={(id) => editor.setPainting(p.id, id === "current" ? null : id)}
+          testId={`painting-${p.id}`}
+        />
+      ))}
       <p className="hint">
         Main restaurant floor only. Room ≈ {venue.width} × {venue.depth} m, estimated from photos; every size
         is approximate.
