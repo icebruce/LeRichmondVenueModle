@@ -55,6 +55,7 @@
 Where things stand:
 
 - **Step 3b** merged (PR #4, 5665b3b).
+- Open items closed (2026-10-16): a request's photos upload only when the request is sent, so an abandoned form leaves nothing in the cloud (REQ-01); evening visual baseline with every light type (LIB-08).
 - `LIBRARY_REQUESTS_TOKEN` is set in Vercel and in the Claude environment; verified from here: `GET /api/library-requests` with the token answers 200 (cloud store configured), no requests yet.
 
 To do, in order:
@@ -96,8 +97,6 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
 - Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
 - "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
-- A photo added to a request form that is then abandoned stays stored (small; no cleanup yet).
-- LIB-08 "visible effect in evening mode" is checked by unit test (bulbs, beams, glows) and by the evening screenshots in the PR; no evening visual baseline yet.
 
 ## Media ingestion (2026-10-15)
 
