@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2 and 3a merged (PR #1, #2, #3). Step 3b is PR #4 against `main`, reviewed and waiting for the owner. See **Next steps** below. Cloud setup done by the owner (2026-10-16); the requests token is not set yet.
+**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4, 2026-10-16). What remains is the step 3 gate (one real custom request delivered, a real centrepiece imported) and the manual checks below. See **Next steps**. Cloud saving is live; the owner has created `LIBRARY_REQUESTS_TOKEN` and sent a first custom request.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -11,7 +11,7 @@
 | 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
-| 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | In review |
+| 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16 (PR #4); gate open |
 
 ## Decisions
 
@@ -54,21 +54,26 @@
 
 Where things stand:
 
-- **Step 3a** merged (PR #3, 997a528). The owner approved its calls on 2026-10-16.
-- **Step 3b** is PR #4 against `main` (branch `ccr-32f95f5c-e6p10x-3b`).
-  - Built: IMP-01..07, REQ-01..04, the LIB-09 print, and flower types on floral installations.
-  - Reviewed once by UX (1 blocker, 6 majors) and once by spec (3 majors); all fixed.
-  - Tests: 103 unit tests and the full browser suite (30) pass locally. 65/65 must-haves for steps 1–3 traced (REQ-03 and REQ-04 as manual gates).
-  - Waits on the owner: approve the visuals (the crop frame is new) and merge.
+- Steps 1–3 are merged on `main` (PR #1–#4). The live site is `https://richmondatudio.vercel.app`.
+- **Cloud saving works on the live site:** `/api/session` answers 401 "Please sign in", not 503 "not set up".
+- **This Claude environment's network** allows `richmondatudio.vercel.app`. Preview domains (`*-igors-projects-*.vercel.app`) are still blocked.
+- **The owner sent a first custom request** on the live site (Inspiration → Custom model requests). It has not been read yet: the session that built step 3 started before the token was added, so it could not see it.
 
 To do, in order:
 
-1. Owner: review PR #4 on its preview and merge it.
-2. Verify the cloud setup on the deployed site, either by the owner, or from here once `*.vercel.app` is allowed in this environment's network settings:
-   - the first shared save (Upstash scripting);
-   - an import seen on the second device.
-3. Owner: add `LIBRARY_REQUESTS_TOKEN` in Vercel (redeploy) and in the Claude environment (README; also allow the site's domain there). Then send one real custom request; Claude builds it and delivers it through a PR (REQ-03 acceptance).
-4. Owner gate for step 3: import a real centrepiece; one custom request delivered.
+1. **Deliver the first custom request (REQ-03 acceptance).** In a new session:
+   - Check that `LIBRARY_REQUESTS_TOKEN` is set. It must be an environment variable of that exact name; if it is missing, ask the owner to add it in the environment settings.
+   - `GET https://richmondatudio.vercel.app/api/library-requests?status=requested` with `Authorization: Bearer $LIBRARY_REQUESTS_TOKEN`, then the photos from `/api/uploads/<id>`.
+   - Build the item per the `library-item` skill, with `"requestId": "<request id>"` on the entry.
+   - Open a PR with the preview link and the render-vs-photo pair, sent in chat and never committed.
+   - After merge, the request shows "In library" in the app.
+2. **Manual checks on the live site (owner):**
+   - A save on one device appears on the other after reload.
+   - An imported photo appears in Inspiration on the other device.
+   - Paste, drag-and-drop and the iPhone camera in Add inspiration (IMP-01).
+   - A framed print shows the owner's photo.
+3. **Owner to confirm** (listed under Open items): "In progress" on requests is set by the couple (the token is read-only); the crop frame pattern.
+4. **Owner gate for step 3:** import a real centrepiece; one custom request delivered.
 5. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
 
 ## Step 1 quality (2026-10-16)
@@ -99,7 +104,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
-- Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET. Not yet verified from here (this environment's network policy blocks vercel.app): the first shared save and an import seen on the second device. `LIBRARY_REQUESTS_TOKEN` is not set yet; REQ-03's acceptance (one real request delivered through a PR) needs it in Vercel and in the Claude environment.
+- Cloud setup done by the owner (2026-10-16) and live (`/api/session` answers 401 on the live site). Still to see on real devices: a shared save and an import arriving on the second device. `LIBRARY_REQUESTS_TOKEN` is created; a Claude session must have it as an environment variable to read requests.
 - Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
 - Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
 - "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
