@@ -4,15 +4,13 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitImpl } from "three-stdlib";
 import { useStore } from "zustand";
-import { createStore } from "zustand/vanilla";
-import { type Polygon, type Vec2, pointInPolygon } from "../domain/geometry";
-import { footprint, shapeOf } from "../domain/layout/items";
+import { pointInPolygon } from "../domain/geometry";
+import { walkArea } from "../domain/layout/walk";
 import type { CameraMode } from "../state/editor";
-import { useEditor, useInteraction, useStudio } from "./context";
-import { walkInput } from "./interaction";
+import { cameraCommands, viewStore, walkInput } from "../state/view";
+import { useEditor, useStudio, useView } from "./context";
 
 export const EYE = 1.65;
-const RADIUS = 0.28;
 const SPEED = 2.2;
 
 type Pose = { position: THREE.Vector3; target: THREE.Vector3 };
@@ -24,22 +22,15 @@ function presetPose(p: { position: readonly number[]; target: readonly number[] 
   };
 }
 
-/** Requests from the UI: reset the current view (key = null) or jump to a named preset. */
-export const cameraCommands = createStore<{ request: { key: string | null; n: number } }>(() => ({
-  request: { key: null, n: 0 },
-}));
-
-export function requestCamera(key: string | null) {
-  cameraCommands.setState((s) => ({ request: { key, n: s.request.n + 1 } }));
-}
-
 /** Whether a camera animation is running (read by walk controls and test hooks). */
 export const rig = { tweening: false };
 
 export function CameraRig() {
   const { venue } = useStudio();
   const mode = useEditor((s) => s.camera);
-  const controlsEnabled = useInteraction((s) => s.controlsEnabled);
+  const controlsEnabled = useView((s) => s.controlsEnabled);
+  const view = useView((s) => s.view);
+  const insetRight = useView((s) => s.insetRight);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
@@ -56,14 +47,18 @@ export function CameraRig() {
   }, [presets]);
 
   const goTo = (key: CameraMode | string) => {
-    const p = key in poses ? poses[key as CameraMode] : presets[key];
+    const isMode = key in poses;
+    const p = isMode ? poses[key as CameraMode] : presets[key];
     if (!p) return;
+    // A named reference view is shown as a guest would see it: full walls, ceiling on (VEN-01).
+    viewStore.setState({ view: isMode ? null : key });
     const target = controls.current?.target ?? new THREE.Vector3();
     const to = presetPose(p);
-    // Narrow (portrait) screens: pull overview cameras back so the whole room fits.
-    const aspect = size.width / Math.max(1, size.height);
+    // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
+    const visible = mode === "walk" ? size.width : size.width - insetRight;
+    const aspect = visible / Math.max(1, size.height);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
-      const k = Math.pow(1.3 / aspect, 0.85);
+      const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
       to.position.sub(to.target).multiplyScalar(k).add(to.target);
     }
     tween.current = {
@@ -89,6 +84,37 @@ export function CameraRig() {
     [mode],
   );
 
+  // Frame the room beside the desktop panel, not under it (DESIGN_GUIDE §3.1): shift the principal
+  // point left by half the covered width, easing as the panel opens and closes.
+  const inset = useRef(0);
+  useFrame((_, dt) => {
+    const want = mode === "walk" ? 0 : insetRight;
+    const next =
+      Math.abs(want - inset.current) < 0.5
+        ? want
+        : inset.current + (want - inset.current) * Math.min(1, dt * 10);
+    const w = size.width;
+    const h = size.height;
+    const aspect = (w + next) / Math.max(1, h);
+    if (next === inset.current && camera.aspect === aspect && next > 0 === !!camera.view?.enabled) return;
+    inset.current = next;
+    camera.aspect = aspect;
+    if (next > 0) camera.setViewOffset(w + next, h, next, 0, w, h);
+    else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+  });
+
+  // Keep the view's floor centre current, for "Add" (it places items where the couple is looking).
+  useFrame(() => {
+    const t = controls.current?.target;
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    const at: [number, number] =
+      mode === "walk" || !t ? [camera.position.x + dir.x * 2.5, camera.position.z + dir.z * 2.5] : [t.x, t.z];
+    const [fx, fz] = viewStore.getState().focus;
+    if (Math.hypot(at[0] - fx, at[1] - fz) > 0.25) viewStore.setState({ focus: at });
+  });
+
   useFrame((_, dt) => {
     const tw = tween.current;
     rig.tweening = tw !== null;
@@ -109,6 +135,8 @@ export function CameraRig() {
 
   if (mode === "walk") return <WalkControls />;
   const plan = mode === "plan";
+  // Reference views sit at eye level and close to their target; orbit limits would clamp them.
+  const free = view !== null && !plan;
   return (
     <OrbitControls
       ref={controls}
@@ -118,10 +146,10 @@ export function CameraRig() {
       enableDamping
       dampingFactor={0.12}
       screenSpacePanning={plan}
-      minDistance={plan ? 8 : 6}
-      maxDistance={plan ? 60 : 55}
-      minPolarAngle={plan ? 0 : 0.25}
-      maxPolarAngle={plan ? 0.0001 : 1.32}
+      minDistance={plan ? 8 : free ? 0.5 : 6}
+      maxDistance={plan ? 120 : 110}
+      minPolarAngle={plan ? 0 : free ? 0.05 : 0.25}
+      maxPolarAngle={plan ? 0.0001 : free ? Math.PI - 0.15 : 1.32}
       mouseButtons={
         plan ? { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN } : undefined
       }
@@ -136,63 +164,69 @@ function WalkControls() {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
+  const toggles = useEditor((s) => s.scenarios[s.activeId]?.venueToggles);
   const look = useRef({ yaw: 0, pitch: 0, ready: false });
   const keys = useRef(new Set<string>());
   const input = useStore(walkInput);
 
-  const blockers = useMemo<Polygon[]>(() => {
-    const tables = items
-      .map((it) => ({ it, s: shapeOf(it, catalog) }))
-      .filter(({ s }) => s.kind !== "danceFloor")
-      .map(({ it }) => footprint(it, catalog));
-    return [...venue.obstacles.map((o) => o.polygon), ...tables];
-  }, [items, venue, catalog]);
-
-  const free = (p: Vec2) => {
-    if (p[0] < RADIUS || p[1] < RADIUS || p[0] > venue.width - RADIUS || p[1] > venue.depth - RADIUS)
-      return false;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      const q: Vec2 = [p[0] + Math.cos(a) * RADIUS, p[1] + Math.sin(a) * RADIUS];
-      if (blockers.some((b) => pointInPolygon(q, b))) return false;
-    }
-    return !blockers.some((b) => pointInPolygon(p, b));
-  };
+  const free = useMemo(
+    () => walkArea(venue, items, catalog, toggles ?? { communalTable: false, barStools: false }),
+    [items, venue, catalog, toggles],
+  );
 
   useEffect(() => {
     const el = gl.domElement;
-    let dragging: { x: number; y: number } | null = null;
+    // One look pointer at a time, so the joystick thumb and a second finger never move the view.
+    let dragging: { id: number; x: number; y: number } | null = null;
     const down = (e: PointerEvent) => {
-      dragging = { x: e.clientX, y: e.clientY };
+      if (dragging) return;
+      dragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
       if (e.pointerType === "mouse" && document.pointerLockElement !== el)
         el.requestPointerLock?.()?.catch?.(() => {});
     };
     const move = (e: PointerEvent) => {
       const locked = document.pointerLockElement === el;
-      if (!locked && !dragging) return;
-      const dx = locked ? e.movementX : e.clientX - (dragging?.x ?? e.clientX);
-      const dy = locked ? e.movementY : e.clientY - (dragging?.y ?? e.clientY);
-      if (dragging) dragging = { x: e.clientX, y: e.clientY };
+      let dx: number;
+      let dy: number;
+      if (locked && e.pointerType === "mouse") {
+        dx = e.movementX;
+        dy = e.movementY;
+      } else if (dragging && e.pointerId === dragging.id) {
+        dx = e.clientX - dragging.x;
+        dy = e.clientY - dragging.y;
+        dragging = { ...dragging, x: e.clientX, y: e.clientY };
+      } else return;
       look.current.yaw -= dx * 0.004;
       look.current.pitch = Math.max(-1.1, Math.min(1.1, look.current.pitch - dy * 0.004));
     };
-    const up = () => (dragging = null);
+    const up = (e: PointerEvent) => {
+      if (dragging?.id === e.pointerId) dragging = null;
+    };
     const kd = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest?.("input, textarea")) return;
       keys.current.add(e.key.toLowerCase());
     };
     const ku = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
+    // Keys released while another window had focus never send keyup; stop walking instead.
+    const blur = () => {
+      keys.current.clear();
+      dragging = null;
+    };
     el.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     window.addEventListener("keydown", kd);
     window.addEventListener("keyup", ku);
+    window.addEventListener("blur", blur);
     return () => {
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       window.removeEventListener("keydown", kd);
       window.removeEventListener("keyup", ku);
+      window.removeEventListener("blur", blur);
       if (document.pointerLockElement === el) document.exitPointerLock();
     };
   }, [gl]);

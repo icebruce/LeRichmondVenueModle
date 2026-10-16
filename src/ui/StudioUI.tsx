@@ -1,27 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useProgress } from "@react-three/drei";
 import { countLayout } from "../domain/layout/counts";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { requestCamera } from "../scene/cameras";
 import { useEditor, useStudio } from "../scene/context";
-import { walkInput } from "../scene/interaction";
+import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
 import { Inspector, LayoutPanel, type Section, VenuePanel } from "./Panels";
-import { Actions, CameraSwitch, ScenarioMenu } from "./TopBar";
+import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "venue", label: "Venue", icon: "venue" },
   { id: "layout", label: "Layout", icon: "layout" },
 ];
 
-function Counts() {
+function useCounts() {
   const { catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
-  const c = useMemo(
+  return useMemo(
     () => countLayout(scenario.items, scenario.guests.count, catalog),
     [scenario.items, scenario.guests.count, catalog],
   );
+}
+
+/** Desktop: floating counts strip, bottom-left (LAY-07). */
+function Counts() {
+  const c = useCounts();
   return (
     <div className="counts glass" aria-label="Counts" data-testid="counts">
       <div className="count">
@@ -45,6 +49,30 @@ function Counts() {
         <span>dance floor</span>
       </div>
     </div>
+  );
+}
+
+/** Phone: the same counts as one line at the top of the sheet, so the room keeps the screen. */
+function CountsLine() {
+  const c = useCounts();
+  return (
+    <p className="counts-line" aria-label="Counts">
+      {c.tables} tables · {c.seats} seats · {c.guests} guests
+      {c.withoutSeat > 0 && <span className="warn"> · {c.withoutSeat} without a seat</span>}
+    </p>
+  );
+}
+
+const PHONE = "(max-width: 767px)";
+
+function useMedia(query: string): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(query);
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(query).matches,
   );
 }
 
@@ -160,7 +188,8 @@ function useShortcuts() {
         if (st.camera === "walk") editor.setCamera("dollhouse");
         else editor.select([]);
       } else if (st.camera !== "walk" && (e.key === "r" || e.key === "R") && sel.length) {
-        editor.rotateItems(sel, e.shiftKey ? -ROTATE_STEP : ROTATE_STEP);
+        // R turns clockwise like the "+15°" button; Shift+R the other way.
+        editor.rotateItems(sel, e.shiftKey ? ROTATE_STEP : -ROTATE_STEP);
       } else if (st.camera !== "walk" && e.key.startsWith("Arrow") && sel.length) {
         e.preventDefault();
         const d = e.shiftKey ? 1 : 0.1;
@@ -192,8 +221,14 @@ export function StudioUI() {
   const drag = useRef<number | null>(null);
   useShortcuts();
 
+  const phone = useMedia(PHONE);
   const hasSelection = selection.length > 0;
   const showPanel = camera !== "walk" && (hasSelection || section !== null);
+
+  // Desktop: the camera frames the room beside the panel (340 px + margin), not under it.
+  useEffect(() => {
+    viewStore.setState({ insetRight: showPanel && !phone ? 352 : 0 });
+  }, [showPanel, phone]);
   const content = hasSelection ? (
     <Inspector />
   ) : section === "venue" ? (
@@ -203,12 +238,15 @@ export function StudioUI() {
   ) : null;
 
   const pick = (id: Section) => {
-    setSection((s) => (s === id && window.matchMedia("(min-width: 768px)").matches ? null : id));
+    setSection((s) => (s === id && !phone ? null : id));
     setDetent((d) => (d === "peek" ? "half" : d));
   };
 
+  // Floating phone controls (Undo, toast) sit just above the sheet, whatever its height.
+  const sheet = !phone ? "none" : showPanel ? detent : "none";
+
   return (
-    <div className="ui">
+    <div className={`ui cam-${camera}`} data-sheet={sheet}>
       <header className="topbar">
         <ScenarioMenu />
         <CameraSwitch />
@@ -229,17 +267,10 @@ export function StudioUI() {
             <span>{s.label}</span>
           </button>
         ))}
-        <button type="button" onClick={() => requestCamera(null)} title="Reset view">
-          <Icon name="camera" />
-          <span>Reset view</span>
-        </button>
       </nav>
 
       {showPanel && (
-        <aside
-          className={`panel detent-${hasSelection && detent === "peek" ? "half" : detent}`}
-          aria-label={hasSelection ? "Inspector" : "Panel"}
-        >
+        <aside className={`panel detent-${detent}`} aria-label={hasSelection ? "Inspector" : "Panel"}>
           <button
             type="button"
             className="grabber"
@@ -254,11 +285,13 @@ export function StudioUI() {
               if (dy > 40) setDetent((d) => (d === "full" ? "half" : "peek"));
             }}
           />
+          {phone && <CountsLine />}
           {content}
         </aside>
       )}
 
-      <Counts />
+      {!phone && <Counts />}
+      {phone && camera !== "walk" && <History className="history-float glass" />}
       {camera === "walk" && (
         <>
           <p className="walk-hint glass">

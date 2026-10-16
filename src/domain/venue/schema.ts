@@ -33,6 +33,8 @@ const wall = z.object({
   to: vec2,
   finish: z.enum(["brick"]),
   height: z.number().optional(),
+  /** Height of a red brick band at the base of the wall, where the photos show one. */
+  dado: z.number().optional(),
   openings: z.array(opening),
   panels: z.array(panel).optional(),
   confidence,

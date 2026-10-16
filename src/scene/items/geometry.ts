@@ -11,7 +11,9 @@ function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
  * Venue oval-back chair (Louis style, R04/R12). Faces +z; the backrest is at -z.
  * Returns the wood frame and the upholstery as separate geometries for two instanced meshes.
  */
-export function ovalBackChair(): { frame: THREE.BufferGeometry; fabric: THREE.BufferGeometry } {
+export function ovalBackChair(low = false): { frame: THREE.BufferGeometry; fabric: THREE.BufferGeometry } {
+  // Phone-weight version (LIB-11): fewer segments on the round parts.
+  const seg = low ? 0.5 : 1;
   const frame: THREE.BufferGeometry[] = [];
   const fabric: THREE.BufferGeometry[] = [];
   for (const [x, z] of [
@@ -20,7 +22,7 @@ export function ovalBackChair(): { frame: THREE.BufferGeometry; fabric: THREE.Bu
     [-0.19, -0.19],
     [0.19, -0.19],
   ] as const) {
-    const leg = new THREE.CylinderGeometry(0.02, 0.014, 0.42, 8);
+    const leg = new THREE.CylinderGeometry(0.02, 0.014, 0.42, low ? 5 : 8);
     leg.translate(x, 0.21, z);
     frame.push(leg);
   }
@@ -28,12 +30,12 @@ export function ovalBackChair(): { frame: THREE.BufferGeometry; fabric: THREE.Bu
   fabric.push(new THREE.BoxGeometry(0.44, 0.08, 0.4).translate(0, 0.48, 0.01));
   for (const x of [-0.16, 0.16])
     frame.push(new THREE.CylinderGeometry(0.016, 0.016, 0.16, 6).translate(x, 0.53, -0.2));
-  const oval = new THREE.TorusGeometry(0.19, 0.018, 8, 36);
+  const oval = new THREE.TorusGeometry(0.19, 0.018, 8 * seg, 36 * seg);
   oval.scale(1, 1.32, 1);
   oval.rotateX(-0.12);
   oval.translate(0, 0.78, -0.22);
   frame.push(oval);
-  const pad = new THREE.CylinderGeometry(0.18, 0.18, 0.045, 32);
+  const pad = new THREE.CylinderGeometry(0.18, 0.18, 0.045, 32 * seg);
   pad.rotateX(Math.PI / 2);
   pad.scale(1, 1.32, 1);
   pad.rotateX(-0.12);

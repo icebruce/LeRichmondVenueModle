@@ -38,6 +38,7 @@ export type EditorDeps = { venue: VenueModel; catalog: Catalog; now: () => strin
 
 const HISTORY_LIMIT = 100;
 export const GRID = 0.1;
+/** One rotate step. Positive rotY turns counter-clockwise seen from above, so "+15°" (clockwise) is −ROTATE_STEP. */
 export const ROTATE_STEP = Math.PI / 12;
 
 export function createEditor(deps: EditorDeps, initial: Scenario[]) {
@@ -88,8 +89,22 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       if (h.past.length > HISTORY_LIMIT) h.past.shift();
       h.future = [];
     }
-    set((s) => ({ scenarios: { ...s.scenarios, [id]: next }, version: s.version + 1 }));
+    // A newer change makes an older "Undo" offer misleading, so it goes.
+    set((s) => ({
+      scenarios: { ...s.scenarios, [id]: next },
+      version: s.version + 1,
+      ...(s.toast?.undo ? { toast: null } : {}),
+    }));
     syncHistoryFlags();
+  }
+
+  /** Undo exactly the step just recorded, if it is still the latest one; never a later change. */
+  function undoLast(): () => void {
+    const id = get().activeId;
+    const step = hist(id).past.at(-1);
+    return () => {
+      if (step && get().activeId === id && hist(id).past.at(-1) === step) api.undo();
+    };
   }
 
   function refuse(itemId: string, reason: string): false {
@@ -260,7 +275,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         d.items = d.items.filter((i) => !ids.has(i.id));
       });
       set({ selection: [] });
-      toast(ids.size === 1 ? "Deleted" : `Deleted ${ids.size} items`, () => api.undo());
+      toast(ids.size === 1 ? "Deleted" : `Deleted ${ids.size} items`, undoLast());
     },
 
     setGuests(count: number) {
@@ -362,16 +377,13 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       return copy.id;
     },
 
-    renameScenario(id: string, name: string) {
+    /** Renames the active scenario as an undoable step (ARCHITECTURE §4.3). */
+    renameScenario(name: string) {
       const trimmed = name.trim().slice(0, 80);
       if (!trimmed) return;
-      set((st) => ({
-        scenarios: {
-          ...st.scenarios,
-          [id]: { ...(st.scenarios[id] as Scenario), name: trimmed, updatedAt: now() },
-        },
-        version: st.version + 1,
-      }));
+      commit("Rename", (d) => {
+        d.name = trimmed;
+      });
     },
 
     deleteScenario(id: string) {

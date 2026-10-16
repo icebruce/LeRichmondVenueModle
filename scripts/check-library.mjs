@@ -39,7 +39,17 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     const where = `${file}:${e.id}`;
     if (seen.has(e.id)) problems.push(`${where} duplicate id`);
     seen.add(e.id);
-    for (const k of ["name", "family", "placement", "sizeM", "model", "thumbnail", "source", "budget"]) {
+    for (const k of [
+      "name",
+      "family",
+      "placement",
+      "sizeM",
+      "model",
+      "lowModel",
+      "thumbnail",
+      "source",
+      "budget",
+    ]) {
       if (e[k] === undefined) problems.push(`${where} missing ${k}`);
     }
     if (!e.source?.licence) problems.push(`${where} missing licence`);
@@ -49,8 +59,14 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     const t = maxTriangles[e.family];
     if (e.budget && t && e.budget.triangles > t)
       problems.push(`${where} budget ${e.budget.triangles} > ${t} triangles`);
-    if (e.model?.kind === "glb" && !existsSync(join(root, "public/assets", e.model.file)))
-      problems.push(`${where} model file missing`);
+    if (e.budget && !(e.budget.phoneTriangles <= e.budget.triangles))
+      problems.push(`${where} phone budget missing or above the desktop budget`);
+    if (e.budget && t && e.budget.phoneTriangles > t / 4)
+      problems.push(`${where} phone budget ${e.budget.phoneTriangles} > ${t / 4} triangles`);
+    for (const m of [e.model, e.lowModel]) {
+      if (m?.kind === "glb" && !existsSync(join(root, "public/assets", m.file)))
+        problems.push(`${where} model file ${m.file} missing`);
+    }
     if (process.argv.includes("--thumbs") && !existsSync(join(root, "public/assets", e.thumbnail))) {
       problems.push(`${where} thumbnail missing (npm run library:thumbs)`);
     }

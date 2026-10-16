@@ -15,6 +15,8 @@ export type VenueModel = {
   raised: { outline: Polygon; height: number };
   mezzanineHeight: number;
   obstacles: Obstacle[];
+  /** Railing along the raised floor's open edges, as straight runs that stop at the steps. */
+  railing: [Vec2, Vec2][];
 };
 
 export function parseVenue(json: unknown): VenueData {
@@ -34,6 +36,45 @@ export function wallFrame(wall: WallData): { dir: Vec2; normal: Vec2; length: nu
 export function alongWall(wall: WallData, s: number, inset = 0): Vec2 {
   const { dir, normal } = wallFrame(wall);
   return [wall.from[0] + dir[0] * s + normal[0] * inset, wall.from[1] + dir[1] * s + normal[1] * inset];
+}
+
+/**
+ * Railing runs: every raised-floor edge not against a wall or the bar, split where a step crosses it.
+ * Sampled every 12 cm, the baluster pitch the scene draws.
+ */
+function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][] {
+  const outline = d.levels.raised.outline.value;
+  const bx1 = d.bar.outer.value[2];
+  const onBoundary = (p: Vec2, q: Vec2) =>
+    (p[0] === q[0] && (p[0] <= 0 || p[0] >= width || p[0] === bx1)) ||
+    (p[1] === q[1] && (p[1] <= 0 || p[1] >= depth));
+  const gaps = d.levels.raised.steps.value;
+  const inGap = (x: number, z: number) =>
+    gaps.some(
+      (g) =>
+        x >= Math.min(g.from[0], g.to[0]) - 0.05 &&
+        x <= Math.max(g.from[0], g.to[0]) + 0.05 &&
+        z >= Math.min(g.from[1], g.to[1]) - 0.05 &&
+        z <= Math.max(g.from[1], g.to[1]) + 0.05,
+    );
+  const runs: [Vec2, Vec2][] = [];
+  outline.forEach((a, i) => {
+    const b = outline[(i + 1) % outline.length] as Vec2;
+    if (onBoundary(a, b)) return;
+    const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.12));
+    const at = (k: number): Vec2 => [a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n];
+    let start: number | null = null;
+    for (let k = 0; k <= n; k++) {
+      const gap = inGap(...at(k));
+      if (!gap) start ??= k;
+      if ((gap || k === n) && start !== null) {
+        const end = gap ? k - 1 : k;
+        if (end > start) runs.push([at(start), at(end)]);
+        start = null;
+      }
+    }
+  });
+  return runs;
 }
 
 function barObstacles(d: VenueData): Obstacle[] {
@@ -97,5 +138,6 @@ export function buildVenue(d: VenueData): VenueModel {
     raised: { outline: d.levels.raised.outline.value, height: d.levels.raised.height.value },
     mezzanineHeight: d.mezzanine.floorHeight.value,
     obstacles,
+    railing: railingRuns(d, width, depth),
   };
 }

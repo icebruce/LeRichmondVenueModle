@@ -19,6 +19,11 @@
   --toast-bg: rgba(32, 37, 34, 0.92);
   --accent-on-dark: #e7c9a5;
   --ok: #3f7d58;
+  --on-dark: #ffffff;
+  --label-bg: rgba(255, 255, 255, 0.92);
+  --pad-bg: rgba(255, 255, 255, 0.18);
+  --pad-line: rgba(255, 255, 255, 0.45);
+  --pad-knob: rgba(255, 255, 255, 0.85);
 
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
@@ -43,6 +48,8 @@
   --r-card: 12px;
   --r-sheet: 16px;
   --shadow: 0 8px 24px rgba(32, 37, 34, 0.12);
+  --shadow-control: 0 1px 3px rgba(32, 37, 34, 0.14);
+  --shadow-knob: 0 1px 3px rgba(32, 37, 34, 0.2);
   --blur: blur(20px) saturate(1.4);
 
   --m-fast: 120ms ease-out;

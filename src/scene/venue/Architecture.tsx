@@ -89,58 +89,27 @@ export function Railing({ venue, m }: Pick<Props, "venue" | "m">) {
     const d = venue.data;
     const h = venue.raised.height;
     const top = h + 0.95;
-    const outline = venue.raised.outline;
-    // Rail every raised-floor edge that is not against a wall or the bar.
-    const bx1 = d.bar.outer.value[2];
-    const onBoundary = (p: Vec2, q: Vec2) =>
-      (p[0] === q[0] && (p[0] <= 0 || p[0] >= venue.width || p[0] === bx1)) ||
-      (p[1] === q[1] && (p[1] <= 0 || p[1] >= venue.depth));
-    const segments: [Vec2, Vec2][] = outline
-      .map((p, i): [Vec2, Vec2] => [p, outline[(i + 1) % outline.length] as Vec2])
-      .filter(([p, q]) => !onBoundary(p, q));
     const gaps = d.levels.raised.steps.value;
-    const inGap = (x: number, z: number) =>
-      gaps.some((g) => {
-        const minX = Math.min(g.from[0], g.to[0]) - 0.05;
-        const maxX = Math.max(g.from[0], g.to[0]) + 0.05;
-        const minZ = Math.min(g.from[1], g.to[1]) - 0.05;
-        const maxZ = Math.max(g.from[1], g.to[1]) + 0.05;
-        return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
-      });
     const ironGeos: THREE.BufferGeometry[] = [];
     const railGeos: THREE.BufferGeometry[] = [];
-    for (const [a, b] of segments) {
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const n = Math.max(1, Math.round(len / 0.12));
-      let runStart: Vec2 | null = null;
+    for (const [a, b] of venue.railing) {
+      const rl = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+      const n = Math.max(1, Math.round(rl / 0.12));
       for (let k = 0; k <= n; k++) {
-        const t = k / n;
-        const x = a[0] + (b[0] - a[0]) * t;
-        const z = a[1] + (b[1] - a[1]) * t;
-        const gap = inGap(x, z);
-        if (!gap) {
-          const thick = k % 8 === 0 ? 0.035 : 0.014;
-          ironGeos.push(boxGeo(x - thick, h, z - thick, x + thick, top - 0.05, z + thick));
-          runStart ??= [x, z];
-        }
-        if ((gap || k === n) && runStart) {
-          const end: Vec2 = gap
-            ? [a[0] + (b[0] - a[0]) * ((k - 1) / n), a[1] + (b[1] - a[1]) * ((k - 1) / n)]
-            : [x, z];
-          const rl = Math.hypot(end[0] - runStart[0], end[1] - runStart[1]);
-          if (rl > 0.05) {
-            const r = new THREE.BoxGeometry(rl, 0.06, 0.08);
-            r.rotateY(-Math.atan2(end[1] - runStart[1], end[0] - runStart[0]));
-            r.translate((runStart[0] + end[0]) / 2, top, (runStart[1] + end[1]) / 2);
-            railGeos.push(r);
-            const bottom = new THREE.BoxGeometry(rl, 0.03, 0.03);
-            bottom.rotateY(-Math.atan2(end[1] - runStart[1], end[0] - runStart[0]));
-            bottom.translate((runStart[0] + end[0]) / 2, h + 0.1, (runStart[1] + end[1]) / 2);
-            ironGeos.push(bottom);
-          }
-          runStart = null;
-        }
+        const x = a[0] + ((b[0] - a[0]) * k) / n;
+        const z = a[1] + ((b[1] - a[1]) * k) / n;
+        const thick = k % 8 === 0 ? 0.035 : 0.014;
+        ironGeos.push(boxGeo(x - thick, h, z - thick, x + thick, top - 0.05, z + thick));
       }
+      const r = new THREE.BoxGeometry(rl, 0.06, 0.08);
+      r.rotateY(ang);
+      r.translate((a[0] + b[0]) / 2, top, (a[1] + b[1]) / 2);
+      railGeos.push(r);
+      const bottom = new THREE.BoxGeometry(rl, 0.03, 0.03);
+      bottom.rotateY(ang);
+      bottom.translate((a[0] + b[0]) / 2, h + 0.1, (a[1] + b[1]) / 2);
+      ironGeos.push(bottom);
     }
     const stepGeos = gaps.map((g) => {
       const cx = (g.from[0] + g.to[0]) / 2;

@@ -26,8 +26,8 @@ export function countLayout(items: readonly Item[], guests: number, catalog: Cat
 }
 
 /**
- * Table labels (LAY-10): own label if set, the sweetheart table is "♥", other seated tables are
- * numbered 1, 2, 3… in list order, skipping numbers already used by own labels.
+ * Table labels (LAY-10): own label if set, else the entry's fixed label (the sweetheart table's
+ * "♥"), else seated tables are numbered 1, 2, 3… in list order, skipping numbers already used.
  */
 export function tableLabels(items: readonly Item[], catalog: Catalog): Map<string, string> {
   const labels = new Map<string, string>();
@@ -38,8 +38,10 @@ export function tableLabels(items: readonly Item[], catalog: Catalog): Map<strin
       labels.set(item.id, item.label);
       continue;
     }
-    if (item.libraryId === "table-sweetheart") {
-      labels.set(item.id, "♥");
+    const model = catalog.get(item.libraryId)?.model;
+    const fixed = model?.kind === "parametric" ? model.params.label : undefined;
+    if (typeof fixed === "string") {
+      labels.set(item.id, fixed);
       continue;
     }
     if (seatsOf(shapeOf(item, catalog)) === 0) continue;

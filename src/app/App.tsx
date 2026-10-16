@@ -4,6 +4,7 @@ import type { Studio } from "../scene/context";
 import { StudioContext } from "../scene/context";
 import { Studio3D } from "../scene/Studio3D";
 import { Thumbnail } from "../scene/Thumbnail";
+import { newId } from "./boot";
 import { type Services, ServicesContext } from "../ui/services";
 import { StudioUI } from "../ui/StudioUI";
 
@@ -20,11 +21,13 @@ export function App({ studio }: { studio: Studio }) {
       },
       importScenario: async (file) => {
         try {
-          const s = await readScenarioFile(file, crypto.randomUUID().slice(0, 8), new Date().toISOString());
+          const s = await readScenarioFile(file, newId(), new Date().toISOString());
           studio.editor.addScenario(s);
           studio.editor.notify(`Imported “${s.name}”`);
-        } catch {
-          studio.editor.notify("That file isn't a Richmond Studio scenario.");
+        } catch (e) {
+          // Our own messages explain the problem ("too large"); parser errors are not for people.
+          const own = e instanceof Error && e.message.startsWith("That file");
+          studio.editor.notify(own ? e.message : "That file isn't a Richmond Studio scenario.");
         }
       },
     }),

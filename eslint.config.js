@@ -42,6 +42,8 @@ export default tseslint.config(
       "@react-three/*",
       "zustand",
       "zustand/*",
+      "immer",
+      "idb-keyval",
     ],
     "src/domain must stay pure (ARCHITECTURE §3).",
   ),
@@ -53,12 +55,12 @@ export default tseslint.config(
   layer(
     ["src/scene/**"],
     ["**/ui/**", "**/data/**", "**/app/**"],
-    "src/scene may import only domain (ARCHITECTURE §3).",
+    "src/scene may import only domain and state (ARCHITECTURE §3).",
   ),
   layer(
     ["src/ui/**"],
-    ["**/data/**", "**/app/**"],
-    "src/ui may import domain and scene only (ARCHITECTURE §3).",
+    ["**/data/**", "**/app/**", "**/scene/cameras*", "**/scene/items/*", "**/scene/venue/*"],
+    "src/ui may import domain, state and scene components only (ARCHITECTURE §3).",
   ),
   layer(
     ["src/data/**"],

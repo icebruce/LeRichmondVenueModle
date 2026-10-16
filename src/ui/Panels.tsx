@@ -1,17 +1,18 @@
-import { useMemo, useState, type ReactNode } from "react";
-import type { Item } from "../domain/layout/items";
-import { shapeOf } from "../domain/layout/items";
+import { useMemo, useState } from "react";
+import { type Item, type Shape, shapeOf } from "../domain/layout/items";
 import { tableLabels } from "../domain/layout/counts";
-import { rectTable, roundTable } from "../domain/library/sizing";
-import { spotFor } from "../domain/layout/validate";
-import type { LibraryEntry } from "../domain/library/schema";
+import { itemTitle, spotFor } from "../domain/layout/validate";
+import type { Catalog } from "../domain/library/catalog";
+import type { ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { requestCamera } from "../scene/cameras";
+import { requestCamera, viewStore } from "../state/view";
 import { useEditor, useStudio } from "../scene/context";
 import { Icon } from "./icons";
 
 export type Section = "venue" | "layout";
+
+const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
 function Stepper({
   label,
@@ -118,27 +119,98 @@ function Segmented<T extends string>({
   );
 }
 
-function caption(e: LibraryEntry): string {
-  switch (e.id) {
-    case "table-rect": {
-      const t = rectTable(8, false);
-      return `4–14 guests · ≈ ${t.length.toFixed(1)} m for 8`;
-    }
-    case "table-round":
-      return `4–10 guests · ≈ ${roundTable(8).diameter.toFixed(1)} m for 8`;
-    case "table-farm":
-      return "6–14 guests · bare wood";
-    case "table-sweetheart":
-      return "2 guests";
-    case "table-cocktail":
-      return "Standing · ≈ 0.75 m";
-    case "dance-floor":
-      return "Resizable · wood, white or black";
-    case "dj-booth":
-      return "≈ 1.8 × 0.8 m · three spots";
-    default:
-      return "";
+const metres = (v: number) => `${v.toFixed(1)} m`;
+
+/** One line under a library item, worked out from its data (LIB-12): guests and size. */
+function caption(e: LibraryEntry, catalog: Catalog): string {
+  let shape: Shape;
+  try {
+    shape = shapeOf({ id: "", libraryId: e.id, x: 0, z: 0, rotY: 0, options: {} }, catalog);
+  } catch {
+    return "";
   }
+  const seatOpt = e.options.find((o) => o.key === "seats");
+  const guests =
+    seatOpt?.type === "number"
+      ? `${seatOpt.min}–${seatOpt.max} guests`
+      : "seats" in shape
+        ? `${shape.seats} guests`
+        : "";
+  const n = seatOpt?.default;
+  const size =
+    shape.kind === "rectTable"
+      ? shape.farm
+        ? "bare wood"
+        : `≈ ${metres(shape.length)}${n ? ` for ${n}` : ""}`
+      : shape.kind === "roundTable"
+        ? `≈ ${metres(shape.diameter)} for ${n}`
+        : shape.kind === "cocktail"
+          ? `Standing · ≈ ${metres(shape.diameter)}`
+          : shape.kind === "danceFloor"
+            ? `Resizable · ≈ ${shape.width} × ${shape.depth} m`
+            : `≈ ${shape.width} × ${shape.depth} m`;
+  return [guests, size].filter(Boolean).join(" · ");
+}
+
+function Thumb({ entry }: { entry: LibraryEntry }) {
+  return (
+    <span className="library-icon">
+      <img
+        src={`${import.meta.env.BASE_URL}assets/${entry.thumbnail}`}
+        alt=""
+        width={44}
+        height={44}
+        loading="lazy"
+      />
+    </span>
+  );
+}
+
+/** Linen for every table (LIB-03 basic; per-table linen arrives with Décor in step 2). */
+function LinenRow() {
+  const { catalog, editor } = useStudio();
+  const linen = useEditor((s) => s.scenarios[s.activeId]?.style.linen);
+  const length = useEditor((s) => s.scenarios[s.activeId]?.style.linenLength ?? "floor");
+  const linens = [...catalog.values()].filter((e) => e.family === "linen");
+  return (
+    <div className="field" data-testid="linen">
+      <span className="row-label">Tablecloths</span>
+      <div className="chips">
+        {linens.map((e) => (
+          <button
+            key={e.id}
+            type="button"
+            className={`chip ${linen === e.id ? "on" : ""}`}
+            aria-pressed={linen === e.id}
+            onClick={() => editor.setStyle("linen", e.id)}
+            data-testid={`linen-${e.id}`}
+          >
+            {e.name.replace(" tablecloth", "")}
+          </button>
+        ))}
+      </div>
+      <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
+        {(
+          [
+            ["floor", "To the floor"],
+            ["lap", "Lap length"],
+          ] as const
+        ).map(([v, l]) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={length === v}
+            className={length === v ? "on" : ""}
+            onClick={() => editor.setStyle("linenLength", v)}
+            data-testid={`linen-length-${v}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function LayoutPanel() {
@@ -151,58 +223,50 @@ export function LayoutPanel() {
   );
   return (
     <div className="panel-body" data-testid="layout-panel">
-      <h2 className="panel-title">Layout</h2>
-      <Stepper
-        label="Guests"
-        value={guests}
-        min={0}
-        max={200}
-        step={1}
-        onChange={(v) => editor.setGuests(v)}
-        testId="guests"
-      />
-      <h3 className="group-title">Add</h3>
+      <h2 className="panel-title">Add to the room</h2>
       <ul className="library" aria-label="Library">
         {placeable.map((e) => (
           <li key={e.id}>
             <button
               type="button"
               className="library-item"
-              onClick={() => editor.addItem(e.id, [8, 7])}
+              onClick={() => editor.addItem(e.id, viewStore.getState().focus)}
               data-testid={`add-${e.id}`}
             >
-              <span className="library-icon">
-                <img
-                  src={`${import.meta.env.BASE_URL}assets/${e.thumbnail}`}
-                  alt=""
-                  width={44}
-                  height={44}
-                  loading="lazy"
-                />
-              </span>
+              <Thumb entry={e} />
               <span className="library-text">
                 <span className="library-name">{e.name}</span>
-                <span className="library-caption">{caption(e)}</span>
+                <span className="library-caption">{caption(e, catalog)}</span>
               </span>
               <Icon name="plus" size={16} className="library-add" />
             </button>
           </li>
         ))}
       </ul>
+      <h3 className="group-title">Guests and style</h3>
+      <Stepper
+        label="Guests"
+        value={guests}
+        min={0}
+        max={200}
+        onChange={(v) => editor.setGuests(v)}
+        testId="guests"
+      />
+      <LinenRow />
       <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
       <p className="hint">
-        Drag a table to move it. On a phone, press and hold first. Sizes are approximate.
+        {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
       </p>
     </div>
   );
 }
 
-const VIEWS: { key: string; label: string }[] = [
-  { key: "R01", label: "From the stair" },
-  { key: "R03", label: "At the bar" },
-  { key: "R09", label: "Toward the stair" },
-  { key: "UV01", label: "From the mezzanine" },
-  { key: "UV02", label: "Toward the kitchen" },
+const VIEWS: { key: string; label: string; detail: string }[] = [
+  { key: "R01", label: "From the stair", detail: "Looking over the bar to the glass doors" },
+  { key: "R03", label: "At the bar", detail: "Chandelier, back bar and paintings" },
+  { key: "R09", label: "Toward the stair", detail: "Street windows and the mezzanine" },
+  { key: "UV01", label: "From the mezzanine", detail: "The whole room from above" },
+  { key: "UV02", label: "Toward the kitchen", detail: "Dance floor side and the stair" },
 ];
 
 export function VenuePanel() {
@@ -212,21 +276,28 @@ export function VenuePanel() {
     <div className="panel-body" data-testid="venue-panel">
       <h2 className="panel-title">Venue</h2>
       <h3 className="group-title">Views</h3>
-      <div className="chips">
+      <ul className="library" aria-label="Views">
         {VIEWS.map((v) => (
-          <button
-            key={v.key}
-            type="button"
-            className="chip"
-            onClick={() => {
-              editor.setCamera("dollhouse");
-              requestAnimationFrame(() => requestCamera(v.key));
-            }}
-          >
-            <Icon name="camera" size={16} /> {v.label}
-          </button>
+          <li key={v.key}>
+            <button
+              type="button"
+              className="library-item"
+              onClick={() => {
+                editor.setCamera("dollhouse");
+                requestAnimationFrame(() => requestCamera(v.key));
+              }}
+            >
+              <span className="library-icon">
+                <Icon name="camera" />
+              </span>
+              <span className="library-text">
+                <span className="library-name">{v.label}</span>
+                <span className="library-caption">{v.detail}</span>
+              </span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
       <h3 className="group-title">Restaurant furniture</h3>
       <Toggle
         label="Communal high table"
@@ -248,11 +319,72 @@ export function VenuePanel() {
   );
 }
 
-function itemTitle(item: Item, labels: Map<string, string>, entry: LibraryEntry | undefined): string {
-  const label = labels.get(item.id);
-  if (label === "♥") return "Sweetheart table";
-  if (label && item.libraryId.startsWith("table-")) return `Table ${label}`;
-  return entry?.name ?? "Item";
+/** Inspector control for one library option (LIB-12: options come from the catalogue entry). */
+function OptionField({
+  option,
+  item,
+  value,
+}: {
+  option: ItemOption;
+  item: Item;
+  value: number | string | boolean;
+}) {
+  const { editor } = useStudio();
+  const set = (v: number | string | boolean) => editor.setOption(item.id, option.key, v);
+  if (option.type === "number") {
+    const unit = option.unit;
+    return (
+      <Stepper
+        label={option.label}
+        value={Number(value)}
+        min={option.min}
+        max={option.max}
+        step={option.step}
+        format={unit === "m" ? metres : unit ? (v) => `${v} ${unit}` : undefined}
+        onChange={set}
+        testId={option.key}
+      />
+    );
+  }
+  if (option.type === "boolean") {
+    return <Toggle label={option.label} checked={value === true} onChange={set} testId={option.key} />;
+  }
+  if (option.choices.length <= 3) {
+    return <Segmented label={option.label} value={String(value)} options={option.choices} onChange={set} />;
+  }
+  return (
+    <div className="field">
+      <span className="row-label">{option.label}</span>
+      <div className="chips" role="radiogroup" aria-label={option.label}>
+        {option.choices.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            role="radio"
+            aria-checked={value === c.value}
+            className={`chip ${value === c.value ? "on" : ""}`}
+            onClick={() => set(c.value)}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** What the options add up to, in metres (approximate). */
+function sizeOf(shape: Shape): string | null {
+  switch (shape.kind) {
+    case "rectTable":
+      return `≈ ${shape.length.toFixed(1)} × ${shape.width.toFixed(1)} m`;
+    case "roundTable":
+      return `≈ ${shape.diameter.toFixed(1)} m round`;
+    case "danceFloor":
+      return `≈ ${Math.round(shape.width * shape.depth)} m²`;
+    default:
+      return null;
+  }
 }
 
 export function Inspector() {
@@ -271,41 +403,21 @@ export function Inspector() {
   const locked = !!spotFor(item, venue);
   const ids = items.map((i) => i.id);
 
-  let fields: ReactNode = null;
-  if (!many && (shape.kind === "rectTable" || shape.kind === "roundTable") && entry) {
-    const seatOpt = entry.options.find((o) => o.key === "seats");
-    const endsOpt = entry.options.find((o) => o.key === "ends");
-    fields = (
-      <>
-        {seatOpt?.type === "number" && (
-          <Stepper
-            label="Seats"
-            value={shape.seats}
-            min={seatOpt.min}
-            max={seatOpt.max}
-            step={seatOpt.step}
-            onChange={(v) => editor.setOption(item.id, "seats", v)}
-            testId="seats"
-          />
-        )}
-        {endsOpt && (
-          <Toggle
-            label="Chairs at the ends"
-            checked={item.options.ends === true}
-            onChange={(v) => editor.setOption(item.id, "ends", v)}
-            testId="ends"
-          />
-        )}
+  const size = sizeOf(shape);
+  const fields = !many && entry && (
+    <>
+      {entry.options.map((o) => (
+        <OptionField key={o.key} option={o} item={item} value={item.options[o.key] ?? o.default} />
+      ))}
+      {size && (
         <div className="row">
-          <span className="row-label">Size</span>
-          <span className="row-value">
-            {shape.kind === "rectTable"
-              ? `≈ ${shape.length.toFixed(1)} × ${shape.width.toFixed(1)} m`
-              : `≈ ${shape.diameter.toFixed(1)} m round`}
-          </span>
+          <span className="row-label">{shape.kind === "danceFloor" ? "Area" : "Size"}</span>
+          <span className="row-value">{size}</span>
         </div>
+      )}
+      {entry.seats && labels.has(item.id) && labels.get(item.id) !== "♥" && (
         <label className="row">
-          <span className="row-label">Table name</span>
+          <span className="row-label">Table number</span>
           <input
             className="text-input"
             value={labelDraft ?? labels.get(item.id) ?? ""}
@@ -316,83 +428,63 @@ export function Inspector() {
               setLabelDraft(null);
             }}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-            aria-label="Table name"
+            aria-label="Table number"
           />
         </label>
-      </>
-    );
-  } else if (!many && shape.kind === "danceFloor") {
-    fields = (
-      <>
-        <Stepper
-          label="Width"
-          value={shape.width}
-          min={2}
-          max={10}
-          step={0.3}
-          format={(v) => `${v.toFixed(1)} m`}
-          onChange={(v) => editor.setOption(item.id, "width", v)}
-        />
-        <Stepper
-          label="Depth"
-          value={shape.depth}
-          min={2}
-          max={8}
-          step={0.3}
-          format={(v) => `${v.toFixed(1)} m`}
-          onChange={(v) => editor.setOption(item.id, "depth", v)}
-        />
-        <Segmented
-          label="Finish"
-          value={shape.finish}
-          options={[
-            { value: "wood", label: "Wood" },
-            { value: "white", label: "White" },
-            { value: "black", label: "Black" },
-          ]}
-          onChange={(v) => editor.setOption(item.id, "finish", v)}
-        />
-        <div className="row">
-          <span className="row-label">Area</span>
-          <span className="row-value">≈ {Math.round(shape.width * shape.depth)} m²</span>
-        </div>
-      </>
-    );
-  } else if (!many && shape.kind === "djBooth") {
-    fields = (
-      <div className="field">
-        <span className="row-label">Position</span>
-        <div className="chips" role="radiogroup" aria-label="DJ position">
-          {[
-            ["free", "Anywhere"],
-            ["dj1", "Option 1"],
-            ["dj2", "Option 2"],
-            ["dj3", "Option 3 · mezzanine"],
-          ].map(([v, l]) => (
-            <button
-              key={v}
-              type="button"
-              role="radio"
-              aria-checked={(item.options.spot ?? "free") === v}
-              className={`chip ${(item.options.spot ?? "free") === v ? "on" : ""}`}
-              onClick={() => editor.setOption(item.id, "spot", v as string)}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
+      )}
+    </>
+  );
 
   const myRefusal = refusal && ids.includes(refusal.itemId) ? refusal.reason : null;
 
+  // Key actions sit right under the title so the phone sheet's peek height shows them (DESIGN_GUIDE §3.2).
   return (
     <div className="panel-body" data-testid="inspector">
       <div className="panel-head">
-        <h2 className="panel-title">{many ? `${items.length} items` : itemTitle(item, labels, entry)}</h2>
+        <h2 className="panel-title">{many ? `${items.length} items` : itemTitle(item, labels, catalog)}</h2>
         <button type="button" className="plain-btn" onClick={() => editor.select([])}>
           Done
+        </button>
+      </div>
+      <div className="actions-row" role="group" aria-label="Actions">
+        {!locked && (
+          <>
+            <span className="rotate-group" role="group" aria-label="Rotate (clockwise is +)">
+              <button type="button" className="btn" onClick={() => editor.rotateItems(ids, ROTATE_STEP)}>
+                −15°
+              </button>
+              <button type="button" className="btn" onClick={() => editor.rotateItems(ids, -ROTATE_STEP)}>
+                +15°
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => editor.rotateItems(ids, -Math.PI / 2)}
+                data-testid="rotate-90"
+              >
+                90°
+              </button>
+            </span>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => editor.duplicateSelection()}
+              title="Duplicate (⌘D)"
+              data-testid="duplicate"
+            >
+              Duplicate
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          className="btn icon-only"
+          onClick={() => editor.deleteSelection()}
+          title="Delete (⌫)"
+          aria-label="Delete"
+          data-testid="delete"
+        >
+          <Icon name="trash" size={18} />
         </button>
       </div>
       {myRefusal && (
@@ -401,73 +493,15 @@ export function Inspector() {
         </p>
       )}
       {fields}
-      {!locked && (
-        <div className="row actions-row">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Rotate left 15°"
-            onClick={() => editor.rotateItems(ids, ROTATE_STEP)}
-          >
-            <Icon name="rotateLeft" />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Rotate right 15°"
-            onClick={() => editor.rotateItems(ids, -ROTATE_STEP)}
-          >
-            <Icon name="rotateRight" />
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => editor.rotateItems(ids, Math.PI / 2)}
-            data-testid="rotate-90"
-          >
-            Turn 90°
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Duplicate"
-            title="Duplicate (⌘D)"
-            onClick={() => editor.duplicateSelection()}
-            data-testid="duplicate"
-          >
-            <Icon name="copy" />
-          </button>
-          <button
-            type="button"
-            className="icon-btn danger"
-            aria-label="Delete"
-            title="Delete (⌫)"
-            onClick={() => editor.deleteSelection()}
-            data-testid="delete"
-          >
-            <Icon name="trash" />
-          </button>
-        </div>
-      )}
       {locked && (
-        <div className="row actions-row">
-          <p className="hint">
-            Fixed at {venue.data.spots[String(item.options.spot)]?.label}. Choose “Anywhere” to move it.
-          </p>
-          <button
-            type="button"
-            className="icon-btn danger"
-            aria-label="Delete"
-            onClick={() => editor.deleteSelection()}
-          >
-            <Icon name="trash" />
-          </button>
-        </div>
+        <p className="hint">
+          Fixed at {venue.data.spots[String(item.options.spot)]?.label}. Choose “Anywhere” to move it.
+        </p>
       )}
       {!many && !locked && (
         <p className="hint">
-          Position ≈ {item.x.toFixed(1)} m from the west wall, {item.z.toFixed(1)} m from the back bar wall.
-          Arrow keys nudge 10 cm.
+          ≈ {item.x.toFixed(1)} m from the glass-door wall, {item.z.toFixed(1)} m from the back-bar wall.
+          {touch ? "" : " Arrow keys nudge 10 cm."}
         </p>
       )}
     </div>

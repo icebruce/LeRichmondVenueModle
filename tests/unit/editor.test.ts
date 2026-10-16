@@ -70,11 +70,39 @@ describe("editing", () => {
   });
 });
 
+describe("toast undo", () => {
+  test("[LAY-06] the Delete toast's Undo restores the deletion only while it is the latest change", () => {
+    const { editor, item } = setup();
+    editor.select(["t1"]);
+    editor.deleteSelection();
+    const offer = editor.store.getState().toast?.undo;
+    expect(offer).toBeDefined();
+    editor.setGuests(80);
+    // A later change dismisses the offer; calling a stale one does nothing.
+    expect(editor.store.getState().toast).toBeNull();
+    offer?.();
+    expect(editor.active().guests.count).toBe(80);
+    expect(editor.active().items.some((i) => i.id === "t1")).toBe(false);
+    editor.undo();
+    editor.undo();
+    expect(item("t1")).toBeDefined();
+  });
+});
+
 describe("scenarios", () => {
+  test("[SCN-01] renaming is an undoable step", () => {
+    const { editor } = setup();
+    const before = editor.active().name;
+    editor.renameScenario("Long tables");
+    expect(editor.active().name).toBe("Long tables");
+    editor.undo();
+    expect(editor.active().name).toBe(before);
+  });
+
   test("[SCN-01] create, duplicate, rename and delete scenarios; delete can be undone", () => {
     const { editor } = setup();
     const b = editor.duplicateScenario("A");
-    editor.renameScenario(b, "Option B");
+    editor.renameScenario("Option B");
     expect(editor.active().name).toBe("Option B");
     expect(editor.active().items.length).toBe(10);
     const c = editor.createScenario("blank");

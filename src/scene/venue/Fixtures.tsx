@@ -185,6 +185,10 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
     const neon = new THREE.TorusGeometry(0.28, 0.025, 8, 32);
     neon.translate(x1 + 0.45, 2.1, 0.08);
+    // Round neon sign on a dark backing board, so it reads as signage, not a floating ring (R02).
+    const neonBack = new THREE.CylinderGeometry(0.36, 0.36, 0.02, 32);
+    neonBack.rotateX(Math.PI / 2);
+    neonBack.translate(x1 + 0.45, 2.1, 0.045);
     return {
       cabinet,
       counter,
@@ -194,6 +198,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       shelves: merge(shelves),
       canopy,
       neon,
+      neonBack,
     };
   }, [venue]);
   const bottles = useMemo(() => {
@@ -222,6 +227,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
       {g.shelves && <mesh geometry={g.shelves} material={m.shelfGlow} />}
       <mesh geometry={g.canopy} material={m.steel} />
+      <mesh geometry={g.neonBack} material={m.blackMetal} />
       <mesh geometry={g.neon} material={m.exitSign} />
       <primitive object={bottles} />
     </group>
@@ -302,17 +308,26 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
         const stem = new THREE.CylinderGeometry(0.03, 0.03, C - c.bottom, 6);
         stem.translate(c.x, (C + c.bottom) / 2, c.z);
         wires.push(stem);
-        for (let i = 0; i < 64; i++) {
-          const a = r() * Math.PI * 2;
-          const rad = Math.sqrt(r()) * c.radius;
-          const y = c.bottom + r() * (top - c.bottom);
-          t.position.set(c.x + Math.cos(a) * rad, y + 0.09, c.z + Math.sin(a) * rad);
-          t.scale.set(1, 1, 1);
-          t.updateMatrix();
-          tubes.push(t.matrix.clone());
-          t.position.y = y - 0.04;
-          t.updateMatrix();
-          bulbs.push(t.matrix.clone());
+        // Tiered brass rings of cylinder lamps around the stem, widest at the bottom (R03).
+        const tiers = 4;
+        for (let k = 0; k < tiers; k++) {
+          const rad = c.radius * (1 - k * 0.2);
+          const y = c.bottom + (((top - c.bottom) * k) / (tiers - 1)) * 0.85;
+          const ring = new THREE.TorusGeometry(rad, 0.012, 4, 40);
+          ring.rotateX(Math.PI / 2);
+          ring.translate(c.x, y + 0.02, c.z);
+          wires.push(ring);
+          const n = Math.round(16 * (rad / c.radius));
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2 + k * 0.4;
+            t.position.set(c.x + Math.cos(a) * rad, y + 0.09, c.z + Math.sin(a) * rad);
+            t.scale.set(1, 1, 1);
+            t.updateMatrix();
+            tubes.push(t.matrix.clone());
+            t.position.y = y - 0.04;
+            t.updateMatrix();
+            bulbs.push(t.matrix.clone());
+          }
         }
       } else {
         const h = c.height ?? 1.2;

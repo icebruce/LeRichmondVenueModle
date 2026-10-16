@@ -12,7 +12,8 @@
         { "label": "Medium · 4.8 × 3.6 m", "options": { "width": 4.8, "depth": 3.6 } },
         { "label": "Large · 6 × 4.2 m", "options": { "width": 6, "depth": 4.2 } }
       ],
-      "model": { "kind": "parametric", "generator": "danceFloor" },
+      "model": { "kind": "parametric", "generator": "danceFloor", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "danceFloor", "params": { "quality": "low" } },
       "options": [
         {
           "type": "number",
@@ -21,7 +22,8 @@
           "min": 2,
           "max": 10,
           "step": 0.3,
-          "default": 6.0
+          "default": 6.0,
+          "unit": "m"
         },
         {
           "type": "number",
@@ -30,7 +32,8 @@
           "min": 2,
           "max": 8,
           "step": 0.3,
-          "default": 3.6
+          "default": 3.6,
+          "unit": "m"
         },
         {
           "type": "choice",
@@ -47,7 +50,7 @@
       "seats": false,
       "thumbnail": "thumbs/dance-floor.webp",
       "source": { "type": "built", "origin": "Richmond Studio generator: danceFloor", "licence": "Project" },
-      "budget": { "triangles": 2000, "drawCalls": 2 }
+      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 2 }
     },
     {
       "id": "dj-booth",
@@ -56,7 +59,8 @@
       "placement": "floor",
       "sizeM": { "w": 1.8, "d": 0.8, "h": 1.05 },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "djBooth" },
+      "model": { "kind": "parametric", "generator": "djBooth", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "djBooth", "params": { "quality": "low" } },
       "options": [
         {
           "type": "choice",
@@ -74,7 +78,7 @@
       "seats": false,
       "thumbnail": "thumbs/dj-booth.webp",
       "source": { "type": "built", "origin": "Richmond Studio generator: djBooth", "licence": "Project" },
-      "budget": { "triangles": 6000, "drawCalls": 5 }
+      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 5 }
     }
   ]
 }

@@ -8,12 +8,15 @@ type Item = {
   rotY: number;
   options: Record<string, unknown>;
 };
-type W = Window & {
+export type W = Window & {
   __studio: {
     editor: {
       store: {
         getState: () => {
-          scenarios: Record<string, { items: Item[]; name: string; guests: { count: number } }>;
+          scenarios: Record<
+            string,
+            { items: Item[]; name: string; guests: { count: number }; style: Record<string, string> }
+          >;
           activeId: string;
           order: string[];
           camera: string;

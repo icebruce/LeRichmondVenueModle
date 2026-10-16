@@ -7,24 +7,32 @@ import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { CameraRig, requestCamera, rig } from "./cameras";
-import { StudioContext, type Studio, useEditor, useStudio } from "./context";
+import { requestCamera } from "../state/view";
+import { CameraRig, rig } from "./cameras";
+import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
 import { Items } from "./items/Items";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 
-/** Walls between the camera and the room are cut low in dollhouse view; all walls in plan view (CAM-01). */
-function useCutaway(mode: CameraMode): ReadonlySet<string> {
+type Cutaway = { cut: ReadonlySet<string>; below: boolean };
+
+/**
+ * Walls between the camera and the room are cut low in dollhouse view; all walls in plan view
+ * (CAM-01). `below` is whether the camera is under the ceiling, which only then is drawn. A reference
+ * view (VEN-01) cuts nothing.
+ */
+function useCutaway(mode: CameraMode, view: string | null): Cutaway {
   const { venue } = useStudio();
   const camera = useThree((s) => s.camera);
-  const [cut, setCut] = useState<ReadonlySet<string>>(new Set());
+  const [state, setState] = useState<Cutaway>({ cut: new Set(), below: false });
   const key = useRef("");
   useFrame(() => {
     let ids: string[] = [];
+    const below = camera.position.y < venue.ceiling - 0.2;
     if (mode === "plan") ids = venue.data.walls.map((w) => w.id);
-    else if (mode === "dollhouse") {
+    else if (mode === "dollhouse" && !view) {
       ids = venue.data.walls
         .filter((w) => {
           const { normal } = wallFrame(w);
@@ -34,13 +42,13 @@ function useCutaway(mode: CameraMode): ReadonlySet<string> {
         })
         .map((w) => w.id);
     }
-    const k = ids.join(",");
+    const k = `${ids.join(",")}|${below}`;
     if (k !== key.current) {
       key.current = k;
-      setCut(new Set(ids));
+      setState({ cut: new Set(ids), below });
     }
   });
-  return cut;
+  return state;
 }
 
 function Lighting({ evening, quality }: { evening: boolean; quality: Quality }) {
@@ -104,13 +112,6 @@ function Lighting({ evening, quality }: { evening: boolean; quality: Quality }) 
           scale={[14, 12, 1]}
           rotation-x={Math.PI / 2}
         />
-        <Lightformer
-          form="ring"
-          intensity={evening ? 2 : 0.6}
-          color="#ffc27a"
-          position={[7.7, 4, 4.4]}
-          scale={1.5}
-        />
       </Environment>
     </>
   );
@@ -145,6 +146,20 @@ type ProjectFn = (x: number, y: number, z: number) => [number, number];
 /** Test hook: screen position of a room point, from the live camera (Playwright drags with real pointers). */
 function TestHooks() {
   const get = useThree((s) => s.get);
+  const gl = useThree((s) => s.gl);
+  // Whole-frame totals across shadow, scene and effect passes, for the budget test (ARCHITECTURE §7).
+  const frame = useRef({ calls: 0, triangles: 0 });
+  useFrame(() => {
+    frame.current = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    gl.info.reset();
+  }, -100);
+  useEffect(() => {
+    gl.info.autoReset = false;
+    (window as unknown as { __renderInfo?: () => typeof frame.current }).__renderInfo = () => frame.current;
+    return () => {
+      gl.info.autoReset = true;
+    };
+  }, [gl]);
   useEffect(() => {
     const w = window as unknown as { __project?: ProjectFn };
     const fn: ProjectFn = (x, y, z) => {
@@ -155,6 +170,7 @@ function TestHooks() {
     w.__project = fn;
     (window as unknown as { __rig?: typeof rig }).__rig = rig;
     (window as unknown as { __camera?: typeof requestCamera }).__camera = requestCamera;
+    (window as unknown as { __pose?: () => number[] }).__pose = () => get().camera.position.toArray();
     return () => {
       if (w.__project === fn) delete w.__project;
     };
@@ -169,9 +185,12 @@ function Scene({ quality }: { quality: Quality }) {
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
-  const cut = useCutaway(mode);
-  // Ceiling shows at eye level, and in dollhouse when the camera is inside the room (no wall cut).
-  const showCeiling = mode === "walk" || (mode === "dollhouse" && cut.size === 0);
+  const view = useView((s) => s.view);
+  const { cut, below } = useCutaway(mode, view);
+  // The ceiling shows only from below it (walk, reference views, a dollhouse camera zoomed in low);
+  // from above it would hide the room.
+  const showCeiling = mode === "walk" || (mode === "dollhouse" && below);
+  const eyeLevel = mode === "walk" || (view !== null && below);
   const background = useMemo(() => new THREE.Color(evening ? "#151715" : "#e8e6e0"), [evening]);
   return (
     <>
@@ -184,12 +203,12 @@ function Scene({ quality }: { quality: Quality }) {
       <BackBar venue={venue} m={m} />
       <Furnishings venue={venue} m={m} communalTable={scenario.venueToggles.communalTable} />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
-      {mode === "walk" && <Backdrops venue={venue} m={m} evening={evening} />}
+      {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
       {!cut.has("south") && <Mezzanine venue={venue} m={m} />}
       <Stair venue={venue} m={m} upper={!cut.has("south")} />
       {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
-      <Items m={m} evening={evening} />
+      <Items m={m} evening={evening} quality={quality} />
       <CameraRig />
       <TestHooks />
       <Effects evening={evening} quality={quality} />

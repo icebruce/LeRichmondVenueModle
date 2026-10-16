@@ -52,7 +52,7 @@ docs/  references/  scripts/  .claude/
 | `domain` | nothing outside `domain` (and zod) |
 | `state` | `domain`, zustand/vanilla, immer |
 | `scene` | `domain`, `state`, three/R3F |
-| `ui` | `domain`, `state`, `scene` (components only), React |
+| `ui` | `domain`, `state`, `scene` (components and the studio context only), React |
 | `data` | `domain`, `state` |
 | `app` | everything |
 | `api` | `src/domain` schemas only |
@@ -68,21 +68,23 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 ### 4.2 Scenario
 
 ```ts
-type Scenario = {
-  schemaVersion: number;
+type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
+  schemaVersion: 1;
   id: string; name: string; phase?: "dinner" | "party";
-  revision: number;            // server-assigned, for conflict detection
-  items: Item[];               // tables, dance floor, DJ, stations, décor, imported
-  style: { linen: LinenId; candles: CandleId; florals: FloralId; chair: ChairId; lighting: "evening" | "day" };
+  revision: number;                     // server-assigned from step 2, for conflict detection
+  items: Item[];                        // tables, dance floor, DJ; décor and imports from step 2
+  style: { linen: string; linenLength: "lap" | "floor"; chair: string; lighting: "evening" | "day" };
   guests: { count: number; seed: number };
   thresholds: { aisleM: number; clearanceM: number; m2PerDancer: number; dancingShare: number };
-  venueToggles: { communalTable: boolean; barStools: boolean; paintings: Record<string, boolean> };
+  venueToggles: { communalTable: boolean; barStools: boolean };
   notes: Note[];
-  updatedAt: string; updatedBy: "A" | "B";
+  updatedAt: string; updatedBy?: "A" | "B";
 };
-type Item = { id: string; kind: ItemKind; catalogId: string; x: number; z: number; rotY: number;
-              level: "main" | "raised"; params: Record<string, number | string>; styleOverride?: Partial<Scenario["style"]>; label?: string };
+type Item = { id: string; libraryId: string; x: number; z: number; rotY: number;
+              options: Record<string, number | string | boolean>; label?: string };
 ```
+
+The level (main / raised / mezzanine) is derived from the position, not stored. Step 2 adds candles, florals and per-item style overrides with a schema migration.
 
 Schema changes bump `schemaVersion` and add a migration in `domain/scenario/migrations.ts` with a test.
 
@@ -95,14 +97,18 @@ Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `a
 ```
 data/library/<family>.json      Entries: id, name, family, placement, sizeM {w,d,h}, sizePresets,
                                 model {kind:"parametric", generator, params} | {kind:"glb", file},
-                                lowModel?, thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
-                                budget {triangles, drawCalls}
-src/scene/library/<generator>.tsx   One component per parametric generator (table, chair, candle, floral, …)
+                                lowModel (phone version: same shape, or generator params.quality "low"),
+                                options [{type:number|choice|boolean, key, label, default, …}],
+                                thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
+                                budget {triangles, phoneTriangles, drawCalls}
+src/domain/layout/items.ts       Shape generators keyed by model.generator (rectTable, roundTable,
+                                cocktail, danceFloor, djBooth): sizes from sizeM/params/options, never ids
+src/scene/items/                 Meshes per shape kind; chairs and candles instanced
 public/assets/models/            GLB files (CC0 adapted or custom-built), meshopt-compressed
 public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
 ```
 
-Validated with zod at load (`domain/library`). `scripts/check-library` fails CI on missing fields, missing licence, sizes outside family bounds or budget breaches. Imported items (IMP) store a library model reference + options + the owner's image id; custom requests (REQ) live in the app store, not Git.
+The inspector builds its controls from `options`, and library captions from the resolved shape, so a preset of an existing generator is a JSON entry only (LIB-12, tested). Validated with zod at load (`domain/library`). `scripts/check-library` fails CI on missing fields, missing licence, sizes outside family bounds or budget breaches. Imported items (IMP) store a library model reference + options + the owner's image id; custom requests (REQ) live in the app store, not Git.
 
 ## 5. Rendering
 

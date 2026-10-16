@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { dragItem, item, openStudio, screenOf, setCamera, state } from "./helpers";
+import { type W, dragItem, item, openStudio, screenOf, setCamera, state } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -53,7 +53,7 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
   expect((await state(page)).active?.items.length).toBe(count);
 });
 
-test("[LIB-01] [LIB-02] [LIB-03] add a round table and a dance floor from the library", async ({ page }) => {
+test("[LIB-01] [LIB-02] add a round table and a dance floor from the library", async ({ page }) => {
   await openStudio(page, "fresh");
   await page.getByRole("button", { name: /Option A/ }).click();
   await page.getByRole("menuitem", { name: "New empty room" }).click();
@@ -66,9 +66,98 @@ test("[LIB-01] [LIB-02] [LIB-03] add a round table and a dance floor from the li
   await expect(page.getByTestId("count-seats")).toHaveText("8");
 });
 
+test("[LIB-03] tablecloths: white or ivory, to the floor or lap length", async ({ page }) => {
+  await openStudio(page);
+  const style = () =>
+    page.evaluate(() => {
+      const st = (window as unknown as W).__studio.editor.store.getState();
+      return st.scenarios[st.activeId]?.style;
+    });
+  await page.getByTestId("linen-linen-white").click();
+  await page.getByTestId("linen-length-lap").click();
+  expect(await style()).toMatchObject({ linen: "linen-white", linenLength: "lap" });
+  await expect(page.getByTestId("linen-length-lap")).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("undo").click();
+  expect((await style())?.linenLength).toBe("floor");
+});
+
+test("[LAY-05] dragging a table near another's centre line snaps into line with it", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: /Option A/ }).click();
+  await page.getByRole("menuitem", { name: "New empty room" }).click();
+  await page.getByTestId("add-table-round").click();
+  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByTestId("add-table-round").click();
+  await page.getByRole("button", { name: "Done" }).click();
+  const ids = await page.evaluate(() => {
+    const ed = (window as unknown as W).__studio.editor as unknown as {
+      active: () => { items: { id: string }[] };
+      moveItems: (m: { id: string; x: number; z: number }[]) => void;
+    };
+    const [a, b] = ed.active().items;
+    ed.moveItems([
+      { id: a?.id ?? "", x: 3, z: 9 },
+      { id: b?.id ?? "", x: 6, z: 12.5 },
+    ]);
+    return [a?.id ?? "", b?.id ?? ""];
+  });
+  await setCamera(page, "plan");
+  await dragItem(page, ids[1] as string, [3.12, 12.5]);
+  const b = await item(page, ids[1] as string);
+  expect(b.x).toBeCloseTo(3, 5);
+});
+
+test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view returns", async ({ page }) => {
+  await openStudio(page);
+  const pose = () => page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
+  const start = await pose();
+  await page.getByTestId("section-venue").click();
+  await page.getByRole("button", { name: /At the bar/ }).click();
+  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  await page.waitForTimeout(400);
+  const preset = await page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          __studio: { venue: { data: { cameraPresets: Record<string, { position: number[] }> } } };
+        }
+      ).__studio.venue.data.cameraPresets.R03?.position,
+  );
+  const at = await pose();
+  for (let i = 0; i < 3; i++) expect(at[i]).toBeCloseTo(preset?.[i] ?? NaN, 1);
+  await page.getByRole("button", { name: "Reset view" }).click();
+  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  await page.waitForTimeout(400);
+  const back = await pose();
+  for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
+});
+
+test("[PLT-03] the full evening scene stays inside the draw-call and triangle budgets", async ({ page }) => {
+  for (const [quality, calls, triangles] of [
+    ["high", 250, 1_500_000],
+    ["low", 150, 600_000],
+  ] as const) {
+    await page.goto(`/?quality=${quality}&fresh`);
+    await page.waitForFunction(() => (window as unknown as { __renderInfo?: unknown }).__renderInfo, null, {
+      timeout: 60_000,
+    });
+    await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
+    await page.waitForTimeout(1500);
+    const info = await page.evaluate(() =>
+      (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
+    );
+    console.log(`${quality}: ${info.calls} draw calls, ${info.triangles} triangles`);
+    expect(info.calls).toBeGreaterThan(0);
+    expect(info.calls).toBeLessThan(calls);
+    expect(info.triangles).toBeLessThan(triangles);
+  }
+});
+
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {
   await openStudio(page);
-  const [bx, by] = await screenOf(page, 7.7, 1.07, 8.1);
+  const [bx, by] = await screenOf(page, 7.7, 1.07, 6.85);
   await page.mouse.click(bx, by);
   expect((await state(page)).selection).toEqual([]);
   const [wx, wy] = await screenOf(page, 3, 4, 0);
@@ -105,8 +194,10 @@ test("[LGT-02] switch to daylight and back", async ({ page }) => {
   await expect(page.getByTestId("light-evening")).toHaveAttribute("aria-checked", "true");
 });
 
-test("[SCN-01] [SCN-09] scenarios survive a reload", async ({ page }) => {
-  await openStudio(page, "fresh");
+test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overwrites them", async ({
+  page,
+}) => {
+  await openStudio(page, "saved");
   await page.getByRole("button", { name: /Option A/ }).click();
   await page.getByRole("menuitem", { name: "Duplicate" }).click();
   await page.getByRole("button", { name: /copy/ }).click();
@@ -121,4 +212,14 @@ test("[SCN-01] [SCN-09] scenarios survive a reload", async ({ page }) => {
   expect(s.order.length).toBe(2);
   expect(s.active?.name).toBe("Option B");
   expect(s.active?.guests.count).toBe(76);
+
+  // A throwaway ?fresh session edits its own copy; the saved scenarios are untouched afterwards.
+  await openStudio(page, "fresh");
+  await page.getByTestId("guests").getByRole("button", { name: /Fewer/ }).click();
+  await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
+  await page.goto("/?quality=low");
+  await page.waitForFunction(() => (window as unknown as { __studio?: unknown }).__studio);
+  const after = await state(page);
+  expect(after.order.length).toBe(2);
+  expect(after.active?.guests.count).toBe(76);
 });

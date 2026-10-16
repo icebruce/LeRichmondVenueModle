@@ -49,7 +49,7 @@
           [16, 11.3],
           [11.2, 11.3],
           [11.2, 9.6],
-          [9.81, 8.42]
+          [9.81, 7.2]
         ],
         "confidence": "M",
         "sources": ["C", "F01"]
@@ -57,8 +57,8 @@
       "steps": {
         "value": [
           {
-            "from": [10.2, 8.75],
-            "to": [10.85, 9.3]
+            "from": [10.25, 7.95],
+            "to": [10.85, 8.98]
           },
           {
             "from": [13.0, 11.3],
@@ -76,6 +76,7 @@
       "from": [0, 0],
       "to": [16, 0],
       "finish": "brick",
+      "dado": 1.05,
       "openings": [],
       "confidence": "H",
       "sources": ["R01", "R03", "R07", "UV01"]
@@ -97,8 +98,8 @@
         {
           "id": "garage-south",
           "kind": "garageDoor",
-          "start": 3.0,
-          "end": 6.4,
+          "start": 5.5,
+          "end": 9.1,
           "sill": 0,
           "head": 3.9
         },
@@ -127,6 +128,7 @@
       "from": [16, 0],
       "to": [16, 14.3],
       "finish": "brick",
+      "dado": 1.05,
       "openings": [
         {
           "id": "street-1",
@@ -149,6 +151,14 @@
           "kind": "tallWindow",
           "start": 7.5,
           "end": 9.5,
+          "sill": 0.6,
+          "head": 5.9
+        },
+        {
+          "id": "street-4",
+          "kind": "tallWindow",
+          "start": 10.0,
+          "end": 11.7,
           "sill": 0.6,
           "head": 5.9
         }
@@ -194,16 +204,16 @@
           "end": 16,
           "finish": "greenPanel",
           "height": 3.8,
-          "from": 3.2
+          "from": 0
         }
       ],
       "confidence": "M",
-      "sources": ["C", "UV02", "F01"]
+      "sources": ["C", "F01", "R04", "R09", "UV02"]
     }
   ],
   "bar": {
     "outer": {
-      "value": [5.67, 2.16, 9.81, 8.42],
+      "value": [5.67, 2.16, 9.81, 7.2],
       "confidence": "L",
       "sources": ["F01", "R02", "U01"]
     },
@@ -275,7 +285,7 @@
       "z": 15.0,
       "rotY": 0,
       "level": "mezzanine",
-      "label": "DJ option 3 \u00b7 mezzanine"
+      "label": "DJ option 3 · mezzanine"
     }
   },
   "fixtures": {
@@ -325,7 +335,7 @@
       }
     ],
     "wineWall": {
-      "rect": [15.4, 11.5, 15.95, 12.8],
+      "rect": [15.4, 12.0, 15.95, 12.95],
       "height": 3.0
     },
     "chandeliers": [

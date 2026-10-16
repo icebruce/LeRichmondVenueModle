@@ -102,8 +102,8 @@ button:disabled {
   gap: var(--s-1);
   border: 0;
   background: none;
-  padding: var(--s-1) 0 0;
-  min-height: 32px;
+  padding: 0;
+  min-height: var(--target);
   text-align: left;
 }
 .scenario-name {
@@ -126,7 +126,7 @@ button:disabled {
   border-radius: var(--r-control);
   padding: var(--s-1) var(--s-2);
   background: var(--surface);
-  min-height: 32px;
+  min-height: var(--target);
   width: 100%;
 }
 .text-input {
@@ -168,19 +168,21 @@ button:disabled {
   background: var(--sunk);
 }
 .menu-item .check {
+  display: grid;
+  place-items: center;
   width: 16px;
-  color: var(--accent);
+  flex: none;
+  color: var(--ink-2);
 }
-.menu-item.danger,
-.icon-btn.danger {
-  color: var(--blocked);
+.menu-item[aria-checked="true"] .check {
+  color: var(--accent);
 }
 
 .seg {
   display: flex;
   gap: 2px;
-  padding: 3px;
-  border-radius: 10px;
+  padding: 2px;
+  border-radius: var(--r-card);
   background: var(--sunk);
 }
 .seg.glass {
@@ -191,8 +193,8 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 36px;
+  gap: var(--s-1);
+  min-height: var(--target);
   min-width: var(--target);
   padding: 0 var(--s-3);
   border: 0;
@@ -207,7 +209,20 @@ button:disabled {
 .seg button.on {
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 1px 3px rgba(32, 37, 34, 0.14);
+  box-shadow: var(--shadow-control);
+}
+.seg button:disabled {
+  opacity: 0.55;
+}
+.camera-group {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.icon-btn.glass {
+  width: calc(var(--target) + 10px);
+  height: calc(var(--target) + 10px);
+  border-radius: var(--r-card);
 }
 .seg-fill {
   width: 100%;
@@ -275,9 +290,6 @@ button:disabled {
   transition:
     background var(--m-fast),
     color var(--m-fast);
-}
-.rail button:last-child {
-  margin-top: auto;
 }
 .rail button.on {
   background: var(--accent-soft);
@@ -367,7 +379,7 @@ button:disabled {
   height: 22px;
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-knob);
   transition: transform var(--m-fast);
 }
 .toggle input:checked {
@@ -382,8 +394,8 @@ button:disabled {
   gap: var(--s-2);
 }
 .stepper button {
-  width: 36px;
-  height: 36px;
+  width: var(--target);
+  height: var(--target);
   display: grid;
   place-items: center;
   border: 1px solid var(--line-2);
@@ -463,8 +475,8 @@ button:disabled {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
+  gap: var(--s-1);
+  min-height: var(--target);
   padding: 0 var(--s-3);
   border: 1px solid var(--line-2);
   border-radius: var(--r-control);
@@ -477,7 +489,10 @@ button:disabled {
   border-color: var(--ink);
 }
 .btn {
-  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--target);
   padding: 0 var(--s-3);
   border: 1px solid var(--line-2);
   border-radius: var(--r-control);
@@ -496,11 +511,44 @@ button:disabled {
   color: var(--accent-on-dark);
 }
 .actions-row {
-  justify-content: flex-start;
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--s-1);
-  border-top: 1px solid var(--line);
-  padding-top: var(--s-2);
+}
+.actions-row .btn {
+  padding: 0 var(--s-3);
+}
+.rotate-group .btn {
+  padding: 0 var(--s-2);
+}
+.actions-row .icon-only {
+  justify-content: center;
+  width: var(--target);
+  padding: 0;
+  margin-left: auto;
+}
+.rotate-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding-right: var(--s-2);
+  margin-right: var(--s-1);
+  border-right: 1px solid var(--line);
+  color: var(--ink-3);
+}
+.light-toggle {
+  display: none;
+}
+.history {
+  display: flex;
+  gap: var(--s-1);
+}
+.history-float {
+  display: none;
+}
+.counts-line {
+  display: none;
 }
 .hint {
   font: var(--t-footnote);
@@ -557,7 +605,7 @@ button:disabled {
   min-height: 44px;
   border-radius: 22px;
   background: var(--toast-bg);
-  color: #fff;
+  color: var(--on-dark);
   font: var(--t-callout);
   box-shadow: var(--shadow);
   animation: rise var(--m-base);
@@ -582,20 +630,30 @@ button:disabled {
 .table-label {
   font: 600 13px/1 var(--font-ui);
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  padding: 3px 7px;
+  background: var(--label-bg);
+  border-radius: var(--r-control);
+  padding: var(--s-1) var(--s-2);
   pointer-events: none;
   white-space: nowrap;
 }
-.drag-reason {
-  font: 500 13px/1 var(--font-ui);
-  color: #fff;
-  background: var(--blocked);
-  padding: 6px 10px;
-  border-radius: 8px;
+.drag-reason,
+.drag-readout {
+  /* Above the item, not over its table number (Html anchors at the item's centre). */
+  translate: 0 calc(-1 * var(--s-7));
+  font: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--blocked);
+  background: var(--label-bg);
+  border: 1px solid var(--blocked);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
   white-space: nowrap;
   pointer-events: none;
+}
+.drag-readout {
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: var(--shadow-control);
 }
 .loading {
   position: absolute;
@@ -658,6 +716,21 @@ button:disabled {
   .ui {
     --rail: 0px;
     --tabbar: calc(56px + env(safe-area-inset-bottom, 0px));
+    --peek: 164px;
+    --above-sheet: var(--tabbar);
+  }
+  .ui[data-sheet="peek"] {
+    --above-sheet: calc(var(--tabbar) + var(--peek));
+  }
+  .ui[data-sheet="half"] {
+    --above-sheet: calc(var(--tabbar) + 48%);
+  }
+  .ui[data-sheet="full"] .history-float {
+    display: none;
+  }
+  .history-float,
+  .ui .toast {
+    bottom: calc(var(--above-sheet) + var(--s-2));
   }
   .rail {
     display: none;
@@ -672,15 +745,32 @@ button:disabled {
   .scenario {
     grid-area: scenario;
     max-width: 100%;
+    padding: 0 var(--s-3);
   }
   .actions {
     grid-area: actions;
   }
-  .topbar .seg.glass {
-    grid-area: camera;
-    justify-self: center;
+  .actions .history,
+  .light-seg {
+    display: none;
   }
-  .save-state {
+  .light-toggle {
+    display: grid;
+  }
+  .camera-group {
+    grid-area: camera;
+  }
+  .camera-group .seg {
+    flex: 1;
+  }
+  .camera-group .seg button {
+    flex: 1;
+  }
+  .actions {
+    padding: 0;
+  }
+  /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
+  .save-state:not(.error) {
     display: none;
   }
   .seg-label {
@@ -688,6 +778,25 @@ button:disabled {
   }
   .topbar .seg.glass .seg-label {
     display: inline;
+  }
+  .history-float {
+    display: flex;
+    position: absolute;
+    left: var(--s-2);
+    padding: var(--s-1);
+    z-index: 16;
+    transition: bottom var(--m-base);
+  }
+  .counts-line {
+    display: block;
+    margin: 0;
+    padding: 0 var(--s-4) var(--s-2);
+    font: var(--t-footnote);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .counts-line .warn {
+    color: var(--advisory);
   }
   .tabbar {
     display: grid;
@@ -729,7 +838,7 @@ button:disabled {
     z-index: 15;
   }
   .panel.detent-peek {
-    height: 112px;
+    height: var(--peek);
     overflow: hidden;
   }
   .panel.detent-half {
@@ -760,21 +869,6 @@ button:disabled {
   .panel-body {
     padding-top: 0;
   }
-  .counts {
-    left: var(--s-2);
-    right: auto;
-    bottom: auto;
-    top: calc(var(--top) + 112px);
-    max-width: calc(100% - 2 * var(--s-2));
-    gap: var(--s-1) var(--s-3);
-    padding: var(--s-1) var(--s-3);
-  }
-  .count b {
-    font: 500 16px/20px var(--font-ui);
-  }
-  .toast {
-    bottom: calc(var(--tabbar) + 120px);
-  }
   .desktop-only {
     display: none;
   }
@@ -782,7 +876,8 @@ button:disabled {
     display: inline;
   }
   .walk-hint {
-    top: calc(var(--top) + 150px);
+    top: calc(var(--top) + 128px);
+    white-space: nowrap;
   }
   .joystick {
     display: block;
@@ -792,8 +887,8 @@ button:disabled {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: var(--pad-bg);
+    border: 1px solid var(--pad-line);
     -webkit-backdrop-filter: var(--blur);
     backdrop-filter: var(--blur);
     touch-action: none;
@@ -806,7 +901,7 @@ button:disabled {
     height: 52px;
     margin: -26px 0 0 -26px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--pad-knob);
     box-shadow: var(--shadow);
   }
 }

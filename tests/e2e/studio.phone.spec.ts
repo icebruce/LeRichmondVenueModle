@@ -11,6 +11,11 @@ test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async (
   const [x, y] = await screenOf(page, t?.x ?? 0, 0.77, t?.z ?? 0);
   await page.touchscreen.tap(x, y);
   await expect(page.getByTestId("inspector")).toBeVisible();
+  // The sheet opens at peek height with the key actions in view, and the table stays visible.
+  await expect(page.getByTestId("rotate-90")).toBeInViewport();
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
+  await expect(page.getByRole("button", { name: "Reset view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Undo" }).first()).toBeVisible();
   await setCamera(page, "walk");
   await expect(page.locator(".joystick")).toBeVisible();
 });

@@ -6,6 +6,8 @@ import { countLayout, tableLabels } from "../../src/domain/layout/counts";
 import { rectTable, roundTable } from "../../src/domain/library/sizing";
 import { venueSampleItems } from "../../src/domain/scenario/scenario";
 import { area, polygonInside } from "../../src/domain/geometry";
+import { alignSnap } from "../../src/domain/layout/align";
+import { walkArea } from "../../src/domain/layout/walk";
 
 const table = (over: Partial<Item> = {}): Item => ({
   id: "x",
@@ -150,5 +152,61 @@ describe("venue sample and counts", () => {
     expect(labels.get("t7")).toBe("6");
     expect(labels.get("sweetheart")).toBe("♥");
     expect(labels.has("dance")).toBe(false);
+  });
+});
+
+describe("alignment snapping", () => {
+  const others = [table({ id: "a", x: 4, z: 3 }), table({ id: "b", x: 10, z: 9 })];
+
+  test("[LAY-05] a dragged table snaps into line with a nearby table's centre", () => {
+    const r = alignSnap({ x: 4.12, z: 5.4 }, others, catalog);
+    expect(r.x).toBe(4);
+    expect(r.z).toBe(5.4);
+    expect(r.guides).toEqual([{ axis: "x", value: 4, with: "a" }]);
+  });
+
+  test("[LAY-05] outside the tolerance, or far away, nothing snaps", () => {
+    expect(alignSnap({ x: 4.3, z: 5.4 }, others, catalog).guides).toEqual([]);
+    expect(alignSnap({ x: 10.05, z: 1 }, others, catalog).guides).toEqual([]);
+  });
+
+  test("[LAY-05] the dance floor is not a line to snap to", () => {
+    const floor: Item = { id: "f", libraryId: "dance-floor", x: 6, z: 6, rotY: 0, options: {} };
+    expect(alignSnap({ x: 6.05, z: 7 }, [floor], catalog).guides).toEqual([]);
+  });
+});
+
+describe("walking", () => {
+  const off = { communalTable: false, barStools: false };
+
+  test("[CAM-03] a guest can stand on open floor but not in the bar, a table or past the walls", () => {
+    const t = table({ x: 3, z: 9 });
+    const free = walkArea(venue, [t], catalog, off);
+    expect(free([3, 12.5])).toBe(true);
+    expect(free([3, 9])).toBe(false);
+    expect(free([7, 7])).toBe(false);
+    expect(free([0.1, 5])).toBe(false);
+    expect(free([8, 14.25])).toBe(false);
+  });
+
+  test("[CAM-03] the dance floor is walked on; venue furniture blocks only when shown", () => {
+    const floor: Item = { id: "f", libraryId: "dance-floor", x: 3, z: 11, rotY: 0, options: {} };
+    expect(walkArea(venue, [floor], catalog, off)([3, 11])).toBe(true);
+    const [x0, z0, x1, z1] = venue.data.fixtures.venueFurniture.communalTable.rect;
+    const mid: [number, number] = [(x0 + x1) / 2, (z0 + z1) / 2];
+    expect(walkArea(venue, [], catalog, off)(mid)).toBe(true);
+    expect(walkArea(venue, [], catalog, { ...off, communalTable: true })(mid)).toBe(false);
+  });
+
+  test("[CAM-03] the raised-floor railing blocks; its steps let a guest through", () => {
+    const free = walkArea(venue, [], catalog, off);
+    const [a, b] = venue.railing[0] ?? [
+      [0, 0],
+      [0, 0],
+    ];
+    expect(free([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])).toBe(false);
+    for (const s of venue.data.levels.raised.steps.value) {
+      expect(free([(s.from[0] + s.to[0]) / 2, (s.from[1] + s.to[1]) / 2])).toBe(true);
+    }
   });
 });

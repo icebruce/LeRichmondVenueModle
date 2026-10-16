@@ -36,10 +36,17 @@ export function spotFor(
   return s ? { x: s.x, z: s.z, rotY: s.rotY, level: s.level } : null;
 }
 
-export function itemName(item: Item, labels: ReadonlyMap<string, string>, catalog: Catalog): string {
+/** Display name: "Table 5" for numbered tables, else the library name ("Sweetheart table"). */
+export function itemTitle(item: Item, labels: ReadonlyMap<string, string>, catalog: Catalog): string {
   const label = labels.get(item.id);
-  if (isTable(item) && label) return label === "♥" ? "the sweetheart table" : `table ${label}`;
-  return `the ${(catalog.get(item.libraryId)?.name ?? "item").toLowerCase()}`;
+  if (isTable(item, catalog) && label && /^[\p{L}\p{N}]/u.test(label)) return `Table ${label}`;
+  return catalog.get(item.libraryId)?.name ?? "Item";
+}
+
+/** The item as named inside a sentence ("Too close to table 5"). */
+export function itemName(item: Item, labels: ReadonlyMap<string, string>, catalog: Catalog): string {
+  const t = itemTitle(item, labels, catalog);
+  return t.startsWith("Table ") ? `table ${t.slice(6)}` : `the ${t.toLowerCase()}`;
 }
 
 /**

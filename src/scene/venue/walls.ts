@@ -71,14 +71,13 @@ export type WallMeshes = {
   cap: THREE.BufferGeometry | null;
 };
 
-/** Red brick band height on the north wall (R06, R07). */
-const RED_BAND = 1.05;
 export const CUT_HEIGHT = 1.15;
 
 export function buildWall(wall: WallData, height: number, thickness: number, cut: boolean): WallMeshes {
   const full = wallPieces(wall, wall.height ?? height);
   const pieces = cut ? clip(full, CUT_HEIGHT) : full;
-  const [low, high] = wall.id === "north" ? splitAt(pieces, RED_BAND) : [[], pieces];
+  // Red brick dado band where the photos show one (wall.dado = its height).
+  const [low, high] = wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
 
   const panels: THREE.BufferGeometry[] = [];
   for (const pn of wall.panels ?? []) {

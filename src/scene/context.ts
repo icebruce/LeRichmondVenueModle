@@ -4,7 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { Catalog } from "../domain/library/catalog";
 import type { VenueModel } from "../domain/venue/model";
 import type { Editor, EditorState } from "../state/editor";
-import { type InteractionState, interaction } from "./interaction";
+import { type ViewState, viewStore } from "../state/view";
 
 export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor };
 
@@ -20,6 +20,6 @@ export function useEditor<T>(selector: (s: EditorState) => T): T {
   return useStore(useStudio().editor.store as StoreApi<EditorState>, selector);
 }
 
-export function useInteraction<T>(selector: (s: InteractionState) => T): T {
-  return useStore(interaction, selector);
+export function useView<T>(selector: (s: ViewState) => T): T {
+  return useStore(viewStore, selector);
 }

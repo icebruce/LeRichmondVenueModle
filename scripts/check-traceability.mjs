@@ -13,8 +13,7 @@ const MANUAL = {
   "LGT-01": "mood vs R08 at step 1 gate",
   "LGT-03": "architecture decision (ADR-2)",
   "PLT-01": "owner devices at step gates",
-  "PLT-03": "real-device performance at step gates",
-  "CAM-05": "motion reviewed by ux-reviewer",
+  "PLT-03": "frame rate on real devices at step gates (draw calls and triangles are tested)",
 };
 
 const spec = readFileSync(join(root, "docs/PRODUCT_SPEC.md"), "utf8");

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CameraMode } from "../state/editor";
+import { requestCamera } from "../state/view";
 import { useEditor, useStudio } from "../scene/context";
 import { Icon, type IconName } from "./icons";
 import { useServices } from "./services";
@@ -14,22 +15,33 @@ export function CameraSwitch() {
   const { editor } = useStudio();
   const mode = useEditor((s) => s.camera);
   return (
-    <div className="seg glass" role="radiogroup" aria-label="Camera">
-      {CAMERAS.map((c) => (
-        <button
-          key={c.mode}
-          type="button"
-          role="radio"
-          aria-checked={mode === c.mode}
-          className={mode === c.mode ? "on" : ""}
-          onClick={() => editor.setCamera(c.mode)}
-          title={`${c.label} (${c.key})`}
-          data-testid={`camera-${c.mode}`}
-        >
-          <Icon name={c.icon} />
-          <span className="seg-label">{c.label}</span>
-        </button>
-      ))}
+    <div className="camera-group">
+      <div className="seg glass" role="radiogroup" aria-label="Camera">
+        {CAMERAS.map((c) => (
+          <button
+            key={c.mode}
+            type="button"
+            role="radio"
+            aria-checked={mode === c.mode}
+            className={mode === c.mode ? "on" : ""}
+            onClick={() => editor.setCamera(c.mode)}
+            title={`${c.label} (${c.key})`}
+            data-testid={`camera-${c.mode}`}
+          >
+            <Icon name={c.icon} />
+            <span className="seg-label">{c.label}</span>
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="icon-btn glass reset-view"
+        onClick={() => requestCamera(null)}
+        aria-label="Reset view"
+        title="Reset view"
+      >
+        <Icon name="frame" />
+      </button>
     </div>
   );
 }
@@ -88,7 +100,7 @@ export function ScenarioMenu() {
           onSubmit={(e) => {
             e.preventDefault();
             const v = new FormData(e.currentTarget).get("name");
-            if (typeof v === "string") editor.renameScenario(activeId, v);
+            if (typeof v === "string") editor.renameScenario(v);
             setRenaming(false);
           }}
         >
@@ -102,7 +114,7 @@ export function ScenarioMenu() {
             maxLength={80}
             autoFocus
             onBlur={(e) => {
-              editor.renameScenario(activeId, e.currentTarget.value);
+              editor.renameScenario(e.currentTarget.value);
               setRenaming(false);
             }}
           />
@@ -145,6 +157,7 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={act(() => editor.duplicateScenario(activeId))}
             >
+              <span className="check" />
               Duplicate
             </button>
             <button
@@ -153,6 +166,7 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={act(() => setRenaming(true))}
             >
+              <span className="check" />
               Rename
             </button>
             <button
@@ -161,6 +175,7 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={act(() => editor.createScenario("sample"))}
             >
+              <span className="check" />
               New from venue sample
             </button>
             <button
@@ -169,6 +184,7 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={act(() => editor.createScenario("blank"))}
             >
+              <span className="check" />
               New empty room
             </button>
           </div>
@@ -179,7 +195,10 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={act(() => services.exportScenario(activeId))}
             >
-              <Icon name="download" size={16} /> Save as file
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
+              Save as file
             </button>
             <button
               role="menuitem"
@@ -187,14 +206,18 @@ export function ScenarioMenu() {
               className="menu-item"
               onClick={() => fileRef.current?.click()}
             >
-              <Icon name="upload" size={16} /> Open file…
+              <span className="check">
+                <Icon name="upload" size={16} />
+              </span>
+              Open file…
             </button>
             <button
               role="menuitem"
               type="button"
-              className="menu-item danger"
+              className="menu-item"
               onClick={act(() => editor.deleteScenario(activeId))}
             >
+              <span className="check" />
               Delete scenario
             </button>
           </div>
@@ -217,13 +240,13 @@ export function ScenarioMenu() {
   );
 }
 
-export function Actions() {
+/** Undo and redo; in the top bar on desktop, floating above the sheet on phones (DESIGN_GUIDE §3.2). */
+export function History({ className = "" }: { className?: string }) {
   const { editor } = useStudio();
   const canUndo = useEditor((s) => s.canUndo);
   const canRedo = useEditor((s) => s.canRedo);
-  const lighting = useEditor((s) => s.scenarios[s.activeId]?.style.lighting ?? "evening");
   return (
-    <div className="actions glass">
+    <div className={`history ${className}`}>
       <button
         type="button"
         className="icon-btn"
@@ -231,7 +254,7 @@ export function Actions() {
         disabled={!canUndo}
         aria-label="Undo"
         title="Undo (⌘Z)"
-        data-testid="undo"
+        data-testid={className ? undefined : "undo"}
       >
         <Icon name="undo" />
       </button>
@@ -242,16 +265,45 @@ export function Actions() {
         disabled={!canRedo}
         aria-label="Redo"
         title="Redo (⇧⌘Z)"
-        data-testid="redo"
+        data-testid={className ? undefined : "redo"}
       >
         <Icon name="redo" />
       </button>
-      <div className="seg" role="radiogroup" aria-label="Lighting">
+    </div>
+  );
+}
+
+export function Actions() {
+  const { editor } = useStudio();
+  const lighting = useEditor((s) => s.scenarios[s.activeId]?.style.lighting ?? "evening");
+  const plan = useEditor((s) => s.camera === "plan");
+  return (
+    <div className="actions glass">
+      <History />
+      {/* Phone: one button that flips evening and daylight, to keep the top bar to one row. */}
+      <button
+        type="button"
+        className="icon-btn light-toggle"
+        disabled={plan}
+        onClick={() => editor.setStyle("lighting", lighting === "evening" ? "day" : "evening")}
+        aria-label={lighting === "evening" ? "Switch to daylight" : "Switch to evening light"}
+        title={plan ? "Plan view always uses daylight" : undefined}
+      >
+        <Icon name={lighting === "evening" && !plan ? "moon" : "sun"} />
+      </button>
+      <div
+        className="seg light-seg"
+        role="radiogroup"
+        aria-label="Lighting"
+        aria-disabled={plan}
+        title={plan ? "Plan view always uses daylight" : undefined}
+      >
         <button
           type="button"
           role="radio"
-          aria-checked={lighting === "evening"}
-          className={lighting === "evening" ? "on" : ""}
+          aria-checked={lighting === "evening" && !plan}
+          className={lighting === "evening" && !plan ? "on" : ""}
+          disabled={plan}
           onClick={() => editor.setStyle("lighting", "evening")}
           data-testid="light-evening"
         >
@@ -261,8 +313,9 @@ export function Actions() {
         <button
           type="button"
           role="radio"
-          aria-checked={lighting === "day"}
-          className={lighting === "day" ? "on" : ""}
+          aria-checked={lighting === "day" || plan}
+          className={lighting === "day" || plan ? "on" : ""}
+          disabled={plan}
           onClick={() => editor.setStyle("lighting", "day")}
           data-testid="light-day"
         >
