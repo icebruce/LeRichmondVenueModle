@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1 and 2 merged (PR #1, PR #2; owner-approved 2026-10-16). Step 3 built as two PRs: 3a (PR #3, CI green, awaiting owner review) and 3b (draft PR stacked on 3a, reviews still to run). See **Next steps** below. Cloud saving needs the owner's one-time Vercel setup (README; not done yet).
+**Current stage:** Steps 1 and 2 merged (PR #1, PR #2; owner-approved 2026-10-16). Step 3 built as two PRs: 3a (PR #3, CI green, awaiting owner review) and 3b (draft PR #4 stacked on 3a, reviews still to run). See **Next steps** below. Cloud saving needs the owner's one-time Vercel setup (README; not done yet).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -55,7 +55,7 @@ Where things stand:
 - **PR #3, step 3a** (branch `ccr-32f95f5c-e6p10x`). CI green; Vercel preview ready.
   - Two UX and spec review rounds done.
   - Waits on the owner: approve the visuals and confirm the three items under Open items (Sit here flow, new UI patterns, flower types on installations).
-- **Step 3b** (branch `ccr-32f95f5c-e6p10x-3b`, stacked on 3a). Draft PR; retarget it to `main` once #3 merges.
+- **Step 3b** (branch `ccr-32f95f5c-e6p10x-3b`, stacked on 3a). Draft PR #4; retarget it to `main` once #3 merges. Full suite: 30 browser tests pass locally.
   - Built: IMP-01..07, REQ-01..04 and the LIB-09 print.
   - Tests: 100 unit tests; browser tests include the import flow and a two-device share of an import and a request. 65/65 must-haves for steps 1–3 traced.
   - Not done yet: the UX and spec reviews (both stopped on a usage limit) and DoD screenshots. Screenshots were captured once, but not reviewed.
