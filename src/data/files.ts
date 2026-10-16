@@ -1,16 +1,34 @@
 import { exportScenario, importScenario } from "../domain/scenario/scenario";
 import type { Scenario } from "../domain/scenario/schema";
 
-export function downloadScenario(s: Scenario): void {
-  const blob = new Blob([exportScenario(s)], { type: "application/json" });
+/** File name from a scenario name, safe on every system. */
+export function fileName(name: string, ext: string): string {
+  const safe = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s*·\s*/g, " - ")
+    .replace(/[^\w\- ]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${safe || "scenario"}.${ext}`;
+}
+
+export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${s.name.replace(/[^\w\- ·]+/g, "").trim() || "scenario"}.richmond.json`;
+  a.download = name;
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function downloadScenario(s: Scenario): void {
+  downloadBlob(
+    new Blob([exportScenario(s)], { type: "application/json" }),
+    fileName(s.name, "richmond.json"),
+  );
 }
 
 export async function readScenarioFile(file: File, newId: string, now: string): Promise<Scenario> {

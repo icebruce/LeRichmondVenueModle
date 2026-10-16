@@ -230,6 +230,31 @@ test("[LAY-08] advisory checks follow the couple's settings and never block", as
   expect((await state(page)).selection.sort()).toEqual(["t5", "t6"]);
 });
 
+test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current view", async ({ page }) => {
+  await openStudio(page);
+  const download = async (id: string) => {
+    await page.getByTestId("scenario-menu").click();
+    const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId(id).click()]);
+    const path = await d.path();
+    const { statSync, readFileSync } = await import("node:fs");
+    return {
+      name: d.suggestedFilename(),
+      size: statSync(path).size,
+      head: readFileSync(path).subarray(0, 8),
+    };
+  };
+  const pdf = await download("export-pdf");
+  expect(pdf.name).toMatch(/Venue sample plan\.pdf$/);
+  expect(pdf.head.toString("latin1")).toBe("%PDF-1.4");
+  expect(pdf.size).toBeGreaterThan(50_000);
+  const png = await download("export-png");
+  expect(png.name.endsWith(".png")).toBe(true);
+  expect(png.head.subarray(1, 4).toString()).toBe("PNG");
+  const view = await download("save-view");
+  expect(view.name).toMatch(/Venue sample view\.png$/);
+  expect(view.size).toBeGreaterThan(20_000);
+});
+
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {
   await openStudio(page);
   const [bx, by] = await screenOf(page, 7.7, 1.07, 6.85);

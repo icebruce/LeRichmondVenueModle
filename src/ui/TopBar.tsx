@@ -204,6 +204,38 @@ export function ScenarioMenu() {
               role="menuitem"
               type="button"
               className="menu-item"
+              onClick={act(() => void services.exportPlan("pdf"))}
+              data-testid="export-pdf"
+            >
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
+              Plan for the venue (PDF)
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
+              onClick={act(() => void services.exportPlan("png"))}
+              data-testid="export-png"
+            >
+              <span className="check" />
+              Plan as an image (PNG)
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
+              onClick={act(() => void services.saveView())}
+              data-testid="save-view"
+            >
+              <span className="check" />
+              Save this view as an image
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
               onClick={() => fileRef.current?.click()}
             >
               <span className="check">
