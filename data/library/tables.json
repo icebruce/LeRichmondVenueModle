@@ -358,8 +358,8 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 350,
-        "phoneTriangles": 200,
+        "triangles": 3350,
+        "phoneTriangles": 1200,
         "drawCalls": 2
       }
     },

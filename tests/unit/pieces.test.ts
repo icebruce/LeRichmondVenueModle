@@ -8,8 +8,8 @@ import { resolveOptions } from "../../src/domain/library/catalog";
 
 /** Triangles per unit primitive, as the scene builds them (Decor.tsx `primitives`). */
 const TRIS: Record<"high" | "low", Record<Prim, number>> = {
-  high: { cylinder: 56, sphere: 108, box: 12, cone: 28, bowl: 28 },
-  low: { cylinder: 32, sphere: 36, box: 12, cone: 16, bowl: 16 },
+  high: { cylinder: 56, sphere: 108, box: 12, cone: 28, bowl: 28, plane: 2 },
+  low: { cylinder: 32, sphere: 36, box: 12, cone: 16, bowl: 16, plane: 2 },
 };
 const triangles = (parts: Part[], q: "high" | "low") => parts.reduce((n, p) => n + TRIS[q][p.prim], 0);
 
@@ -73,7 +73,7 @@ describe("step-3 library pieces", () => {
     for (const e of pieces.filter((x) => x.family === "light")) {
       if (e.model.kind !== "parametric") continue;
       const p = makePiece(e.model.generator, e.model.params, resolveOptions(e, {}) as Record<string, string>);
-      expect(p.parts.some((x) => x.slot === "bulb" || x.slot === "beam") || !!p.text, e.id).toBe(true);
+      expect(p.parts.some((x) => ["bulb", "beam", "glow"].includes(x.slot)) || !!p.text, e.id).toBe(true);
     }
   });
 

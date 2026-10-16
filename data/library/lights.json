@@ -41,7 +41,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 2.2,
           "max": 3.5,
           "step": 0.1,
@@ -102,7 +102,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 2.2,
           "max": 3.5,
           "step": 0.1,
@@ -222,7 +222,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 2.4,
           "max": 4.5,
           "step": 0.1,
@@ -273,7 +273,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 2.2,
           "max": 3.5,
           "step": 0.1,
@@ -324,7 +324,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 2.2,
           "max": 3.5,
           "step": 0.1,
@@ -340,8 +340,8 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 3200,
-        "phoneTriangles": 1100,
+        "triangles": 350,
+        "phoneTriangles": 250,
         "drawCalls": 3
       }
     },

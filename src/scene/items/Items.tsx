@@ -319,24 +319,34 @@ function wordsTexture(text: PieceText): THREE.CanvasTexture {
   const script = '"Snell Roundhand", "Segoe Script", "Brush Script MT", cursive';
   const serif = '"Iowan Old Style", "Palatino Linotype", Georgia, serif';
   const face = text.look === "board" ? serif : script;
+  const weight = text.look === "board" ? "500" : "700";
   let size = H * (text.look === "board" ? 0.22 : 0.5);
-  g.font = `${size}px ${face}`;
-  while (g.measureText(text.value).width > W * 0.9 && size > 12) {
+  g.font = `${weight} ${size}px ${face}`;
+  while (g.measureText(text.value).width > W * 0.88 && size > 12) {
     size *= 0.92;
-    g.font = `${size}px ${face}`;
+    g.font = `${weight} ${size}px ${face}`;
   }
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.fillStyle = text.colour;
-  if (text.look !== "board") {
-    // Neon and projected light: a soft halo under a bright core.
-    g.shadowColor = text.colour;
-    g.shadowBlur = size * 0.35;
+  if (text.look === "board") {
+    g.fillStyle = text.colour;
     g.fillText(text.value, W / 2, H / 2);
-    g.shadowBlur = size * 0.12;
-    g.fillStyle = "#ffffff";
+  } else {
+    // Neon and projected light: a wide halo in the tube's colour, then a lit core that keeps
+    // its colour (lightened), so blush stays blush rather than turning white.
+    const core = `color-mix(in srgb, ${text.colour} 55%, white)`;
+    g.lineJoin = "round";
+    g.shadowColor = text.colour;
+    for (const blur of [size * 0.6, size * 0.3]) {
+      g.shadowBlur = blur;
+      g.strokeStyle = text.colour;
+      g.lineWidth = size * 0.08;
+      g.strokeText(text.value, W / 2, H / 2);
+    }
+    g.shadowBlur = size * 0.1;
+    g.fillStyle = CSS.supports?.("color", core) ? core : text.colour;
+    g.fillText(text.value, W / 2, H / 2);
   }
-  g.fillText(text.value, W / 2, H / 2);
   const t = new THREE.CanvasTexture(canvas);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
@@ -818,7 +828,7 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
   return (
     <group name="seats">
       {chairsWorld(p.item, p.shape).map((ch, i) => (
-        <Html key={i} center position={[ch.x, p.y + 0.55, ch.z]} zIndexRange={[30, 20]}>
+        <Html key={i} center position={[ch.x, p.y + 0.55, ch.z]} zIndexRange={[9, 0]}>
           <button
             type="button"
             className="seat-pick"
@@ -827,12 +837,33 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
             onClick={() => {
               viewStore.setState({
                 pickSeat: null,
-                seat: { x: ch.x, y: p.y, z: ch.z, look: [p.item.x, p.item.z], table: p.item.id },
+                seat: {
+                  x: ch.x,
+                  y: p.y,
+                  z: ch.z,
+                  look: [p.item.x, p.item.z],
+                  table: p.item.id,
+                  from: editor.store.getState().camera,
+                },
               });
               editor.select([]);
               editor.setCamera("walk");
             }}
-          />
+          >
+            {/* A chair glyph (scene code keeps its own; ui icons are out of its layer). */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M7 3v9M17 3v9M7 7h10M5 12h14v3H5zM7 15v6M17 15v6" />
+            </svg>
+          </button>
         </Html>
       ))}
     </group>

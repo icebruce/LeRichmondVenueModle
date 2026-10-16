@@ -877,13 +877,20 @@ button:disabled {
 }
 /* Sit here: one target per chair, in the accent, at least 44 pt (DESIGN_GUIDE §4). */
 .seat-pick {
+  display: grid;
+  place-items: center;
   width: var(--target);
   height: var(--target);
+  padding: 0;
   border-radius: 50%;
-  border: 2px solid var(--accent-ink);
-  background: var(--accent);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
   box-shadow: var(--shadow-control);
-  opacity: 0.92;
+  transition: transform var(--m-fast);
+}
+.seat-pick:active {
+  transform: scale(0.97);
 }
 .toast {
   position: absolute;

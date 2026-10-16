@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
 import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS } from "../domain/layout/decor";
+import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { adviseScenario } from "../domain/layout/advisories";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
@@ -247,6 +248,26 @@ function caption(e: LibraryEntry, catalog: Catalog): string {
   } catch {
     return "";
   }
+  if (shape.kind === "piece") {
+    // What matters about a piece: the words it takes, its colours, how it hangs or its size.
+    const o = (key: string) => e.options.find((x) => x.key === key);
+    const span = o("span");
+    const hang = o("hang");
+    const colours = e.options.find(
+      (x) => x.type === "choice" && x.choices.every((c) => swatchColour(c.value)),
+    );
+    return [
+      e.options.some((x) => x.type === "text") ? "Your words" : "",
+      colours?.type === "choice" ? `${colours.choices.length} colours` : "",
+      span?.type === "number" ? `≈ ${span.default} m span` : "",
+      hang?.type === "number" && !shape.blocks ? `hangs at ≈ ${metres(hang.default)}` : "",
+      shape.blocks && e.family === "plant" ? `≈ ${metres(shape.height)} tall` : "",
+      shape.blocks && e.family !== "plant" ? `≈ ${shape.width.toFixed(1)} × ${shape.depth.toFixed(1)} m` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ")
+      .replace(/^./, (c) => c.toUpperCase());
+  }
   const seatOpt = e.options.find((o) => o.key === "seats");
   const guests =
     seatOpt?.type === "number"
@@ -388,6 +409,9 @@ function Checks() {
   );
 }
 
+/** The library section last chosen, kept while the app is open (the panel remounts often). */
+let lastCategory: Family = "table";
+
 /** Library sections, in the order a couple plans a room. */
 const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
   { id: "table", name: "Tables" },
@@ -408,7 +432,7 @@ export function LayoutPanel() {
       ),
     [catalog],
   );
-  const [category, setCategory] = useState<Family>("table");
+  const [category, setCategory] = useState<Family>(lastCategory);
   const shown = placeable.filter((e) => e.family === category);
   return (
     <div className="panel-body" data-testid="layout-panel">
@@ -419,8 +443,9 @@ export function LayoutPanel() {
         label="Library"
         options={LIBRARY_CATEGORIES.filter((c) => placeable.some((e) => e.family === c.id))}
         value={category}
-        onPick={(id) => setCategory(id as Family)}
+        onPick={(id) => setCategory((lastCategory = id as Family))}
         testId="category"
+        wrap
       />
       <ul className="library" aria-label="Library">
         {shown.map((e) => (
@@ -443,7 +468,7 @@ export function LayoutPanel() {
       </ul>
       <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
       <p className="hint">
-        {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
+        {touch ? "Press and hold an item, then drag it." : "Drag an item to move it."} Sizes are approximate.
       </p>
     </div>
   );
@@ -496,18 +521,21 @@ function Chips({
   value,
   onPick,
   testId,
+  wrap = false,
 }: {
   label: string;
   options: { id: string; name: string }[];
   value: string;
   onPick: (id: string) => void;
   testId: string;
+  /** Always wrap (navigation, where a hidden choice must never be missed). */
+  wrap?: boolean;
 }) {
   return (
     <div className="field">
       <span className="row-label">{label}</span>
       <div
-        className={`chips ${options.length > 5 ? "chips-scroll" : ""}`}
+        className={`chips ${!wrap && options.length > 5 ? "chips-scroll" : ""}`}
         role="radiogroup"
         aria-label={label}
       >
@@ -1081,6 +1109,14 @@ export function VenuePanel() {
   );
 }
 
+/** The colour a choice stands for: a hex value, a light colour or a flower palette; else null. */
+function swatchColour(value: string): string | null {
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
+  if (LIGHT_COLOURS[value]) return LIGHT_COLOURS[value] ?? null;
+  const p = FLORAL_PALETTES[value];
+  return p ? palette(p.colours) : null;
+}
+
 /** Short words for a piece (LIB-08, LIB-09); saved on Enter or leaving the field, one undo step. */
 function TextOption({
   option,
@@ -1109,6 +1145,11 @@ function TextOption({
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         data-testid={option.key}
       />
+      {draft.length >= option.maxLength - 5 && (
+        <span className="hint">
+          {draft.length}/{option.maxLength}
+        </span>
+      )}
     </label>
   );
 }
@@ -1144,6 +1185,18 @@ function OptionField({
     return <Toggle label={option.label} checked={value === true} onChange={set} testId={option.key} />;
   }
   if (option.type === "text") return <TextOption option={option} value={String(value)} onChange={set} />;
+  // Choices that are colours (fabrics, lights, flower palettes) are picked by sight (DESIGN_GUIDE §4).
+  const colours = option.choices.map((c) => swatchColour(c.value));
+  if (colours.every((c) => c !== null))
+    return (
+      <Swatches
+        label={option.label}
+        options={option.choices.map((c, i) => ({ id: c.value, name: c.label, colour: colours[i] as string }))}
+        value={String(value)}
+        onPick={set}
+        testId={option.key}
+      />
+    );
   if (option.choices.length <= 3) {
     return <Segmented label={option.label} value={String(value)} options={option.choices} onChange={set} />;
   }
@@ -1284,10 +1337,9 @@ export function Inspector() {
             type="button"
             className="btn"
             onClick={() => {
-              // The inspector closes, so every chair of the table is free to tap.
+              // The inspector closes, so every chair of the table is free to choose.
               editor.select([]);
               viewStore.setState({ pickSeat: item.id });
-              editor.notify("Tap a chair to sit there");
             }}
             data-testid="sit-here"
           >

@@ -124,7 +124,7 @@ const SPECIES: Record<
   fiddleLeaf: { pot: 0.42, trunk: 1.0, crown: [0.35, 0.55, 0.35], leaves: 40, leaf: 0.1 },
   olive: { pot: 0.45, trunk: 1.1, crown: [0.45, 0.4, 0.45], leaves: 90, leaf: 0.045, colour: "#a3ae94" },
   kentia: { pot: 0.45, trunk: 0.5, crown: [0.6, 0.6, 0.6], leaves: 0, leaf: 0 },
-  monstera: { pot: 0.4, trunk: 0.15, crown: [0.45, 0.35, 0.45], leaves: 26, leaf: 0.12 },
+  monstera: { pot: 0.4, trunk: 0.15, crown: [0.6, 0.25, 0.6], leaves: 18, leaf: 0.17, colour: "#3f6b3a" },
   fern: { pot: 0.35, trunk: 0.1, crown: [0.4, 0.25, 0.4], leaves: 70, leaf: 0.05, colour: "#6f8f4e" },
   blossom: { pot: 0.5, trunk: 1.4, crown: [0.6, 0.45, 0.6], leaves: 120, leaf: 0.04 },
 };
@@ -184,7 +184,7 @@ function plant(p: Values, rand: () => number): Piece {
     const y = cy + u * ry * k;
     parts.push(
       blossom && i % 3 !== 0
-        ? ball("flower", x, y, z, s.leaf, i % 2 ? "#f6c9d6" : "#fbe3ea")
+        ? ball("flower", x, y, z, s.leaf, i % 2 ? "#ef9fb8" : "#f7c3d2")
         : { ...ball("leaf", x, y, z, s.leaf, s.colour), sy: s.leaf * 0.45 },
     );
   }
@@ -230,7 +230,7 @@ function light(p: Values, o: Values, rand: () => number): Piece {
       };
     }
     case "uplight":
-      // A small floor can washing the wall above it in colour.
+      // A small floor can by a wall (behind it, local −z): a fading beam and a soft wash on the wall.
       return {
         width: 0.25,
         depth: 0.25,
@@ -238,7 +238,8 @@ function light(p: Values, o: Values, rand: () => number): Piece {
         blocks: true,
         parts: [
           box("black", 0, 0, 0, 0.2, 0.14, 0.2),
-          { prim: "bowl", slot: "beam", x: 0, y: 0.14, z: 0, sx: 0.6, sy: 2.8, sz: 0.6, colour },
+          { prim: "bowl", slot: "beam", x: 0, y: 0.14, z: -0.05, sx: 0.35, sy: 1.6, sz: 0.2, colour },
+          { prim: "plane", slot: "glow", x: 0, y: 0.1, z: -0.14, sx: 1.4, sy: 3.2, sz: 1, colour },
         ],
       };
     case "pinSpot":
@@ -282,12 +283,24 @@ function light(p: Values, o: Values, rand: () => number): Piece {
       return { width: 1, depth: 1, height: hang + 1, blocks: false, parts };
     }
     case "disco": {
-      const parts: Part[] = [cyl("black", 0, hang + 0.25, 0, 0.005, 1.5), ball("silver", 0, hang, 0, 0.25)];
-      // Glints scattered on the floor around it.
-      for (let i = 0; i < 24; i++) {
+      // A faceted mirror ball, and spots of light scattered over the floor around it.
+      const parts: Part[] = [cyl("black", 0, hang + 0.25, 0, 0.005, 1.5), ball("mirror", 0, hang, 0, 0.25)];
+      for (let i = 0; i < 64; i++) {
         const a = rand() * Math.PI * 2;
-        const d = 1 + rand() * 2.5;
-        parts.push({ ...ball("beam", Math.cos(a) * d, 0.01, Math.sin(a) * d, 0.06, "#ffffff"), sy: 0.005 });
+        const d = 0.6 + rand() * 3;
+        const r = 0.08 + rand() * 0.06;
+        parts.push({
+          prim: "plane",
+          slot: "glow",
+          x: Math.cos(a) * d,
+          y: 0.012,
+          z: Math.sin(a) * d + r,
+          sx: r * 2,
+          sy: r * 2,
+          sz: 1,
+          rx: -Math.PI / 2,
+          colour: "#ffffff",
+        });
       }
       return { width: 0.6, depth: 0.6, height: hang + 0.3, blocks: false, parts };
     }
@@ -303,16 +316,17 @@ function light(p: Values, o: Values, rand: () => number): Piece {
       colours.forEach((c, i) => {
         const x = -0.45 + i * 0.3;
         parts.push(cyl("black", x, 2.0, 0, 0.06, 0.1));
+        // A beam widening away from its can (bowl: narrow end at the fixture), aimed down and out.
         parts.push({
-          prim: "cone",
+          prim: "bowl",
           slot: "beam",
           x,
           y: 2.0,
           z: 0,
-          sx: 0.6,
-          sy: 2.0,
-          sz: 0.6,
-          rx: Math.PI * 0.75,
+          sx: 0.5,
+          sy: 2.4,
+          sz: 0.5,
+          rx: Math.PI * 0.72,
           colour: c,
         });
       });
@@ -439,7 +453,11 @@ function sign(p: Values, o: Values): Piece {
       depth: 0.15,
       height: hang + 0.5,
       blocks: false,
-      parts: [box("glass", 0, hang - 0.25, 0, 1.2, 0.5, 0.01)],
+      // Clear acrylic backer, with the tube colour glowing softly on the wall behind it.
+      parts: [
+        box("glass", 0, hang - 0.25, 0, 1.2, 0.5, 0.01),
+        { prim: "plane", slot: "glow", x: 0, y: hang - 0.5, z: -0.02, sx: 1.8, sy: 1.0, sz: 1, colour },
+      ],
       text: { value: text, look: "neon", x: 0, y: hang, z: 0.012, w: 1.15, h: 0.45, tilt: 0, colour },
     };
   }
@@ -553,10 +571,20 @@ function event(p: Values, o: Values, rand: () => number): Piece {
     }
     case "cake": {
       // Cake table: a round draped table with a three-tier cake.
-      const parts: Part[] = [cyl("fabric", 0, 0, 0, 0.45, 0.76, "#f4efe4")];
-      [0.16, 0.12, 0.08].forEach((r, i) => parts.push(cyl("ceramic", 0, 0.76 + i * 0.12, 0, r, 0.12)));
-      parts.push(cyl("ceramic", 0, 0.76, 0, 0.2, 0.01));
-      return { width: 0.95, depth: 0.95, height: 1.12, blocks: true, parts };
+      // Champagne cloth under a white three-tier cake with a ring of flowers on each tier.
+      const parts: Part[] = [
+        cyl("fabric", 0, 0, 0, 0.45, 0.76, "#e3d2b0"),
+        cyl("brass", 0, 0.76, 0, 0.24, 0.02),
+      ];
+      [0.2, 0.15, 0.1].forEach((r, i) => {
+        const y = 0.78 + i * 0.15;
+        parts.push(cyl("ceramic", 0, y, 0, r, 0.15));
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2;
+          parts.push(ball("flower", Math.cos(a) * r, y + 0.15, Math.sin(a) * r, 0.022, "#efd2d8"));
+        }
+      });
+      return { width: 0.95, depth: 0.95, height: 1.25, blocks: true, parts };
     }
     default: {
       // Gift and card table: a draped table with a card box and a few wrapped gifts.

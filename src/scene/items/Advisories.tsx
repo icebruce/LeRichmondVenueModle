@@ -61,7 +61,9 @@ export function Advisories() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [list, venue],
   );
-  if (!segments.length) return null;
+  // While choosing a seat, the chairs are what matter; the checks step aside.
+  const picking = useView((s) => s.pickSeat !== null);
+  if (!segments.length || picking) return null;
   return (
     <group name="advisories">
       <Line

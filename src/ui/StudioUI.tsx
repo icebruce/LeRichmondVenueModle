@@ -281,8 +281,12 @@ export function StudioUI() {
   const { catalog } = useStudio();
   const activeItems = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
   const seated = seat ? `table ${tableLabels(activeItems, catalog).get(seat.table) ?? ""}`.trim() : "";
+  const pickSeat = useView((s) => s.pickSeat);
+  const picking = pickSeat ? `table ${tableLabels(activeItems, catalog).get(pickSeat) ?? ""}`.trim() : "";
   useEffect(() => {
     if (camera !== "walk") viewStore.setState({ seat: null });
+    // Changing camera also ends choosing a seat.
+    viewStore.setState({ pickSeat: null });
   }, [camera]);
   useEffect(() => {
     if (selection.length) viewStore.setState({ pickSeat: null });
@@ -408,10 +412,22 @@ export function StudioUI() {
 
       {!phone && !compare && <Counts onAdvisories={showChecks} />}
       {phone && camera !== "walk" && <History className="history-float glass" />}
+      {pickSeat && camera !== "walk" && (
+        <div className="walk-hint glass seated" role="status" data-testid="picking">
+          <span>Choose a seat · {picking}</span>
+          <button type="button" className="plain-btn" onClick={() => viewStore.setState({ pickSeat: null })}>
+            Cancel
+          </button>
+        </div>
+      )}
       {camera === "walk" && seat && (
         <div className="walk-hint glass seated" data-testid="seated">
           <span>Seated · {seated} · drag to look around</span>
-          <button type="button" className="plain-btn" onClick={() => editor.setCamera("dollhouse")}>
+          <button
+            type="button"
+            className="plain-btn"
+            onClick={() => editor.setCamera(seat.from === "walk" ? "dollhouse" : seat.from)}
+          >
             Stand up
           </button>
         </div>

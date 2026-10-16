@@ -10,9 +10,9 @@ import type { Chair, Shape } from "./items";
  *
  * Primitives: `cylinder` radius 1, height 1, base at y 0 · `sphere` radius 1, centred · `box` 1 m
  * cube, base at y 0 · `cone` radius 1, height 1, base at y 0, point up · `bowl` the same cone
- * point down (vase bowls).
+ * point down (vase bowls) · `plane` 1 m square facing +z, base at y 0 (glows, washes of light).
  */
-export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl";
+export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane";
 export type Slot =
   | "wax"
   | "flame"
@@ -29,7 +29,9 @@ export type Slot =
   | "sheer"
   | "wood"
   | "bulb"
-  | "beam";
+  | "beam"
+  | "glow"
+  | "mirror";
 export type Part = {
   prim: Prim;
   slot: Slot;

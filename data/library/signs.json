@@ -162,7 +162,7 @@
         {
           "type": "number",
           "key": "hang",
-          "label": "Height",
+          "label": "Hangs at",
           "min": 1.2,
           "max": 2.4,
           "step": 0.1,

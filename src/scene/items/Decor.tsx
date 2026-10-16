@@ -12,6 +12,36 @@ import { chairGeometry } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
+/** Alpha ramps for light: a beam fading along its length, a glow fading from its centre. */
+const fades = (() => {
+  if (typeof document === "undefined") return { beam: null, glow: null };
+  const make = (draw: (g: CanvasRenderingContext2D) => void) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    draw(c.getContext("2d") as CanvasRenderingContext2D);
+    return new THREE.CanvasTexture(c);
+  };
+  return {
+    // Cone uv v runs base (0) to tip (1): bright at the tip (the fixture), gone at the base.
+    beam: make((g) => {
+      const grd = g.createLinearGradient(0, 64, 0, 0);
+      grd.addColorStop(0, "#000");
+      grd.addColorStop(0.75, "#555");
+      grd.addColorStop(1, "#fff");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 64, 64);
+    }),
+    glow: make((g) => {
+      const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grd.addColorStop(0, "#fff");
+      grd.addColorStop(0.4, "#888");
+      grd.addColorStop(1, "#000");
+      g.fillStyle = grd;
+      g.fillRect(0, 0, 64, 64);
+    }),
+  };
+})();
+
 /** Unit primitives for décor parts (see domain/layout/decor.ts for the conventions). */
 function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
   const r = low ? 8 : 14;
@@ -21,6 +51,7 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
     box: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0),
     cone: new THREE.ConeGeometry(1, 1, r).translate(0, 0.5, 0),
     bowl: new THREE.ConeGeometry(1, 1, r).rotateX(Math.PI).translate(0, 0.5, 0),
+    plane: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
   };
 }
 
@@ -220,13 +251,31 @@ export function TableDecor({
         emissiveIntensity: evening ? 3 : 0.25,
         toneMapped: !evening,
       }),
+      // Beams fade from the fixture outward; glows are soft round pools (washes, glints, halos).
       beam: new THREE.MeshBasicMaterial({
         color: "#ffffff",
+        alphaMap: fades.beam,
         transparent: true,
-        opacity: 0.09,
+        opacity: 0.35,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
+      }),
+      glow: new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        alphaMap: fades.glow,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      }),
+      mirror: new THREE.MeshStandardMaterial({
+        color: "#e6e8ea",
+        metalness: 1,
+        roughness: 0.12,
+        flatShading: true,
       }),
     }),
     [m, evening],
@@ -235,7 +284,7 @@ export function TableDecor({
     const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
     for (const { p, parts, base } of perItem) {
       for (const part of parts) {
-        if ((part.slot === "flame" || part.slot === "beam") && !evening) continue;
+        if ((part.slot === "flame" || part.slot === "beam" || part.slot === "glow") && !evening) continue;
         const solid = low && SOLID_SLOTS.has(part.slot);
         const key = `${part.prim}:${solid ? "solid" : part.slot}`;
         let g = map.get(key);
@@ -254,7 +303,8 @@ export function TableDecor({
           Math.max(1, g.parts.length),
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
-        mesh.castShadow = !low && !["flame", "glass", "water", "sheer", "bulb", "beam"].includes(g.slot);
+        mesh.castShadow =
+          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow"].includes(g.slot);
         return { g, mesh };
       }),
     [groups, prims, materials, solidMaterial, low],
@@ -286,6 +336,8 @@ export function TableDecor({
         "wood",
         "bulb",
         "beam",
+        "glow",
+        "mirror",
       ] as const)
         materials[k].dispose();
     },

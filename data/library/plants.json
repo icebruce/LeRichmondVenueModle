@@ -156,8 +156,8 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 3400,
-        "phoneTriangles": 650,
+        "triangles": 2400,
+        "phoneTriangles": 450,
         "drawCalls": 2
       }
     },

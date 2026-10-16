@@ -7,7 +7,7 @@ import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { requestCamera } from "../state/view";
+import { requestCamera, viewStore } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
 import { Items } from "./items/Items";
@@ -255,7 +255,12 @@ export function Studio3D({
         far: 200,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],
       }}
-      onPointerMissed={() => !follow && studio.editor.select([])}
+      onPointerMissed={() => {
+        if (follow) return;
+        // A tap on empty floor deselects, and cancels choosing a seat (CAM-04).
+        studio.editor.select([]);
+        viewStore.setState({ pickSeat: null });
+      }}
       onCreated={() => onReady?.()}
       data-testid={follow ? "compare-canvas" : "studio-canvas"}
     >

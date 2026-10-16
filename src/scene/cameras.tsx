@@ -48,7 +48,7 @@ export function CameraRig({ follow = false }: { follow?: boolean }) {
 }
 
 function MainCamera() {
-  const { venue } = useStudio();
+  const { venue, catalog } = useStudio();
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useView((s) => s.controlsEnabled);
   const view = useView((s) => s.view);
@@ -120,24 +120,39 @@ function MainCamera() {
   }, [mode, comparing, pane, band]);
 
   // Sit here (CAM-04): picking a seat first brings the camera in over that table, so each chair
-  // is a clear target; it then stays there until a seat is chosen or picking is cancelled.
+  // is a clear target; cancelling returns to the view the couple had.
   const pickSeat = useView((s) => s.pickSeat);
   const items = useEditor((s) => s.scenarios[s.activeId]?.items);
+  const beforePick = useRef<Pose | null>(null);
   useEffect(() => {
-    const t = pickSeat ? items?.find((i) => i.id === pickSeat) : undefined;
-    if (!t || mode === "walk") return;
+    if (mode === "walk") return;
     const target = controls.current?.target ?? new THREE.Vector3();
-    tween.current = {
-      from: { position: camera.position.clone(), target: target.clone() },
-      to: {
-        position: new THREE.Vector3(t.x + 2.6, 4.2, t.z + 2.6),
-        target: new THREE.Vector3(t.x, 0.6, t.z),
-      },
-      t: 0,
-      fov: [camera.fov, camera.fov],
-    };
+    const from = { position: camera.position.clone(), target: target.clone() };
+    const t = pickSeat ? items?.find((i) => i.id === pickSeat) : undefined;
+    if (t) {
+      beforePick.current ??= from;
+      // Back from the table by its size, so its end chairs stay in view.
+      const reach = 2.2 + Math.max(0, (footprintSize(t) - 2) * 0.6);
+      tween.current = {
+        from,
+        to: {
+          position: new THREE.Vector3(t.x + reach, reach * 1.5, t.z + reach),
+          target: new THREE.Vector3(t.x, 0.6, t.z),
+        },
+        t: 0,
+        fov: [camera.fov, camera.fov],
+      };
+    } else if (beforePick.current && !viewStore.getState().seat) {
+      tween.current = { from, to: beforePick.current, t: 0, fov: [camera.fov, camera.fov] };
+      beforePick.current = null;
+    } else beforePick.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickSeat]);
+  const footprintSize = (t: { libraryId: string; options: Record<string, unknown> }) => {
+    const e = catalog.get(t.libraryId);
+    const seats = Number(t.options.seats ?? 8);
+    return e?.family === "table" ? Math.max(e.sizeM.w, seats * 0.35) : 2;
+  };
 
   // Choosing a seat while already walking moves straight to it.
   const seat = useView((s) => s.seat);
@@ -274,6 +289,8 @@ function WalkControls() {
     const down = (e: PointerEvent) => {
       if (dragging) return;
       dragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      // Seated is look-only: drag to look, so "Stand up" stays clickable (no pointer lock).
+      if (viewStore.getState().seat) return;
       if (e.pointerType === "mouse" && document.pointerLockElement !== el)
         el.requestPointerLock?.()?.catch?.(() => {});
     };

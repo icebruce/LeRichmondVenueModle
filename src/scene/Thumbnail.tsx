@@ -35,8 +35,9 @@ function thumbItem(
     };
   if (family === "candle") return round({ candles: id });
   // Library pieces (floral installations, plants, lights, signs) stand on their own.
+  // A short strand, so its bulbs are big enough to read in a thumbnail.
   if (generator && PIECE_GENERATORS.includes(generator))
-    return { item: { id: "t", libraryId: id, ...at, options: {} } };
+    return { item: { id: "t", libraryId: id, ...at, options: { span: 2 } } };
   if (family === "floral")
     return id === "floral-runner"
       ? {
@@ -56,6 +57,8 @@ function ThumbScene({ evening }: { evening: boolean }) {
   const m = useMaterials();
   return (
     <>
+      {/* Lit pieces on a dark tile, so glows and light-coloured words read. */}
+      {evening && <color attach="background" args={["#1d1f1c"]} />}
       <hemisphereLight args={["#ffffff", "#b9a991", 1.4]} />
       <directionalLight position={[4, 8, 6]} intensity={2.2} />
       <Environment resolution={64} frames={1}>
@@ -103,7 +106,7 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
       <StudioContext.Provider value={studio.studio}>
         <Suspense fallback={null}>
           {/* Lights are shown lit, so their glow and beams read in the catalogue. */}
-          <ThumbScene evening={base.catalog.get(id)?.family === "light"} />
+          <ThumbScene evening={base.catalog.get(id)?.family === "light" || id === "sign-neon"} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>
