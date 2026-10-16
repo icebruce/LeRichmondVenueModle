@@ -110,6 +110,7 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   await page.mouse.click(tx, ty);
   await expect.poll(async () => (await state(page)).selection).toEqual([strand]);
   await setCamera(page, "dollhouse");
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
   await page.getByTestId("category-sign").click();
   await page.getByTestId("add-sign-neon").click();
   await page.getByTestId("text").fill("Ana & Ben");
