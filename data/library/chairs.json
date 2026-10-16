@@ -1,0 +1,24 @@
+{
+  "family": "chair",
+  "items": [
+    {
+      "id": "chair-oval",
+      "name": "Venue oval-back chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.5, "d": 0.55, "h": 1.0 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "chair", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "chair", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-oval.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (after venue photos R04, R12)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1500, "phoneTriangles": 375, "drawCalls": 3 }
+    }
+  ]
+}

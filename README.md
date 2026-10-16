@@ -1,44 +1,42 @@
-# Richmond Studio — Le Richmond 3D Wedding Configurator
+# Richmond Studio
 
-**Claude Code ready.** This repository contains the researched handover and UX concepts for an AI-built, realistic interactive 3D configurator of **Le Richmond's main restaurant floor only**. The mezzanine, bistro, and terrace are explicitly out of scope.
+A private, browser-based 3D planner for a wedding reception at **Restaurant Le Richmond** (Montreal), main restaurant floor only. Place tables, the dance floor and the DJ; see how 75 guests fill the room; try linens, candles and florals; save scenarios and compare them — on laptop or phone.
 
-## Start in Claude Code Desktop
+**Stage:** step 1 built — 3D venue, three cameras, layout tools, local scenarios. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-1. In Claude Code Desktop, open **Code**, select **Clone repository** (or clone with GitHub Desktop), and choose `https://github.com/icebruce/LeRichmondVenueModle`.
-2. Open the cloned project folder in Claude Code.
-3. Paste this message: **"Read CLAUDE.md and the full project handover. Inspect the references you can access. Propose the technical plan, architecture, dimensional assumptions and first 3D milestone. Do not begin major implementation until we refine and approve the plan."**
-4. After agreeing on the plan, authorize Claude to build, test, commit and push code to the same repo.
+## Documents
 
-Claude is expected to do the coding and modeling. You do not need to install Blender, write code, or provide a precise floor plan just to start.
+| Doc | What it decides |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Working rules for Claude Code |
+| [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md) | What the app does (requirement IDs + acceptance) |
+| [docs/DESIGN_GUIDE.md](docs/DESIGN_GUIDE.md) | Look, interaction, copy, review checklist |
+| [docs/mockups/lofi.html](docs/mockups/lofi.html) | Lo-fi screens and venue map |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, layers, data model, budgets, decisions |
+| [docs/VENUE_MODEL.md](docs/VENUE_MODEL.md) | How the room is reconstructed from photos |
+| [docs/TEST_STRATEGY.md](docs/TEST_STRATEGY.md) | Test layers and traceability |
+| [references/venue_evidence_matrix.md](references/venue_evidence_matrix.md) | What each reference image shows; dimension estimates |
+| [references/source_manifest.json](references/source_manifest.json) | Reference register (links, provenance) |
+| [docs/handover/](docs/handover/) | Original handover, archived |
 
-## Automatic visual reference collection (preferred)
+## Media and rights
 
-Claude should first follow [AUTO_MEDIA_COLLECTION.md](references/AUTO_MEDIA_COLLECTION.md). It can run `python scripts/collect_venue_media.py --photos-only` to attempt retrieval of all 17 main-floor photographs. When the right to download is confirmed, it can use the video collector for V01/V02 and extract viewable frames automatically. It records results in a machine-readable report and keeps media out of Git. These tools are **prepared, but no photos or actual video files have been fetched or committed by this handover**. Google Maps 360 is interactive and needs separate access; do not treat it as a downloadable MP4.
+Venue photos and videos belong to their owners. They are linked, not stored: this repository is public. Claude fetches them into gitignored folders when needed (`scripts/collect_venue_media.py`). Owner-supplied screenshots are described in the evidence matrix, not committed.
 
-## If video links are blocked
+## Hosting on Vercel (one-time setup, about 5 minutes)
 
-The video and Google Maps links in the source register are not the actual media. See [Offline video + 360 workflow](references/VIDEO_360_OFFLINE_WORKFLOW.md) for the simple plan: user obtains or screen-records the video/360 tour where permitted, and **Claude** extracts screenshots, filters out terrace/mezzanine, organizes evidence, and uses the images to reconstruct the main room. The helper [extract_video_frames.py](scripts/extract_video_frames.py) prepares time-indexed contact sheets and manifests for Claude.
+1. Sign in at vercel.com with your GitHub account.
+2. **Add New → Project → Import** `icebruce/LeRichmondVenueModle`.
+3. Leave the detected settings (Framework: Vite, build `npm run build`, output `dist`) and press **Deploy**.
+4. From then on every pushed branch gets its own preview link (shown on the pull request), and `main` is the live site.
 
-**Local vs Remote:** Private videos dropped into `references/private_media/raw/` work in a **local** Claude Code checkout; they do not magically appear in a Remote session. For Remote, supply a curated, authorized set of screenshots to the remote environment or a private repo. This is a public repo at the time of setup: do not push copyrighted videos/screenshots or private guest images here.
+Step 2 adds the shared password and cloud saving; it will need two environment variables and the free Upstash Redis integration, with exact steps at that time.
 
-## Essential files
-- [CLAUDE.md](CLAUDE.md) — root-level instructions automatically available to Claude Code in project context.
-- [00_START_HERE_PASTE_IN_CLAUDE.md](00_START_HERE_PASTE_IN_CLAUDE.md) — original detailed kickoff brief.
-- [01_PRODUCT_VISION.md](01_PRODUCT_VISION.md) — goals and experience.
-- [02_VENUE_RECONSTRUCTION.md](02_VENUE_RECONSTRUCTION.md) — inferred geometry and scale confidence.
-- [03_REFERENCE_GUIDE.md](03_REFERENCE_GUIDE.md) — curated photo/video/tour links.
-- [04_REQUIREMENTS_AND_ACCEPTANCE.md](04_REQUIREMENTS_AND_ACCEPTANCE.md) — prioritized features and acceptance.
-- [05_ASSET_IMPORT.md](05_ASSET_IMPORT.md) — screenshot/link import workflow.
-- [06_TECH_PLAN_AND_QUALITY.md](06_TECH_PLAN_AND_QUALITY.md) — implementation and QA.
-- [references/source_manifest.json](references/source_manifest.json) — structured photo/video register.
-- [references/VISUAL_SOURCE_BOARD.html](references/VISUAL_SOURCE_BOARD.html) — browser visual reference index (requires access to third-party URLs).
-- [examples/EXPERIENCE_MOCKUP.html](examples/EXPERIENCE_MOCKUP.html) — static interactive concept; not a venue model.
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) — planned milestone/status checkpoints.
+## Running locally (optional)
 
-**Media note:** Third-party venue photos/videos are linked, not copied, due to rights and access restrictions. The original ZIP also contained optional binary illustrations (an isometric house inspiration image and a UX preview screenshot), which are *not part of this GitHub text-first handover*. The UX HTML and full venue reference board are included. If desired, provide the original inspiration image as an additional reference in Claude Code later.
-
-## Research caveats
-Photos span multiple arrangements/seasons. The official wedding gallery includes terrace images, flagged as exclusions. There is no verified dimensioned plan: Claude should infer editable, confidence-tagged geometric estimates from cross-photo architectural cues. Neither advertised capacity nor visuals alone establish venue/fire-code compliance.
-
-## Repository stage
-**Research + product specification — no actual 3D application has been built yet.** Claude should plan first, obtain your approval, then begin development. No proprietary venue media is bundled in the public repository.
+```bash
+npm ci
+npm run dev        # http://localhost:5173
+npm run check      # typecheck, lint, format, unit tests, library check
+npm run build && npm run test:e2e
+```

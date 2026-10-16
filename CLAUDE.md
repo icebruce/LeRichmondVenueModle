@@ -1,39 +1,47 @@
-# CLAUDE.md — Instructions for Claude Code
+# Richmond Studio — working rules for Claude
 
-You are the autonomous implementation team for **Richmond Studio**, a realistic, polished, browser-based 3D wedding venue planner.
+Private web app for planning a wedding reception (2026-11-21, ~75 guests) at **Restaurant Le Richmond, 377 Rue Richmond, Montreal**: 3D venue, layout, décor, scenarios, shared by two partners on laptop and phone. Claude does all research, modelling, coding, testing and commits; the owner approves decisions and visuals.
 
-## Non-negotiable scope
-Only **Le Richmond restaurant's MAIN RESTAURANT FLOOR** in Montreal. NO mezzanine, bistro, terrace, or unrelated Salon Richmond 1861. A non-navigable visible architectural backdrop is okay if needed for photo fidelity. User will not manually code, model, or supply measured plans.
+## Scope guard (non-negotiable)
 
-## Begin here — planning gate
-**At first project opening, DO NOT start building the app immediately.** Read all numbered Markdown handover documents and `references/source_manifest.json`. Inspect the UX mockup and available photo/video links. Present:
-- Scope summary and proposed user interaction.
-- Annotated architectural landmark map and estimated initial dimension assumptions, with confidence/evidence.
-- Architecture, 3 phased vertical slices and first-session deliverable.
-- Risks: image-based photogrammetry/photo-to-3D not guaranteed, copyright and internet access, venue measurements inferred not measured.
-- Only key questions, then ask approval to implement.
+- Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (only exception: DJ option 3 spot). Terrace = dark backdrop through the glass. No bistro. Not Salon Richmond 1861.
+- Terrace images (X01–X05) never inform geometry.
+- Dimensions are estimates with confidence; never present them as measured. Layout checks are advisory; never claim code or capacity compliance.
 
-The complete first-reply instructions are in `00_START_HERE_PASTE_IN_CLAUDE.md` (read them verbatim as project requirements).
+## Source of truth — read the relevant doc before changing anything
 
-## Automatically gather venue visuals first — user should NOT screenshot
-Before asking for video captures, read `references/AUTO_MEDIA_COLLECTION.md` and try `python scripts/collect_venue_media.py --photos-only`. Retrieve reference photos in your coding environment, review the resulting report, and classify photos by room. For publicly linked wedding videos V01/V02, when the user confirms permission and terms allow, try the video collector, extract frames and inspect them. Do not bypass authentication/DRM/rate limits. The interactive Google Maps 360 tour is NOT an ordinary video file, so cannot be downloaded with a video tool; ask the venue for an authorized panorama export if needed. Prioritize fully autonomous collection and infer room dimensions from photos when moving footage is blocked.
+| Topic | Doc (wins on its topic) |
+|---|---|
+| Behaviour, requirement IDs, acceptance | `docs/PRODUCT_SPEC.md` |
+| Look, interaction, copy, review checklist | `docs/DESIGN_GUIDE.md` + `docs/mockups/` |
+| Structure, layers, data model, budgets, ADRs | `docs/ARCHITECTURE.md` |
+| Venue reconstruction method | `docs/VENUE_MODEL.md` + `references/venue_evidence_matrix.md` |
+| Tests and traceability | `docs/TEST_STRATEGY.md` |
+| Plan, stage, decisions, open items | `PROJECT_STATUS.md` |
 
-## Blocked media: offline evidence is mandatory fallback
-If Instagram, YouTube, or Google Maps URLs cannot be inspected, do not keep retrying inaccessible platforms or hallucinate video content. Read `references/VIDEO_360_OFFLINE_WORKFLOW.md`. Explain to the user how to provide screen recordings or screenshots from the main restaurant floor. In **Local** Claude Code, process `references/private_media/raw/` yourself using `python scripts/extract_video_frames.py`, classify the extracted frames and build the evidence matrix. In **Remote** Claude Code, you cannot see local files: ask for uploaded stills or use only media explicitly placed into a suitably private, accessible repo. The user is not expected to write code, run ffmpeg, or crop screenshots. If the user has no video assets, proceed using source photos with documented uncertainty.
+`docs/handover/` is archived history, not a source of truth. If docs conflict or a spec is unclear, stop and ask; do not guess. Update a spec only for a real decision (new behaviour, contract or visual rule), stating the decision, not the reasoning trail.
 
-## After approval — implementation rules
-- Own implementation end-to-end: research, procedural scene generation, licensed assets, React/TypeScript/React Three Fiber/Three.js UI, local dev server, E2E visual testing, bug fixing, screenshots, iterations, commits and pushes.
-- Prioritize **recognizable existing room geometry** over generic beautiful renders. Compare multiple render camera angles to primary sources R01/R02/R03/R04/R08/R09/R10 and tour V03.
-- All geometry dimensions are editable confidence-tagged hypotheses until venue-confirmed. Do not block on a floor plan.
-- Implement easy layout editing: drag tables, chairs, people, dance floor, DJ/food stations, linens, candle/floral presets and configurations. Import photos/product links into credible **labeled approximations**, never imply that a single screenshot creates a flawless mesh.
-- Keep architectural shell locked in normal design mode, provide calibration controls separately.
-- Validate collision, count and circulation as approximate advisory aids, not guaranteed compliance.
-- Provide three camera modes: isometric dollhouse, top down, guest-eye walkthrough; persist scenes and custom assets.
-- Keep `PROJECT_STATUS.md` up to date: stage, verified vs inferred facts, quality comparison, decisions, open items and next actions.
-- Work in small reviewable commits, avoid secrets/copyrighted venue photos in Git history, and never assume a polished compilation means visual fidelity.
+## Coding standards
 
-## Documents
-Read `01_PRODUCT_VISION.md`, `02_VENUE_RECONSTRUCTION.md`, `03_REFERENCE_GUIDE.md`, `04_REQUIREMENTS_AND_ACCEPTANCE.md`, `05_ASSET_IMPORT.md`, `06_TECH_PLAN_AND_QUALITY.md`, `references/source_manifest.json`, and `examples/EXPERIENCE_MOCKUP.html`. The image in the original user conversation was *not* a photo of this venue. Public photo URLs are indexed but reference assets are not included in Git.
+- Smallest maintainable implementation that fully meets the spec. No speculative abstraction, no duplication, no dead code.
+- Respect the layer rules in `ARCHITECTURE.md` §3 (`src/domain` is pure). All scenario changes go through commands (undo for free).
+- Validate only at real boundaries (venue data load, scenario import, API). TypeScript strict; no `any`.
+- New runtime dependency = justification in the PR + entry in `ARCHITECTURE.md` §1.
+- UI uses design tokens only; match the mockups; flag any new pattern before building it.
 
-## Definition of done for first viable demo
-Opening a browser URL shows a recognizable main restaurant from multiple viewpoints, with a draggable/rotatable table, repeatable chair placement, adjustable guest density, linen/candle presets and a saved scenario. Validate visual geometry before expanding feature breadth.
+## Definition of done for a change
+
+1. Requirement IDs named in the commit/PR; tests titled with those IDs.
+2. Typecheck, lint, unit tests pass (enforced by the pre-commit hook); e2e/visual pass in CI.
+3. Visible changes: screenshots at desktop 1440×900 and phone 390×844, reviewed by the `ux-reviewer` agent; venue changes also by `fidelity-reviewer`.
+4. `PROJECT_STATUS.md` updated when a step's state, a decision or an open item changes.
+
+## Workflow
+
+- Small, reviewable commits on the working branch; one pull request per step with the Vercel preview link; the owner approves visuals before merge.
+- Never commit third-party images, videos or guest photos (repo is public). Reference photos: `python scripts/collect_venue_media.py --photos-only` into gitignored folders. Blocked platforms (YouTube, Instagram, Google Maps 360): do not retry or bypass; ask the owner for screenshots or recordings (`references/VIDEO_360_OFFLINE_WORKFLOW.md`).
+- No secrets in Git. Paid services or accounts are proposed to the owner before use.
+
+## Commands
+
+Defined in `package.json` once scaffolded (step 1): `npm run dev`, `npm run check` (typecheck + lint + unit), `npm run test:e2e`, `npm run test:visual`, `npm run build`.

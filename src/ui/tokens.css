@@ -1,0 +1,68 @@
+/* Design tokens — docs/DESIGN_GUIDE.md §2. Components use these only. */
+:root {
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.88);
+  --sunk: #eeede8;
+  --ink: #202522;
+  --ink-2: #5c605b;
+  --ink-3: #7e817b;
+  --line: #e5e5df;
+  --line-2: #d3d2ca;
+  --accent: #98775b;
+  --accent-soft: #efe6dc;
+  --accent-ink: #ffffff;
+  --advisory: #b7791f;
+  --advisory-soft: #fbf1df;
+  --blocked: #c2412d;
+  --blocked-soft: #fbe9e6;
+  --toast-bg: rgba(32, 37, 34, 0.92);
+  --accent-on-dark: #e7c9a5;
+  --ok: #3f7d58;
+  --on-dark: #ffffff;
+  --label-bg: rgba(255, 255, 255, 0.92);
+  --pad-bg: rgba(255, 255, 255, 0.18);
+  --pad-line: rgba(255, 255, 255, 0.45);
+  --pad-knob: rgba(255, 255, 255, 0.85);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+
+  --t-title: 600 22px/28px var(--font-ui);
+  --t-headline: 600 17px/22px var(--font-ui);
+  --t-body: 400 15px/20px var(--font-ui);
+  --t-callout: 400 14px/19px var(--font-ui);
+  --t-footnote: 400 13px/18px var(--font-ui);
+  --t-caption: 500 12px/16px var(--font-ui);
+  --t-figure: 500 28px/32px var(--font-ui);
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-sheet: 16px;
+  --shadow: 0 8px 24px rgba(32, 37, 34, 0.12);
+  --shadow-control: 0 1px 3px rgba(32, 37, 34, 0.14);
+  --shadow-knob: 0 1px 3px rgba(32, 37, 34, 0.2);
+  --blur: blur(20px) saturate(1.4);
+
+  --m-fast: 120ms ease-out;
+  --m-base: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --m-slow: 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --target: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m-fast: 1ms linear;
+    --m-base: 150ms linear;
+    --m-slow: 150ms linear;
+  }
+}

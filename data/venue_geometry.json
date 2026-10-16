@@ -1,0 +1,477 @@
+{
+  "schemaVersion": 1,
+  "venue": "Restaurant Le Richmond, main floor",
+  "units": "metres; x east, z south, y up; origin = north-west interior corner",
+  "evidence": "references/venue_evidence_matrix.md",
+  "room": {
+    "width": {
+      "value": 16,
+      "min": 14,
+      "max": 18,
+      "confidence": "L",
+      "sources": ["F01"]
+    },
+    "depth": {
+      "value": 14.3,
+      "min": 12.5,
+      "max": 16,
+      "confidence": "L",
+      "sources": ["F01", "C"]
+    },
+    "ceiling": {
+      "value": 6.5,
+      "min": 6.5,
+      "max": 8,
+      "confidence": "L",
+      "sources": ["R01", "R02", "R04", "UV02"]
+    },
+    "wallThickness": {
+      "value": 0.35,
+      "min": 0.3,
+      "max": 0.5,
+      "confidence": "L",
+      "sources": []
+    }
+  },
+  "levels": {
+    "raised": {
+      "height": {
+        "value": 0.3,
+        "min": 0.15,
+        "max": 0.45,
+        "confidence": "L",
+        "sources": ["C", "U01", "U05"]
+      },
+      "outline": {
+        "value": [
+          [9.81, 0],
+          [16, 0],
+          [16, 11.3],
+          [11.2, 11.3],
+          [11.2, 9.6],
+          [9.81, 6.4]
+        ],
+        "confidence": "M",
+        "sources": ["C", "F01"]
+      },
+      "steps": {
+        "value": [
+          {
+            "from": [10.23, 7.36],
+            "to": [10.64, 8.32]
+          },
+          {
+            "from": [11.4, 11.3],
+            "to": [12.5, 11.3]
+          }
+        ],
+        "confidence": "L",
+        "sources": []
+      }
+    }
+  },
+  "walls": [
+    {
+      "id": "north",
+      "from": [0, 0],
+      "to": [16, 0],
+      "finish": "brick",
+      "dado": 1.05,
+      "openings": [],
+      "confidence": "H",
+      "sources": ["R01", "R03", "R07", "UV01"]
+    },
+    {
+      "id": "west",
+      "from": [0, 14.3],
+      "to": [0, 0],
+      "finish": "brick",
+      "openings": [
+        {
+          "id": "garage-north",
+          "kind": "garageDoor",
+          "start": 9.7,
+          "end": 13.3,
+          "sill": 0,
+          "head": 4.4
+        },
+        {
+          "id": "garage-south",
+          "kind": "garageDoor",
+          "start": 5.5,
+          "end": 9.1,
+          "sill": 0,
+          "head": 4.4
+        },
+        {
+          "id": "exit-west",
+          "kind": "door",
+          "start": 4.3,
+          "end": 5.2,
+          "sill": 0,
+          "head": 2.2
+        }
+      ],
+      "panels": [
+        {
+          "start": 0,
+          "end": 5.2,
+          "finish": "greenPanel",
+          "height": 3.9
+        }
+      ],
+      "confidence": "M",
+      "sources": ["R02", "R03", "R04", "U04", "U05", "F01"]
+    },
+    {
+      "id": "east",
+      "from": [16, 0],
+      "to": [16, 14.3],
+      "finish": "brick",
+      "dado": 1.05,
+      "openings": [
+        {
+          "id": "street-1",
+          "kind": "tallWindow",
+          "start": 1.5,
+          "end": 3.5,
+          "sill": 0.6,
+          "head": 5.9
+        },
+        {
+          "id": "street-2",
+          "kind": "tallWindow",
+          "start": 4.5,
+          "end": 6.5,
+          "sill": 0.6,
+          "head": 5.9
+        },
+        {
+          "id": "street-3",
+          "kind": "tallWindow",
+          "start": 7.5,
+          "end": 9.5,
+          "sill": 0.6,
+          "head": 5.9
+        },
+        {
+          "id": "street-4",
+          "kind": "tallWindow",
+          "start": 10.0,
+          "end": 11.7,
+          "sill": 0.6,
+          "head": 5.9
+        }
+      ],
+      "confidence": "M",
+      "sources": ["R05", "R09", "R10", "R13", "UV02"]
+    },
+    {
+      "id": "south",
+      "from": [16, 14.3],
+      "to": [0, 14.3],
+      "finish": "brick",
+      "height": 3.8,
+      "openings": [
+        {
+          "id": "corridor",
+          "kind": "opening",
+          "start": 3.3,
+          "end": 4.6,
+          "sill": 0,
+          "head": 2.6
+        },
+        {
+          "id": "kitchen-pass",
+          "kind": "pass",
+          "start": 7.6,
+          "end": 10.8,
+          "sill": 0,
+          "head": 2.4
+        }
+      ],
+      "panels": [
+        {
+          "start": 0,
+          "end": 16,
+          "finish": "greenPanel",
+          "height": 3.8,
+          "from": 0
+        }
+      ],
+      "confidence": "M",
+      "sources": ["C", "F01", "R04", "R09", "UV02"]
+    }
+  ],
+  "bar": {
+    "outer": {
+      "value": [5.67, 2.16, 9.81, 6.4],
+      "confidence": "L",
+      "sources": ["F01", "R02", "U01"]
+    },
+    "legWidth": 0.87,
+    "frontDepth": 0.7,
+    "counterHeight": {
+      "value": 1.07,
+      "min": 1.02,
+      "max": 1.12,
+      "confidence": "M",
+      "sources": ["R03"]
+    },
+    "openSide": "north"
+  },
+  "backBar": {
+    "rect": {
+      "value": [5.67, 0, 10.6, 0.6],
+      "confidence": "M",
+      "sources": ["R02", "R03", "UV01"]
+    },
+    "height": 3.1,
+    "canopyHeight": 3.35,
+    "rearCounter": [5.67, 0.6, 10.6, 1.2]
+  },
+  "mezzanine": {
+    "edgeZ": 14.3,
+    "xFrom": 0.6,
+    "xTo": 16,
+    "depth": 2.2,
+    "fasciaDepth": 0.9,
+    "floorHeight": {
+      "value": 3.8,
+      "min": 3.5,
+      "max": 4.2,
+      "confidence": "L",
+      "sources": ["UV02"]
+    },
+    "confidence": "M",
+    "sources": ["C", "UV02", "R09"]
+  },
+  "stair": {
+    "landing": [11.4, 12.9, 12.7, 14.3],
+    "flight": {
+      "from": [12.7, 13.1],
+      "to": [15.2, 14.3],
+      "rise": 1.62,
+      "treads": 9
+    },
+    "upperLanding": [15.2, 11.9, 16, 14.3],
+    "upperFlight": {
+      "from": [15.2, 11.9],
+      "to": [12.7, 13.1],
+      "treads": 12
+    },
+    "topLanding": [11.4, 11.9, 12.7, 14.3],
+    "confidence": "M",
+    "sources": ["C", "R01", "R09", "UV02", "owner 2026-10-16"]
+  },
+  "spots": {
+    "dj1": {
+      "x": 1.25,
+      "z": 10.7,
+      "rotY": 1.5708,
+      "level": "main",
+      "label": "DJ option 1"
+    },
+    "dj2": {
+      "x": 9.95,
+      "z": 10.75,
+      "rotY": -1.5708,
+      "level": "main",
+      "label": "DJ option 2"
+    },
+    "dj3": {
+      "x": 13.7,
+      "z": 15.0,
+      "rotY": 0,
+      "level": "mezzanine",
+      "label": "DJ option 3 · mezzanine"
+    }
+  },
+  "fixtures": {
+    "banquettes": [
+      {
+        "x0": 0.7,
+        "x1": 5.3,
+        "z": 0,
+        "depth": 0.6,
+        "backHeight": 1.35
+      },
+      {
+        "x0": 11.8,
+        "x1": 15.9,
+        "z": 0,
+        "depth": 0.6,
+        "backHeight": 1.35
+      },
+      {
+        "wall": "west",
+        "z0": 0.1,
+        "z1": 0.6,
+        "x": 0,
+        "depth": 0.6,
+        "backHeight": 1.35,
+        "disabled": true
+      }
+    ],
+    "paintings": [
+      {
+        "id": "horseman",
+        "wall": "north",
+        "x0": 1.3,
+        "x1": 4.3,
+        "y0": 2.0,
+        "y1": 4.5,
+        "palette": ["#2B1E1A", "#8E2B22", "#C79A3B", "#2F4E8C", "#E8D7B0"]
+      },
+      {
+        "id": "popart",
+        "wall": "north",
+        "x0": 11.8,
+        "x1": 14.8,
+        "y0": 2.1,
+        "y1": 4.0,
+        "palette": ["#E23B4E", "#F2C6A0", "#F6E3A1", "#C98B5E", "#3A1E24"]
+      }
+    ],
+    "wineWall": {
+      "rect": [10.6, 0.0, 11.3, 1.4],
+      "height": 3.0
+    },
+    "chandeliers": [
+      {
+        "kind": "brassCluster",
+        "x": 7.74,
+        "z": 4.4,
+        "bottom": 3.3,
+        "top": 5.3,
+        "radius": 0.7
+      },
+      {
+        "kind": "birdcage",
+        "x": 3.0,
+        "z": 6.3,
+        "bottom": 2.6,
+        "height": 1.3,
+        "radius": 0.45
+      },
+      {
+        "kind": "birdcage",
+        "x": 13.0,
+        "z": 2.6,
+        "bottom": 2.7,
+        "height": 1.3,
+        "radius": 0.45
+      },
+      {
+        "kind": "birdcage",
+        "x": 13.0,
+        "z": 7.6,
+        "bottom": 2.7,
+        "height": 1.3,
+        "radius": 0.45
+      },
+      {
+        "kind": "birdcage",
+        "x": 5.2,
+        "z": 11.0,
+        "bottom": 2.8,
+        "height": 1.3,
+        "radius": 0.45
+      }
+    ],
+    "pendantRows": [
+      {
+        "z": 2.0,
+        "x0": 1.5,
+        "x1": 14.5,
+        "count": 6,
+        "height": 4.6
+      },
+      {
+        "z": 9.0,
+        "x0": 1.5,
+        "x1": 14.5,
+        "count": 6,
+        "height": 4.6
+      }
+    ],
+    "timberBeams": {
+      "axis": "z",
+      "positions": [2.0, 5.0, 8.0, 11.0, 14.0],
+      "width": 0.3,
+      "depth": 0.45
+    },
+    "steelGirders": {
+      "axis": "x",
+      "positions": [4.8],
+      "width": 0.35,
+      "depth": 0.9
+    },
+    "ducts": {
+      "positions": [1.1],
+      "radius": 0.28,
+      "drop": 1.05
+    },
+    "skylight": {
+      "x": 7.74,
+      "z": 4.4,
+      "size": 1.3
+    },
+    "venueFurniture": {
+      "communalTable": {
+        "rect": [3.6, 3.2, 4.55, 6.8],
+        "height": 1.05
+      },
+      "barStools": {
+        "count": 12
+      }
+    }
+  },
+  "cameraPresets": {
+    "dollhouse": {
+      "position": [26, 24, 30],
+      "target": [8, 0.5, 7],
+      "fov": 30
+    },
+    "plan": {
+      "position": [8, 40, 7.15],
+      "target": [8, 0, 7.15],
+      "fov": 30
+    },
+    "walkStart": {
+      "position": [12.05, 1.65, 13.4],
+      "target": [8, 1.65, 6],
+      "fov": 60
+    },
+    "R01": {
+      "position": [15.3, 5.6, 14.8],
+      "target": [6, 1.2, 3],
+      "fov": 75,
+      "reference": "R01"
+    },
+    "R03": {
+      "position": [7.4, 1.5, 7.4],
+      "target": [3.2, 2.2, 1.4],
+      "fov": 90,
+      "reference": "R03"
+    },
+    "R09": {
+      "position": [14.0, 1.8, 6.5],
+      "target": [12.8, 2.2, 14.3],
+      "fov": 60,
+      "reference": "R09"
+    },
+    "UV01": {
+      "position": [12.0, 5.2, 14.5],
+      "target": [13.0, 2.0, 1.0],
+      "fov": 45,
+      "reference": "UV01"
+    },
+    "UV02": {
+      "position": [3.0, 1.6, 4.0],
+      "target": [10.0, 3.0, 14.3],
+      "fov": 70,
+      "reference": "UV02"
+    }
+  }
+}

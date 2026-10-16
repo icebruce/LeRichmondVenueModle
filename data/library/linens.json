@@ -1,0 +1,65 @@
+{
+  "family": "linen",
+  "items": [
+    {
+      "id": "linen-white",
+      "name": "White tablecloth",
+      "family": "linen",
+      "placement": "material",
+      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#f7f6f2" } },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": { "colour": "#f7f6f2", "quality": "low" }
+      },
+      "options": [
+        {
+          "type": "choice",
+          "key": "length",
+          "label": "Length",
+          "choices": [
+            { "value": "lap", "label": "Lap" },
+            { "value": "floor", "label": "Floor" }
+          ],
+          "default": "floor"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/linen-white.webp",
+      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
+      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+    },
+    {
+      "id": "linen-ivory",
+      "name": "Ivory tablecloth",
+      "family": "linen",
+      "placement": "material",
+      "sizeM": { "w": 1, "d": 1, "h": 0 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "linen", "params": { "colour": "#eee3cb" } },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "linen",
+        "params": { "colour": "#eee3cb", "quality": "low" }
+      },
+      "options": [
+        {
+          "type": "choice",
+          "key": "length",
+          "label": "Length",
+          "choices": [
+            { "value": "lap", "label": "Lap" },
+            { "value": "floor", "label": "Floor" }
+          ],
+          "default": "floor"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/linen-ivory.webp",
+      "source": { "type": "built", "origin": "Richmond Studio material", "licence": "Project" },
+      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 1 }
+    }
+  ]
+}
