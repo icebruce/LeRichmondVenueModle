@@ -637,7 +637,12 @@ export function DecorPanel() {
       />
       <Chips
         label="Florals"
-        options={[none, ...family("floral").map((e) => ({ id: e.id, name: e.name }))]}
+        options={[
+          none,
+          ...family("floral")
+            .filter((e) => e.placement === "table")
+            .map((e) => ({ id: e.id, name: e.name })),
+        ]}
         value={shown.florals}
         onPick={(id) => apply({ florals: id })}
         testId="florals"
@@ -1127,10 +1132,13 @@ function TextOption({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const [draft, setDraft] = useState(value);
+  // Null until edited, so the field always shows the stored words (after undo, or another item).
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? value;
   const save = () => {
+    if (draft === null) return;
     const next = draft.trim() || option.default;
-    setDraft(next);
+    setDraft(null);
     if (next !== value) onChange(next);
   };
   return (
@@ -1138,16 +1146,16 @@ function TextOption({
       <span className="row-label">{option.label}</span>
       <input
         className="text-input wide"
-        value={draft}
+        value={shown}
         maxLength={option.maxLength}
         onChange={(e) => setDraft(e.currentTarget.value)}
         onBlur={save}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         data-testid={option.key}
       />
-      {draft.length >= option.maxLength - 5 && (
+      {shown.length >= option.maxLength - 5 && (
         <span className="hint">
-          {draft.length}/{option.maxLength}
+          {shown.length}/{option.maxLength}
         </span>
       )}
     </label>
@@ -1256,7 +1264,12 @@ export function Inspector() {
   const fields = !many && entry && (
     <>
       {entry.options.map((o) => (
-        <OptionField key={o.key} option={o} item={item} value={item.options[o.key] ?? o.default} />
+        <OptionField
+          key={`${item.id}:${o.key}`}
+          option={o}
+          item={item}
+          value={item.options[o.key] ?? o.default}
+        />
       ))}
       {size && (
         <div className="row">

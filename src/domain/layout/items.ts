@@ -3,10 +3,9 @@ import { type Catalog, entry, resolveOptions } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
 import type { TableStyle } from "../scenario/schema";
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../geometry";
-import { PIECE_GENERATORS, makePiece } from "./pieces";
+import { PIECE_GENERATORS, type Size, makePiece } from "./pieces";
 
 export type ItemOptions = Record<string, number | string | boolean>;
-type Params = ItemOptions;
 
 export type Item = {
   id: string;
@@ -44,12 +43,15 @@ export type Shape =
   | {
       kind: "piece";
       generator: string;
-      params: Params;
-      options: Params;
+      params: ItemOptions;
+      /** The phone version's params (`lowModel`). */
+      lowParams: ItemOptions;
+      options: ItemOptions;
+      size: Size;
       width: number;
       depth: number;
       height: number;
-      /** False for hanging and ceiling pieces: they never block the floor. */
+      /** Only floor pieces block the floor; hanging, ceiling, wall and flat (projected) ones never do. */
       blocks: boolean;
     };
 
@@ -91,14 +93,28 @@ function roundChairs(diameter: number, seats: number): Chair[] {
  * catalogue entry that names one of these with its own `sizeM`, `params` and options; sizes come
  * from the data, never from the item id.
  */
-const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p: Params) => Shape> = {
+const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p: ItemOptions) => Shape> = {
   ...Object.fromEntries(
     PIECE_GENERATORS.map((g) => [
       g,
-      (_e: LibraryEntry, o: Record<string, unknown>, p: Params): Shape => {
-        const options = o as Params;
-        const { width, depth, height, blocks } = makePiece(g, p, options);
-        return { kind: "piece", generator: g, params: p, options, width, depth, height, blocks };
+      (e: LibraryEntry, o: Record<string, unknown>, p: ItemOptions): Shape => {
+        const options = o as ItemOptions;
+        const size = e.sizeM;
+        const { width, depth, height } = makePiece(g, p, options, size);
+        const lowParams = e.lowModel.kind === "parametric" ? e.lowModel.params : p;
+        const blocks = e.placement === "floor" && height > 0.05;
+        return {
+          kind: "piece",
+          generator: g,
+          params: p,
+          lowParams,
+          options,
+          size,
+          width,
+          depth,
+          height,
+          blocks,
+        };
       },
     ]),
   ),

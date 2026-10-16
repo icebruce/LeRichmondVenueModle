@@ -274,7 +274,7 @@ function djFront(front: string, m: Materials, evening: boolean): THREE.Material 
  * box to pick it up by, and its words when it has some (neon, sign boards, a projected monogram).
  */
 function PieceBody({ shape, evening }: { shape: Extract<Shape, { kind: "piece" }>; evening: boolean }) {
-  const piece = makePiece(shape.generator, shape.params, shape.options);
+  const piece = makePiece(shape.generator, shape.params, shape.options, shape.size);
   // Hanging pieces are picked by their top 40 cm only, so tables under them stay easy to select.
   const hitH = shape.blocks ? shape.height : Math.min(0.4, shape.height);
   return (

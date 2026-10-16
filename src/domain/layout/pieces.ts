@@ -12,8 +12,6 @@ export type Piece = {
   width: number;
   depth: number;
   height: number;
-  /** Whether it takes floor space: hanging and ceiling pieces never block anything. */
-  blocks: boolean;
   parts: Part[];
   /** Words drawn as a texture (neon, a sign board, a projected monogram), if any. */
   text?: PieceText;
@@ -33,6 +31,8 @@ export type PieceText = {
 };
 
 type Values = Record<string, number | string | boolean>;
+/** The entry's catalogue size (`sizeM`, m): pieces are built to it, so the data sets the size. */
+export type Size = { w: number; d: number; h: number };
 
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d: string) => (typeof v === "string" && v ? v : d);
@@ -109,26 +109,6 @@ function cloud(
   return parts;
 }
 
-/** Plant species (LIB-07): pot, trunk and foliage proportions. */
-const SPECIES: Record<
-  string,
-  {
-    pot: number;
-    trunk: number;
-    crown: [number, number, number];
-    leaves: number;
-    leaf: number;
-    colour?: string;
-  }
-> = {
-  fiddleLeaf: { pot: 0.42, trunk: 1.0, crown: [0.35, 0.55, 0.35], leaves: 40, leaf: 0.1 },
-  olive: { pot: 0.45, trunk: 1.1, crown: [0.45, 0.4, 0.45], leaves: 90, leaf: 0.045, colour: "#a3ae94" },
-  kentia: { pot: 0.45, trunk: 0.5, crown: [0.6, 0.6, 0.6], leaves: 0, leaf: 0 },
-  monstera: { pot: 0.4, trunk: 0.15, crown: [0.6, 0.25, 0.6], leaves: 18, leaf: 0.17, colour: "#3f6b3a" },
-  fern: { pot: 0.35, trunk: 0.1, crown: [0.4, 0.25, 0.4], leaves: 70, leaf: 0.05, colour: "#6f8f4e" },
-  blossom: { pot: 0.5, trunk: 1.4, crown: [0.6, 0.45, 0.6], leaves: 120, leaf: 0.04 },
-};
-
 /** Uplight colours (LIB-08). */
 export const LIGHT_COLOURS: Record<string, string> = {
   amber: "#ffb35c",
@@ -141,41 +121,47 @@ export const LIGHT_COLOURS: Record<string, string> = {
 /** Phone weight (LIB-11): fewer leaves and blooms for the `quality: "low"` model. */
 const share = (p: Values) => (p.quality === "low" ? 0.5 : 1);
 
-function plant(p: Values, rand: () => number): Piece {
-  const s = SPECIES[str(p.species, "olive")] ?? (SPECIES.olive as NonNullable<(typeof SPECIES)[string]>);
-  const potH = s.pot * 0.9;
+/**
+ * A potted plant (LIB-07) filling its catalogue size: the crown spans the footprint and reaches
+ * the full height. Species proportions are data (`params`): pot diameter, crown share of the
+ * height, leaf count and size, colour, and look (leaves, palm fronds or blossom).
+ */
+function plant(p: Values, size: Size, rand: () => number): Piece {
+  const pot = num(p.pot, 0.4);
+  const potH = pot * 0.9;
+  const leaf = num(p.leaf, 0.05);
+  const r = size.w / 2;
+  const crownH = num(p.crown, 0.4) * size.h;
+  const base = size.h - crownH;
   const parts: Part[] = [
-    cyl("ceramic", 0, 0, 0, s.pot / 2, potH),
-    cyl("black", 0, potH - 0.02, 0, s.pot / 2 - 0.02, 0.02),
+    cyl("ceramic", 0, 0, 0, pot / 2, potH),
+    cyl("black", 0, potH - 0.02, 0, pot / 2 - 0.02, 0.02),
   ];
-  const top = potH + s.trunk;
-  if (s.trunk > 0.2) parts.push(cyl("wood", 0, potH, 0, 0.03, s.trunk));
-  const [rx, ry, rz] = s.crown;
-  if (str(p.species, "olive") === "kentia") {
-    // Palm: long fronds arching out from the crown.
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2 + rand() * 0.3;
-      const tip: [number, number] = [Math.cos(a) * rx, top + 0.3 + rand() * 0.4];
-      parts.push({ ...rod("leaf", [0, top], tip, 0, 0.012), ry: a });
+  const look = str(p.look, "leaves");
+  const n = Math.round(num(p.leaves, 40) * (look === "fronds" ? 1 : share(p)));
+  if (look === "fronds") {
+    // Palm: fronds arching out from the top of the stem to the edge of the footprint.
+    if (base > potH) parts.push(cyl("wood", 0, potH, 0, 0.03, base - potH));
+    const reach = r - 0.01;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + rand() * 0.3;
+      const tipY = base + crownH * (0.2 + rand() * 0.3);
+      parts.push({ ...rod("leaf", [0, base], [reach, tipY], 0, 0.012), ry: -a });
       for (let j = 1; j <= 5; j++) {
         const f = j / 6;
-        parts.push({
-          ...ball(
-            "leaf",
-            Math.cos(a) * rx * f,
-            top + (tip[1] - top) * f + 0.15 * Math.sin(f * Math.PI),
-            Math.sin(a) * rx * f,
-            0.09,
-          ),
-          sy: 0.012,
-        });
+        const y = base + (tipY - base) * f + crownH * 0.45 * Math.sin(f * Math.PI);
+        parts.push({ ...ball("leaf", Math.cos(a) * reach * f, y, Math.sin(a) * reach * f, leaf), sy: 0.012 });
       }
     }
-    return { width: rx * 1.6, depth: rx * 1.6, height: top + 1, blocks: true, parts };
+    return { width: size.w, depth: size.d, height: size.h, parts };
   }
-  const blossom = str(p.species, "") === "blossom";
-  const cy = top + ry * 0.6;
-  for (let i = 0; i < Math.round(s.leaves * share(p)); i++) {
+  // Leaves (or blossom) on an ellipsoid crown that fits inside the footprint and height.
+  if (base > potH + 0.1) parts.push(cyl("wood", 0, potH, 0, 0.03, base - potH + crownH * 0.3));
+  const rx = r - leaf;
+  const rz = size.d / 2 - leaf;
+  const ry = crownH / 2 - leaf;
+  const cy = base + crownH / 2;
+  for (let i = 0; i < n; i++) {
     const u = rand() * 2 - 1;
     const a = rand() * Math.PI * 2;
     const k = 0.6 + rand() * 0.4;
@@ -183,12 +169,15 @@ function plant(p: Values, rand: () => number): Piece {
     const z = Math.sin(a) * Math.sqrt(1 - u * u) * rz * k;
     const y = cy + u * ry * k;
     parts.push(
-      blossom && i % 3 !== 0
-        ? ball("flower", x, y, z, s.leaf, i % 2 ? "#ef9fb8" : "#f7c3d2")
-        : { ...ball("leaf", x, y, z, s.leaf, s.colour), sy: s.leaf * 0.45 },
+      look === "blossom" && i % 3 !== 0
+        ? ball("flower", x, y, z, leaf, i % 2 ? "#ef9fb8" : "#f7c3d2")
+        : {
+            ...ball("leaf", x, y, z, leaf, p.colour === undefined ? undefined : String(p.colour)),
+            sy: leaf * 0.45,
+          },
     );
   }
-  return { width: rx * 1.6, depth: rz * 1.6, height: cy + ry, blocks: true, parts };
+  return { width: size.w, depth: size.d, height: size.h, parts };
 }
 
 /** Bulbs hanging on a sagging wire across `span` (string and Edison lights). */
@@ -205,8 +194,8 @@ function strand(span: number, hang: number, sag: number, bulbs: number, bulb: nu
   return parts;
 }
 
-function light(p: Values, o: Values, rand: () => number): Piece {
-  const kind = str(p.kind, "string");
+function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
+  const kind = str(p.kind, "");
   const colour = LIGHT_COLOURS[str(o.colour, str(p.colour, "amber"))] ?? "#ffb35c";
   const hang = num(o.hang, num(p.hang, 2.8));
   switch (kind) {
@@ -218,7 +207,6 @@ function light(p: Values, o: Values, rand: () => number): Piece {
         width: span,
         depth: 0.2,
         height: hang,
-        blocks: false,
         parts: strand(
           span,
           hang,
@@ -232,12 +220,11 @@ function light(p: Values, o: Values, rand: () => number): Piece {
     case "uplight":
       // A small floor can by a wall (behind it, local −z): a fading beam and a soft wash on the wall.
       return {
-        width: 0.25,
-        depth: 0.25,
-        height: 0.2,
-        blocks: true,
+        width: size.w,
+        depth: size.d,
+        height: size.h,
         parts: [
-          box("black", 0, 0, 0, 0.2, 0.14, 0.2),
+          box("black", 0, 0, 0, size.w * 0.8, size.h * 0.7, size.d * 0.8),
           { prim: "bowl", slot: "beam", x: 0, y: 0.14, z: -0.05, sx: 0.35, sy: 1.6, sz: 0.2, colour },
           { prim: "plane", slot: "glow", x: 0, y: 0.1, z: -0.14, sx: 1.4, sy: 3.2, sz: 1, colour },
         ],
@@ -245,10 +232,9 @@ function light(p: Values, o: Values, rand: () => number): Piece {
     case "pinSpot":
       // A ceiling can with a narrow beam down onto a table's centrepiece.
       return {
-        width: 0.3,
-        depth: 0.3,
+        width: size.w,
+        depth: size.d,
         height: hang,
-        blocks: false,
         parts: [
           cyl("black", 0, hang, 0, 0.05, 0.14),
           {
@@ -265,12 +251,14 @@ function light(p: Values, o: Values, rand: () => number): Piece {
         ],
       };
     case "chandelier": {
-      // Crystal chandelier: tiers of drops around warm bulbs, on a chain from the ceiling.
+      // Crystal chandelier as wide as its footprint: tiers of drops around warm bulbs, on a chain.
       const parts: Part[] = [
         cyl("brass", 0, hang + 0.9, 0, 0.008, 1.5),
         cyl("brass", 0, hang + 0.55, 0, 0.05, 0.35),
       ];
-      [0.42, 0.3, 0.18].forEach((r, t) => {
+      const outer = size.w / 2 - 0.025;
+      [1, 0.7, 0.42].forEach((share, t) => {
+        const r = outer * share;
         const y = hang + 0.2 + t * 0.2;
         const n = Math.round(r * 40);
         for (let i = 0; i < n; i++) {
@@ -280,11 +268,14 @@ function light(p: Values, o: Values, rand: () => number): Piece {
             parts.push(ball("bulb", Math.cos(a) * r * 0.85, y + 0.04, Math.sin(a) * r * 0.85, 0.022));
         }
       });
-      return { width: 1, depth: 1, height: hang + 1, blocks: false, parts };
+      return { width: size.w, depth: size.d, height: hang + 1, parts };
     }
     case "disco": {
       // A faceted mirror ball, and spots of light scattered over the floor around it.
-      const parts: Part[] = [cyl("black", 0, hang + 0.25, 0, 0.005, 1.5), ball("mirror", 0, hang, 0, 0.25)];
+      const parts: Part[] = [
+        cyl("black", 0, hang + 0.25, 0, 0.005, 1.5),
+        ball("mirror", 0, hang, 0, size.w / 2 - 0.05),
+      ];
       for (let i = 0; i < 64; i++) {
         const a = rand() * Math.PI * 2;
         const d = 0.6 + rand() * 3;
@@ -302,7 +293,7 @@ function light(p: Values, o: Values, rand: () => number): Piece {
           colour: "#ffffff",
         });
       }
-      return { width: 0.6, depth: 0.6, height: hang + 0.3, blocks: false, parts };
+      return { width: size.w, depth: size.d, height: hang + 0.3, parts };
     }
     case "djLights": {
       // A T-bar on a tripod with four coloured cans aimed out over the floor.
@@ -330,40 +321,41 @@ function light(p: Values, o: Values, rand: () => number): Piece {
           colour: c,
         });
       });
-      return { width: 1.3, depth: 0.7, height: 2.2, blocks: true, parts };
+      return { width: size.w, depth: size.d, height: size.h, parts };
     }
-    default: {
+    case "monogram":
       // Monogram projection: the couple's initials in light on the dance floor.
-      const text = str(o.text, str(p.text, "A & B")).slice(0, 24);
       return {
-        width: 2.4,
-        depth: 1.4,
-        height: 0.02,
-        blocks: false,
+        width: size.w,
+        depth: size.d,
+        height: size.h,
         parts: [],
         text: {
-          value: text,
+          value: str(o.text, ""),
           look: "projection",
           x: 0,
           y: 0.03,
           z: 0,
-          w: 2.4,
-          h: 1.2,
+          w: size.w,
+          h: size.d * 0.85,
           tilt: -Math.PI / 2,
           colour: "#fff4e0",
         },
       };
-    }
+    default:
+      throw new Error(`Unknown light kind ${kind}`);
   }
 }
 
-function floral(p: Values, o: Values, rand: () => number): Piece {
+function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
   const colours = palette(o.palette ?? p.palette);
-  switch (str(p.kind, "arch")) {
+  const kind = str(p.kind, "");
+  switch (kind) {
     case "arch": {
       // A slim metal hoop with flowers clustered up one side and over the top.
-      const w = num(o.width, 2.0);
-      const h = 2.4;
+      const w = num(o.width, size.w - 0.3);
+      // The hoop stops 10 cm short of the top, where the flowers on it stand proud.
+      const h = size.h - 0.1;
       const parts: Part[] = [];
       const r = w / 2;
       const at = (t: number): [number, number] =>
@@ -393,12 +385,12 @@ function floral(p: Values, o: Values, rand: () => number): Piece {
               ),
         );
       }
-      return { width: w + 0.3, depth: 0.5, height: h, blocks: true, parts };
+      return { width: w + 0.3, depth: size.d, height: h + 0.1, parts };
     }
     case "wall": {
       // Flower wall: a board faced with blooms on a grid (fewer and larger on phones).
-      const w = num(o.width, 2.4);
-      const h = 2.4;
+      const w = num(o.width, size.w);
+      const h = size.h;
       const step = p.quality === "low" ? 0.3 : 0.2;
       const parts: Part[] = [box("black", 0, 0, -0.06, w, h, 0.08)];
       for (let y = step / 2; y < h; y += step)
@@ -408,77 +400,87 @@ function floral(p: Values, o: Values, rand: () => number): Piece {
           const jx = x + (rand() - 0.5) * step * 0.5;
           const jy = y + (rand() - 0.5) * step * 0.5;
           const r = step * (0.45 + rand() * 0.2);
+          // Kept on the board, so the wall is no wider or taller than its size.
+          const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+          const cx = clamp(jx, -w / 2 + r * 1.2, w / 2 - r * 1.2);
+          const cy = clamp(jy, r * 1.2, h - r * 1.2);
           parts.push(
             rand() < 0.2
-              ? { ...ball("leaf", jx, jy, 0, r * 1.2), sz: step * 0.3 }
-              : ball("flower", jx, jy, 0, r, c),
+              ? { ...ball("leaf", cx, cy, 0, r * 1.2), sz: step * 0.3 }
+              : ball("flower", cx, cy, 0, r, c),
           );
         }
-      return { width: w, depth: 0.35, height: h, blocks: true, parts };
+      return { width: w, depth: size.d, height: h, parts };
     }
-    case "pedestal":
+    case "pedestal": {
+      // A column vase with a round arrangement on top, the flowers spanning the footprint.
+      const r = size.w / 2 - 0.05;
+      const column = size.h * 0.67;
       return {
-        width: 0.6,
-        depth: 0.6,
-        height: 1.5,
-        blocks: true,
+        width: size.w,
+        depth: size.d,
+        height: size.h,
         parts: [
-          cyl("ceramic", 0, 0, 0, 0.18, 1.0),
-          cyl("ceramic", 0, 1.0, 0, 0.22, 0.04),
-          ...cloud(0, 1.25, 0, 0.32, 0.25, 0.32, Math.round(70 * share(p)), colours, rand),
+          cyl("ceramic", 0, 0, 0, 0.18, column),
+          cyl("ceramic", 0, column, 0, 0.22, 0.04),
+          ...cloud(0, size.h - 0.3, 0, r, 0.25, r, Math.round(70 * share(p)), colours, rand),
         ],
       };
-    default: {
+    }
+    case "hanging": {
       // Hanging installation: a cloud of flowers and greenery above a table or the dance floor.
       const hang = num(o.hang, 2.6);
-      const w = num(o.width, 2.0);
+      const w = num(o.width, size.w);
+      const n = Math.round(w * 55 * share(p));
       const parts: Part[] = [
         cyl("black", -w / 3, hang + 0.3, 0, 0.004, 1.5),
         cyl("black", w / 3, hang + 0.3, 0, 0.004, 1.5),
-        ...cloud(0, hang + 0.25, 0, w / 2, 0.25, 0.45, Math.round(w * 55 * share(p)), colours, rand, 0.45),
+        ...cloud(0, hang + 0.25, 0, w / 2 - 0.05, 0.25, size.d / 2 - 0.05, n, colours, rand, 0.45),
       ];
-      return { width: w, depth: 1, height: hang + 0.5, blocks: false, parts };
+      return { width: w, depth: size.d, height: hang + 0.5, parts };
     }
+    default:
+      throw new Error(`Unknown floral kind ${kind}`);
   }
 }
 
-function sign(p: Values, o: Values): Piece {
-  const kind = str(p.kind, "welcome");
+function sign(p: Values, o: Values, size: Size): Piece {
+  const kind = str(p.kind, "");
   if (kind === "neon") {
-    const text = str(o.text, "Better together").slice(0, 24);
+    const text = str(o.text, "");
     const colour = LIGHT_COLOURS[str(o.colour, "blush")] ?? "#ff9fb2";
     const hang = num(o.hang, 1.6);
+    const w = size.w;
     return {
-      width: 1.2,
-      depth: 0.15,
+      width: w,
+      depth: size.d,
       height: hang + 0.5,
-      blocks: false,
       // Clear acrylic backer, with the tube colour glowing softly on the wall behind it.
       parts: [
-        box("glass", 0, hang - 0.25, 0, 1.2, 0.5, 0.01),
-        { prim: "plane", slot: "glow", x: 0, y: hang - 0.5, z: -0.02, sx: 1.8, sy: 1.0, sz: 1, colour },
+        box("glass", 0, hang - 0.25, 0, w, 0.5, 0.01),
+        { prim: "plane", slot: "glow", x: 0, y: hang - 0.5, z: -0.02, sx: w * 1.5, sy: 1.0, sz: 1, colour },
       ],
-      text: { value: text, look: "neon", x: 0, y: hang, z: 0.012, w: 1.15, h: 0.45, tilt: 0, colour },
+      text: { value: text, look: "neon", x: 0, y: hang, z: 0.012, w: w - 0.05, h: 0.45, tilt: 0, colour },
     };
   }
-  // Welcome sign or seating chart on a wooden easel.
-  const chart = kind === "chart";
-  const w = chart ? 0.9 : 0.6;
-  const h = chart ? 1.2 : 0.8;
-  const text = str(o.text, chart ? "Find your seat" : "Welcome").slice(0, 32);
+  if (kind !== "welcome" && kind !== "chart") throw new Error(`Unknown sign kind ${kind}`);
+  // Welcome sign or seating chart on a wooden easel, the board 10 cm narrower than the footprint.
+  const w = size.w - 0.1;
+  const h = kind === "chart" ? 1.2 : 0.8;
+  const text = str(o.text, "");
   const lean = 0.18;
+  const back = -size.d / 2 + 0.03;
   const parts: Part[] = [
-    rod("wood", [-0.3, 0], [-0.2, 1.7], 0.05, 0.015),
-    rod("wood", [0.3, 0], [0.2, 1.7], 0.05, 0.015),
-    rod("wood", [0, 0], [0, 1.6], -0.35, 0.012),
+    rod("wood", [-0.3, 0], [-0.2, size.h - 0.05], 0.05, 0.015),
+    rod("wood", [0.3, 0], [0.2, size.h - 0.05], 0.05, 0.015),
+    rod("wood", [0, 0], [0, size.h - 0.15], back, 0.012),
     box("wood", 0, 0.62, 0.08, w + 0.08, 0.03, 0.06),
     { ...box("paper", 0, 0.65, 0.06, w, h, 0.012), rx: -lean },
   ];
   return {
-    width: Math.max(0.7, w + 0.1),
-    depth: 0.6,
-    height: 1.75,
-    blocks: true,
+    width: size.w,
+    depth: size.d,
+    height: size.h,
     parts,
     text: {
       value: text,
@@ -495,17 +497,17 @@ function sign(p: Values, o: Values): Piece {
   };
 }
 
-function event(p: Values, o: Values, rand: () => number): Piece {
-  switch (str(p.kind, "stage")) {
+function event(p: Values, o: Values, size: Size, rand: () => number): Piece {
+  const kind = str(p.kind, "");
+  switch (kind) {
     case "stage": {
-      const w = num(o.width, 3);
-      const d = num(o.depth, 2);
-      const h = num(o.height, 0.4);
+      const w = num(o.width, size.w);
+      const d = num(o.depth, size.d);
+      const h = num(o.height, size.h);
       return {
         width: w,
         depth: d,
         height: h,
-        blocks: true,
         parts: [box("black", 0, 0, 0, w, h - 0.02, d), box("wood", 0, h - 0.02, 0, w, 0.02, d)],
       };
     }
@@ -523,13 +525,13 @@ function event(p: Values, o: Values, rand: () => number): Piece {
         const a = (i / 20) * Math.PI * 2;
         parts.push(ball("bulb", Math.cos(a) * 0.22, 1.47 + Math.sin(a) * 0.22, 0.83, 0.02));
       }
-      return { width: 2.2, depth: 2.2, height: 2.25, blocks: true, parts };
+      return { width: size.w, depth: size.d, height: size.h, parts };
     }
     case "station": {
       // Food or dessert station: a draped counter with trays, domes or tiered stands.
-      const w = num(o.width, 2.4);
+      const w = num(o.width, size.w);
       const sweets = str(p.food, "food") === "dessert";
-      const parts: Part[] = [box("fabric", 0, 0, 0, w, 0.9, 0.75, "#f2ece0")];
+      const parts: Part[] = [box("fabric", 0, 0, 0, w, 0.9, size.d, "#f2ece0")];
       const n = Math.max(2, Math.round(w / 0.6));
       for (let i = 0; i < n; i++) {
         const x = -w / 2 + (w / n) * (i + 0.5);
@@ -556,24 +558,23 @@ function event(p: Values, o: Values, rand: () => number): Piece {
           });
         }
       }
-      return { width: w, depth: 0.75, height: 1.2, blocks: true, parts };
+      return { width: w, depth: size.d, height: 1.2, parts };
     }
     case "bar": {
       // Portable bar module: white front, dark top, back shelf with bottles.
-      const w = num(o.width, 2);
+      const w = num(o.width, size.w - 0.05);
       const parts: Part[] = [
-        box("ceramic", 0, 0, 0, w, 1.05, 0.6),
-        box("black", 0, 1.05, 0, w + 0.05, 0.04, 0.65),
+        box("ceramic", 0, 0, 0, w, 1.05, size.d - 0.05),
+        box("black", 0, 1.05, 0, w + 0.05, 0.04, size.d),
       ];
       for (let i = 0; i < Math.round(w * 6); i++)
         parts.push(cyl("glass", -w / 2 + 0.1 + i * 0.16, 1.09, -0.15, 0.035, 0.28));
-      return { width: w + 0.05, depth: 0.65, height: 1.37, blocks: true, parts };
+      return { width: w + 0.05, depth: size.d, height: 1.37, parts };
     }
     case "cake": {
-      // Cake table: a round draped table with a three-tier cake.
-      // Champagne cloth under a white three-tier cake with a ring of flowers on each tier.
+      // A round table in champagne cloth with a white three-tier cake, a ring of flowers on each tier.
       const parts: Part[] = [
-        cyl("fabric", 0, 0, 0, 0.45, 0.76, "#e3d2b0"),
+        cyl("fabric", 0, 0, 0, size.w / 2 - 0.025, 0.76, "#e3d2b0"),
         cyl("brass", 0, 0.76, 0, 0.24, 0.02),
       ];
       [0.2, 0.15, 0.1].forEach((r, i) => {
@@ -584,12 +585,12 @@ function event(p: Values, o: Values, rand: () => number): Piece {
           parts.push(ball("flower", Math.cos(a) * r, y + 0.15, Math.sin(a) * r, 0.022, "#efd2d8"));
         }
       });
-      return { width: 0.95, depth: 0.95, height: 1.25, blocks: true, parts };
+      return { width: size.w, depth: size.d, height: 1.25, parts };
     }
-    default: {
+    case "gift": {
       // Gift and card table: a draped table with a card box and a few wrapped gifts.
       const parts: Part[] = [
-        box("fabric", 0, 0, 0, 1.5, 0.76, 0.6, "#f4efe4"),
+        box("fabric", 0, 0, 0, size.w, 0.76, size.d, "#f4efe4"),
         box("paper", -0.4, 0.76, 0, 0.25, 0.25, 0.25),
       ];
       for (let i = 0; i < 4; i++) {
@@ -607,16 +608,18 @@ function event(p: Values, o: Values, rand: () => number): Piece {
           ),
         );
       }
-      return { width: 1.5, depth: 0.6, height: 1.05, blocks: true, parts };
+      return { width: size.w, depth: size.d, height: 1.05, parts };
     }
+    default:
+      throw new Error(`Unknown event piece kind ${kind}`);
   }
 }
 
-const PIECES: Record<string, (p: Values, o: Values, rand: () => number) => Piece> = {
-  plant: (p, _o, rand) => plant(p, rand),
+const PIECES: Record<string, (p: Values, o: Values, size: Size, rand: () => number) => Piece> = {
+  plant: (p, _o, size, rand) => plant(p, size, rand),
   light,
   floralPiece: floral,
-  sign: (p, o) => sign(p, o),
+  sign,
   eventPiece: event,
 };
 
@@ -624,16 +627,16 @@ const PIECES: Record<string, (p: Values, o: Values, rand: () => number) => Piece
 export const PIECE_GENERATORS: readonly string[] = Object.keys(PIECES);
 
 /**
- * One library piece from its generator, the entry's fixed params and the item's options. The
- * seed keeps a plant's leaves or a wall's flowers the same every time it is drawn.
+ * One library piece from its generator, the entry's fixed params, its catalogue size and the
+ * item's options. The seed keeps a plant's leaves or a wall's flowers the same every time.
  */
-export function makePiece(generator: string, params: Values, options: Values, seed = 1): Piece {
-  const key = `${generator}|${seed}|${JSON.stringify(params)}|${JSON.stringify(options)}`;
+export function makePiece(generator: string, params: Values, options: Values, size: Size, seed = 1): Piece {
+  const key = `${generator}|${seed}|${JSON.stringify([params, options, size])}`;
   let piece = made.get(key);
   if (!piece) {
     const gen = PIECES[generator];
     if (!gen) throw new Error(`Unknown piece generator ${generator}`);
-    piece = gen(params, options, seededRandom(seed));
+    piece = gen(params, options, size, seededRandom(seed));
     // Shapes are asked for often (placement, checks, counts); a piece is the same every time.
     if (made.size > 500) made.clear();
     made.set(key, piece);

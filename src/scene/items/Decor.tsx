@@ -199,8 +199,9 @@ export function TableDecor({
           p.shape.kind === "piece"
             ? makePiece(
                 p.shape.generator,
-                low ? { ...p.shape.params, quality: "low" } : p.shape.params,
+                low ? p.shape.lowParams : p.shape.params,
                 p.shape.options,
+                p.shape.size,
               ).parts
             : tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
       })),

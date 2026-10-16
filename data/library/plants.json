@@ -16,14 +16,20 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "fiddleLeaf"
+          "pot": 0.42,
+          "crown": 0.45,
+          "leaves": 40,
+          "leaf": 0.1
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "fiddleLeaf",
+          "pot": 0.42,
+          "crown": 0.45,
+          "leaves": 40,
+          "leaf": 0.1,
           "quality": "low"
         }
       },
@@ -56,14 +62,22 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "olive"
+          "pot": 0.45,
+          "crown": 0.4,
+          "leaves": 90,
+          "leaf": 0.045,
+          "colour": "#a3ae94"
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "olive",
+          "pot": 0.45,
+          "crown": 0.4,
+          "leaves": 90,
+          "leaf": 0.045,
+          "colour": "#a3ae94",
           "quality": "low"
         }
       },
@@ -96,14 +110,22 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "kentia"
+          "pot": 0.45,
+          "crown": 0.55,
+          "leaves": 9,
+          "leaf": 0.09,
+          "look": "fronds"
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "kentia",
+          "pot": 0.45,
+          "crown": 0.55,
+          "leaves": 9,
+          "leaf": 0.09,
+          "look": "fronds",
           "quality": "low"
         }
       },
@@ -136,14 +158,22 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "monstera"
+          "pot": 0.4,
+          "crown": 0.6,
+          "leaves": 18,
+          "leaf": 0.17,
+          "colour": "#3f6b3a"
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "monstera",
+          "pot": 0.4,
+          "crown": 0.6,
+          "leaves": 18,
+          "leaf": 0.17,
+          "colour": "#3f6b3a",
           "quality": "low"
         }
       },
@@ -176,14 +206,22 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "fern"
+          "pot": 0.35,
+          "crown": 0.6,
+          "leaves": 70,
+          "leaf": 0.05,
+          "colour": "#6f8f4e"
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "fern",
+          "pot": 0.35,
+          "crown": 0.6,
+          "leaves": 70,
+          "leaf": 0.05,
+          "colour": "#6f8f4e",
           "quality": "low"
         }
       },
@@ -216,14 +254,22 @@
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "blossom"
+          "pot": 0.5,
+          "crown": 0.35,
+          "leaves": 120,
+          "leaf": 0.04,
+          "look": "blossom"
         }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "plant",
         "params": {
-          "species": "blossom",
+          "pot": 0.5,
+          "crown": 0.35,
+          "leaves": 120,
+          "leaf": 0.04,
+          "look": "blossom",
           "quality": "low"
         }
       },
