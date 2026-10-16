@@ -869,6 +869,22 @@ button:disabled {
 }
 
 /* ---------- toast, walk, labels, loading ---------- */
+.walk-hint.seated {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding-block: 0;
+}
+/* Sit here: one target per chair, in the accent, at least 44 pt (DESIGN_GUIDE §4). */
+.seat-pick {
+  width: var(--target);
+  height: var(--target);
+  border-radius: 50%;
+  border: 2px solid var(--accent-ink);
+  background: var(--accent);
+  box-shadow: var(--shadow-control);
+  opacity: 0.92;
+}
 .toast {
   position: absolute;
   left: 50%;

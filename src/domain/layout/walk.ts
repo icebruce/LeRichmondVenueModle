@@ -1,7 +1,7 @@
 import { type Polygon, type Vec2, distanceToSegment, pointInPolygon } from "../geometry";
 import type { Catalog } from "../library/catalog";
 import type { VenueModel } from "../venue/model";
-import { type Item, footprint, shapeOf } from "./items";
+import { type Item, blocksFloor, footprint, shapeOf } from "./items";
 import { type VenueToggles, toggledObstacles } from "./validate";
 
 /** Body radius of the walking guest (CAM-03). */
@@ -24,7 +24,12 @@ export function walkArea(
     // The entrance landing is floor a guest arrives on; it only blocks furniture.
     ...venue.obstacles.filter((o) => o.id !== "stair-landing").map((o) => o.polygon),
     ...toggledObstacles(venue, toggles).map((o) => o.polygon),
-    ...items.filter((it) => shapeOf(it, catalog).kind !== "danceFloor").map((it) => footprint(it, catalog)),
+    ...items
+      .filter((it) => {
+        const shape = shapeOf(it, catalog);
+        return shape.kind !== "danceFloor" && blocksFloor(shape);
+      })
+      .map((it) => footprint(it, catalog)),
   ];
   const ring: Vec2[] = Array.from({ length: 8 }, (_, i) => {
     const a = (i / 8) * Math.PI * 2;

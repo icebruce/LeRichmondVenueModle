@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useProgress } from "@react-three/drei";
-import { countLayout } from "../domain/layout/counts";
+import { countLayout, tableLabels } from "../domain/layout/counts";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { adviseScenario } from "../domain/layout/advisories";
@@ -237,6 +237,7 @@ function useShortcuts() {
         e.preventDefault();
         editor.deleteSelection();
       } else if (e.key === "Escape") {
+        viewStore.setState({ pickSeat: null });
         if (st.camera === "walk") editor.setCamera("dollhouse");
         else editor.select([]);
       } else if (st.camera !== "walk" && (e.key === "r" || e.key === "R") && sel.length) {
@@ -275,6 +276,17 @@ export function StudioUI() {
   useShortcuts();
 
   const phone = useMedia(PHONE);
+  // Sit here (CAM-04): leaving walk ends the seat; a selection change ends picking one.
+  const seat = useView((s) => s.seat);
+  const { catalog } = useStudio();
+  const activeItems = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
+  const seated = seat ? `table ${tableLabels(activeItems, catalog).get(seat.table) ?? ""}`.trim() : "";
+  useEffect(() => {
+    if (camera !== "walk") viewStore.setState({ seat: null });
+  }, [camera]);
+  useEffect(() => {
+    if (selection.length) viewStore.setState({ pickSeat: null });
+  }, [selection]);
   const compare = useView((s) => s.compare);
   // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
   const detent: Detent = phone && compare && chosen === "half" ? "peek" : chosen;
@@ -396,7 +408,15 @@ export function StudioUI() {
 
       {!phone && !compare && <Counts onAdvisories={showChecks} />}
       {phone && camera !== "walk" && <History className="history-float glass" />}
-      {camera === "walk" && (
+      {camera === "walk" && seat && (
+        <div className="walk-hint glass seated" data-testid="seated">
+          <span>Seated · {seated} · drag to look around</span>
+          <button type="button" className="plain-btn" onClick={() => editor.setCamera("dollhouse")}>
+            Stand up
+          </button>
+        </div>
+      )}
+      {camera === "walk" && !seat && (
         <>
           <p className="walk-hint glass">
             <span className="desktop-only">Click to look around · WASD or arrows to move · Esc to stop</span>

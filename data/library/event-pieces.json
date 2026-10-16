@@ -83,6 +83,10 @@
             {
               "value": "black",
               "label": "Black"
+            },
+            {
+              "value": "led",
+              "label": "LED"
             }
           ],
           "default": "wood"
@@ -148,6 +152,30 @@
             }
           ],
           "default": "free"
+        },
+        {
+          "type": "choice",
+          "key": "front",
+          "label": "Front",
+          "choices": [
+            {
+              "value": "black",
+              "label": "Black"
+            },
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "mirror",
+              "label": "Mirror"
+            },
+            {
+              "value": "led",
+              "label": "LED"
+            }
+          ],
+          "default": "black"
         }
       ],
       "seats": false,
@@ -232,6 +260,299 @@
       "budget": {
         "triangles": 1200,
         "phoneTriangles": 400,
+        "drawCalls": 3
+      }
+    },
+    {
+      "id": "stage",
+      "name": "Stage / riser",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 3,
+        "d": 2,
+        "h": 0.4
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "stage"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "stage",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 2,
+          "max": 5,
+          "step": 0.5,
+          "default": 3,
+          "unit": "m"
+        },
+        {
+          "type": "number",
+          "key": "depth",
+          "label": "Depth",
+          "min": 1.2,
+          "max": 3,
+          "step": 0.3,
+          "default": 2,
+          "unit": "m"
+        },
+        {
+          "type": "number",
+          "key": "height",
+          "label": "Height",
+          "min": 0.2,
+          "max": 0.6,
+          "step": 0.1,
+          "default": 0.4,
+          "unit": "m"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/stage.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 50,
+        "phoneTriangles": 50,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "photo-booth",
+      "name": "Photo booth",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.2,
+        "d": 2.2,
+        "h": 2.25
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "photoBooth"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "photoBooth",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "choice",
+          "key": "colour",
+          "label": "Backdrop",
+          "choices": [
+            {
+              "value": "#e9dfd0",
+              "label": "Ivory"
+            },
+            {
+              "value": "#ecd0c8",
+              "label": "Blush"
+            },
+            {
+              "value": "#a3b19a",
+              "label": "Sage"
+            },
+            {
+              "value": "#2a2a2a",
+              "label": "Black"
+            }
+          ],
+          "default": "#e9dfd0"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/photo-booth.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 2800,
+        "phoneTriangles": 1050,
+        "drawCalls": 4
+      }
+    },
+    {
+      "id": "station-food",
+      "name": "Food station",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.4,
+        "d": 0.75,
+        "h": 1.2
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "station",
+          "food": "food"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "station",
+          "food": "food",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.8,
+          "max": 3.6,
+          "step": 0.6,
+          "default": 2.4,
+          "unit": "m"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/station-food.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 600,
+        "phoneTriangles": 250,
+        "drawCalls": 3
+      }
+    },
+    {
+      "id": "station-dessert",
+      "name": "Dessert station",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.4,
+        "d": 0.75,
+        "h": 1.2
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "station",
+          "food": "dessert"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "station",
+          "food": "dessert",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.8,
+          "max": 3.6,
+          "step": 0.6,
+          "default": 2.4,
+          "unit": "m"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/station-dessert.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 3300,
+        "phoneTriangles": 1300,
+        "drawCalls": 3
+      }
+    },
+    {
+      "id": "bar-module",
+      "name": "Bar module",
+      "family": "eventPiece",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.05,
+        "d": 0.65,
+        "h": 1.37
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "bar"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "bar",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.5,
+          "max": 3,
+          "step": 0.5,
+          "default": 2,
+          "unit": "m"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/bar-module.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 850,
+        "phoneTriangles": 500,
         "drawCalls": 3
       }
     }

@@ -26,7 +26,10 @@ export type Slot =
   | "flower"
   | "leaf"
   | "fabric"
-  | "sheer";
+  | "sheer"
+  | "wood"
+  | "bulb"
+  | "beam";
 export type Part = {
   prim: Prim;
   slot: Slot;

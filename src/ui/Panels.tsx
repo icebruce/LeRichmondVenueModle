@@ -7,7 +7,7 @@ import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
 import type { Catalog } from "../domain/library/catalog";
-import type { ItemOption, LibraryEntry } from "../domain/library/schema";
+import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
@@ -388,20 +388,42 @@ function Checks() {
   );
 }
 
+/** Library sections, in the order a couple plans a room. */
+const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
+  { id: "table", name: "Tables" },
+  { id: "eventPiece", name: "Event" },
+  { id: "floral", name: "Florals" },
+  { id: "plant", name: "Plants" },
+  { id: "light", name: "Lights" },
+  { id: "sign", name: "Signs" },
+];
+
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
   const snapping = useEditor((s) => s.snapping);
   const placeable = useMemo(
-    () => [...catalog.values()].filter((e) => e.placement === "floor" && e.family !== "chair"),
+    () =>
+      [...catalog.values()].filter(
+        (e) => e.placement !== "table" && e.placement !== "material" && e.family !== "chair",
+      ),
     [catalog],
   );
+  const [category, setCategory] = useState<Family>("table");
+  const shown = placeable.filter((e) => e.family === category);
   return (
     <div className="panel-body" data-testid="layout-panel">
       <h2 className="panel-title">Layout</h2>
       <Checks />
       <h3 className="group-title">Add to the room</h3>
+      <Chips
+        label="Library"
+        options={LIBRARY_CATEGORIES.filter((c) => placeable.some((e) => e.family === c.id))}
+        value={category}
+        onPick={(id) => setCategory(id as Family)}
+        testId="category"
+      />
       <ul className="library" aria-label="Library">
-        {placeable.map((e) => (
+        {shown.map((e) => (
           <li key={e.id}>
             <button
               type="button"
@@ -1059,6 +1081,38 @@ export function VenuePanel() {
   );
 }
 
+/** Short words for a piece (LIB-08, LIB-09); saved on Enter or leaving the field, one undo step. */
+function TextOption({
+  option,
+  value,
+  onChange,
+}: {
+  option: Extract<ItemOption, { type: "text" }>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const save = () => {
+    const next = draft.trim() || option.default;
+    setDraft(next);
+    if (next !== value) onChange(next);
+  };
+  return (
+    <label className="field">
+      <span className="row-label">{option.label}</span>
+      <input
+        className="text-input wide"
+        value={draft}
+        maxLength={option.maxLength}
+        onChange={(e) => setDraft(e.currentTarget.value)}
+        onBlur={save}
+        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+        data-testid={option.key}
+      />
+    </label>
+  );
+}
+
 /** Inspector control for one library option (LIB-12: options come from the catalogue entry). */
 function OptionField({
   option,
@@ -1089,6 +1143,7 @@ function OptionField({
   if (option.type === "boolean") {
     return <Toggle label={option.label} checked={value === true} onChange={set} testId={option.key} />;
   }
+  if (option.type === "text") return <TextOption option={option} value={String(value)} onChange={set} />;
   if (option.choices.length <= 3) {
     return <Segmented label={option.label} value={String(value)} options={option.choices} onChange={set} />;
   }
@@ -1223,6 +1278,21 @@ export function Inspector() {
               Duplicate
             </button>
           </>
+        )}
+        {!many && "seats" in shape && shape.seats > 0 && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              // The inspector closes, so every chair of the table is free to tap.
+              editor.select([]);
+              viewStore.setState({ pickSeat: item.id });
+              editor.notify("Tap a chair to sit there");
+            }}
+            data-testid="sit-here"
+          >
+            Sit here
+          </button>
         )}
         <button
           type="button"

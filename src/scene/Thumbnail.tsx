@@ -2,13 +2,14 @@ import * as THREE from "three";
 import { Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import type { Item } from "../domain/layout/items";
+import { type Item, shapeOf } from "../domain/layout/items";
 import type { TableStyle } from "../domain/scenario/schema";
 import { createEditor } from "../state/editor";
 import { newScenario } from "../domain/scenario/scenario";
 import { StudioContext, type Studio } from "./context";
 import { Items } from "./items/Items";
 import { useMaterials } from "./materials";
+import { PIECE_GENERATORS } from "../domain/layout/pieces";
 
 /** What to draw for a library entry that is not itself placeable: a small table dressed with it. */
 function thumbItem(
@@ -33,6 +34,9 @@ function thumbItem(
       extras: { settings: true, menus: generator === "menuCard", tableNumbers: generator === "tableNumber" },
     };
   if (family === "candle") return round({ candles: id });
+  // Library pieces (floral installations, plants, lights, signs) stand on their own.
+  if (generator && PIECE_GENERATORS.includes(generator))
+    return { item: { id: "t", libraryId: id, ...at, options: {} } };
   if (family === "floral")
     return id === "floral-runner"
       ? {
@@ -48,7 +52,7 @@ function thumbItem(
   return { item: { id: "t", libraryId: id, ...at, options: {} } };
 }
 
-function ThumbScene() {
+function ThumbScene({ evening }: { evening: boolean }) {
   const m = useMaterials();
   return (
     <>
@@ -57,7 +61,7 @@ function ThumbScene() {
       <Environment resolution={64} frames={1}>
         <Lightformer form="rect" intensity={2} position={[0, 5, 5]} scale={[10, 10, 1]} />
       </Environment>
-      <Items m={m} evening={false} />
+      <Items m={m} evening={evening} />
     </>
   );
 }
@@ -77,6 +81,13 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
       return { studio: { ...base, editor }, d: Math.max(0.55, h * 1.6) + 0.25, target: 0.765 + h / 2 };
     }
     const entry = base.catalog.get(item.libraryId);
+    // Standing pieces are framed whole; hanging ones on the piece itself, up where it hangs.
+    const shape = shapeOf(item, base.catalog);
+    if (shape.kind === "piece") {
+      const size = Math.max(shape.width, shape.depth, shape.blocks ? shape.height : 0.8, 0.8);
+      const target = shape.blocks ? shape.height / 2 : shape.height - 0.4;
+      return { studio: { ...base, editor }, d: size * 1.25 + 0.6, target };
+    }
     const size = entry ? Math.max(entry.sizeM.w, entry.sizeM.d, entry.sizeM.h, 1.2) : 2;
     return { studio: { ...base, editor }, d: size * 1.25 + 1.2, target: 0.45 };
   }, [base, id]);
@@ -91,7 +102,8 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
     >
       <StudioContext.Provider value={studio.studio}>
         <Suspense fallback={null}>
-          <ThumbScene />
+          {/* Lights are shown lit, so their glow and beams read in the catalogue. */}
+          <ThumbScene evening={base.catalog.get(id)?.family === "light"} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

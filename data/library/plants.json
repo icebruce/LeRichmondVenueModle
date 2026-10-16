@@ -1,0 +1,245 @@
+{
+  "family": "plant",
+  "items": [
+    {
+      "id": "plant-fiddle-leaf",
+      "name": "Fiddle-leaf fig",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.7,
+        "d": 0.7,
+        "h": 1.95
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "fiddleLeaf"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "fiddleLeaf",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-fiddle-leaf.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 5200,
+        "phoneTriangles": 950,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-olive",
+      "name": "Olive tree",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.9,
+        "d": 0.9,
+        "h": 2.0
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "olive"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "olive",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-olive.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 11400,
+        "phoneTriangles": 2000,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-kentia",
+      "name": "Kentia palm",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.0,
+        "d": 1.0,
+        "h": 2.0
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "kentia"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "kentia",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-kentia.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 6400,
+        "phoneTriangles": 2350,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-monstera",
+      "name": "Monstera",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.9,
+        "d": 0.9,
+        "h": 0.9
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "monstera"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "monstera",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-monstera.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 3400,
+        "phoneTriangles": 650,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-fern",
+      "name": "Fern",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.65,
+        "d": 0.65,
+        "h": 0.65
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "fern"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "fern",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-fern.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 8850,
+        "phoneTriangles": 1550,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "plant-blossom",
+      "name": "Blossom tree",
+      "family": "plant",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.0,
+        "d": 1.0,
+        "h": 2.4
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "blossom"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "plant",
+        "params": {
+          "species": "blossom",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/plant-blossom.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: plant",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 15100,
+        "phoneTriangles": 2600,
+        "drawCalls": 2
+      }
+    }
+  ]
+}

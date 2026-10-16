@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 built (PR #2): people, décor (runners, napkins, menu cards, table numbers, flower types, drapery backdrop), advisory checks, export, shared cloud saving (password, conflicts, version history, notes), side-by-side compare and swappable paintings; review findings fixed, awaiting the owner's check on the preview. Cloud saving needs the owner's one-time Vercel setup (README).
+**Current stage:** Steps 1 and 2 merged (PR #1, PR #2; owner-approved 2026-10-16). Step 3 in progress as two PRs: 3a library completion and Sit here (in progress), then 3b inspiration import and custom model requests. Cloud saving needs the owner's one-time Vercel setup (README; not done yet).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -30,7 +30,11 @@
 - Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine — as modelled.
 - Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
 - Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).
-- LIB-03 "drapery panels" is built as a placeable drapery backdrop (fabric panels on a frame, width and colour as options), e.g. behind the sweetheart table; wall or ceiling draping stays with step 3 (LIB-10). Interpretation to confirm with the owner.
+- LIB-03 "drapery panels" is a placeable drapery backdrop (fabric panels on a frame), e.g. behind the sweetheart table; runners also run across round tables (owner confirmed, 2026-10-16).
+- Step 3 ships as two PRs: 3a library completion + Sit here, 3b inspiration import + custom model requests (owner, 2026-10-16).
+- Imported photos are stored in Upstash with the scenarios, shrunk to ≤ 500 KB first; no new service (owner, 2026-10-16).
+- Step-3 pieces (plants, lights, floral installations, signs, event pieces, cake and gift tables) are data plus small generators drawn with the shared instanced primitives; hanging and ceiling pieces never block the floor. Lights glow through emissive bulbs and soft beams, not real lamps (phone budget). The framed print from the owner's photo moves to 3b (needs photo storage).
+- Sit here: select a table → "Sit here" → tap a chair; the view sits at 1.2 m facing the table, look-around only; "Stand up" or Esc returns.
 - Phone compare: the two halves stack above the sheet; the half-height sheet stays at peek while comparing (2026-10-16).
 - Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
@@ -65,7 +69,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
-- Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.
+- Owner's one-time cloud setup (Upstash + APP_PASSWORD + SESSION_SECRET) not done yet; sharing of imports (3b) is tested locally until then.
 
 ## Media ingestion (2026-10-15)
 

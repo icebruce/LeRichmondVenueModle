@@ -22,6 +22,9 @@ function presetPose(p: { position: readonly number[]; target: readonly number[] 
   };
 }
 
+/** Seated eye height (CAM-04). */
+const SEAT_EYE = 1.2;
+
 /** Whether a camera animation is running (read by walk controls and test hooks). */
 export const rig = { tweening: false };
 
@@ -76,7 +79,14 @@ function MainCamera() {
     // A named reference view is shown as a guest would see it: full walls, ceiling on (VEN-01).
     viewStore.setState({ view: isMode ? null : key });
     const target = controls.current?.target ?? new THREE.Vector3();
-    const to = presetPose(p);
+    // Sit here (CAM-04): seated eye height at the chosen chair, facing the table's centre.
+    const seat = key === "walk" ? viewStore.getState().seat : null;
+    const to = seat
+      ? {
+          position: new THREE.Vector3(seat.x, seat.y + SEAT_EYE, seat.z),
+          target: new THREE.Vector3(seat.look[0], seat.y + SEAT_EYE - 0.35, seat.look[1]),
+        }
+      : presetPose(p);
     // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
     const flat = mode === "walk" || comparing;
     const visible = flat ? size.width : size.width - insetRight;
@@ -108,6 +118,33 @@ function MainCamera() {
     if (switched || !userMoved.current) goTo(mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, comparing, pane, band]);
+
+  // Sit here (CAM-04): picking a seat first brings the camera in over that table, so each chair
+  // is a clear target; it then stays there until a seat is chosen or picking is cancelled.
+  const pickSeat = useView((s) => s.pickSeat);
+  const items = useEditor((s) => s.scenarios[s.activeId]?.items);
+  useEffect(() => {
+    const t = pickSeat ? items?.find((i) => i.id === pickSeat) : undefined;
+    if (!t || mode === "walk") return;
+    const target = controls.current?.target ?? new THREE.Vector3();
+    tween.current = {
+      from: { position: camera.position.clone(), target: target.clone() },
+      to: {
+        position: new THREE.Vector3(t.x + 2.6, 4.2, t.z + 2.6),
+        target: new THREE.Vector3(t.x, 0.6, t.z),
+      },
+      t: 0,
+      fov: [camera.fov, camera.fov],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickSeat]);
+
+  // Choosing a seat while already walking moves straight to it.
+  const seat = useView((s) => s.seat);
+  useEffect(() => {
+    if (seat && mode === "walk") goTo("walk");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seat]);
 
   useEffect(
     () =>
@@ -221,6 +258,7 @@ function WalkControls() {
   const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
   const toggles = useEditor((s) => s.scenarios[s.activeId]?.venueToggles);
   const look = useRef({ yaw: 0, pitch: 0, ready: false });
+  const seat = useView((s) => s.seat);
   const keys = useRef(new Set<string>());
   const input = useStore(walkInput);
 
@@ -307,6 +345,8 @@ function WalkControls() {
       input.move[0] +
       (k.has("d") || k.has("arrowright") ? 1 : 0) -
       (k.has("a") || k.has("arrowleft") ? 1 : 0);
+    // Seated: look around, but stay in the chair.
+    if (seat) fwd = side = 0;
     const mag = Math.hypot(fwd, side);
     if (mag > 1) {
       fwd /= mag;
@@ -321,7 +361,7 @@ function WalkControls() {
     if (free([p.x + dx, p.z])) p.x += dx;
     if (free([p.x, p.z + dz])) p.z += dz;
     const onRaised = pointInPolygon([p.x, p.z], venue.raised.outline);
-    const eye = EYE + (onRaised ? venue.raised.height : 0);
+    const eye = seat ? seat.y + SEAT_EYE : EYE + (onRaised ? venue.raised.height : 0);
     p.y += (eye - p.y) * Math.min(1, dt * 8);
     camera.rotation.set(l.pitch, l.yaw, 0, "YXZ");
   });

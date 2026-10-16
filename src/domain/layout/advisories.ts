@@ -4,7 +4,7 @@ import type { Scenario } from "../scenario/schema";
 import { alongWall } from "../venue/model";
 import type { VenueModel } from "../venue/model";
 import { tableLabels } from "./counts";
-import { type Item, footprint, seatsOf, shapeOf } from "./items";
+import { type Item, blocksFloor, footprint, seatsOf, shapeOf } from "./items";
 import { type VenueToggles, itemName, toggledObstacles } from "./validate";
 
 export type Thresholds = Scenario["thresholds"];
@@ -192,7 +192,10 @@ export function advise(
     // Placed items (not the dance floor, which is meant to be walked on) and shown furniture.
     const inside = [
       ...items
-        .filter((it) => shapeOf(it, catalog).kind !== "danceFloor")
+        .filter((it) => {
+          const shape = shapeOf(it, catalog);
+          return shape.kind !== "danceFloor" && blocksFloor(shape);
+        })
         .map((it) => ({
           id: it.id,
           item: true,

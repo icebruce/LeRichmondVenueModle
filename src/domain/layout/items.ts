@@ -3,8 +3,10 @@ import { type Catalog, entry, resolveOptions } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
 import type { TableStyle } from "../scenario/schema";
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../geometry";
+import { PIECE_GENERATORS, makePiece } from "./pieces";
 
 export type ItemOptions = Record<string, number | string | boolean>;
+type Params = ItemOptions;
 
 export type Item = {
   id: string;
@@ -35,9 +37,21 @@ export type Shape =
   | { kind: "roundTable"; diameter: number; height: number; seats: number; chairs: Chair[] }
   | { kind: "cocktail"; diameter: number; height: number }
   | { kind: "danceFloor"; width: number; depth: number; finish: string }
-  | { kind: "djBooth"; width: number; depth: number; height: number }
+  | { kind: "djBooth"; width: number; depth: number; height: number; front: string }
   /** Fabric panels on a free-standing frame (LIB-03 drapery), e.g. behind the sweetheart table. */
-  | { kind: "backdrop"; width: number; height: number; colour: string };
+  | { kind: "backdrop"; width: number; height: number; colour: string }
+  /** A step-3 library piece (pieces.ts): plant, light, floral installation, sign or event piece. */
+  | {
+      kind: "piece";
+      generator: string;
+      params: Params;
+      options: Params;
+      width: number;
+      depth: number;
+      height: number;
+      /** False for hanging and ceiling pieces: they never block the floor. */
+      blocks: boolean;
+    };
 
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const bool = (v: unknown) => v === true;
@@ -72,14 +86,22 @@ function roundChairs(diameter: number, seats: number): Chair[] {
   });
 }
 
-type Params = Record<string, number | string | boolean>;
-
 /**
  * Shape generators, keyed by `model.generator` in the library data (LIB-12). A new item is a
  * catalogue entry that names one of these with its own `sizeM`, `params` and options; sizes come
  * from the data, never from the item id.
  */
 const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p: Params) => Shape> = {
+  ...Object.fromEntries(
+    PIECE_GENERATORS.map((g) => [
+      g,
+      (_e: LibraryEntry, o: Record<string, unknown>, p: Params): Shape => {
+        const options = o as Params;
+        const { width, depth, height, blocks } = makePiece(g, p, options);
+        return { kind: "piece", generator: g, params: p, options, width, depth, height, blocks };
+      },
+    ]),
+  ),
   rectTable(e, o, p) {
     const height = e.sizeM.h;
     const farm = p.finish === "wood";
@@ -124,7 +146,13 @@ const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p
     depth: num(o.depth, e.sizeM.d),
     finish: String(o.finish ?? "wood"),
   }),
-  djBooth: (e) => ({ kind: "djBooth", width: e.sizeM.w, depth: e.sizeM.d, height: e.sizeM.h }),
+  djBooth: (e, o) => ({
+    kind: "djBooth",
+    width: e.sizeM.w,
+    depth: e.sizeM.d,
+    height: e.sizeM.h,
+    front: String(o.front ?? "black"),
+  }),
   backdrop: (e, o) => ({
     kind: "backdrop",
     width: num(o.width, e.sizeM.w),
@@ -176,6 +204,8 @@ export function localFootprint(shape: Shape): Polygon {
       return centredRect(shape.width + 0.2, shape.depth + 0.9);
     case "backdrop":
       return centredRect(shape.width + 0.1, 0.4);
+    case "piece":
+      return centredRect(shape.width, shape.depth);
   }
 }
 
@@ -193,6 +223,13 @@ export function chairsWorld(item: Item, shape: Shape): Chair[] {
   });
 }
 
+/** Tables that seat guests and take décor (cake and gift tables are pieces, not these). */
 export function isTable(item: Item, catalog: Catalog): boolean {
-  return catalog.get(item.libraryId)?.family === "table";
+  const kind = shapeOf(item, catalog).kind;
+  return kind === "rectTable" || kind === "roundTable" || kind === "cocktail";
+}
+
+/** Whether the item takes floor space; hanging and ceiling pieces never block anything. */
+export function blocksFloor(shape: Shape): boolean {
+  return shape.kind !== "piece" || shape.blocks;
 }

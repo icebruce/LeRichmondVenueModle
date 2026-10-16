@@ -1,7 +1,7 @@
 import { type Polygon, type Vec2, polygonInside, polygonsOverlap, rect } from "../geometry";
 import type { Catalog } from "../library/catalog";
 import type { Level, Obstacle, VenueModel } from "../venue/model";
-import { type Item, footprint, isTable } from "./items";
+import { type Item, blocksFloor, footprint, isTable, shapeOf } from "./items";
 
 export type Placement = { ok: true; level: Level } | { ok: false; reason: string };
 
@@ -70,6 +70,8 @@ export function checkPlacement(
 
   const fp: Polygon = footprint(item, catalog);
   if (!polygonInside(fp, venue.room)) return { ok: false, reason: "Outside the room" };
+  // Hanging and ceiling pieces may go above anything (string lights over the bar, a cloud over a table).
+  if (!blocksFloor(shapeOf(item, catalog))) return { ok: true, level: "main" };
 
   for (const o of [...venue.obstacles, ...extraObstacles]) {
     if (polygonsOverlap(fp, o.polygon)) return { ok: false, reason: `Overlaps ${o.label}` };
@@ -82,6 +84,7 @@ export function checkPlacement(
 
   for (const other of others) {
     if (other.id === item.id || spotFor(other, venue)?.level === "mezzanine") continue;
+    if (!blocksFloor(shapeOf(other, catalog))) continue;
     if (polygonsOverlap(fp, footprint(other, catalog))) {
       return { ok: false, reason: `Overlaps ${itemName(other, labels, catalog)}` };
     }

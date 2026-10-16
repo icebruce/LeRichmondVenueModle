@@ -202,6 +202,14 @@ export function drawPlan(
       text("DJ", ...P([it.x, it.z]), `700 17px ${UI}`, PAPER, "center");
       continue;
     }
+    if (shape.kind === "piece") {
+      // Floor pieces as solid outlines; hanging ones dashed (they are above the floor).
+      const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
+      poly(fp, shape.blocks ? FILL : null, INK_2, 1.2, shape.blocks ? [] : [6, 5]);
+      const [x, y] = P([it.x, it.z]);
+      text(entry?.name ?? "", x, y, `500 17px ${UI}`, INK_2, "center");
+      continue;
+    }
     if (shape.kind === "backdrop") {
       poly(transform(centredRect(shape.width, 0.12), it.x, it.z, it.rotY), SOFT, ACCENT, 1.5);
       const [x, y] = P([it.x, it.z]);

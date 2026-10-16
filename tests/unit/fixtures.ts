@@ -6,9 +6,23 @@ import eventPieces from "../../data/library/event-pieces.json";
 import candles from "../../data/library/candles.json";
 import florals from "../../data/library/florals.json";
 import tableware from "../../data/library/tableware.json";
+import plants from "../../data/library/plants.json";
+import lights from "../../data/library/lights.json";
+import signs from "../../data/library/signs.json";
 import { buildCatalog } from "../../src/domain/library/catalog";
 import { buildVenue, parseVenue } from "../../src/domain/venue/model";
 
-export const libraryFiles = [tables, chairs, linens, eventPieces, candles, florals, tableware];
+export const libraryFiles = [
+  tables,
+  chairs,
+  linens,
+  eventPieces,
+  candles,
+  florals,
+  tableware,
+  plants,
+  lights,
+  signs,
+];
 export const catalog = buildCatalog(libraryFiles);
 export const venue = buildVenue(parseVenue(venueJson));

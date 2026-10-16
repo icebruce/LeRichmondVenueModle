@@ -36,6 +36,14 @@ const optionSchema = z.discriminatedUnion("type", [
     default: z.string(),
   }),
   z.object({ type: z.literal("boolean"), key: z.string(), label: z.string(), default: z.boolean() }),
+  /** Words the couple types (a neon sign, a welcome board, a monogram), kept short. */
+  z.object({
+    type: z.literal("text"),
+    key: z.string(),
+    label: z.string(),
+    default: z.string(),
+    maxLength: z.number().int().positive().max(40),
+  }),
 ]);
 export type ItemOption = z.infer<typeof optionSchema>;
 

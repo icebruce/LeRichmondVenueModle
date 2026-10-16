@@ -6,40 +6,98 @@
       "name": "Low cluster",
       "family": "floral",
       "placement": "table",
-      "sizeM": { "w": 0.35, "d": 0.35, "h": 0.2 },
+      "sizeM": {
+        "w": 0.35,
+        "d": 0.35,
+        "h": 0.2
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "lowMound", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "lowMound", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "lowMound",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "lowMound",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/floral-low.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: lowMound", "licence": "Project" },
-      "budget": { "triangles": 3000, "phoneTriangles": 750, "drawCalls": 2 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: lowMound",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 3000,
+        "phoneTriangles": 750,
+        "drawCalls": 2
+      }
     },
     {
       "id": "floral-bud",
       "name": "Bud vases",
       "family": "floral",
       "placement": "table",
-      "sizeM": { "w": 0.4, "d": 0.1, "h": 0.25 },
+      "sizeM": {
+        "w": 0.4,
+        "d": 0.1,
+        "h": 0.25
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "budVases", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "budVases", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "budVases",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "budVases",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/floral-bud.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: budVases", "licence": "Project" },
-      "budget": { "triangles": 900, "phoneTriangles": 225, "drawCalls": 2 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: budVases",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 900,
+        "phoneTriangles": 225,
+        "drawCalls": 2
+      }
     },
     {
       "id": "floral-tall",
       "name": "Tall arrangement on a stand",
       "family": "floral",
       "placement": "table",
-      "sizeM": { "w": 0.55, "d": 0.55, "h": 1.1 },
+      "sizeM": {
+        "w": 0.55,
+        "d": 0.55,
+        "h": 1.1
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "tallArrangement", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "tallArrangement", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "tallArrangement",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "tallArrangement",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/floral-tall.webp",
@@ -48,37 +106,385 @@
         "origin": "Richmond Studio generator: tallArrangement",
         "licence": "Project"
       },
-      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 2 }
+      "budget": {
+        "triangles": 6000,
+        "phoneTriangles": 1500,
+        "drawCalls": 2
+      }
     },
     {
       "id": "floral-compote",
       "name": "Compote",
       "family": "floral",
       "placement": "table",
-      "sizeM": { "w": 0.35, "d": 0.35, "h": 0.32 },
+      "sizeM": {
+        "w": 0.35,
+        "d": 0.35,
+        "h": 0.32
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "compote", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "compote", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "compote",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "compote",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/floral-compote.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: compote", "licence": "Project" },
-      "budget": { "triangles": 3500, "phoneTriangles": 875, "drawCalls": 2 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: compote",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 3500,
+        "phoneTriangles": 875,
+        "drawCalls": 2
+      }
     },
     {
       "id": "floral-runner",
       "name": "Greenery garland",
       "family": "floral",
       "placement": "table",
-      "sizeM": { "w": 3, "d": 0.2, "h": 0.08 },
+      "sizeM": {
+        "w": 3,
+        "d": 0.2,
+        "h": 0.08
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "garland", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "garland", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "garland",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "garland",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/floral-runner.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: garland", "licence": "Project" },
-      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 2 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: garland",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 6000,
+        "phoneTriangles": 1500,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "floral-arch",
+      "name": "Floral arch",
+      "family": "floral",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.3,
+        "d": 0.5,
+        "h": 2.4
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "arch"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "arch",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.6,
+          "max": 2.6,
+          "step": 0.1,
+          "default": 2.0,
+          "unit": "m"
+        },
+        {
+          "type": "choice",
+          "key": "palette",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "blush",
+              "label": "Blush"
+            },
+            {
+              "value": "burgundy",
+              "label": "Burgundy"
+            },
+            {
+              "value": "garden",
+              "label": "Garden"
+            }
+          ],
+          "default": "white"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/floral-arch.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: floralPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 15250,
+        "phoneTriangles": 3200,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "floral-wall",
+      "name": "Flower wall",
+      "family": "floral",
+      "placement": "floor",
+      "sizeM": {
+        "w": 2.4,
+        "d": 0.35,
+        "h": 2.4
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "wall"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "wall",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.6,
+          "max": 3.0,
+          "step": 0.2,
+          "default": 2.4,
+          "unit": "m"
+        },
+        {
+          "type": "choice",
+          "key": "palette",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "blush",
+              "label": "Blush"
+            },
+            {
+              "value": "burgundy",
+              "label": "Burgundy"
+            },
+            {
+              "value": "garden",
+              "label": "Garden"
+            }
+          ],
+          "default": "white"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/floral-wall.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: floralPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 17900,
+        "phoneTriangles": 2700,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "floral-pedestal",
+      "name": "Pedestal arrangement",
+      "family": "floral",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.6,
+        "d": 0.6,
+        "h": 1.5
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "pedestal"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "pedestal",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "choice",
+          "key": "palette",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "blush",
+              "label": "Blush"
+            },
+            {
+              "value": "burgundy",
+              "label": "Burgundy"
+            },
+            {
+              "value": "garden",
+              "label": "Garden"
+            }
+          ],
+          "default": "white"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/floral-pedestal.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: floralPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 8850,
+        "phoneTriangles": 1550,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "floral-hanging",
+      "name": "Hanging installation",
+      "family": "floral",
+      "placement": "hanging",
+      "sizeM": {
+        "w": 2,
+        "d": 1,
+        "h": 0.6
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "hanging"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "floralPiece",
+        "params": {
+          "kind": "hanging",
+          "quality": "low"
+        }
+      },
+      "options": [
+        {
+          "type": "number",
+          "key": "width",
+          "label": "Width",
+          "min": 1.2,
+          "max": 3,
+          "step": 0.2,
+          "default": 2,
+          "unit": "m"
+        },
+        {
+          "type": "number",
+          "key": "hang",
+          "label": "Height",
+          "min": 2.2,
+          "max": 3.2,
+          "step": 0.1,
+          "default": 2.6,
+          "unit": "m"
+        },
+        {
+          "type": "choice",
+          "key": "palette",
+          "label": "Flowers",
+          "choices": [
+            {
+              "value": "white",
+              "label": "White"
+            },
+            {
+              "value": "blush",
+              "label": "Blush"
+            },
+            {
+              "value": "burgundy",
+              "label": "Burgundy"
+            },
+            {
+              "value": "garden",
+              "label": "Garden"
+            }
+          ],
+          "default": "white"
+        }
+      ],
+      "seats": false,
+      "thumbnail": "thumbs/floral-hanging.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: floralPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 13800,
+        "phoneTriangles": 2400,
+        "drawCalls": 2
+      }
     }
   ]
 }

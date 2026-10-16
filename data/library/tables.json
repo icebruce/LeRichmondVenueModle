@@ -6,15 +6,53 @@
       "name": "Rectangular table",
       "family": "table",
       "placement": "floor",
-      "sizeM": { "w": 3.0, "d": 0.9, "h": 0.75 },
+      "sizeM": {
+        "w": 3.0,
+        "d": 0.9,
+        "h": 0.75
+      },
       "sizePresets": [
-        { "label": "8 guests", "options": { "seats": 8, "ends": false } },
-        { "label": "10 guests", "options": { "seats": 10, "ends": false } },
-        { "label": "12 guests", "options": { "seats": 12, "ends": false } },
-        { "label": "14 guests", "options": { "seats": 14, "ends": false } }
+        {
+          "label": "8 guests",
+          "options": {
+            "seats": 8,
+            "ends": false
+          }
+        },
+        {
+          "label": "10 guests",
+          "options": {
+            "seats": 10,
+            "ends": false
+          }
+        },
+        {
+          "label": "12 guests",
+          "options": {
+            "seats": 12,
+            "ends": false
+          }
+        },
+        {
+          "label": "14 guests",
+          "options": {
+            "seats": 14,
+            "ends": false
+          }
+        }
       ],
-      "model": { "kind": "parametric", "generator": "rectTable", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "rectTable", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "rectTable",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "rectTable",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [
         {
           "type": "number",
@@ -25,27 +63,74 @@
           "step": 1,
           "default": 8
         },
-        { "type": "boolean", "key": "ends", "label": "Chairs at the ends", "default": false }
+        {
+          "type": "boolean",
+          "key": "ends",
+          "label": "Chairs at the ends",
+          "default": false
+        }
       ],
       "seats": true,
       "thumbnail": "thumbs/table-rect.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
-      "budget": { "triangles": 30000, "phoneTriangles": 7500, "drawCalls": 8 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: table",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 30000,
+        "phoneTriangles": 7500,
+        "drawCalls": 8
+      }
     },
     {
       "id": "table-round",
       "name": "Round table",
       "family": "table",
       "placement": "floor",
-      "sizeM": { "w": 1.5, "d": 1.5, "h": 0.75 },
+      "sizeM": {
+        "w": 1.5,
+        "d": 1.5,
+        "h": 0.75
+      },
       "sizePresets": [
-        { "label": "4 guests · 0.9 m", "options": { "seats": 4 } },
-        { "label": "6 guests · 1.2 m", "options": { "seats": 6 } },
-        { "label": "8 guests · 1.5 m", "options": { "seats": 8 } },
-        { "label": "10 guests · 1.8 m", "options": { "seats": 10 } }
+        {
+          "label": "4 guests · 0.9 m",
+          "options": {
+            "seats": 4
+          }
+        },
+        {
+          "label": "6 guests · 1.2 m",
+          "options": {
+            "seats": 6
+          }
+        },
+        {
+          "label": "8 guests · 1.5 m",
+          "options": {
+            "seats": 8
+          }
+        },
+        {
+          "label": "10 guests · 1.8 m",
+          "options": {
+            "seats": 10
+          }
+        }
       ],
-      "model": { "kind": "parametric", "generator": "roundTable", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "roundTable", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "roundTable",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "roundTable",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [
         {
           "type": "number",
@@ -59,30 +144,73 @@
       ],
       "seats": true,
       "thumbnail": "thumbs/table-round.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
-      "budget": { "triangles": 25000, "phoneTriangles": 6250, "drawCalls": 8 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: table",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 25000,
+        "phoneTriangles": 6250,
+        "drawCalls": 8
+      }
     },
     {
       "id": "table-farm",
       "name": "Wood farm table",
       "family": "table",
       "placement": "floor",
-      "sizeM": { "w": 3.8, "d": 1.0, "h": 0.76 },
+      "sizeM": {
+        "w": 3.8,
+        "d": 1.0,
+        "h": 0.76
+      },
       "sizePresets": [
-        { "label": "8 guests", "options": { "seats": 8, "ends": false } },
-        { "label": "10 guests", "options": { "seats": 10, "ends": false } },
-        { "label": "12 guests", "options": { "seats": 12, "ends": false } },
-        { "label": "14 guests", "options": { "seats": 14, "ends": false } }
+        {
+          "label": "8 guests",
+          "options": {
+            "seats": 8,
+            "ends": false
+          }
+        },
+        {
+          "label": "10 guests",
+          "options": {
+            "seats": 10,
+            "ends": false
+          }
+        },
+        {
+          "label": "12 guests",
+          "options": {
+            "seats": 12,
+            "ends": false
+          }
+        },
+        {
+          "label": "14 guests",
+          "options": {
+            "seats": 14,
+            "ends": false
+          }
+        }
       ],
       "model": {
         "kind": "parametric",
         "generator": "rectTable",
-        "params": { "width": 1.0, "finish": "wood" }
+        "params": {
+          "width": 1.0,
+          "finish": "wood"
+        }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "rectTable",
-        "params": { "width": 1.0, "finish": "wood", "quality": "low" }
+        "params": {
+          "width": 1.0,
+          "finish": "wood",
+          "quality": "low"
+        }
       },
       "options": [
         {
@@ -94,50 +222,186 @@
           "step": 1,
           "default": 10
         },
-        { "type": "boolean", "key": "ends", "label": "Chairs at the ends", "default": false }
+        {
+          "type": "boolean",
+          "key": "ends",
+          "label": "Chairs at the ends",
+          "default": false
+        }
       ],
       "seats": true,
       "thumbnail": "thumbs/table-farm.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
-      "budget": { "triangles": 30000, "phoneTriangles": 7500, "drawCalls": 8 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: table",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 30000,
+        "phoneTriangles": 7500,
+        "drawCalls": 8
+      }
     },
     {
       "id": "table-sweetheart",
       "name": "Sweetheart table",
       "family": "table",
       "placement": "floor",
-      "sizeM": { "w": 1.6, "d": 0.75, "h": 0.75 },
+      "sizeM": {
+        "w": 1.6,
+        "d": 0.75,
+        "h": 0.75
+      },
       "sizePresets": [],
       "model": {
         "kind": "parametric",
         "generator": "rectTable",
-        "params": { "seats": 2, "oneSide": true, "label": "♥" }
+        "params": {
+          "seats": 2,
+          "oneSide": true,
+          "label": "♥"
+        }
       },
       "lowModel": {
         "kind": "parametric",
         "generator": "rectTable",
-        "params": { "seats": 2, "oneSide": true, "label": "♥", "quality": "low" }
+        "params": {
+          "seats": 2,
+          "oneSide": true,
+          "label": "♥",
+          "quality": "low"
+        }
       },
       "options": [],
       "seats": true,
       "thumbnail": "thumbs/table-sweetheart.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
-      "budget": { "triangles": 8000, "phoneTriangles": 2000, "drawCalls": 6 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: table",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 8000,
+        "phoneTriangles": 2000,
+        "drawCalls": 6
+      }
     },
     {
       "id": "table-cocktail",
       "name": "Cocktail high-top",
       "family": "table",
       "placement": "floor",
-      "sizeM": { "w": 0.75, "d": 0.75, "h": 1.1 },
+      "sizeM": {
+        "w": 0.75,
+        "d": 0.75,
+        "h": 1.1
+      },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "cocktail", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "cocktail", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "cocktail",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "cocktail",
+        "params": {
+          "quality": "low"
+        }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/table-cocktail.webp",
-      "source": { "type": "built", "origin": "Richmond Studio generator: table", "licence": "Project" },
-      "budget": { "triangles": 4000, "phoneTriangles": 1000, "drawCalls": 4 }
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: table",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 4000,
+        "phoneTriangles": 1000,
+        "drawCalls": 4
+      }
+    },
+    {
+      "id": "table-cake",
+      "name": "Cake table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": {
+        "w": 0.95,
+        "d": 0.95,
+        "h": 1.12
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "cake"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "cake",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/table-cake.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 350,
+        "phoneTriangles": 200,
+        "drawCalls": 2
+      }
+    },
+    {
+      "id": "table-gift",
+      "name": "Gift and card table",
+      "family": "table",
+      "placement": "floor",
+      "sizeM": {
+        "w": 1.5,
+        "d": 0.6,
+        "h": 1.05
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "gift"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "eventPiece",
+        "params": {
+          "kind": "gift",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/table-gift.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: eventPiece",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 100,
+        "phoneTriangles": 100,
+        "drawCalls": 2
+      }
     }
   ]
 }
