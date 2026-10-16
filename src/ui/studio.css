@@ -555,6 +555,61 @@ button:disabled {
 .counts-line {
   display: none;
 }
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.swatch {
+  display: grid;
+  place-items: center;
+  width: var(--target);
+  height: var(--target);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  padding: 0;
+}
+.swatch span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.swatch.on span {
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--accent);
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--sunk);
+}
+.figure b {
+  font: var(--t-figure);
+  font-variant-numeric: tabular-nums;
+}
+.figure span {
+  font: var(--t-caption);
+  color: var(--ink-3);
+}
+.advice {
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--advisory-soft);
+  color: var(--ink);
+  font: var(--t-footnote);
+}
 .hint {
   font: var(--t-footnote);
   color: var(--ink-3);

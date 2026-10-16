@@ -11,6 +11,7 @@ import { requestCamera } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
 import { Items } from "./items/Items";
+import { People } from "./items/People";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
@@ -215,6 +216,7 @@ function Scene({ quality }: { quality: Quality }) {
       {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
       <Items m={m} evening={evening} quality={quality} />
+      <People low={quality === "low"} />
       <CameraRig />
       <TestHooks />
       <Effects evening={evening} quality={quality} />

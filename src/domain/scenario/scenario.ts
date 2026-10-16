@@ -1,10 +1,15 @@
 import type { Item } from "../layout/items";
-import { SCHEMA_VERSION, type Scenario, scenarioSchema } from "./schema";
+import { SCHEMA_VERSION, type Scenario, type TableStyle, scenarioSchema } from "./schema";
 
 export const DEFAULT_STYLE: Scenario["style"] = {
   linen: "linen-ivory",
   linenLength: "floor",
   chair: "chair-oval",
+  candles: "candle-votives",
+  florals: "none",
+  floralColour: "white",
+  charger: "gold",
+  settings: true,
   lighting: "evening",
 };
 
@@ -25,7 +30,7 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
     style: { ...DEFAULT_STYLE },
     guests: { count: 75, seed: 1 },
     thresholds: { ...DEFAULT_THRESHOLDS },
-    venueToggles: { communalTable: false, barStools: false },
+    venueToggles: { communalTable: false, barStools: false, paintings: {} },
     notes: [],
     updatedAt: now,
   };
@@ -67,7 +72,28 @@ export function venueSampleScenario(id: string, now: string): Scenario {
 }
 
 /** Older files are upgraded here as the schema evolves (one function per version step). */
-const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {};
+const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
+  // v2 (step 2): candles, florals and place settings in the style; per-painting choices.
+  1: (raw) => ({
+    ...raw,
+    schemaVersion: 2,
+    style: {
+      candles: "candle-votives",
+      florals: "none",
+      floralColour: "white",
+      charger: "gold",
+      settings: true,
+      ...(raw.style as object),
+    },
+    venueToggles: { paintings: {}, ...(raw.venueToggles as object) },
+  }),
+};
+
+/** A table's décor: its own override over the scenario style (DEC-05). */
+export function styleOf(item: Item, style: Scenario["style"]): TableStyle {
+  const { linen, chair, candles, florals, floralColour, charger } = style;
+  return { linen, chair, candles, florals, floralColour, charger, ...item.style };
+}
 
 export function parseScenario(raw: unknown): Scenario {
   let data = raw as Record<string, unknown>;

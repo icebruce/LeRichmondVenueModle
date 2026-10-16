@@ -1,0 +1,84 @@
+{
+  "family": "floral",
+  "items": [
+    {
+      "id": "floral-low",
+      "name": "Low cluster",
+      "family": "floral",
+      "placement": "table",
+      "sizeM": { "w": 0.35, "d": 0.35, "h": 0.2 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "lowMound", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "lowMound", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/floral-low.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: lowMound", "licence": "Project" },
+      "budget": { "triangles": 3000, "phoneTriangles": 750, "drawCalls": 2 }
+    },
+    {
+      "id": "floral-bud",
+      "name": "Bud vases",
+      "family": "floral",
+      "placement": "table",
+      "sizeM": { "w": 0.4, "d": 0.1, "h": 0.25 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "budVases", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "budVases", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/floral-bud.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: budVases", "licence": "Project" },
+      "budget": { "triangles": 900, "phoneTriangles": 225, "drawCalls": 2 }
+    },
+    {
+      "id": "floral-tall",
+      "name": "Tall arrangement on a stand",
+      "family": "floral",
+      "placement": "table",
+      "sizeM": { "w": 0.55, "d": 0.55, "h": 1.1 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "tallArrangement", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "tallArrangement", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/floral-tall.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: tallArrangement",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 2 }
+    },
+    {
+      "id": "floral-compote",
+      "name": "Compote",
+      "family": "floral",
+      "placement": "table",
+      "sizeM": { "w": 0.35, "d": 0.35, "h": 0.32 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "compote", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "compote", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/floral-compote.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: compote", "licence": "Project" },
+      "budget": { "triangles": 3500, "phoneTriangles": 875, "drawCalls": 2 }
+    },
+    {
+      "id": "floral-runner",
+      "name": "Greenery runner",
+      "family": "floral",
+      "placement": "table",
+      "sizeM": { "w": 3, "d": 0.2, "h": 0.08 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "garland", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "garland", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/floral-runner.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: garland", "licence": "Project" },
+      "budget": { "triangles": 6000, "phoneTriangles": 1500, "drawCalls": 2 }
+    }
+  ]
+}

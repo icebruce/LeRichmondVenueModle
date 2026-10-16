@@ -1,6 +1,7 @@
 import { CHAIR_ZONE, rectTable, roundTable } from "../library/sizing";
 import { type Catalog, entry, resolveOptions } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
+import type { TableStyle } from "../scenario/schema";
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../geometry";
 
 export type ItemOptions = Record<string, number | string | boolean>;
@@ -14,6 +15,8 @@ export type Item = {
   options: ItemOptions;
   /** Table number or short name shown in plan view and export. */
   label?: string;
+  /** Per-table décor override (DEC-05). */
+  style?: Partial<TableStyle>;
 };
 
 export type Chair = { x: number; z: number; rotY: number };

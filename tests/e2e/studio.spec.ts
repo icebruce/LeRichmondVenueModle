@@ -66,19 +66,39 @@ test("[LIB-01] [LIB-02] add a round table and a dance floor from the library", a
   await expect(page.getByTestId("count-seats")).toHaveText("8");
 });
 
-test("[LIB-03] tablecloths: white or ivory, to the floor or lap length", async ({ page }) => {
+test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the selected one", async ({
+  page,
+}) => {
   await openStudio(page);
   const style = () =>
     page.evaluate(() => {
       const st = (window as unknown as W).__studio.editor.store.getState();
-      return st.scenarios[st.activeId]?.style;
+      const sc = st.scenarios[st.activeId] as unknown as {
+        style: Record<string, string>;
+        items: { id: string; style?: Record<string, string> }[];
+      };
+      return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
+  await page.getByTestId("section-decor").click();
   await page.getByTestId("linen-linen-white").click();
   await page.getByTestId("linen-length-lap").click();
-  expect(await style()).toMatchObject({ linen: "linen-white", linenLength: "lap" });
-  await expect(page.getByTestId("linen-length-lap")).toHaveAttribute("aria-checked", "true");
-  await page.getByTestId("undo").click();
-  expect((await style())?.linenLength).toBe("floor");
+  await page.getByTestId("candles-candle-tapers").click();
+  await page.getByTestId("chair-chair-chiavari-gold").click();
+  expect((await style()).style).toMatchObject({
+    linen: "linen-white",
+    linenLength: "lap",
+    candles: "candle-tapers",
+    chair: "chair-chiavari-gold",
+  });
+  // One table: select it, dress it navy, then make its style everyone's.
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
+  await expect(page.getByRole("radio", { name: "This table" })).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("linen-linen-navy").click();
+  expect((await style()).t2).toEqual({ linen: "linen-navy" });
+  expect((await style()).style.linen).toBe("linen-white");
+  await page.getByTestId("style-to-all").click();
+  expect((await style()).style.linen).toBe("linen-navy");
+  expect((await style()).t2).toBeUndefined();
 });
 
 test("[LAY-05] dragging a table near another's centre line snaps into line with it", async ({ page }) => {
@@ -134,7 +154,9 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] the full evening scene stays inside the draw-call and triangle budgets", async ({ page }) => {
+test("[PLT-03] [PPL-03] 15 tables and 150 people stay inside the draw-call and triangle budgets", async ({
+  page,
+}) => {
   for (const [quality, calls, triangles] of [
     ["high", 250, 1_500_000],
     ["low", 150, 600_000],
@@ -144,7 +166,21 @@ test("[PLT-03] the full evening scene stays inside the draw-call and triangle bu
       timeout: 60_000,
     });
     await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
-    await page.waitForTimeout(1500);
+    const tables = await page.evaluate(() => {
+      const ed = (window as unknown as W).__studio.editor as unknown as {
+        createScenario: (kind: "blank" | "sample") => string;
+        addItem: (id: string, at: [number, number], o?: Record<string, number>) => string | null;
+        setGuests: (n: number) => void;
+        active: () => { items: { libraryId: string }[] };
+      };
+      // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing.
+      ed.createScenario("blank");
+      for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
+      ed.setGuests(150);
+      return ed.active().items.length;
+    });
+    expect(tables).toBe(15);
+    await page.waitForTimeout(2000);
     const info = await page.evaluate(() =>
       (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
     );
@@ -153,6 +189,32 @@ test("[PLT-03] the full evening scene stays inside the draw-call and triangle bu
     expect(info.calls).toBeLessThan(calls);
     expect(info.triangles).toBeLessThan(triangles);
   }
+});
+
+test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills the dance floor", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("section-people").click();
+  await expect(page.getByTestId("people-seated")).toHaveText("60");
+  await expect(page.getByTestId("people-standing")).toHaveText("15");
+  await expect(page.getByRole("note")).toContainText("15 guests without a seat");
+  await page.getByRole("radio", { name: "Party" }).click();
+  expect(
+    await page.evaluate(() => {
+      const st = (window as unknown as W).__studio.editor.store.getState();
+      return (st.scenarios[st.activeId] as unknown as { phase?: string }).phase;
+    }),
+  ).toBe("party");
+  await page.getByTestId("shuffle").click();
+  await page.getByTestId("undo").click();
+  await page.getByTestId("undo").click();
+  expect(
+    await page.evaluate(() => {
+      const st = (window as unknown as W).__studio.editor.store.getState();
+      return (st.scenarios[st.activeId] as unknown as { phase?: string }).phase ?? "dinner";
+    }),
+  ).toBe("dinner");
 });
 
 test("[VEN-02] clicking the bar or a wall selects nothing", async ({ page }) => {
@@ -204,6 +266,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
   await page.getByRole("menuitem", { name: "Rename" }).click();
   await page.locator("#scenario-name").fill("Option B");
   await page.keyboard.press("Enter");
+  await page.getByTestId("section-people").click();
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
   await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
   await page.goto("/");
@@ -215,6 +278,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
 
   // A throwaway ?fresh session edits its own copy; the saved scenarios are untouched afterwards.
   await openStudio(page, "fresh");
+  await page.getByTestId("section-people").click();
   await page.getByTestId("guests").getByRole("button", { name: /Fewer/ }).click();
   await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
   await page.goto("/?quality=low");

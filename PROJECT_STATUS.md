@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 1 built and reviewed (2026-10-16); review fixes applied; awaiting the owner's recognition check on the Vercel preview. Step 2 not started.
+**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 in progress: people and décor built; advisories, export, cloud saving with login and notes, compare and paintings next.
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -8,8 +8,8 @@
 | Step | Delivers | Requirements | Gate | State |
 |---|---|---|---|---|
 | 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | Done |
-| 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Built; at owner gate |
-| 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Not started |
+| 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
+| 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | In progress |
 | 3 | Library completion (plants, lights, signs, event pieces, richer florals); inspiration import; custom model requests; Sit here view; polish | LIB-06..10, IMP-01..07, REQ-01..04, CAM-04 | Owner imports a real centrepiece; one custom request delivered | Not started |
 
 ## Decisions

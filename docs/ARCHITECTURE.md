@@ -69,22 +69,25 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 
 ```ts
 type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
   items: Item[];                        // tables, dance floor, DJ; décor and imports from step 2
-  style: { linen: string; linenLength: "lap" | "floor"; chair: string; lighting: "evening" | "day" };
+  style: TableStyle & { linenLength: "lap" | "floor"; settings: boolean; lighting: "evening" | "day" };
   guests: { count: number; seed: number };
   thresholds: { aisleM: number; clearanceM: number; m2PerDancer: number; dancingShare: number };
-  venueToggles: { communalTable: boolean; barStools: boolean };
+  venueToggles: { communalTable: boolean; barStools: boolean; paintings: Record<string, string> };
   notes: Note[];
   updatedAt: string; updatedBy?: "A" | "B";
 };
 type Item = { id: string; libraryId: string; x: number; z: number; rotY: number;
-              options: Record<string, number | string | boolean>; label?: string };
+              options: Record<string, number | string | boolean>; label?: string;
+              style?: Partial<TableStyle> };   // per-table décor override (DEC-05)
+type TableStyle = { linen: string; chair: string; candles: string; florals: string;   // library ids or "none"
+                    floralColour: string; charger: string };
 ```
 
-The level (main / raised / mezzanine) is derived from the position, not stored. Step 2 adds candles, florals and per-item style overrides with a schema migration.
+The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Version 1 files are upgraded by the migration in `domain/scenario/scenario.ts` (tested).
 
 Schema changes bump `schemaVersion` and add a migration in `domain/scenario/migrations.ts` with a test.
 

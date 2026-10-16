@@ -26,6 +26,8 @@ export type ViewState = {
   /** Phone: pixels covered by the top bar and by the tab bar plus bottom sheet. */
   insetTop: number;
   insetBottom: number;
+  /** Guests drawn in the room (a viewing choice, not saved). */
+  showPeople: boolean;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
 };
@@ -40,6 +42,7 @@ export const viewStore = createStore<ViewState>(() => ({
   insetTop: 0,
   insetBottom: 0,
   focus: [8, 7],
+  showPeople: true,
 }));
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */

@@ -67,9 +67,16 @@ describe("library", () => {
     );
   });
 
-  test("[LIB-03] every tablecloth names its colour in the data", () => {
+  test("[LIB-03] [DEC-01] tablecloths: white, ivory, champagne, black, navy and bare wood, colours in the data", () => {
     const linensIn = [...buildCatalog(libraryFiles).values()].filter((e) => e.family === "linen");
-    expect(linensIn.map((e) => e.id).sort()).toEqual(["linen-ivory", "linen-white"]);
+    expect(linensIn.map((e) => e.id).sort()).toEqual([
+      "linen-bare",
+      "linen-black",
+      "linen-champagne",
+      "linen-ivory",
+      "linen-navy",
+      "linen-white",
+    ]);
     for (const e of linensIn) {
       expect(e.model.kind === "parametric" && e.model.params.colour).toMatch(/^#[0-9a-f]{6}$/i);
     }

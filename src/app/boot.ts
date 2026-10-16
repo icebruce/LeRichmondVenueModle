@@ -3,6 +3,8 @@ import tables from "../../data/library/tables.json";
 import chairs from "../../data/library/chairs.json";
 import linens from "../../data/library/linens.json";
 import eventPieces from "../../data/library/event-pieces.json";
+import candles from "../../data/library/candles.json";
+import florals from "../../data/library/florals.json";
 import { buildCatalog } from "../domain/library/catalog";
 import { buildVenue, parseVenue } from "../domain/venue/model";
 import { createEditor } from "../state/editor";
@@ -18,7 +20,7 @@ export function newId(): string {
 
 export async function boot(): Promise<Studio> {
   const venue = buildVenue(parseVenue(venueJson));
-  const catalog = buildCatalog([tables, chairs, linens, eventPieces]);
+  const catalog = buildCatalog([tables, chairs, linens, eventPieces, candles, florals]);
   const fresh = new URLSearchParams(window.location.search).has("fresh");
   const key = fresh ? FRESH_KEY : LOCAL_KEY;
   const local = fresh ? { scenarios: [], unreadable: [], readable: true } : await loadLocal(key);

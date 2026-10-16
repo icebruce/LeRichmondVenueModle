@@ -1,16 +1,18 @@
 import { useMemo, useState } from "react";
-import { type Item, type Shape, shapeOf } from "../domain/layout/items";
-import { tableLabels } from "../domain/layout/counts";
+import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
+import { FLORAL_PALETTES } from "../domain/layout/decor";
+import { styleOf } from "../domain/scenario/scenario";
+import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
 import type { Catalog } from "../domain/library/catalog";
 import type { ItemOption, LibraryEntry } from "../domain/library/schema";
-import type { Scenario } from "../domain/scenario/schema";
+import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
-import { useEditor, useStudio } from "../scene/context";
+import { useEditor, useStudio, useView } from "../scene/context";
 import { Icon } from "./icons";
 
-export type Section = "venue" | "layout";
+export type Section = "venue" | "layout" | "people" | "decor";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
@@ -166,56 +168,8 @@ function Thumb({ entry }: { entry: LibraryEntry }) {
   );
 }
 
-/** Linen for every table (LIB-03 basic; per-table linen arrives with Décor in step 2). */
-function LinenRow() {
-  const { catalog, editor } = useStudio();
-  const linen = useEditor((s) => s.scenarios[s.activeId]?.style.linen);
-  const length = useEditor((s) => s.scenarios[s.activeId]?.style.linenLength ?? "floor");
-  const linens = [...catalog.values()].filter((e) => e.family === "linen");
-  return (
-    <div className="field" data-testid="linen">
-      <span className="row-label">Tablecloths</span>
-      <div className="chips">
-        {linens.map((e) => (
-          <button
-            key={e.id}
-            type="button"
-            className={`chip ${linen === e.id ? "on" : ""}`}
-            aria-pressed={linen === e.id}
-            onClick={() => editor.setStyle("linen", e.id)}
-            data-testid={`linen-${e.id}`}
-          >
-            {e.name.replace(" tablecloth", "")}
-          </button>
-        ))}
-      </div>
-      <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
-        {(
-          [
-            ["floor", "To the floor"],
-            ["lap", "Lap length"],
-          ] as const
-        ).map(([v, l]) => (
-          <button
-            key={v}
-            type="button"
-            role="radio"
-            aria-checked={length === v}
-            className={length === v ? "on" : ""}
-            onClick={() => editor.setStyle("linenLength", v)}
-            data-testid={`linen-length-${v}`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function LayoutPanel() {
   const { catalog, editor } = useStudio();
-  const guests = useEditor((s) => s.scenarios[s.activeId]?.guests.count ?? 0);
   const snapping = useEditor((s) => s.snapping);
   const placeable = useMemo(
     () => [...catalog.values()].filter((e) => e.placement === "floor" && e.family !== "chair"),
@@ -243,19 +197,284 @@ export function LayoutPanel() {
           </li>
         ))}
       </ul>
-      <h3 className="group-title">Guests and style</h3>
+      <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
+      <p className="hint">
+        {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
+      </p>
+    </div>
+  );
+}
+
+function Swatches({
+  label,
+  options,
+  value,
+  onPick,
+  testId,
+}: {
+  label: string;
+  options: { id: string; name: string; colour: string }[];
+  value: string;
+  onPick: (id: string) => void;
+  testId: string;
+}) {
+  const current = options.find((o) => o.id === value);
+  return (
+    <div className="field">
+      <span className="row-label">
+        {label} <span className="row-value">{current?.name}</span>
+      </span>
+      <div className="swatches" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={value === o.id}
+            aria-label={o.name}
+            title={o.name}
+            className={`swatch ${value === o.id ? "on" : ""}`}
+            onClick={() => onPick(o.id)}
+            data-testid={`${testId}-${o.id}`}
+          >
+            <span style={{ background: o.colour }} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Chips({
+  label,
+  options,
+  value,
+  onPick,
+  testId,
+}: {
+  label: string;
+  options: { id: string; name: string }[];
+  value: string;
+  onPick: (id: string) => void;
+  testId: string;
+}) {
+  return (
+    <div className="field">
+      <span className="row-label">{label}</span>
+      <div className="chips" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={value === o.id}
+            className={`chip ${value === o.id ? "on" : ""}`}
+            onClick={() => onPick(o.id)}
+            data-testid={`${testId}-${o.id}`}
+          >
+            {o.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Décor (DEC-01..05): linens, candles, florals, chairs and place settings, applied to all tables or
+ * to the selected ones. Placements never move.
+ */
+export function DecorPanel() {
+  const { editor, catalog } = useStudio();
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const selection = useEditor((s) => s.selection);
+  const tables = scenario.items.filter((i) => selection.includes(i.id) && isTable(i, catalog));
+  const [scope, setScope] = useState<"all" | "selected">(tables.length ? "selected" : "all");
+  const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
+  const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
+  const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
+  const family = (f: string) => [...catalog.values()].filter((e) => e.family === f);
+  const colourOf = (id: string) => {
+    const model = catalog.get(id)?.model;
+    return model?.kind === "parametric" ? String(model.params.colour ?? "#ccc") : "#ccc";
+  };
+  const none = { id: "none", name: "None" };
+  return (
+    <div className="panel-body" data-testid="decor-panel">
+      <h2 className="panel-title">Décor</h2>
+      {tables.length > 0 ? (
+        <Segmented
+          label="Apply to"
+          value={scope}
+          options={[
+            { value: "selected", label: tables.length === 1 ? "This table" : `${tables.length} tables` },
+            { value: "all", label: "All tables" },
+          ]}
+          onChange={setScope}
+        />
+      ) : (
+        <p className="hint">Applies to all tables. Select tables first to dress just those.</p>
+      )}
+      <Swatches
+        label="Linen"
+        options={family("linen").map((e) => ({
+          id: e.id,
+          name: e.name.replace(" tablecloth", ""),
+          colour: colourOf(e.id),
+        }))}
+        value={shown.linen}
+        onPick={(id) => apply({ linen: id })}
+        testId="linen"
+      />
+      <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
+        {(
+          [
+            ["floor", "To the floor"],
+            ["lap", "Lap length"],
+          ] as const
+        ).map(([v, l]) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={scenario.style.linenLength === v}
+            className={scenario.style.linenLength === v ? "on" : ""}
+            onClick={() => editor.setStyle("linenLength", v)}
+            data-testid={`linen-length-${v}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+      <Chips
+        label="Candles"
+        options={[none, ...family("candle").map((e) => ({ id: e.id, name: e.name }))]}
+        value={shown.candles}
+        onPick={(id) => apply({ candles: id })}
+        testId="candles"
+      />
+      <Chips
+        label="Florals"
+        options={[none, ...family("floral").map((e) => ({ id: e.id, name: e.name }))]}
+        value={shown.florals}
+        onPick={(id) => apply({ florals: id })}
+        testId="florals"
+      />
+      {shown.florals !== "none" && (
+        <Swatches
+          label="Flower colours"
+          options={Object.entries(FLORAL_PALETTES).map(([id, p]) => ({
+            id,
+            name: p.label,
+            colour: `linear-gradient(135deg, ${p.colours.join(", ")})`,
+          }))}
+          value={shown.floralColour}
+          onPick={(id) => apply({ floralColour: id })}
+          testId="floral-colour"
+        />
+      )}
+      <Chips
+        label="Chairs"
+        options={family("chair").map((e) => ({ id: e.id, name: e.name.replace(" chair", "") }))}
+        value={shown.chair}
+        onPick={(id) => apply({ chair: id })}
+        testId="chair"
+      />
+      <Toggle
+        label="Place settings"
+        checked={scenario.style.settings}
+        onChange={(v) => editor.setStyle("settings", v)}
+        testId="settings"
+      />
+      {scenario.style.settings && (
+        <Chips
+          label="Chargers"
+          options={[
+            { id: "gold", name: "Gold" },
+            { id: "silver", name: "Silver" },
+            { id: "glass", name: "Glass" },
+            none,
+          ]}
+          value={shown.charger}
+          onPick={(id) => apply({ charger: id })}
+          testId="charger"
+        />
+      )}
+      {tables.length === 1 && tables[0]?.style && (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => tables[0] && editor.applyStyle("all", styleOf(tables[0], scenario.style))}
+          data-testid="style-to-all"
+        >
+          Apply this table’s style to all
+        </button>
+      )}
+      <p className="hint">Placements never move. Sizes and colours are approximate.</p>
+    </div>
+  );
+}
+
+/** People (PPL-01..02, SCN-07): one control, guest count; seated vs standing follows the seats. */
+export function PeoplePanel() {
+  const { editor, catalog } = useStudio();
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const show = useView((s) => s.showPeople);
+  const c = useMemo(
+    () => countLayout(scenario.items, scenario.guests.count, catalog),
+    [scenario.items, scenario.guests.count, catalog],
+  );
+  const seated = Math.min(c.seats, c.guests);
+  const tablesNeeded = Math.ceil(c.withoutSeat / 8);
+  return (
+    <div className="panel-body" data-testid="people-panel">
+      <h2 className="panel-title">Guests</h2>
       <Stepper
-        label="Guests"
-        value={guests}
+        label="Guest count"
+        value={scenario.guests.count}
         min={0}
         max={200}
         onChange={(v) => editor.setGuests(v)}
         testId="guests"
       />
-      <LinenRow />
-      <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
+      <div className="figures" aria-label="Seating">
+        <div className="figure">
+          <b data-testid="people-seated">{seated}</b>
+          <span>seated</span>
+        </div>
+        <div className="figure">
+          <b data-testid="people-standing">{c.withoutSeat}</b>
+          <span>standing</span>
+        </div>
+        <div className="figure">
+          <b>{Math.max(0, c.seats - c.guests)}</b>
+          <span>seats left</span>
+        </div>
+      </div>
+      {c.withoutSeat > 0 && (
+        <p className="advice" role="note">
+          {c.withoutSeat} {c.withoutSeat === 1 ? "guest" : "guests"} without a seat. Add {tablesNeeded}{" "}
+          {tablesNeeded === 1 ? "table" : "tables"} of 8, or raise seats on existing tables.
+        </p>
+      )}
+      <Segmented
+        label="Moment"
+        value={scenario.phase ?? "dinner"}
+        options={[
+          { value: "dinner", label: "Dinner" },
+          { value: "party", label: "Party" },
+        ]}
+        onChange={(v) => editor.setPhase(v)}
+      />
+      <div className="row">
+        <button type="button" className="btn" onClick={() => editor.shuffleGuests()} data-testid="shuffle">
+          Shuffle guests
+        </button>
+      </div>
+      <Toggle label="Show people" checked={show} onChange={(v) => viewStore.setState({ showPeople: v })} />
       <p className="hint">
-        {touch ? "Press and hold a table, then drag it." : "Drag a table to move it."} Sizes are approximate.
+        People are simple neutral figures. Seated first; the rest stand near the bar, never on the dance floor
+        at dinner. At the party the dance floor fills.
       </p>
     </div>
   );

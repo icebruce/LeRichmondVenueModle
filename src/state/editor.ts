@@ -6,7 +6,7 @@ import type { Item, ItemOptions } from "../domain/layout/items";
 import { checkPlacement, findFreeSpot, spotFor, toggledObstacles } from "../domain/layout/validate";
 import { tableLabels } from "../domain/layout/counts";
 import { normalizeAngle, snap } from "../domain/geometry";
-import type { Scenario } from "../domain/scenario/schema";
+import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 
 enablePatches();
@@ -286,6 +286,20 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       toast(ids.size === 1 ? "Deleted" : `Deleted ${ids.size} items`, undoLast());
     },
 
+    /** Evening moment (SCN-07): changes where standing guests go (PPL-01). */
+    setPhase(phase: "dinner" | "party") {
+      commit("Moment", (d) => {
+        d.phase = phase;
+      });
+    },
+
+    /** New standing positions for the same count (PPL-02 keeps them until shuffled again). */
+    shuffleGuests() {
+      commit("Shuffle guests", (d) => {
+        d.guests.seed += 1;
+      });
+    },
+
     setGuests(count: number) {
       commit("Guests", (d) => {
         d.guests.count = Math.max(0, Math.min(400, Math.round(count)));
@@ -303,7 +317,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       );
     },
 
-    setVenueToggle(key: keyof Scenario["venueToggles"], value: boolean): boolean {
+    setVenueToggle(key: "communalTable" | "barStools", value: boolean): boolean {
       if (value) {
         const toggles = { ...active().venueToggles, [key]: true };
         const blocked = active().items.find((it) => {
@@ -316,6 +330,43 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         d.venueToggles[key] = value;
       });
       return true;
+    },
+
+    /** Show the current artwork (null), hide it ("hidden") or swap it for another (VEN-05). */
+    setPainting(id: string, choice: string | null) {
+      commit("Painting", (d) => {
+        const rest = Object.entries(d.venueToggles.paintings).filter(([k]) => k !== id);
+        d.venueToggles.paintings = Object.fromEntries(choice === null ? rest : [...rest, [id, choice]]);
+      });
+    },
+
+    /**
+     * Décor (DEC-01..05). `"all"` sets the scenario style and clears those keys from every table's
+     * override, so all tables match; a list of ids sets an override on just those tables.
+     */
+    applyStyle(target: "all" | string[], patch: Partial<TableStyle>) {
+      const keys = Object.keys(patch);
+      // An override equal to the scenario style is no override; an empty one is removed.
+      const settle = (it: Item, own: Partial<TableStyle>, base: TableStyle) => {
+        const kept = Object.fromEntries(
+          Object.entries(own).filter(([k, v]) => v !== base[k as keyof TableStyle]),
+        );
+        if (Object.keys(kept).length) it.style = kept;
+        else delete it.style;
+      };
+      commit("Décor", (d) => {
+        if (target === "all") Object.assign(d.style, patch);
+        for (const it of d.items) {
+          if (target === "all") {
+            if (it.style)
+              settle(
+                it,
+                Object.fromEntries(Object.entries(it.style).filter(([k]) => !keys.includes(k))),
+                d.style,
+              );
+          } else if (target.includes(it.id)) settle(it, { ...it.style, ...patch }, d.style);
+        }
+      });
     },
 
     undo() {

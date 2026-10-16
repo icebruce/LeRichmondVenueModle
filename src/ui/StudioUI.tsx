@@ -6,12 +6,14 @@ import { ROTATE_STEP } from "../state/editor";
 import { useEditor, useStudio } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
-import { Inspector, LayoutPanel, type Section, VenuePanel } from "./Panels";
+import { DecorPanel, Inspector, LayoutPanel, PeoplePanel, type Section, VenuePanel } from "./Panels";
 import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "venue", label: "Venue", icon: "venue" },
   { id: "layout", label: "Layout", icon: "layout" },
+  { id: "people", label: "People", icon: "people" },
+  { id: "decor", label: "Décor", icon: "decor" },
 ];
 
 function useCounts() {
@@ -254,13 +256,19 @@ export function StudioUI() {
       window.removeEventListener("resize", measure);
     };
   }, [phone, camera, showPanel, detent, hasSelection]);
-  const content = hasSelection ? (
-    <Inspector />
-  ) : section === "venue" ? (
-    <VenuePanel />
-  ) : section === "layout" ? (
-    <LayoutPanel />
-  ) : null;
+  // Décor works on the selection, so it stays open while tables are selected.
+  const content =
+    section === "decor" ? (
+      <DecorPanel key={selection.join(",")} />
+    ) : hasSelection ? (
+      <Inspector />
+    ) : section === "venue" ? (
+      <VenuePanel />
+    ) : section === "layout" ? (
+      <LayoutPanel />
+    ) : section === "people" ? (
+      <PeoplePanel />
+    ) : null;
 
   const pick = (id: Section) => {
     setSection((s) => (s === id && !phone ? null : id));
