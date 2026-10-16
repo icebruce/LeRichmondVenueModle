@@ -57,6 +57,7 @@ button:disabled {
   position: relative;
   flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 .viewport.split .pane + .pane {
   border-left: 2px solid var(--surface);
@@ -1127,6 +1128,7 @@ button:disabled {
     padding: var(--s-1) var(--s-2);
   }
   .pane-counts .count {
+    white-space: nowrap;
     flex-direction: row;
     align-items: baseline;
     gap: var(--s-1);
@@ -1135,8 +1137,20 @@ button:disabled {
     font: var(--t-footnote);
     font-weight: 600;
   }
+  .pane-counts {
+    flex-wrap: nowrap;
+    align-items: baseline;
+  }
   .pane-counts .pane-name {
+    flex: 0 1 auto;
+    min-width: 0;
     font: 600 13px/18px var(--font-display);
+  }
+  /* One line per half: name, tables, seats, without a seat (the sheet has the rest). */
+  .pane-counts .count:nth-child(4),
+  .pane-counts .count:nth-child(6),
+  .pane-counts .count:nth-child(7) {
+    display: none;
   }
   .tabbar {
     display: grid;

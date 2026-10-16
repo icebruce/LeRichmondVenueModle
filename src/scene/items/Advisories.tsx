@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { advise } from "../../domain/layout/advisories";
 import { pointInPolygon } from "../../domain/geometry";
 import type { Scenario } from "../../domain/scenario/schema";
@@ -13,6 +14,8 @@ import { useEditor, useStudio, useView } from "../context";
  */
 export function Advisories() {
   const { venue, catalog } = useStudio();
+  // In a small view (a phone's compare half) labels would cover the room; outlines stay.
+  const labelled = useThree((s) => s.size.height >= 400);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // While dragging, re-check only when the move changes by ~10 cm or ~5°, not on every pointer move.
   const dragKey = useView(({ drag: d }) =>
@@ -70,6 +73,7 @@ export function Advisories() {
       />
       {list.map(
         (a) =>
+          labelled &&
           a.label && (
             <Html
               key={a.id}

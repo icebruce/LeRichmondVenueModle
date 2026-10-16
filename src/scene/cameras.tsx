@@ -55,7 +55,6 @@ function MainCamera() {
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
-  const gl = useThree((s) => s.gl);
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
@@ -78,12 +77,8 @@ function MainCamera() {
     const target = controls.current?.target ?? new THREE.Vector3();
     const to = presetPose(p);
     // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
-    // Read the pane's current size: side by side it changes in the same render as this call.
-    const pane = gl.domElement.parentElement;
-    const width = pane?.clientWidth || size.width;
-    const height = pane?.clientHeight || size.height;
-    const visible = mode === "walk" || comparing ? width : width - insetRight;
-    const aspect = visible / Math.max(1, height);
+    const visible = mode === "walk" || comparing ? size.width : size.width - insetRight;
+    const aspect = visible / Math.max(1, size.height);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
       const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
       to.position.sub(to.target).multiplyScalar(k).add(to.target);
@@ -96,12 +91,13 @@ function MainCamera() {
     };
   };
 
-  // Mode switch animates to that mode's starting pose (CAM-05); so does starting or ending a side by
-  // side compare, whose halves are narrower.
+  // Mode switch animates to that mode's starting pose (CAM-05); side by side, so does each change of
+  // the half's size (it settles a render or two after compare starts).
+  const pane = comparing ? `${size.width}x${size.height}` : "";
   useEffect(() => {
     goTo(mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, comparing]);
+  }, [mode, comparing, pane]);
 
   useEffect(
     () =>

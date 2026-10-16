@@ -277,11 +277,14 @@ export function StudioUI() {
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section | null>("layout");
-  const [detent, setDetent] = useState<Detent>("peek");
+  const [chosen, setDetent] = useState<Detent>("peek");
   const drag = useRef<number | null>(null);
   useShortcuts();
 
   const phone = useMedia(PHONE);
+  const compare = useView((s) => s.compare);
+  // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
+  const detent: Detent = phone && compare && chosen === "half" ? "peek" : chosen;
   const hasSelection = selection.length > 0;
   const showPanel = camera !== "walk" && (hasSelection || section !== null);
 
@@ -341,7 +344,6 @@ export function StudioUI() {
       document.getElementById("checks")?.scrollIntoView({ block: "start", behavior: "smooth" }),
     );
   };
-  const compare = useView((s) => s.compare);
 
   const pick = (id: Section) => {
     setSection((s) => (s === id && !phone ? null : id));
