@@ -1,6 +1,7 @@
 import { CHAIR_ZONE, rectTable, roundTable } from "../library/sizing";
 import { type Catalog, entry, resolveOptions } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
+import type { TableStyle } from "../scenario/schema";
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../geometry";
 
 export type ItemOptions = Record<string, number | string | boolean>;
@@ -14,6 +15,8 @@ export type Item = {
   options: ItemOptions;
   /** Table number or short name shown in plan view and export. */
   label?: string;
+  /** Per-table décor override (DEC-05). */
+  style?: Partial<TableStyle>;
 };
 
 export type Chair = { x: number; z: number; rotY: number };
@@ -32,7 +35,9 @@ export type Shape =
   | { kind: "roundTable"; diameter: number; height: number; seats: number; chairs: Chair[] }
   | { kind: "cocktail"; diameter: number; height: number }
   | { kind: "danceFloor"; width: number; depth: number; finish: string }
-  | { kind: "djBooth"; width: number; depth: number; height: number };
+  | { kind: "djBooth"; width: number; depth: number; height: number }
+  /** Fabric panels on a free-standing frame (LIB-03 drapery), e.g. behind the sweetheart table. */
+  | { kind: "backdrop"; width: number; height: number; colour: string };
 
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const bool = (v: unknown) => v === true;
@@ -120,6 +125,12 @@ const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p
     finish: String(o.finish ?? "wood"),
   }),
   djBooth: (e) => ({ kind: "djBooth", width: e.sizeM.w, depth: e.sizeM.d, height: e.sizeM.h }),
+  backdrop: (e, o) => ({
+    kind: "backdrop",
+    width: num(o.width, e.sizeM.w),
+    height: e.sizeM.h,
+    colour: String(o.colour ?? "#f2ece0"),
+  }),
 };
 
 /** Generators that produce a floor item; other entries (chairs, linens) are parts or materials. */
@@ -163,6 +174,8 @@ export function localFootprint(shape: Shape): Polygon {
       return centredRect(shape.width, shape.depth);
     case "djBooth":
       return centredRect(shape.width + 0.2, shape.depth + 0.9);
+    case "backdrop":
+      return centredRect(shape.width + 0.1, 0.4);
   }
 }
 

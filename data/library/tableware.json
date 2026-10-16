@@ -1,0 +1,279 @@
+{
+  "family": "tableware",
+  "items": [
+    {
+      "id": "napkin-white",
+      "name": "White napkins",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.11,
+        "d": 0.19,
+        "h": 0.015
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#f7f6f2"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#f7f6f2",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/napkin-white.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: napkin",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "napkin-ivory",
+      "name": "Ivory napkins",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.11,
+        "d": 0.19,
+        "h": 0.015
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#efe7d6"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#efe7d6",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/napkin-ivory.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: napkin",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "napkin-sage",
+      "name": "Sage napkins",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.11,
+        "d": 0.19,
+        "h": 0.015
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#a3b19a"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#a3b19a",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/napkin-sage.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: napkin",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "napkin-blush",
+      "name": "Blush napkins",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.11,
+        "d": 0.19,
+        "h": 0.015
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#e9c9c1"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#e9c9c1",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/napkin-blush.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: napkin",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "napkin-navy",
+      "name": "Navy napkins",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.11,
+        "d": 0.19,
+        "h": 0.015
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#24304a"
+        }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "napkin",
+        "params": {
+          "colour": "#24304a",
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/napkin-navy.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: napkin",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "menu-card",
+      "name": "Menu cards",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.1,
+        "d": 0.16,
+        "h": 0.003
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "menuCard",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "menuCard",
+        "params": {
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/menu-card.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: menuCard",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 12,
+        "phoneTriangles": 3,
+        "drawCalls": 1
+      }
+    },
+    {
+      "id": "table-number",
+      "name": "Table number holder",
+      "family": "tableware",
+      "placement": "table",
+      "sizeM": {
+        "w": 0.1,
+        "d": 0.07,
+        "h": 0.13
+      },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "tableNumber",
+        "params": {}
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "tableNumber",
+        "params": {
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/table-number.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: tableNumber",
+        "licence": "Project"
+      },
+      "budget": {
+        "triangles": 120,
+        "phoneTriangles": 30,
+        "drawCalls": 1
+      }
+    }
+  ]
+}

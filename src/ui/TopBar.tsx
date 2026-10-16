@@ -4,6 +4,7 @@ import { requestCamera } from "../state/view";
 import { useEditor, useStudio } from "../scene/context";
 import { Icon, type IconName } from "./icons";
 import { useServices } from "./services";
+import { VersionHistory } from "./Dialogs";
 
 const CAMERAS: { mode: CameraMode; label: string; icon: IconName; key: string }[] = [
   { mode: "dollhouse", label: "Dollhouse", icon: "cube", key: "1" },
@@ -48,12 +49,19 @@ export function CameraSwitch() {
 
 function SaveState() {
   const state = useEditor((s) => s.saveState);
+  const cloud = useEditor((s) => s.cloud);
   const text =
     state === "saving"
       ? "Saving…"
-      : state === "error"
-        ? "Not saved — storage unavailable"
-        : "Saved on this device";
+      : state === "offline"
+        ? "Offline — kept on this device"
+        : state === "error"
+          ? cloud
+            ? "Not shared yet — kept on this device"
+            : "Not saved — storage unavailable"
+          : cloud
+            ? "Saved · shared"
+            : "Saved on this device";
   return (
     <span className={`save-state ${state}`} data-testid="save-state">
       {text}
@@ -69,6 +77,7 @@ export function ScenarioMenu() {
   const activeId = useEditor((s) => s.activeId);
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [history, setHistory] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const active = scenarios[activeId];
@@ -169,6 +178,18 @@ export function ScenarioMenu() {
               <span className="check" />
               Rename
             </button>
+            {services.cloud.status === "on" && (
+              <button
+                role="menuitem"
+                type="button"
+                className="menu-item"
+                onClick={act(() => setHistory(true))}
+                data-testid="history"
+              >
+                <span className="check" />
+                Version history…
+              </button>
+            )}
             <button
               role="menuitem"
               type="button"
@@ -211,6 +232,46 @@ export function ScenarioMenu() {
               </span>
               Open file…
             </button>
+          </div>
+          <div className="menu-group" aria-label="Export">
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
+              onClick={act(() => void services.exportPlan("pdf"))}
+              data-testid="export-pdf"
+            >
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
+              Plan for the venue (PDF)
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
+              onClick={act(() => void services.exportPlan("png"))}
+              data-testid="export-png"
+            >
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
+              Plan as an image (PNG)
+            </button>
+            <button
+              role="menuitem"
+              type="button"
+              className="menu-item"
+              onClick={act(() => void services.saveView())}
+              data-testid="save-view"
+            >
+              <span className="check">
+                <Icon name="download" size={16} />
+              </span>
+              Save this view as an image
+            </button>
+          </div>
+          <div className="menu-group">
             <button
               role="menuitem"
               type="button"
@@ -236,6 +297,7 @@ export function ScenarioMenu() {
           />
         </div>
       )}
+      {history && <VersionHistory onClose={() => setHistory(false)} />}
     </div>
   );
 }

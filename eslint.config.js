@@ -67,4 +67,20 @@ export default tseslint.config(
     ["**/scene/**", "**/ui/**", "**/app/**", "react", "three"],
     "src/data may import only domain (ARCHITECTURE §3).",
   ),
+  {
+    files: ["api/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "(/src/(?!domain/[\\w-]+/schema)|^(react|three|zustand|idb-keyval)(/|$))",
+              message: "api/ may import only the shared domain schemas (ARCHITECTURE §3).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

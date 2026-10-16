@@ -8,8 +8,16 @@
       "placement": "floor",
       "sizeM": { "w": 0.5, "d": 0.55, "h": 1.0 },
       "sizePresets": [],
-      "model": { "kind": "parametric", "generator": "chair", "params": {} },
-      "lowModel": { "kind": "parametric", "generator": "chair", "params": { "quality": "low" } },
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "oval", "frame": "#8a8076", "seat": "#77726d" }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "oval", "frame": "#8a8076", "seat": "#77726d", "quality": "low" }
+      },
       "options": [],
       "seats": false,
       "thumbnail": "thumbs/chair-oval.webp",
@@ -19,6 +27,159 @@
         "licence": "Project"
       },
       "budget": { "triangles": 1500, "phoneTriangles": 375, "drawCalls": 3 }
+    },
+    {
+      "id": "chair-crossback",
+      "name": "Wood cross-back chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.45, "d": 0.5, "h": 0.95 },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "crossback", "frame": "#6b4a30", "seat": "#b89a6a" }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "crossback", "frame": "#6b4a30", "seat": "#b89a6a", "quality": "low" }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-crossback.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (cross-back with rush seat)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1800, "phoneTriangles": 450, "drawCalls": 3 }
+    },
+    {
+      "id": "chair-white-gold",
+      "name": "White and gold chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.45, "d": 0.5, "h": 0.95 },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "oval", "frame": "#c8a45c", "seat": "#f2efe8", "metal": true }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "oval", "frame": "#c8a45c", "seat": "#f2efe8", "metal": true, "quality": "low" }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-white-gold.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (gold frame, white upholstery)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1800, "phoneTriangles": 450, "drawCalls": 3 }
+    },
+    {
+      "id": "chair-chiavari-gold",
+      "name": "Gold chiavari chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.45, "d": 0.5, "h": 0.95 },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "chiavari", "frame": "#c9a55e", "seat": "#f2efe8", "metal": true }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": {
+          "style": "chiavari",
+          "frame": "#c9a55e",
+          "seat": "#f2efe8",
+          "metal": true,
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-chiavari-gold.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (chiavari)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1800, "phoneTriangles": 450, "drawCalls": 3 }
+    },
+    {
+      "id": "chair-chiavari-silver",
+      "name": "Silver chiavari chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.45, "d": 0.5, "h": 0.95 },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "chiavari", "frame": "#c4c6c8", "seat": "#f2efe8", "metal": true }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": {
+          "style": "chiavari",
+          "frame": "#c4c6c8",
+          "seat": "#f2efe8",
+          "metal": true,
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-chiavari-silver.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (chiavari)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1800, "phoneTriangles": 450, "drawCalls": 3 }
+    },
+    {
+      "id": "chair-chiavari-clear",
+      "name": "Clear chiavari chair",
+      "family": "chair",
+      "placement": "floor",
+      "sizeM": { "w": 0.45, "d": 0.5, "h": 0.95 },
+      "sizePresets": [],
+      "model": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": { "style": "chiavari", "frame": "#e8f0f2", "seat": "#f2efe8", "clear": true }
+      },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "chair",
+        "params": {
+          "style": "chiavari",
+          "frame": "#e8f0f2",
+          "seat": "#f2efe8",
+          "clear": true,
+          "quality": "low"
+        }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/chair-chiavari-clear.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: chair (chiavari, acrylic)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1800, "phoneTriangles": 450, "drawCalls": 3 }
     }
   ]
 }

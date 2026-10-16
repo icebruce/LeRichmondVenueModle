@@ -1,6 +1,25 @@
 import { z } from "zod";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 3;
+
+/** Table décor (DEC-01..04, LIB-04..06): library ids, or "none" for candles, florals and chargers. */
+const tableStyleSchema = z.object({
+  linen: z.string(),
+  chair: z.string(),
+  candles: z.string(),
+  florals: z.string(),
+  /** Flower colour palette for the arrangement (LIB-06). */
+  floralColour: z.string(),
+  /** Charger under each place setting: gold, silver, glass or none (LIB-04). */
+  charger: z.string(),
+  /** Table runner: a library runner id or "none" (LIB-03). */
+  runner: z.string(),
+  /** Napkin on each plate: a library napkin id or "none" (LIB-03). */
+  napkin: z.string(),
+  /** Which flowers the arrangement is made of (LIB-06). */
+  flowerType: z.string(),
+});
+export type TableStyle = z.infer<typeof tableStyleSchema>;
 
 const itemSchema = z.object({
   id: z.string().min(1),
@@ -10,6 +29,8 @@ const itemSchema = z.object({
   rotY: z.number().finite(),
   options: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])),
   label: z.string().max(12).optional(),
+  /** Per-table décor override (DEC-05); unset keys follow the scenario style. */
+  style: tableStyleSchema.partial().optional(),
 });
 
 const noteSchema = z.object({
@@ -21,15 +42,19 @@ const noteSchema = z.object({
 
 export const scenarioSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
-  id: z.string().min(1),
+  /** Also a storage key, so letters, digits, "-" and "_" only. */
+  id: z.string().regex(/^[\w-]{1,40}$/),
   name: z.string().min(1).max(80),
   phase: z.enum(["dinner", "party"]).optional(),
   revision: z.number().int().nonnegative(),
   items: z.array(itemSchema),
-  style: z.object({
-    linen: z.string(),
+  style: tableStyleSchema.extend({
     linenLength: z.enum(["lap", "floor"]),
-    chair: z.string(),
+    /** Place settings (chargers, plates, glasses, cutlery) on seated tables (LIB-04). */
+    settings: z.boolean(),
+    /** A menu card on each plate and a number holder on each table (LIB-04). */
+    menus: z.boolean(),
+    tableNumbers: z.boolean(),
     lighting: z.enum(["evening", "day"]),
   }),
   guests: z.object({ count: z.number().int().min(0).max(400), seed: z.number().int() }),
@@ -39,7 +64,12 @@ export const scenarioSchema = z.object({
     m2PerDancer: z.number().positive(),
     dancingShare: z.number().min(0).max(1),
   }),
-  venueToggles: z.object({ communalTable: z.boolean(), barStools: z.boolean() }),
+  venueToggles: z.object({
+    communalTable: z.boolean(),
+    barStools: z.boolean(),
+    /** Painting id → "hidden" or a replacement artwork id; absent = the current artwork (VEN-05). */
+    paintings: z.record(z.string(), z.string()),
+  }),
   notes: z.array(noteSchema),
   updatedAt: z.string(),
   updatedBy: z.enum(["A", "B"]).optional(),
@@ -47,3 +77,6 @@ export const scenarioSchema = z.object({
 
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type ScenarioStyle = Scenario["style"];
+
+/** One saved revision in a scenario's history (SCN-04), as the API lists it. */
+export type VersionInfo = { revision: number; updatedAt: string; updatedBy?: string; name?: string };

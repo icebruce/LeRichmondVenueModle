@@ -3,62 +3,114 @@ import { useProgress } from "@react-three/drei";
 import { countLayout } from "../domain/layout/counts";
 import type { Scenario } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { useEditor, useStudio } from "../scene/context";
+import { adviseScenario } from "../domain/layout/advisories";
+import { useEditor, useStudio, useView } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
-import { Inspector, LayoutPanel, type Section, VenuePanel } from "./Panels";
+import {
+  ComparePanel,
+  DecorPanel,
+  Inspector,
+  LayoutPanel,
+  PeoplePanel,
+  type Section,
+  VenuePanel,
+} from "./Panels";
 import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
+import { ConflictDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "venue", label: "Venue", icon: "venue" },
   { id: "layout", label: "Layout", icon: "layout" },
+  { id: "people", label: "People", icon: "people" },
+  { id: "decor", label: "Décor", icon: "decor" },
+  { id: "compare", label: "Compare", icon: "compare" },
 ];
 
-function useCounts() {
-  const { catalog } = useStudio();
-  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+function useSummary(id?: string) {
+  const { catalog, venue } = useStudio();
+  const scenario = useEditor((s) => s.scenarios[id ?? s.activeId] as Scenario);
   return useMemo(
-    () => countLayout(scenario.items, scenario.guests.count, catalog),
-    [scenario.items, scenario.guests.count, catalog],
+    () => ({
+      name: scenario.name,
+      ...countLayout(scenario.items, scenario.guests.count, catalog),
+      advisories: adviseScenario(scenario, venue, catalog).length,
+    }),
+    [scenario, catalog, venue],
   );
 }
 
-/** Desktop: floating counts strip, bottom-left (LAY-07). */
-function Counts() {
-  const c = useCounts();
+/**
+ * Desktop: floating counts strip, bottom-left (LAY-07). Side by side (SCN-06) each half shows its
+ * own, named, strip; `onAdvisories` opens the list of checks.
+ */
+export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () => void }) {
+  const c = useSummary(id);
+  const advisories = (
+    <>
+      <b data-testid={id ? undefined : "count-advisories"}>{c.advisories}</b>
+      <span>{c.advisories === 1 ? "advisory" : "advisories"}</span>
+    </>
+  );
   return (
-    <div className="counts glass" aria-label="Counts" data-testid="counts">
+    <div
+      className={`counts glass ${id ? "pane-counts" : ""}`}
+      aria-label={id ? `Counts for ${c.name}` : "Counts"}
+      data-testid={id ? "pane-counts" : "counts"}
+    >
+      {id && <b className="pane-name">{c.name}</b>}
       <div className="count">
-        <b data-testid="count-tables">{c.tables}</b>
+        <b data-testid={id ? undefined : "count-tables"}>{c.tables}</b>
         <span>tables</span>
       </div>
       <div className="count">
-        <b data-testid="count-seats">{c.seats}</b>
+        <b data-testid={id ? undefined : "count-seats"}>{c.seats}</b>
         <span>seats</span>
       </div>
       <div className="count">
-        <b data-testid="count-guests">{c.guests}</b>
+        <b data-testid={id ? undefined : "count-guests"}>{c.guests}</b>
         <span>guests</span>
       </div>
       <div className={`count ${c.withoutSeat ? "warn" : ""}`}>
-        <b data-testid="count-without">{c.withoutSeat}</b>
+        <b data-testid={id ? undefined : "count-without"}>{c.withoutSeat}</b>
         <span>without a seat</span>
       </div>
       <div className="count">
         <b>≈ {Math.round(c.danceFloorM2)} m²</b>
         <span>dance floor</span>
       </div>
+      {onAdvisories && c.advisories > 0 ? (
+        <button type="button" className="count warn count-btn" onClick={onAdvisories}>
+          {advisories}
+        </button>
+      ) : (
+        <div className={`count ${c.advisories ? "warn" : ""}`}>{advisories}</div>
+      )}
     </div>
   );
 }
 
 /** Phone: the same counts as one line at the top of the sheet, so the room keeps the screen. */
-function CountsLine() {
-  const c = useCounts();
+function CountsLine({ onAdvisories }: { onAdvisories: () => void }) {
+  const c = useSummary();
   return (
     <p className="counts-line" aria-label="Counts">
-      {c.tables} tables · {c.seats} seats · {c.guests} guests
-      {c.withoutSeat > 0 && <span className="warn"> · {c.withoutSeat} without a seat</span>}
+      <span>{c.tables} tables</span> · <span>{c.seats} seats</span> · <span>{c.guests} guests</span>
+      {c.withoutSeat > 0 && (
+        <>
+          {" "}
+          · <span className="warn">{c.withoutSeat} without a seat</span>
+        </>
+      )}
+      {c.advisories > 0 && (
+        <>
+          {" "}
+          ·{" "}
+          <button type="button" className="warn link-btn" onClick={onAdvisories}>
+            {c.advisories} {c.advisories === 1 ? "advisory" : "advisories"}
+          </button>
+        </>
+      )}
     </p>
   );
 }
@@ -214,53 +266,80 @@ function useShortcuts() {
 type Detent = "peek" | "half" | "full";
 
 export function StudioUI() {
+  const { editor } = useStudio();
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section | null>("layout");
-  const [detent, setDetent] = useState<Detent>("peek");
+  const [chosen, setDetent] = useState<Detent>("peek");
   const drag = useRef<number | null>(null);
   useShortcuts();
 
   const phone = useMedia(PHONE);
+  const compare = useView((s) => s.compare);
+  // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
+  const detent: Detent = phone && compare && chosen === "half" ? "peek" : chosen;
   const hasSelection = selection.length > 0;
   const showPanel = camera !== "walk" && (hasSelection || section !== null);
 
-  // Desktop: the camera frames the room beside the panel (340 px + margin), not under it.
+  // Desktop: the camera frames the room beside the panel (340 px, its border and margin), not under it.
   useEffect(() => {
-    viewStore.setState({ insetRight: showPanel && !phone ? 352 : 0 });
+    viewStore.setState({ insetRight: showPanel && !phone ? 354 : 0 });
   }, [showPanel, phone]);
 
-  // Phone: the camera centres the room between the top bar and the sheet (measured after the
-  // sheet's height transition).
+  // Phone: the camera centres the room between the top bar and the sheet (and the floating Undo
+  // above it), measured again once the sheet's height transition ends.
   const ui = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!phone || camera === "walk") {
+    const root = ui.current;
+    if (!phone || camera === "walk" || !root) {
       viewStore.setState({ insetTop: 0, insetBottom: 0 });
       return;
     }
     const measure = () => {
-      const root = ui.current;
-      if (!root) return;
       const h = root.clientHeight;
       const top = root.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
-      const sheet = root.querySelector(".panel, .tabbar")?.getBoundingClientRect().top ?? h;
-      viewStore.setState({ insetTop: Math.round(top), insetBottom: Math.round(h - sheet) });
+      const covers = [...root.querySelectorAll(".panel, .tabbar, .history-float")].map(
+        (el) => el.getBoundingClientRect().top,
+      );
+      const bottom = Math.min(h, ...covers);
+      viewStore.setState({ insetTop: Math.round(top), insetBottom: Math.round(h - bottom) });
     };
     measure();
-    const t = window.setTimeout(measure, 300);
+    root.addEventListener("transitionend", measure);
     window.addEventListener("resize", measure);
     return () => {
-      window.clearTimeout(t);
+      root.removeEventListener("transitionend", measure);
       window.removeEventListener("resize", measure);
     };
   }, [phone, camera, showPanel, detent, hasSelection]);
-  const content = hasSelection ? (
-    <Inspector />
-  ) : section === "venue" ? (
-    <VenuePanel />
-  ) : section === "layout" ? (
-    <LayoutPanel />
-  ) : null;
+  // Décor works on the selection, so it stays open while tables are selected.
+  const content =
+    section === "decor" ? (
+      <DecorPanel key={selection.join(",")} />
+    ) : section === "compare" ? (
+      <ComparePanel />
+    ) : hasSelection ? (
+      <Inspector />
+    ) : section === "venue" ? (
+      <VenuePanel />
+    ) : section === "layout" ? (
+      <LayoutPanel />
+    ) : section === "people" ? (
+      <PeoplePanel />
+    ) : null;
+
+  // The advisory count opens the list of checks (Layout, scrolled to them).
+  const showChecks = () => {
+    editor.select([]);
+    setSection("layout");
+    setDetent((d) => (d === "peek" ? "half" : d));
+    window.requestAnimationFrame(() =>
+      document.getElementById("checks")?.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      }),
+    );
+  };
 
   const pick = (id: Section) => {
     setSection((s) => (s === id && !phone ? null : id));
@@ -310,12 +389,12 @@ export function StudioUI() {
               if (dy > 40) setDetent((d) => (d === "full" ? "half" : "peek"));
             }}
           />
-          {phone && <CountsLine />}
+          {phone && <CountsLine onAdvisories={showChecks} />}
           {content}
         </aside>
       )}
 
-      {!phone && <Counts />}
+      {!phone && !compare && <Counts onAdvisories={showChecks} />}
       {phone && camera !== "walk" && <History className="history-float glass" />}
       {camera === "walk" && (
         <>
@@ -342,6 +421,9 @@ export function StudioUI() {
         ))}
       </nav>
       <Toast />
+      <OfflineBanner />
+      <ConflictDialog />
+      <PartnerChooser />
       <Loading />
     </div>
   );

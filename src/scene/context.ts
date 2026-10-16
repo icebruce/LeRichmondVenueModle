@@ -1,4 +1,6 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
+import { type Advisory, adviseScenario } from "../domain/layout/advisories";
+import type { Scenario } from "../domain/scenario/schema";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 import type { Catalog } from "../domain/library/catalog";
@@ -6,7 +8,8 @@ import type { VenueModel } from "../domain/venue/model";
 import type { Editor, EditorState } from "../state/editor";
 import { type ViewState, viewStore } from "../state/view";
 
-export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor };
+/** `readOnly`: the side-by-side compare view, which shows a scenario but does not edit it. */
+export type Studio = { venue: VenueModel; catalog: Catalog; editor: Editor; readOnly?: boolean };
 
 export const StudioContext = createContext<Studio | null>(null);
 
@@ -22,4 +25,15 @@ export function useEditor<T>(selector: (s: EditorState) => T): T {
 
 export function useView<T>(selector: (s: ViewState) => T): T {
   return useStore(viewStore, selector);
+}
+
+/** Advisory checks for the active scenario (LAY-08), recomputed when the layout or settings change. */
+export function useAdvisories(): Advisory[] {
+  const { venue, catalog } = useStudio();
+  const { items, guests, thresholds, venueToggles } = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  // Only what the checks read: a rename or a décor change does not re-run them.
+  return useMemo(
+    () => adviseScenario({ items, guests, thresholds, venueToggles }, venue, catalog),
+    [items, guests, thresholds, venueToggles, venue, catalog],
+  );
 }

@@ -98,10 +98,15 @@ export function centroid(poly: Polygon): Vec2 {
 }
 
 /** Shortest distance from point p to segment ab. */
-export function distanceToSegment(p: Vec2, a: Vec2, b: Vec2): number {
+/** The point of segment a–b nearest to p. */
+export function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
   const ab = sub(b, a);
   const t = Math.max(0, Math.min(1, dot(sub(p, a), ab) / Math.max(dot(ab, ab), 1e-12)));
-  return len(sub(p, add(a, [ab[0] * t, ab[1] * t])));
+  return add(a, [ab[0] * t, ab[1] * t]);
+}
+
+export function distanceToSegment(p: Vec2, a: Vec2, b: Vec2): number {
+  return len(sub(p, closestOnSegment(p, a, b)));
 }
 
 export function snap(value: number, step: number): number {

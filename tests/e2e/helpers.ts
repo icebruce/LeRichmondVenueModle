@@ -11,6 +11,7 @@ type Item = {
 export type W = Window & {
   __studio: {
     editor: {
+      select: (ids: string[]) => void;
       store: {
         getState: () => {
           scenarios: Record<

@@ -51,12 +51,22 @@ button:disabled {
   position: absolute;
   inset: 0;
   touch-action: none;
+  display: flex;
+}
+.pane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.viewport.split .pane + .pane {
+  border-left: 2px solid var(--surface);
 }
 .ui {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  --rail: 72px;
+  --rail: var(--rail-w);
   --top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
 }
 .ui > * {
@@ -121,6 +131,7 @@ button:disabled {
 }
 .rename input,
 .text-input {
+  box-sizing: border-box;
   font: var(--t-callout);
   border: 1px solid var(--line-2);
   border-radius: var(--r-control);
@@ -338,10 +349,9 @@ button:disabled {
   margin: 0;
 }
 .group-title {
-  font: var(--t-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-3);
+  font: var(--t-footnote);
+  font-weight: 600;
+  color: var(--ink-2);
   margin: var(--s-2) 0 0;
 }
 .row {
@@ -410,8 +420,37 @@ button:disabled {
 .stepper output {
   min-width: 3ch;
   text-align: center;
+  white-space: nowrap;
   font: var(--t-headline);
   font-variant-numeric: tabular-nums;
+}
+.stepper output.scrub {
+  min-width: 4ch;
+  font: var(--t-figure);
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+.slider {
+  gap: var(--s-1);
+}
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+.slider-head output {
+  font: var(--t-callout);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.slider input {
+  width: 100%;
+  min-height: var(--target);
+  margin: 0;
+  accent-color: var(--accent);
 }
 .library {
   list-style: none;
@@ -467,7 +506,7 @@ button:disabled {
 }
 .library-caption {
   font: var(--t-footnote);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .library-add {
   color: var(--accent);
@@ -476,6 +515,48 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
+}
+/* Long sets scroll sideways in one row, so the panel stays short (DESIGN_GUIDE §1.5). */
+.chips-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  margin-inline: calc(-1 * var(--s-4));
+  padding-inline: var(--s-4);
+  padding-bottom: var(--s-1);
+}
+.chips-scroll .chip {
+  flex: none;
+}
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--target);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.disclosure .row-value {
+  flex: 1;
+  color: var(--ink);
+}
+.disclosure[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+}
+.advisory-go {
+  flex: none;
+  margin-left: auto;
+  color: var(--ink-2);
+  transform: rotate(-90deg);
 }
 .chip {
   display: inline-flex;
@@ -508,7 +589,8 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--accent);
-  font: 600 15px/1 var(--font-ui);
+  font: var(--t-body);
+  font-weight: 600;
   min-height: var(--target);
   padding: 0 var(--s-2);
 }
@@ -555,9 +637,149 @@ button:disabled {
 .counts-line {
   display: none;
 }
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.swatch {
+  display: grid;
+  place-items: center;
+  width: var(--target);
+  height: var(--target);
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  padding: 0;
+}
+.swatch span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+.swatch.on span {
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--accent);
+}
+.advisories {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.advisory-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: var(--target);
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--advisory-soft);
+  font: var(--t-footnote);
+  text-align: left;
+}
+.advisory-row .dot {
+  flex: none;
+  width: var(--s-2);
+  height: var(--s-2);
+  margin-top: var(--s-1);
+  border-radius: 50%;
+  background: var(--advisory);
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--t-footnote);
+  font-variant-numeric: tabular-nums;
+}
+.compare-table th,
+.compare-table td {
+  padding: var(--s-1) var(--s-2);
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+.compare-table th[scope="row"],
+.compare-table tr.differs td {
+  font-weight: 600;
+}
+.compare-table thead th:first-child {
+  text-align: left;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.note {
+  display: flex;
+  gap: var(--s-2);
+  font: var(--t-callout);
+}
+.note p {
+  margin: var(--s-1) 0 0;
+}
+.note .avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--s-6);
+  height: var(--s-6);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: var(--t-caption);
+}
+.note-time {
+  font: var(--t-caption);
+  color: var(--ink-3);
+}
+.note-form {
+  display: flex;
+  gap: var(--s-2);
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--sunk);
+}
+.figure b {
+  font: var(--t-headline);
+  font-variant-numeric: tabular-nums;
+}
+.figure span {
+  font: var(--t-caption);
+  color: var(--ink-2);
+}
+.advice {
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--advisory-soft);
+  color: var(--ink);
+  font: var(--t-footnote);
+}
 .hint {
   font: var(--t-footnote);
-  color: var(--ink-3);
+  color: var(--ink-2);
   margin: 0;
 }
 .refusal {
@@ -591,10 +813,59 @@ button:disabled {
 }
 .count span {
   font: var(--t-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .count.warn b {
-  color: var(--advisory);
+  color: var(--advisory-ink);
+}
+.count-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--r-control);
+}
+.count-btn span {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.counts-line > span,
+.counts-line .link-btn {
+  white-space: nowrap;
+}
+.pane-counts {
+  left: var(--s-3);
+  bottom: var(--s-3);
+  max-width: calc(100% - 2 * var(--s-3));
+  pointer-events: none;
+}
+.pane-name {
+  flex-basis: 100%;
+  font: var(--t-body);
+  font-family: var(--font-display);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 768px) {
+  .viewport.split {
+    left: var(--rail-w);
+  }
+}
+/* Narrower desktops: each half's strip keeps to one line of counts. */
+@media (max-width: 1300px) {
+  .pane-counts .count:nth-child(4) {
+    display: none;
+  }
 }
 
 /* ---------- toast, walk, labels, loading ---------- */
@@ -607,7 +878,7 @@ button:disabled {
   align-items: center;
   gap: var(--s-3);
   padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
-  min-height: 44px;
+  min-height: var(--target);
   border-radius: 22px;
   background: var(--toast-bg);
   color: var(--on-dark);
@@ -638,6 +909,17 @@ button:disabled {
   background: var(--label-bg);
   border-radius: var(--r-control);
   padding: var(--s-1) var(--s-2);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.advisory-label {
+  font: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--advisory-ink);
+  background: var(--label-bg);
+  border: 1px solid var(--advisory);
+  border-radius: var(--r-control);
+  padding: 0 var(--s-1);
   pointer-events: none;
   white-space: nowrap;
 }
@@ -706,6 +988,13 @@ button:disabled {
     transform: translate(var(--tx, 0), 6px);
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  @keyframes rise {
+    from {
+      opacity: 0;
+    }
+  }
+}
 .toast {
   --tx: -50%;
 }
@@ -714,6 +1003,95 @@ button:disabled {
     opacity: 0;
     transform: translateX(12px);
   }
+}
+
+/* ---------- sign in, dialogs, banner ---------- */
+.login {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+  background: var(--bg);
+}
+.login-card {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-6) var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow);
+}
+.text-input.wide {
+  max-width: none;
+  text-align: left;
+}
+.btn.primary {
+  justify-content: center;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+  background: var(--toast-bg);
+  z-index: 60;
+  animation: rise var(--m-base);
+}
+.dialog {
+  width: min(460px, 100%);
+  max-height: 80%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  background: var(--surface);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow);
+}
+.dialog-text {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.changes {
+  margin: 0;
+  padding-left: var(--s-5);
+  font: var(--t-callout);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.versions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.banner {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-5));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--s-2) var(--s-4);
+  font: var(--t-footnote);
+  color: var(--ink);
+  background: var(--advisory-soft);
+  white-space: nowrap;
+  z-index: 35;
 }
 
 /* ---------- phone ---------- */
@@ -801,7 +1179,36 @@ button:disabled {
     color: var(--ink-2);
   }
   .counts-line .warn {
-    color: var(--advisory);
+    color: var(--advisory-ink);
+  }
+  .pane-counts {
+    left: var(--s-2);
+    bottom: var(--s-2);
+    gap: 0 var(--s-2);
+    padding: var(--s-1) var(--s-2);
+  }
+  .pane-counts .count {
+    white-space: nowrap;
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--s-1);
+  }
+  .pane-counts .count b {
+    font: var(--t-footnote);
+    font-weight: 600;
+  }
+  /* Its own line, never cut: "copy" may be the only word that tells the halves apart. */
+  .pane-counts .pane-name {
+    white-space: normal;
+    font: var(--t-footnote);
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  /* One line per half: name, tables, seats, without a seat (the sheet has the rest). */
+  .pane-counts .count:nth-child(4),
+  .pane-counts .count:nth-child(6),
+  .pane-counts .count:nth-child(7) {
+    display: none;
   }
   .tabbar {
     display: grid;
@@ -883,6 +1290,13 @@ button:disabled {
   .walk-hint {
     top: calc(var(--top) + 128px);
     white-space: nowrap;
+  }
+  .viewport.split {
+    flex-direction: column;
+  }
+  .viewport.split .pane + .pane {
+    border-left: 0;
+    border-top: 2px solid var(--surface);
   }
   .joystick {
     display: block;

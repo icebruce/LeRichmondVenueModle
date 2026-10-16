@@ -7,10 +7,10 @@ import { App } from "./App";
 
 const root = createRoot(document.getElementById("root") as HTMLElement);
 boot()
-  .then((studio) =>
+  .then(({ studio, cloud }) =>
     root.render(
       <StrictMode>
-        <App studio={studio} />
+        <App studio={studio} cloud={cloud} />
       </StrictMode>,
     ),
   )

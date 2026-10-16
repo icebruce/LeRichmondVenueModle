@@ -7,7 +7,7 @@ import { useStore } from "zustand";
 import { pointInPolygon } from "../domain/geometry";
 import { walkArea } from "../domain/layout/walk";
 import type { CameraMode } from "../state/editor";
-import { cameraCommands, viewStore, walkInput } from "../state/view";
+import { cameraCommands, sharedPose, viewStore, walkInput } from "../state/view";
 import { useEditor, useStudio, useView } from "./context";
 
 export const EYE = 1.65;
@@ -25,7 +25,26 @@ function presetPose(p: { position: readonly number[]; target: readonly number[] 
 /** Whether a camera animation is running (read by walk controls and test hooks). */
 export const rig = { tweening: false };
 
-export function CameraRig() {
+/** Side-by-side compare (SCN-06): this camera copies the main one every frame. */
+function FollowCamera() {
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  useFrame(() => {
+    camera.position.set(...sharedPose.position);
+    camera.quaternion.set(...sharedPose.quaternion);
+    if (camera.fov !== sharedPose.fov) {
+      camera.fov = sharedPose.fov;
+      camera.updateProjectionMatrix();
+    }
+  });
+  return null;
+}
+
+export function CameraRig({ follow = false }: { follow?: boolean }) {
+  if (follow) return <FollowCamera />;
+  return <MainCamera />;
+}
+
+function MainCamera() {
   const { venue } = useStudio();
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useView((s) => s.controlsEnabled);
@@ -33,6 +52,7 @@ export function CameraRig() {
   const insetRight = useView((s) => s.insetRight);
   const insetTop = useView((s) => s.insetTop);
   const insetBottom = useView((s) => s.insetBottom);
+  const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
@@ -49,6 +69,7 @@ export function CameraRig() {
   }, [presets]);
 
   const goTo = (key: CameraMode | string) => {
+    userMoved.current = false;
     const isMode = key in poses;
     const p = isMode ? poses[key as CameraMode] : presets[key];
     if (!p) return;
@@ -57,8 +78,11 @@ export function CameraRig() {
     const target = controls.current?.target ?? new THREE.Vector3();
     const to = presetPose(p);
     // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
-    const visible = mode === "walk" ? size.width : size.width - insetRight;
-    const aspect = visible / Math.max(1, size.height);
+    const flat = mode === "walk" || comparing;
+    const visible = flat ? size.width : size.width - insetRight;
+    // Phone: fit the band between the top bar and the sheet, not the whole screen.
+    const band = flat ? size.height : size.height - insetTop - insetBottom;
+    const aspect = visible / Math.max(1, band);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
       const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
       to.position.sub(to.target).multiplyScalar(k).add(to.target);
@@ -71,11 +95,19 @@ export function CameraRig() {
     };
   };
 
-  // Mode switch animates to that mode's starting pose (CAM-05).
+  // Mode switch, and starting or ending compare, animate to the mode's starting pose (CAM-05). A
+  // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
+  // unless the couple has moved the view since: their view is never thrown away.
+  const pane = comparing ? `${size.width}x${size.height}` : "";
+  const band = comparing ? "" : `${insetTop}:${insetBottom}`;
+  const userMoved = useRef(false);
+  const framed = useRef({ mode, comparing });
   useEffect(() => {
-    goTo(mode);
+    const switched = framed.current.mode !== mode || framed.current.comparing !== comparing;
+    framed.current = { mode, comparing };
+    if (switched || !userMoved.current) goTo(mode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, comparing, pane, band]);
 
   useEffect(
     () =>
@@ -92,7 +124,9 @@ export function CameraRig() {
   const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
     const walk = mode === "walk";
-    const want = { x: walk ? 0 : insetRight, y: walk ? 0 : insetBottom - insetTop };
+    // Side by side, the halves already sit beside the interface and frame alike.
+    const flat = walk || comparing;
+    const want = { x: flat ? 0 : insetRight, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };
@@ -110,6 +144,18 @@ export function CameraRig() {
     if (offset) camera.setViewOffset(fullW, fullH, next.x, next.y > 0 ? next.y : 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
+  });
+
+  // Publish the pose for the side-by-side compare view.
+  useFrame(() => {
+    sharedPose.position = [camera.position.x, camera.position.y, camera.position.z];
+    sharedPose.quaternion = [
+      camera.quaternion.x,
+      camera.quaternion.y,
+      camera.quaternion.z,
+      camera.quaternion.w,
+    ];
+    sharedPose.fov = camera.fov;
   });
 
   // Keep the view's floor centre current, for "Add" (it places items where the couple is looking).
@@ -149,6 +195,7 @@ export function CameraRig() {
     <OrbitControls
       ref={controls}
       makeDefault
+      onStart={() => (userMoved.current = true)}
       enabled={controlsEnabled}
       enableRotate={!plan}
       enableDamping

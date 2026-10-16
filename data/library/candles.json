@@ -1,0 +1,137 @@
+{
+  "family": "candle",
+  "items": [
+    {
+      "id": "candle-votives",
+      "name": "Votives",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.3, "d": 0.1, "h": 0.08 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "votives", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "votives", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-votives.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: votives", "licence": "Project" },
+      "budget": { "triangles": 600, "phoneTriangles": 200, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-pillars",
+      "name": "Mixed pillars",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.25, "d": 0.12, "h": 0.25 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "pillars", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "pillars", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-pillars.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: pillars", "licence": "Project" },
+      "budget": { "triangles": 800, "phoneTriangles": 200, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-tapers",
+      "name": "Tall tapers",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.3, "d": 0.1, "h": 0.48 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "tapers", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "tapers", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-tapers.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: tapers", "licence": "Project" },
+      "budget": { "triangles": 900, "phoneTriangles": 225, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-floating",
+      "name": "Floating candles in tall glass",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.3, "d": 0.12, "h": 0.4 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "floatingGlass", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "floatingGlass", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-floating.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: floatingGlass",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 1200, "phoneTriangles": 300, "drawCalls": 3 }
+    },
+    {
+      "id": "candelabra-3",
+      "name": "Candelabra, 3 arms",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.3, "d": 0.1, "h": 0.65 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "candelabra", "params": { "arms": 3 } },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "candelabra",
+        "params": { "arms": 3, "quality": "low" }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candelabra-3.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: candelabra", "licence": "Project" },
+      "budget": { "triangles": 1400, "phoneTriangles": 350, "drawCalls": 3 }
+    },
+    {
+      "id": "candelabra-5",
+      "name": "Candelabra, 5 arms",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.5, "d": 0.1, "h": 0.65 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "candelabra", "params": { "arms": 5 } },
+      "lowModel": {
+        "kind": "parametric",
+        "generator": "candelabra",
+        "params": { "arms": 5, "quality": "low" }
+      },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candelabra-5.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: candelabra", "licence": "Project" },
+      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-hurricane",
+      "name": "Hurricane",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.16, "d": 0.16, "h": 0.34 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "hurricane", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "hurricane", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-hurricane.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: hurricane", "licence": "Project" },
+      "budget": { "triangles": 800, "phoneTriangles": 200, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-lantern",
+      "name": "Lantern",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.16, "d": 0.16, "h": 0.33 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "lantern", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "lantern", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-lantern.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: lantern", "licence": "Project" },
+      "budget": { "triangles": 600, "phoneTriangles": 200, "drawCalls": 3 }
+    }
+  ]
+}

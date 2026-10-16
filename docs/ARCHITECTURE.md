@@ -39,7 +39,7 @@ src/
   scene/    R3F components that render venue + scenario state. Reads domain types.
   ui/       React panels, inspector, rail, sheets, tokens.css.
   data/     API client, sync, IndexedDB drafts, image processing.
-  app/      Composition root: routes, providers, store wiring.
+  app/      Composition root: routes, providers, store wiring, the printable plan (canvas).
 tests/
   unit/  e2e/  visual/
 docs/  references/  scripts/  .claude/
@@ -69,24 +69,29 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 
 ```ts
 type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
-  schemaVersion: 1;
+  schemaVersion: 3;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
   items: Item[];                        // tables, dance floor, DJ; décor and imports from step 2
-  style: { linen: string; linenLength: "lap" | "floor"; chair: string; lighting: "evening" | "day" };
+  style: TableStyle & { linenLength: "lap" | "floor"; settings: boolean; menus: boolean;
+                        tableNumbers: boolean; lighting: "evening" | "day" };
   guests: { count: number; seed: number };
   thresholds: { aisleM: number; clearanceM: number; m2PerDancer: number; dancingShare: number };
-  venueToggles: { communalTable: boolean; barStools: boolean };
+  venueToggles: { communalTable: boolean; barStools: boolean; paintings: Record<string, string> };
   notes: Note[];
   updatedAt: string; updatedBy?: "A" | "B";
 };
 type Item = { id: string; libraryId: string; x: number; z: number; rotY: number;
-              options: Record<string, number | string | boolean>; label?: string };
+              options: Record<string, number | string | boolean>; label?: string;
+              style?: Partial<TableStyle> };   // per-table décor override (DEC-05)
+type TableStyle = { linen: string; chair: string; candles: string; florals: string;   // library ids or "none"
+                    runner: string; napkin: string;                                  // library ids or "none"
+                    floralColour: string; flowerType: string; charger: string };
 ```
 
-The level (main / raised / mezzanine) is derived from the position, not stored. Step 2 adds candles, florals and per-item style overrides with a schema migration.
+The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Older files (versions 1–2) are upgraded by the migrations in `domain/scenario/scenario.ts` (tested).
 
-Schema changes bump `schemaVersion` and add a migration in `domain/scenario/migrations.ts` with a test.
+Schema changes bump `schemaVersion` and add a migration in `domain/scenario/scenario.ts` with a test.
 
 ### 4.3 Commands and undo
 
@@ -127,13 +132,13 @@ The inspector builds its controls from `options`, and library captions from the 
 |---|---|
 | `POST /api/login`, `POST /api/logout`, `GET /api/session` | Shared password → signed httpOnly cookie (HMAC, 30 days). Rate-limited. |
 | `GET /api/scenarios`, `POST /api/scenarios` | List / create. |
-| `GET/PUT/DELETE /api/scenarios/:id` | PUT requires `If-Match: <revision>`; 409 on mismatch returns the server copy (`SCN-03`). |
-| `GET /api/scenarios/:id/versions`, `POST …/restore` | History (last 50 per scenario). |
+| `GET/PUT/DELETE /api/scenarios/:id` | PUT and DELETE require `If-Match: <revision>`; 409 on mismatch returns the server copy (`SCN-03`). Check and write are one atomic Redis script (`EVAL`), so two saves of the same revision never both succeed. |
+| `GET /api/scenarios/:id/versions`, `POST /api/scenarios/:id/versions` `{ revision }` | History (last 50 per scenario); POST restores one as the newest revision. |
 | `GET/POST /api/catalog` | Imported items metadata. |
 | `POST /api/uploads` | Image upload (§6.3). |
 | `GET/POST/PATCH /api/library-requests` | Custom model requests (REQ). Reads also accept `Authorization: Bearer <LIBRARY_REQUESTS_TOKEN>` for Claude sessions. |
 
-All request bodies validated with the shared zod schemas. Responses `Cache-Control: no-store`.
+All request bodies validated with the shared zod schemas. Responses `Cache-Control: no-store`. Without `APP_PASSWORD`, `SESSION_SECRET` (≥ 32 chars) and Upstash credentials the API answers 503 and the app stays local. Notes travel inside the scenario; if the partner only added notes, the client merges them and saves again instead of raising a conflict. Sync tasks run one at a time; a create whose reply was lost is recognised on the next pull, and a new device's untouched venue sample is not added to a non-empty shared list. Locally (`RS_DEV_API=1`) Vite serves the same handlers through `api/_lib/router.ts`, with `RS_MEMORY_STORE=1` for an in-memory store.
 
 ### 6.2 Offline and drafts
 
@@ -157,7 +162,7 @@ CI checks draw calls and triangles (software rendering makes fps meaningless the
 
 ## 8. Security
 
-Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-time compare; login rate limit; security headers (CSP allowing `blob:` and `data:` for textures and workers, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: same-origin`, `X-Robots-Tag: noindex`). No secrets in Git (`.env.example` only).
+Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-time compare; login rate limit (8 tries per 15 min per address, counted atomically before the password is checked); the session signature covers the password, so changing it signs everyone out; security headers (CSP allowing `blob:` and `data:` for textures and workers, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: same-origin`, `X-Robots-Tag: noindex`). No secrets in Git (`.env.example` only).
 
 ## 9. Deployment and CI
 

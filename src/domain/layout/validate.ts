@@ -46,7 +46,12 @@ export function itemTitle(item: Item, labels: ReadonlyMap<string, string>, catal
 /** The item as named inside a sentence ("Too close to table 5"). */
 export function itemName(item: Item, labels: ReadonlyMap<string, string>, catalog: Catalog): string {
   const t = itemTitle(item, labels, catalog);
-  return t.startsWith("Table ") ? `table ${t.slice(6)}` : `the ${t.toLowerCase()}`;
+  if (t.startsWith("Table ")) return `table ${t.slice(6)}`;
+  // Lower-case for use mid-sentence, keeping abbreviations ("the DJ booth").
+  return `the ${t
+    .split(" ")
+    .map((w) => (/^[A-Z]{2,}$/.test(w) ? w : w.toLowerCase()))
+    .join(" ")}`;
 }
 
 /**

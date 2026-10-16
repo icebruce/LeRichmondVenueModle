@@ -11,6 +11,8 @@ import { requestCamera } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
 import { Items } from "./items/Items";
+import { People } from "./items/People";
+import { Advisories } from "./items/Advisories";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
@@ -179,7 +181,7 @@ function TestHooks() {
   return null;
 }
 
-function Scene({ quality }: { quality: Quality }) {
+function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
   const { venue } = useStudio();
   const m = useMaterials();
   const mode = useEditor((s) => s.camera);
@@ -207,6 +209,7 @@ function Scene({ quality }: { quality: Quality }) {
         m={m}
         communalTable={scenario.venueToggles.communalTable}
         art={mode !== "plan"}
+        choices={scenario.venueToggles.paintings}
       />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
@@ -215,14 +218,25 @@ function Scene({ quality }: { quality: Quality }) {
       {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
       <Items m={m} evening={evening} quality={quality} />
-      <CameraRig />
-      <TestHooks />
+      <People low={quality === "low"} />
+      {mode !== "walk" && <Advisories />}
+      <CameraRig follow={follow} />
+      {!follow && <TestHooks />}
       <Effects evening={evening} quality={quality} />
     </>
   );
 }
 
-export function Studio3D({ studio, onReady }: { studio: Studio; onReady?: () => void }) {
+export function Studio3D({
+  studio,
+  onReady,
+  follow = false,
+}: {
+  studio: Studio;
+  onReady?: () => void;
+  /** The side-by-side compare view: same camera as the main view, read-only (SCN-06). */
+  follow?: boolean;
+}) {
   const quality = useMemo(() => detectQuality(), []);
   const dollhouse = studio.venue.data.cameraPresets.dollhouse;
   return (
@@ -241,13 +255,13 @@ export function Studio3D({ studio, onReady }: { studio: Studio; onReady?: () => 
         far: 200,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],
       }}
-      onPointerMissed={() => studio.editor.select([])}
+      onPointerMissed={() => !follow && studio.editor.select([])}
       onCreated={() => onReady?.()}
-      data-testid="studio-canvas"
+      data-testid={follow ? "compare-canvas" : "studio-canvas"}
     >
       <StudioContext.Provider value={studio}>
         <Suspense fallback={null}>
-          <Scene quality={quality} />
+          <Scene quality={quality} follow={follow} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

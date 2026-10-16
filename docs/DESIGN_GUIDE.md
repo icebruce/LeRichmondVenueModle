@@ -34,7 +34,8 @@ Defined once in `src/ui/tokens.css` as CSS custom properties. Never hard-code co
 | `--line` | `#E5E5DF` | Hairlines, dividers |
 | `--accent` | `#98775B` | Brass: selection, primary emphasis, focus ring |
 | `--accent-ink` | `#FFFFFF` | Text on accent |
-| `--advisory` | `#B7791F` | Advisory warnings (amber) |
+| `--advisory` | `#B7791F` | Advisory dots, outlines and overlays (amber) |
+| `--advisory-ink` | `#8A5A12` | Advisory text (≥ 4.5:1 on white and on the amber tint) |
 | `--blocked` | `#C2412D` | Refused move outline only |
 | `--ok` | `#3F7D58` | Rare positive confirmation |
 

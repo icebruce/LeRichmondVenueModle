@@ -2,37 +2,26 @@ import * as THREE from "three";
 import { useEffect, useMemo, useRef } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
-import {
-  type Item,
-  type Shape,
-  chairsWorld,
-  footprint,
-  localFootprint,
-  shapeOf,
-} from "../../domain/layout/items";
+import { type Item, type Shape, footprint, localFootprint, shapeOf } from "../../domain/layout/items";
 import { alignSnap } from "../../domain/layout/align";
 import { checkPlacement, levelHeight, spotFor, toggledObstacles } from "../../domain/layout/validate";
 import { tableLabels } from "../../domain/layout/counts";
 import { type Polygon, centredRect, circle, snap } from "../../domain/geometry";
 import type { Catalog } from "../../domain/library/catalog";
 import type { Scenario } from "../../domain/scenario/schema";
+import { styleOf } from "../../domain/scenario/scenario";
 import { GRID, ROTATE_STEP } from "../../state/editor";
 import { type Drag, viewStore } from "../../state/view";
 import { useEditor, useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import type { Quality } from "../quality";
-import { cocktailCover, ovalBackChair, votive } from "./geometry";
+import { type Placed, LIFT, TOP, moved } from "./common";
+import { Chairs, TableDecor } from "./Decor";
+import { cocktailCover } from "./geometry";
 
-const MAX_CHAIRS = 400;
-const MAX_CANDLES = 300;
-const TOP = 0.765;
 const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 /** A lap-length cloth hangs this far below the table top (LIB-03). */
 const LAP_DROP = 0.3;
-/** Picked-up items float this much, so the drag reads as lifting (DESIGN_GUIDE §5). */
-const LIFT = 0.02;
-
-type Placed = { item: Item; shape: Shape; y: number; ok: boolean };
 
 /** Colours come from the design tokens (tokens.css), so the 3D outline matches the interface. */
 function token(name: string, fallback: string): string {
@@ -40,9 +29,11 @@ function token(name: string, fallback: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-function linenColour(catalog: Catalog, id: string): string {
+/** Cloth colour from the linen's library entry; null for bare wood (DEC-01). */
+function linenColour(catalog: Catalog, id: string): string | null {
   const model = catalog.get(id)?.model;
-  const c = model?.kind === "parametric" ? model.params.colour : undefined;
+  if (model?.kind !== "parametric" || model.params.bare === true) return null;
+  const c = model.params.colour;
   return typeof c === "string" ? c : "#f2efe6";
 }
 
@@ -78,7 +69,7 @@ function TableBody({
   segments,
 }: {
   shape: Shape;
-  linen: THREE.Material;
+  linen: THREE.Material | null;
   lap: boolean;
   m: Materials;
   segments: number;
@@ -87,7 +78,7 @@ function TableBody({
   const clothH = lap ? LAP_DROP : TOP;
   const clothY = TOP - clothH / 2;
   if (shape.kind === "rectTable") {
-    if (shape.farm) {
+    if (shape.farm || !linen) {
       const legs = [-1, 1].flatMap((sx) =>
         [-1, 1].map((sz) => [sx * (shape.length / 2 - 0.12), sz * (shape.width / 2 - 0.1)] as const),
       );
@@ -127,6 +118,17 @@ function TableBody({
   }
   if (shape.kind === "roundTable") {
     const r = shape.diameter / 2;
+    if (!linen)
+      return (
+        <group>
+          <mesh position={[0, TOP - 0.025, 0]} material={m.timber} castShadow receiveShadow>
+            <cylinderGeometry args={[r, r, 0.05, segments]} />
+          </mesh>
+          <mesh position={[0, (TOP - 0.05) / 2, 0]} material={m.blackMetal} castShadow>
+            <cylinderGeometry args={[0.05, 0.05, TOP - 0.05, 8]} />
+          </mesh>
+        </group>
+      );
     return (
       <group>
         <mesh position={[0, clothY, 0]} material={linen} castShadow receiveShadow>
@@ -141,7 +143,13 @@ function TableBody({
     );
   }
   if (shape.kind === "cocktail") {
-    return <mesh geometry={cocktailCover(shape.diameter / 2, shape.height)} material={linen} castShadow />;
+    return (
+      <mesh
+        geometry={cocktailCover(shape.diameter / 2, shape.height)}
+        material={linen ?? m.blackMetal}
+        castShadow
+      />
+    );
   }
   if (shape.kind === "danceFloor") {
     const mat =
@@ -157,6 +165,7 @@ function TableBody({
       </group>
     );
   }
+  if (shape.kind === "backdrop") return <Backdrop shape={shape} m={m} />;
   return (
     <group>
       <mesh position={[0, 0.5, 0]} material={m.djFacade} castShadow>
@@ -185,112 +194,46 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
       return { poly: centredRect(shape.width + 0.05, shape.depth + 0.05), y: 0.035 };
     case "djBooth":
       return { poly: centredRect(shape.width, shape.depth), y: 1.06 };
+    case "backdrop":
+      return { poly: centredRect(shape.width, 0.12), y: shape.height + 0.02 };
   }
 }
 
-function candleSpots(shape: Shape): [number, number][] {
-  if (shape.kind === "rectTable") {
-    if (shape.seats <= 2)
-      return [
-        [-0.25, 0.05],
-        [0.25, 0.05],
-      ];
-    const n = Math.max(3, Math.round(shape.length / 0.9));
-    return Array.from({ length: n }, (_, i) => [
-      -shape.length / 2 + (shape.length / n) * (i + 0.5),
-      (i % 2) * 0.08 - 0.04,
-    ]);
-  }
-  if (shape.kind === "roundTable")
-    return [
-      [0, 0.12],
-      [0.1, -0.06],
-      [-0.1, -0.06],
-    ];
-  if (shape.kind === "cocktail") return [[0, 0]];
-  return [];
-}
-
-function moved(item: Item, d: Drag | null): Item {
-  return d?.ids.includes(item.id)
-    ? { ...item, x: item.x + d.dx, z: item.z + d.dz, rotY: item.rotY + d.dRot }
-    : item;
-}
-
-/** Every chair and votive in the scene as two instanced meshes each (budget: few draw calls). */
-function ChairsAndCandles({
-  placed,
-  m,
-  evening,
-  low,
-}: {
-  placed: Placed[];
-  m: Materials;
-  evening: boolean;
-  low: boolean;
-}) {
-  const drag = useView((s) => s.drag);
-  const chair = useMemo(() => ovalBackChair(low), [low]);
-  const cand = useMemo(() => votive(), []);
-  const meshes = useMemo(
-    () => ({
-      frame: new THREE.InstancedMesh(chair.frame, m.chairFrame, MAX_CHAIRS),
-      fabric: new THREE.InstancedMesh(chair.fabric, m.chairFabric, MAX_CHAIRS),
-      glass: new THREE.InstancedMesh(cand.glass, m.glass, MAX_CANDLES),
-      flame: new THREE.InstancedMesh(cand.flame, m.flame, MAX_CANDLES),
-    }),
-    [chair, cand, m],
+/**
+ * Drapery backdrop (LIB-03): a black frame with one folded sheet of fabric, drawn as a single
+ * wavy plane so it costs one draw call however wide it is.
+ */
+function Backdrop({ shape, m }: { shape: Extract<Shape, { kind: "backdrop" }>; m: Materials }) {
+  const { width: w, height: h, colour } = shape;
+  const cloth = useMemo(() => {
+    const g = new THREE.PlaneGeometry(w, h - 0.06, Math.round(w * 24), 1);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin((pos.getX(i) / 0.28) * Math.PI) * 0.035);
+    g.computeVertexNormals();
+    return g;
+  }, [w, h]);
+  const fabric = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: colour, roughness: 0.92, side: THREE.DoubleSide }),
+    [colour],
   );
   useEffect(
     () => () => {
-      for (const mesh of Object.values(meshes)) mesh.dispose();
-      for (const g of [chair.frame, chair.fabric]) g.dispose();
+      cloth.dispose();
+      fabric.dispose();
     },
-    [meshes, chair],
+    [cloth, fabric],
   );
-  useEffect(() => {
-    meshes.frame.castShadow = meshes.fabric.castShadow = true;
-    const t = new THREE.Object3D();
-    let c = 0;
-    let k = 0;
-    for (const p of placed) {
-      const item = moved(p.item, drag);
-      const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
-      for (const ch of chairsWorld(item, p.shape)) {
-        if (c >= MAX_CHAIRS) break;
-        t.position.set(ch.x, p.y + lift, ch.z);
-        t.rotation.set(0, ch.rotY, 0);
-        t.updateMatrix();
-        meshes.frame.setMatrixAt(c, t.matrix);
-        meshes.fabric.setMatrixAt(c, t.matrix);
-        c++;
-      }
-      const top = p.shape.kind === "cocktail" ? p.shape.height : TOP;
-      const cos = Math.cos(item.rotY);
-      const sin = Math.sin(item.rotY);
-      for (const [lx, lz] of candleSpots(p.shape)) {
-        if (k >= MAX_CANDLES) break;
-        t.position.set(item.x + lx * cos + lz * sin, p.y + top + lift, item.z - lx * sin + lz * cos);
-        t.rotation.set(0, 0, 0);
-        t.updateMatrix();
-        meshes.glass.setMatrixAt(k, t.matrix);
-        meshes.flame.setMatrixAt(k, t.matrix);
-        k++;
-      }
-    }
-    meshes.frame.count = meshes.fabric.count = c;
-    meshes.glass.count = meshes.flame.count = k;
-    for (const mesh of Object.values(meshes)) {
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.computeBoundingSphere();
-    }
-  }, [placed, drag, meshes]);
   return (
-    <group name="chairs-and-candles">
-      <primitive object={meshes.frame} />
-      <primitive object={meshes.fabric} />
-      <primitive object={meshes.glass} />
-      {evening && <primitive object={meshes.flame} />}
+    <group>
+      <mesh geometry={cloth} material={fabric} position={[0, (h - 0.06) / 2, 0]} castShadow receiveShadow />
+      <mesh position={[0, h - 0.02, 0]} material={m.blackMetal}>
+        <boxGeometry args={[w + 0.06, 0.04, 0.04]} />
+      </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[(s * (w + 0.02)) / 2, h / 2, 0]} material={m.blackMetal}>
+          <boxGeometry args={[0.03, h, 0.03]} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -413,7 +356,7 @@ export function Items({
   evening: boolean;
   quality?: Quality;
 }) {
-  const { venue, catalog, editor } = useStudio();
+  const { venue, catalog, editor, readOnly } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
@@ -425,19 +368,36 @@ export function Items({
   const getThree = useThree((s) => s.get);
   const press = useRef<{ x: number; y: number; timer: number | null; started: boolean } | null>(null);
 
-  const colour = linenColour(catalog, scenario.style.linen);
   const lap = scenario.style.linenLength === "lap";
-  const linenMat = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color: colour,
-        roughness: 0.82,
-        sheen: 0.5,
-        sheenColor: new THREE.Color("#ffffff"),
-      }),
-    [colour],
+  // One cloth material per linen in use (DEC-01: a table may override the scenario's linen).
+  const linenIds = useMemo(
+    () => [...new Set(scenario.items.map((it) => styleOf(it, scenario.style).linen))].sort().join("|"),
+    [scenario.items, scenario.style],
   );
-  useEffect(() => () => linenMat.dispose(), [linenMat]);
+  const linens = useMemo(() => {
+    const map = new Map<string, THREE.Material | null>();
+    for (const id of linenIds.split("|")) {
+      const colour = linenColour(catalog, id);
+      map.set(
+        id,
+        colour
+          ? new THREE.MeshPhysicalMaterial({
+              color: colour,
+              roughness: 0.82,
+              sheen: 0.5,
+              sheenColor: new THREE.Color("#ffffff"),
+            })
+          : null,
+      );
+    }
+    return map;
+  }, [linenIds, catalog]);
+  useEffect(
+    () => () => {
+      for (const mat of linens.values()) mat?.dispose();
+    },
+    [linens],
+  );
 
   function setControls(enabled: boolean) {
     const controls = getThree().controls as { enabled?: boolean } | null;
@@ -579,7 +539,7 @@ export function Items({
   }
 
   function onDown(e: ThreeEvent<PointerEvent>, p: Placed) {
-    if (camera === "walk" || e.button > 0) return;
+    if (readOnly || camera === "walk" || e.button > 0) return;
     e.stopPropagation();
     const id = p.item.id;
     const current = editor.store.getState().selection;
@@ -655,7 +615,7 @@ export function Items({
               onPointerDown={(e) => onDown(e, p)}
               onPointerOver={(e) => {
                 e.stopPropagation();
-                if (camera === "walk") return;
+                if (camera === "walk" || readOnly) return;
                 document.body.style.cursor = "grab";
                 viewStore.setState({ hover: p.item.id });
               }}
@@ -665,7 +625,13 @@ export function Items({
               }}
               name={`item-${p.item.id}`}
             >
-              <TableBody shape={p.shape} linen={linenMat} lap={lap} m={m} segments={segments} />
+              <TableBody
+                shape={p.shape}
+                linen={linens.get(styleOf(p.item, scenario.style).linen) ?? null}
+                lap={lap}
+                m={m}
+                segments={segments}
+              />
               {tone && camera !== "walk" && <Outline shape={p.shape} tone={tone} dark={evening} />}
               {showLabels && labels.get(p.item.id) && (
                 <Html center position={[0, 1.0, 0]} zIndexRange={[10, 0]} className="table-label">
@@ -676,7 +642,8 @@ export function Items({
           </group>
         );
       })}
-      <ChairsAndCandles placed={placed} m={m} evening={evening} low={quality === "low"} />
+      <Chairs placed={placed} scenario={scenario} low={quality === "low"} />
+      <TableDecor placed={placed} scenario={scenario} m={m} evening={evening} low={quality === "low"} />
       {/* Touch rotates with the inspector buttons; a 3D handle is too small a target there. */}
       {single && camera !== "walk" && !coarse && !spotFor(single.item, venue) && !drag && (
         <RotateHandle

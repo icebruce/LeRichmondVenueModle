@@ -6,7 +6,7 @@ import type { Item, ItemOptions } from "../domain/layout/items";
 import { checkPlacement, findFreeSpot, spotFor, toggledObstacles } from "../domain/layout/validate";
 import { tableLabels } from "../domain/layout/counts";
 import { normalizeAngle, snap } from "../domain/geometry";
-import type { Scenario } from "../domain/scenario/schema";
+import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 
 enablePatches();
@@ -14,7 +14,9 @@ enablePatches();
 export type CameraMode = "dollhouse" | "plan" | "walk";
 export type Refusal = { itemId: string; reason: string; at: number };
 export type Toast = { id: number; text: string; undo?: () => void };
-export type SaveState = "saved" | "saving" | "error";
+export type SaveState = "saved" | "saving" | "error" | "offline";
+/** The partner saved a newer version while this device was editing (SCN-03). */
+export type Conflict = { id: string; theirs: Scenario };
 
 export type EditorState = {
   scenarios: Record<string, Scenario>;
@@ -28,15 +30,21 @@ export type EditorState = {
   saveState: SaveState;
   /** Bumped on every scenario change; persistence listens to it. */
   version: number;
+  /** Cloud saving shared between both partners is on (SCN-02); off = this device only. */
+  cloud: boolean;
+  conflict: Conflict | null;
   canUndo: boolean;
   canRedo: boolean;
 };
 
-type Step = { label: string; redo: Patch[]; undo: Patch[] };
+type Step = { label: string; redo: Patch[]; undo: Patch[]; at?: number };
 
 export type EditorDeps = { venue: VenueModel; catalog: Catalog; now: () => string; newId: () => string };
 
 const HISTORY_LIMIT = 100;
+/** Steps with these labels made within MERGE_MS of each other undo together. */
+const MERGED = new Set(["Guests", "Check settings"]);
+const MERGE_MS = 800;
 export const GRID = 0.1;
 /** One rotate step. Positive rotY turns counter-clockwise seen from above, so "+15°" (clockwise) is −ROTATE_STEP. */
 export const ROTATE_STEP = Math.PI / 12;
@@ -59,6 +67,8 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     toast: null,
     saveState: "saved",
     version: 0,
+    cloud: false,
+    conflict: null,
     canUndo: false,
     canRedo: false,
   }));
@@ -85,7 +95,16 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     if (!redo.some((p) => p.path[0] !== "updatedAt")) return; // nothing but the timestamp changed
     if (record) {
       const h = hist(id);
-      h.past.push({ label, redo, undo });
+      const last = h.past.at(-1);
+      // Holding or scrubbing a control (guests, check settings) is one undo step, not dozens.
+      if (MERGED.has(label) && last?.label === label && Date.now() - (last.at ?? 0) < MERGE_MS) {
+        h.past[h.past.length - 1] = {
+          label,
+          redo: [...last.redo, ...redo],
+          undo: [...undo, ...last.undo],
+          at: Date.now(),
+        };
+      } else h.past.push({ label, redo, undo, at: Date.now() });
       if (h.past.length > HISTORY_LIMIT) h.past.shift();
       h.future = [];
     }
@@ -286,6 +305,27 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       toast(ids.size === 1 ? "Deleted" : `Deleted ${ids.size} items`, undoLast());
     },
 
+    /** Evening moment (SCN-07): changes where standing guests go (PPL-01). */
+    setPhase(phase: "dinner" | "party") {
+      commit("Moment", (d) => {
+        d.phase = phase;
+      });
+    },
+
+    /** New standing positions for the same count (PPL-02 keeps them until shuffled again). */
+    shuffleGuests() {
+      commit("Shuffle guests", (d) => {
+        d.guests.seed += 1;
+      });
+    },
+
+    /** Advisory thresholds (LAY-08): aisle, clearance, m² per dancer, share dancing. */
+    setThreshold(key: keyof Scenario["thresholds"], value: number) {
+      commit("Check settings", (d) => {
+        d.thresholds[key] = value;
+      });
+    },
+
     setGuests(count: number) {
       commit("Guests", (d) => {
         d.guests.count = Math.max(0, Math.min(400, Math.round(count)));
@@ -303,7 +343,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       );
     },
 
-    setVenueToggle(key: keyof Scenario["venueToggles"], value: boolean): boolean {
+    setVenueToggle(key: "communalTable" | "barStools", value: boolean): boolean {
       if (value) {
         const toggles = { ...active().venueToggles, [key]: true };
         const blocked = active().items.find((it) => {
@@ -316,6 +356,43 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         d.venueToggles[key] = value;
       });
       return true;
+    },
+
+    /** Show the current artwork (null), hide it ("hidden") or swap it for another (VEN-05). */
+    setPainting(id: string, choice: string | null) {
+      commit("Painting", (d) => {
+        const rest = Object.entries(d.venueToggles.paintings).filter(([k]) => k !== id);
+        d.venueToggles.paintings = Object.fromEntries(choice === null ? rest : [...rest, [id, choice]]);
+      });
+    },
+
+    /**
+     * Décor (DEC-01..05). `"all"` sets the scenario style and clears those keys from every table's
+     * override, so all tables match; a list of ids sets an override on just those tables.
+     */
+    applyStyle(target: "all" | string[], patch: Partial<TableStyle>) {
+      const keys = Object.keys(patch);
+      // An override equal to the scenario style is no override; an empty one is removed.
+      const settle = (it: Item, own: Partial<TableStyle>, base: TableStyle) => {
+        const kept = Object.fromEntries(
+          Object.entries(own).filter(([k, v]) => v !== base[k as keyof TableStyle]),
+        );
+        if (Object.keys(kept).length) it.style = kept;
+        else delete it.style;
+      };
+      commit("Décor", (d) => {
+        if (target === "all") Object.assign(d.style, patch);
+        for (const it of d.items) {
+          if (target === "all") {
+            if (it.style)
+              settle(
+                it,
+                Object.fromEntries(Object.entries(it.style).filter(([k]) => !keys.includes(k))),
+                d.style,
+              );
+          } else if (target.includes(it.id)) settle(it, { ...it.style, ...patch }, d.style);
+        }
+      });
     },
 
     undo() {
@@ -363,13 +440,75 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       return id;
     },
 
-    addScenario(s: Scenario) {
+    addScenario(s: Scenario, activate = true) {
       set((st) => ({
         scenarios: { ...st.scenarios, [s.id]: s },
-        order: [...st.order, s.id],
+        order: st.order.includes(s.id) ? st.order : [...st.order, s.id],
         version: st.version + 1,
       }));
-      api.switchScenario(s.id);
+      if (activate) api.switchScenario(s.id);
+    },
+
+    // ---- cloud (SCN-02..05): server copies replace local ones without an undo step ----
+
+    setCloud(cloud: boolean) {
+      set({ cloud });
+    },
+
+    setConflict(conflict: Conflict | null) {
+      set({ conflict });
+    },
+
+    /** Take the server's copy of a scenario (partner's newer version, a restored version). */
+    replaceScenario(s: Scenario) {
+      if (!get().scenarios[s.id]) return api.addScenario(s, false);
+      history.delete(s.id);
+      set((st) => ({
+        scenarios: { ...st.scenarios, [s.id]: s },
+        version: st.version + 1,
+        selection: st.activeId === s.id ? [] : st.selection,
+      }));
+      syncHistoryFlags();
+    },
+
+    /** The partner deleted a scenario this device had not changed. */
+    dropScenario(id: string) {
+      const st = get();
+      if (!st.scenarios[id] || st.order.length <= 1) return;
+      const order = st.order.filter((o) => o !== id);
+      set({
+        scenarios: Object.fromEntries(Object.entries(st.scenarios).filter(([k]) => k !== id)),
+        order,
+        version: st.version + 1,
+      });
+      if (st.activeId === id) api.switchScenario(order[0] as string);
+    },
+
+    /** Bring in notes merged with the partner's (not an undo step). */
+    setNotes(id: string, notes: Scenario["notes"]) {
+      const s = get().scenarios[id];
+      if (!s) return;
+      set((st) => ({ scenarios: { ...st.scenarios, [id]: { ...s, notes } }, version: st.version + 1 }));
+    },
+
+    /** Record the revision the server gave this scenario (not a user change). */
+    setRevision(id: string, revision: number) {
+      const s = get().scenarios[id];
+      if (!s || s.revision === revision) return;
+      set((st) => ({ scenarios: { ...st.scenarios, [id]: { ...s, revision } }, version: st.version + 1 }));
+    },
+
+    /** A note for the partner on the active scenario (SCN-05); not part of undo. */
+    addNote(text: string, author: "A" | "B") {
+      const trimmed = text.trim().slice(0, 2000);
+      if (!trimmed) return;
+      commit(
+        "Note",
+        (d) => {
+          d.notes.push({ id: newId(), author, text: trimmed, at: now() });
+        },
+        false,
+      );
     },
 
     duplicateScenario(id: string): string {

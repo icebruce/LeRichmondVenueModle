@@ -44,12 +44,6 @@ export function ovalBackChair(low = false): { frame: THREE.BufferGeometry; fabri
   return { frame: merge(frame), fabric: merge(fabric) };
 }
 
-export function votive(): { glass: THREE.BufferGeometry; flame: THREE.BufferGeometry } {
-  const glass = new THREE.CylinderGeometry(0.035, 0.032, 0.075, 16, 1, true).translate(0, 0.0375, 0);
-  const flame = new THREE.SphereGeometry(0.012, 8, 6).scale(1, 1.8, 1).translate(0, 0.05, 0);
-  return { glass, flame };
-}
-
 /** Stretch cover for a cocktail high-top: narrow waist, flared foot (lathe). */
 export function cocktailCover(radius: number, height: number): THREE.BufferGeometry {
   const pts = [
@@ -61,4 +55,62 @@ export function cocktailCover(radius: number, height: number): THREE.BufferGeome
     new THREE.Vector2(0, height),
   ];
   return new THREE.LatheGeometry(pts, 40);
+}
+
+/** Wood cross-back chair with a rush seat. Faces +z; frame and seat as two geometries. */
+export function crossbackChair(low = false): { frame: THREE.BufferGeometry; fabric: THREE.BufferGeometry } {
+  const frame: THREE.BufferGeometry[] = [];
+  for (const [x, z, h] of [
+    [-0.19, 0.18, 0.45],
+    [0.19, 0.18, 0.45],
+    [-0.19, -0.18, 0.92],
+    [0.19, -0.18, 0.92],
+  ] as const)
+    frame.push(new THREE.BoxGeometry(0.035, h, 0.035).translate(x, h / 2, z));
+  frame.push(new THREE.BoxGeometry(0.42, 0.05, 0.03).translate(0, 0.9, -0.18));
+  frame.push(new THREE.BoxGeometry(0.42, 0.03, 0.03).translate(0, 0.5, -0.18));
+  for (const s of [-1, 1]) {
+    const bar = new THREE.BoxGeometry(0.025, 0.46, 0.02);
+    bar.rotateZ(s * 0.72);
+    bar.translate(0, 0.7, -0.18);
+    frame.push(bar);
+  }
+  for (const z of [0.18, -0.18]) frame.push(new THREE.BoxGeometry(0.38, 0.02, 0.02).translate(0, 0.15, z));
+  const seat = new THREE.BoxGeometry(0.42, 0.05, 0.4, low ? 1 : 4, 1, low ? 1 : 4).translate(0, 0.46, 0);
+  return { frame: merge(frame), fabric: seat.toNonIndexed() };
+}
+
+/** Chiavari chair: thin tapered legs with rungs, spindle back, cushion. Faces +z. */
+export function chiavariChair(low = false): { frame: THREE.BufferGeometry; fabric: THREE.BufferGeometry } {
+  const seg = low ? 5 : 8;
+  const frame: THREE.BufferGeometry[] = [];
+  for (const [x, z, h] of [
+    [-0.19, 0.17, 0.44],
+    [0.19, 0.17, 0.44],
+    [-0.18, -0.17, 0.92],
+    [0.18, -0.17, 0.92],
+  ] as const)
+    frame.push(new THREE.CylinderGeometry(0.014, 0.011, h, seg).translate(x, h / 2, z));
+  for (const y of [0.18, 0.3]) {
+    frame.push(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.38, seg).rotateZ(Math.PI / 2).translate(0, y, 0.17),
+    );
+    frame.push(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.36, seg).rotateZ(Math.PI / 2).translate(0, y, -0.17),
+    );
+  }
+  frame.push(new THREE.BoxGeometry(0.42, 0.03, 0.4).translate(0, 0.43, 0));
+  for (const y of [0.62, 0.76, 0.9])
+    frame.push(new THREE.CylinderGeometry(0.01, 0.01, 0.36, seg).rotateZ(Math.PI / 2).translate(0, y, -0.17));
+  for (const x of [-0.09, 0, 0.09])
+    frame.push(new THREE.CylinderGeometry(0.007, 0.007, 0.42, seg).translate(x, 0.69, -0.17));
+  const cushion = new THREE.BoxGeometry(0.4, 0.05, 0.38).translate(0, 0.47, 0.005);
+  return { frame: merge(frame), fabric: cushion.toNonIndexed() };
+}
+
+/** Chair geometry by library `params.style` (DEC-04, LIB-02). */
+export function chairGeometry(style: string, low: boolean) {
+  if (style === "crossback") return crossbackChair(low);
+  if (style === "chiavari") return chiavariChair(low);
+  return ovalBackChair(low);
 }

@@ -14,6 +14,7 @@
   --accent-ink: #ffffff;
   --advisory: #b7791f;
   --advisory-soft: #fbf1df;
+  --advisory-ink: #8a5a12;
   --blocked: #c2412d;
   --blocked-soft: #fbe9e6;
   --toast-bg: rgba(32, 37, 34, 0.92);
@@ -57,6 +58,8 @@
   --m-slow: 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --target: 44px;
+  /* Desktop section rail width (DESIGN_GUIDE §3.1). */
+  --rail-w: 72px;
 }
 
 @media (prefers-reduced-motion: reduce) {

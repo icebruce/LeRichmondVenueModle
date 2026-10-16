@@ -56,7 +56,8 @@ export function persistLocal(
         activeId: st.activeId,
         ...(unreadable.length ? { unreadable } : {}),
       } satisfies Saved);
-      editor.setSaveState("saved");
+      // With cloud saving on, the top bar reports the shared save instead (data/cloud.ts).
+      if (!editor.store.getState().cloud) editor.setSaveState("saved");
     } catch (e) {
       console.error(e);
       editor.setSaveState("error");
@@ -71,7 +72,7 @@ export function persistLocal(
   };
   const unsub = editor.store.subscribe((s, prev) => {
     if (s.version === prev.version && s.activeId === prev.activeId) return;
-    editor.setSaveState("saving");
+    if (!s.cloud) editor.setSaveState("saving");
     window.clearTimeout(timer);
     timer = window.setTimeout(() => {
       timer = undefined;

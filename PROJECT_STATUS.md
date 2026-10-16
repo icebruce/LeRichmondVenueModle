@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Step 1 built and reviewed (2026-10-16); review fixes applied; awaiting the owner's recognition check on the Vercel preview. Step 2 not started.
+**Current stage:** Step 1 merged (PR #1, owner-approved 2026-10-16). Step 2 built (PR #2): people, décor (runners, napkins, menu cards, table numbers, flower types, drapery backdrop), advisory checks, export, shared cloud saving (password, conflicts, version history, notes), side-by-side compare and swappable paintings; review findings fixed, awaiting the owner's check on the preview. Cloud saving needs the owner's one-time Vercel setup (README).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -8,8 +8,8 @@
 | Step | Delivers | Requirements | Gate | State |
 |---|---|---|---|---|
 | 0 | Docs restructure, `.claude` agents/skills/hooks, lo-fi mockup with venue map | — | Owner approves mockup | Done |
-| 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Built; at owner gate |
-| 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Not started |
+| 1 | Tooling scaffold; recognizable evening venue; three cameras; tables/chairs/dance floor/DJ; counts; F01 scenario; local scenarios + JSON; deployed preview | VEN-01..04, CAM-01..03, CAM-05, LGT-01..03, LAY-01..07, LAY-09..11, SCN-01, SCN-08, SCN-09, ACC-02, PLT-01..03, LIB-01, LIB-02 (oval-back), LIB-03 (basic), LIB-11, LIB-12 | Owner recognizes the room; layout usable | Done (merged 2026-10-16) |
+| 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | In progress |
 | 3 | Library completion (plants, lights, signs, event pieces, richer florals); inspiration import; custom model requests; Sit here view; polish | LIB-06..10, IMP-01..07, REQ-01..04, CAM-04 | Owner imports a real centrepiece; one custom request delivered | Not started |
 
 ## Decisions
@@ -27,6 +27,12 @@
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
 - Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
+- Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine — as modelled.
+- Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
+- Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).
+- LIB-03 "drapery panels" is built as a placeable drapery backdrop (fabric panels on a frame, width and colour as options), e.g. behind the sweetheart table; wall or ceiling draping stays with step 3 (LIB-10). Interpretation to confirm with the owner.
+- Phone compare: the two halves stack above the sheet; the half-height sheet stays at peek while comparing (2026-10-16).
+- Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
@@ -40,6 +46,11 @@
 - Second fidelity round (verdict before it: borderline): R03, R09 and UV01 cameras re-aimed; ceiling 7.2 → 6.5 m and garage-door heads 3.9 → 4.4 m (ratio M, split between the two L); one steel girder and one duct removed; bar south edge → 6.4 m (about square); wine wall moved to the back bar's east end; west EXIT beside garage-south with green panelling to it; deeper mezzanine fascia; street windows off-white, three panes wide; lit kitchen behind the pass.
 - A polished build is not proof of fidelity: the owner's recognition check on the preview is the gate.
 
+## Step 2 quality (2026-10-16)
+
+- Reviews: UX 2 blockers / 11 majors, spec 2 blockers / 5 majors; all fixed. Highlights: compare panes beside the panel with their own names and counts; aisle advisories outline the real gap with a "≈ 0.7 m" label, live while dragging; plan export at 300 dpi with ≥ 8 pt text; atomic saves and deletes on the server (two saves of one revision can no longer both win); login limit counted before the password check; a lost create reply, a new device's untouched venue sample and deletes over a partner's newer save are handled; checks count shown venue furniture (LAY-12).
+- Budget test now uses the heaviest décor (tall arrangements, 5-arm candelabra, chiffon runners, full settings with napkins, menus and numbers) on 15 round tables with 150 guests.
+
 ## Verified vs inferred
 
 See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, §5 corrections to the original handover).
@@ -48,8 +59,10 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 - Raised floor height and step positions; stair run and turn (evidence matrix §6).
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
-- Phone: tap-and-hold drag and the joystick need a check on a real phone (pointer handling is tested in software only).
+- Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
+- Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
+- Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
 - Venue: table sizes for 8–14 seats.
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Image storage for imports: Upstash vs Vercel Blob, decided in step 3 from measured limits.

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
+import { artFor } from "../../domain/venue/art";
 import type { OpeningData, WallData } from "../../domain/venue/schema";
 import { type Materials, boxGeo } from "../materials";
 import { paintingTexture } from "../textures";
@@ -219,7 +220,19 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
   }, [venue]);
   const bottles = useMemo(() => {
     const [x0, z0, x1] = venue.data.backBar.rect.value;
-    const geo = new THREE.CylinderGeometry(0.035, 0.04, 0.3, 8);
+    // Bottle profile: body, shoulder, neck (lathe), so shelves read as bottles, not book spines.
+    const geo = new THREE.LatheGeometry(
+      [
+        [0, 0],
+        [0.034, 0],
+        [0.035, 0.19],
+        [0.028, 0.23],
+        [0.012, 0.26],
+        [0.011, 0.31],
+        [0, 0.31],
+      ].map(([x, y]) => new THREE.Vector2(x, y)),
+      10,
+    );
     const mat = new THREE.MeshStandardMaterial({
       color: "#ffffff",
       roughness: 0.15,
@@ -236,7 +249,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
         // Gaps between groups of bottles, as on a working back bar.
         if ((Math.floor(x * 7.3) + Math.round(y * 10)) % 9 === 0) continue;
         const h = 0.8 + ((n * 13) % 7) * 0.07;
-        t.position.set(x, y + 0.02 + 0.15 * h, z0 + 0.22 + ((n * 7) % 3) * 0.06);
+        t.position.set(x, y + 0.02, z0 + 0.22 + ((n * 7) % 3) * 0.06);
         t.scale.set(1, h, 1);
         t.updateMatrix();
         mesh.setMatrixAt(n, t.matrix);
@@ -277,7 +290,8 @@ export function Furnishings({
   m,
   communalTable,
   art,
-}: Omit<P, "evening"> & { communalTable: boolean; art: boolean }) {
+  choices,
+}: Omit<P, "evening"> & { communalTable: boolean; art: boolean; choices: Record<string, string> }) {
   const g = useMemo(() => {
     const f = venue.data.fixtures;
     const seats: THREE.BufferGeometry[] = [];
@@ -301,13 +315,20 @@ export function Furnishings({
     const communal = boxGeo(cx0, 0, cz0, cx1, f.venueFurniture.communalTable.height, cz1);
     return { seats: merge(seats), backs: merge(backs), wine, wineCanopy, communal };
   }, [venue]);
+  // Hidden or swapped per scenario (VEN-05).
   const paintings = useMemo(
     () =>
-      venue.data.fixtures.paintings.map((p, i) => ({
-        ...p,
-        tex: paintingTexture(p.palette, 11 + i * 31),
-      })),
-    [venue],
+      venue.data.fixtures.paintings.flatMap((p, i) => {
+        const a = artFor(choices[p.id], p.palette);
+        return a.hidden ? [] : [{ ...p, tex: paintingTexture(a.palette, 11 + i * 31) }];
+      }),
+    [venue, choices],
+  );
+  useEffect(
+    () => () => {
+      for (const p of paintings) p.tex.dispose();
+    },
+    [paintings],
   );
   return (
     <group name="furnishings">
