@@ -278,10 +278,20 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room an
       return ed.active().items.length;
     });
     expect(tables).toBe(27);
-    await page.waitForTimeout(2000);
-    const info = await page.evaluate(() =>
-      (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
-    );
+    // Measure the settled room: software rendering takes a few seconds to rebuild every mesh after
+    // 27 additions, and a frame mid-rebuild can briefly hold old and new meshes together.
+    const read = () =>
+      page.evaluate(() =>
+        (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
+      );
+    let info = await read();
+    for (let i = 0; i < 30; i++) {
+      await page.waitForTimeout(500);
+      const next = await read();
+      const settled = next.calls === info.calls && next.triangles === info.triangles;
+      info = next;
+      if (settled && i >= 3) break;
+    }
     console.log(`${quality}: ${info.calls} draw calls, ${info.triangles} triangles`);
     expect(info.calls).toBeGreaterThan(0);
     expect(info.calls).toBeLessThan(calls);
