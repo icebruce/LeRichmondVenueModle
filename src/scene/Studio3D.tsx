@@ -174,6 +174,8 @@ function TestHooks() {
     (window as unknown as { __rig?: typeof rig }).__rig = rig;
     (window as unknown as { __camera?: typeof requestCamera }).__camera = requestCamera;
     (window as unknown as { __pose?: () => number[] }).__pose = () => get().camera.position.toArray();
+    (window as unknown as { __facing?: () => number[] }).__facing = () =>
+      get().camera.getWorldDirection(new THREE.Vector3()).toArray();
     return () => {
       if (w.__project === fn) delete w.__project;
     };

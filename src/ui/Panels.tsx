@@ -420,6 +420,7 @@ const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
   { id: "plant", name: "Plants" },
   { id: "light", name: "Lights" },
   { id: "sign", name: "Signs" },
+  { id: "chair", name: "Lounge" },
 ];
 
 export function LayoutPanel() {
@@ -428,7 +429,11 @@ export function LayoutPanel() {
   const placeable = useMemo(
     () =>
       [...catalog.values()].filter(
-        (e) => e.placement !== "table" && e.placement !== "material" && e.family !== "chair",
+        // Table chairs are a décor choice; lounge seating is placed like any piece.
+        (e) =>
+          e.placement !== "table" &&
+          e.placement !== "material" &&
+          !(e.model.kind === "parametric" && e.model.generator === "chair"),
       ),
     [catalog],
   );
@@ -691,7 +696,7 @@ export function DecorPanel() {
       )}
       <Chips
         label="Chairs"
-        options={family("chair").map((e) => ({ id: e.id, name: e.name.replace(" chair", "") }))}
+        options={family("chair", "chair").map((e) => ({ id: e.id, name: e.name.replace(" chair", "") }))}
         value={shown.chair}
         onPick={(id) => apply({ chair: id })}
         testId="chair"

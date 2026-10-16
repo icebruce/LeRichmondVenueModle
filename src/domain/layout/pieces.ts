@@ -147,10 +147,19 @@ function plant(p: Values, size: Size, rand: () => number): Piece {
       const a = (i / n) * Math.PI * 2 + rand() * 0.3;
       const tipY = base + crownH * (0.2 + rand() * 0.3);
       parts.push({ ...rod("leaf", [0, base], [reach, tipY], 0, 0.012), ry: -a });
-      for (let j = 1; j <= 5; j++) {
-        const f = j / 6;
+      // Paired leaflets along each frond, longest mid-way, so it reads as a palm, not spokes.
+      const pairs = p.quality === "low" ? 5 : 8;
+      for (let j = 1; j <= pairs; j++) {
+        const f = j / (pairs + 1);
         const y = base + (tipY - base) * f + crownH * 0.45 * Math.sin(f * Math.PI);
-        parts.push({ ...ball("leaf", Math.cos(a) * reach * f, y, Math.sin(a) * reach * f, leaf), sy: 0.012 });
+        const along = leaf * (0.5 + Math.sin(f * Math.PI));
+        parts.push({
+          ...ball("leaf", Math.cos(a) * reach * f, y, Math.sin(a) * reach * f, leaf),
+          sx: along,
+          sy: 0.012,
+          sz: leaf * 0.7,
+          ry: -a,
+        });
       }
     }
     return { width: size.w, depth: size.d, height: size.h, parts };
@@ -454,7 +463,7 @@ function sign(p: Values, o: Values, size: Size): Piece {
     return {
       width: w,
       depth: size.d,
-      height: hang + 0.5,
+      height: hang + 0.25,
       // Clear acrylic backer, with the tube colour glowing softly on the wall behind it.
       parts: [
         box("glass", 0, hang - 0.25, 0, w, 0.5, 0.01),
@@ -609,6 +618,40 @@ function event(p: Values, o: Values, size: Size, rand: () => number): Piece {
         );
       }
       return { width: size.w, depth: size.d, height: 1.05, parts };
+    }
+    case "lounge": {
+      // Lounge armchair or loveseat (LIB-02): upholstered base, seat cushions, back and arms on short legs.
+      const colour = str(o.colour, "#3f5a4a");
+      const arm = 0.14;
+      const inner = size.w - arm * 2;
+      const seats = Math.max(1, Math.round(num(p.seats, 1)));
+      const parts: Part[] = [box("fabric", 0, 0.1, 0, size.w, 0.3, size.d, colour)];
+      for (let i = 0; i < seats; i++)
+        parts.push(
+          box(
+            "fabric",
+            -inner / 2 + (inner / seats) * (i + 0.5),
+            0.4,
+            0.06,
+            inner / seats - 0.02,
+            0.1,
+            size.d - 0.2,
+            colour,
+          ),
+        );
+      parts.push(
+        box("fabric", 0, 0.4, -size.d / 2 + 0.09, inner, size.h - 0.4, 0.18, colour),
+        box("fabric", -size.w / 2 + arm / 2, 0.4, 0, arm, 0.25, size.d, colour),
+        box("fabric", size.w / 2 - arm / 2, 0.4, 0, arm, 0.25, size.d, colour),
+      );
+      for (const [x, z] of [
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [1, 1],
+      ] as const)
+        parts.push(cyl("wood", x * (size.w / 2 - 0.06), 0, z * (size.d / 2 - 0.06), 0.025, 0.1));
+      return { width: size.w, depth: size.d, height: size.h, parts };
     }
     default:
       throw new Error(`Unknown event piece kind ${kind}`);

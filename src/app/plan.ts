@@ -206,8 +206,8 @@ export function drawPlan(
       // Floor pieces as solid outlines; hanging ones dashed (they are above the floor).
       const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
       poly(fp, shape.blocks ? FILL : null, INK_2, 1.2, shape.blocks ? [] : [6, 5]);
-      const [x, y] = P([it.x, it.z]);
-      text(entry?.name ?? "", x, y, `500 17px ${UI}`, INK_2, "center");
+      // Names only on floor pieces: hanging ones would print over the table numbers under them.
+      if (shape.blocks) text(entry?.name ?? "", ...P([it.x, it.z]), `500 17px ${UI}`, INK_2, "center");
       continue;
     }
     if (shape.kind === "backdrop") {

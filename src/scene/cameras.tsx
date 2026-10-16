@@ -351,7 +351,7 @@ function WalkControls() {
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
       l.yaw = Math.atan2(-dir.x, -dir.z);
-      l.pitch = 0;
+      l.pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
       l.ready = true;
     }
     l.yaw -= input.look[0] * dt * 1.6;

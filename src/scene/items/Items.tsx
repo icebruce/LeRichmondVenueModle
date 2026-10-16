@@ -5,6 +5,7 @@ import { Html, Line } from "@react-three/drei";
 import {
   type Item,
   type Shape,
+  blocksFloor,
   chairsWorld,
   footprint,
   localFootprint,
@@ -26,6 +27,12 @@ import { type Placed, LIFT, TOP, moved } from "./common";
 import { Chairs, TableDecor } from "./Decor";
 import { type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
+
+/** The item an intersected mesh belongs to (its `item-<id>` group), if any. */
+function itemIdOf(o: THREE.Object3D | null): string | null {
+  for (; o; o = o.parent) if (o.name.startsWith("item-")) return o.name.slice(5);
+  return null;
+}
 
 const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 /** A lap-length cloth hangs this far below the table top (LIB-03). */
@@ -164,7 +171,7 @@ function TableBody({
   if (shape.kind === "danceFloor") {
     const mat =
       shape.finish === "led"
-        ? ledFloor(evening)
+        ? ledFloor(evening, shape.width, shape.depth)
         : shape.finish === "white"
           ? m.danceWhite
           : shape.finish === "black"
@@ -185,7 +192,7 @@ function TableBody({
   if (shape.kind === "piece") return <PieceBody shape={shape} evening={evening} />;
   return (
     <group>
-      <mesh position={[0, 0.5, 0]} material={djFront(shape.front, m, evening)} castShadow>
+      <mesh position={[0, 0.5, 0]} material={djFront(shape.front, m, evening, shape.width)} castShadow>
         <boxGeometry args={[shape.width, 1.0, shape.depth]} />
       </mesh>
       <mesh position={[0, 1.02, -0.05]} material={m.blackMetal}>
@@ -218,10 +225,11 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
   }
 }
 
-/** LED dance floor (LIB-10): a grid of lit tiles, glowing in the evening. One shared material. */
-const led = new Map<boolean, THREE.MeshStandardMaterial>();
-function ledFloor(evening: boolean): THREE.MeshStandardMaterial {
-  let mat = led.get(evening);
+/** LED dance floor (LIB-10): a grid of lit 60 cm tiles, glowing in the evening. Shared per size. */
+const led = new Map<string, THREE.MeshStandardMaterial>();
+function ledFloor(evening: boolean, width: number, depth: number): THREE.MeshStandardMaterial {
+  const key = `${evening}|${width}|${depth}`;
+  let mat = led.get(key);
   if (!mat) {
     const c = document.createElement("canvas");
     c.width = c.height = 256;
@@ -240,7 +248,8 @@ function ledFloor(evening: boolean): THREE.MeshStandardMaterial {
     const map = new THREE.CanvasTexture(c);
     map.colorSpace = THREE.SRGBColorSpace;
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
-    map.repeat.set(2.5, 2.5);
+    // The texture holds 4 × 4 tiles of 60 cm, so the tiles keep their size on any floor.
+    map.repeat.set(width / 2.4, depth / 2.4);
     mat = new THREE.MeshStandardMaterial({
       map,
       emissiveMap: map,
@@ -248,16 +257,16 @@ function ledFloor(evening: boolean): THREE.MeshStandardMaterial {
       emissiveIntensity: evening ? 1.2 : 0.1,
       roughness: 0.2,
     });
-    led.set(evening, mat);
+    led.set(key, mat);
   }
   return mat;
 }
 
 /** DJ booth front (LIB-10): black, white, mirror or lit LED. */
 const fronts = new Map<string, THREE.Material>();
-function djFront(front: string, m: Materials, evening: boolean): THREE.Material {
+function djFront(front: string, m: Materials, evening: boolean, width: number): THREE.Material {
   if (front === "black") return m.djFacade;
-  if (front === "led") return ledFloor(evening);
+  if (front === "led") return ledFloor(evening, width, 1);
   let mat = fronts.get(front);
   if (!mat) {
     mat =
@@ -275,8 +284,9 @@ function djFront(front: string, m: Materials, evening: boolean): THREE.Material 
  */
 function PieceBody({ shape, evening }: { shape: Extract<Shape, { kind: "piece" }>; evening: boolean }) {
   const piece = makePiece(shape.generator, shape.params, shape.options, shape.size);
-  // Hanging pieces are picked by their top 40 cm only, so tables under them stay easy to select.
-  const hitH = shape.blocks ? shape.height : Math.min(0.4, shape.height);
+  // A hung piece is picked by its body (from 30 cm under where it hangs), not the air beneath it.
+  const hang = shape.options.hang;
+  const hitH = shape.blocks || typeof hang !== "number" ? shape.height : shape.height - hang + 0.3;
   return (
     <group>
       <mesh position={[0, shape.height - hitH / 2, 0]}>
@@ -517,6 +527,10 @@ export function Items({
   const drag = useView((s) => s.drag);
   const hover = useView((s) => s.hover);
   const placed = usePlaced(scenario);
+  const blocking = useMemo(
+    () => new Set(placed.filter((p) => blocksFloor(p.shape)).map((p) => p.item.id)),
+    [placed],
+  );
   const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const toPlane = useFloorPointer();
   const getThree = useThree((s) => s.get);
@@ -694,9 +708,17 @@ export function Items({
 
   function onDown(e: ThreeEvent<PointerEvent>, p: Placed) {
     if (readOnly || camera === "walk" || e.button > 0) return;
-    e.stopPropagation();
     const id = p.item.id;
     const current = editor.store.getState().selection;
+    // A hanging or projected piece over a table gives way to the table (from above it covers it);
+    // once that table is selected, the next click reaches the piece.
+    if (!blocksFloor(p.shape)) {
+      const under = e.intersections
+        .map((i) => itemIdOf(i.object))
+        .find((other) => other && other !== id && blocking.has(other));
+      if (under && !current.includes(id) && !current.includes(under)) return;
+    }
+    e.stopPropagation();
     const ids = e.shiftKey
       ? current.includes(id)
         ? current.filter((s) => s !== id)

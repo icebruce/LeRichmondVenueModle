@@ -59,7 +59,7 @@ const item = (libraryId: string, x = 9, z = 8, options = {}): Item => ({
 });
 
 describe("step-3 library pieces", () => {
-  test("[LIB-01] [LIB-06] [LIB-07] [LIB-08] [LIB-09] [LIB-10] every family is stocked", () => {
+  test("[LIB-01] [LIB-02] [LIB-06] [LIB-07] [LIB-08] [LIB-09] [LIB-10] every family is stocked", () => {
     const has = (prefix: string) => pieces.filter((e) => e.id.startsWith(prefix)).map((e) => e.id);
     expect(has("plant-")).toHaveLength(6);
     expect(has("light-")).toEqual(
@@ -87,6 +87,8 @@ describe("step-3 library pieces", () => {
         "bar-module",
         "table-cake",
         "table-gift",
+        "chair-lounge",
+        "chair-loveseat",
       ]),
     );
   });

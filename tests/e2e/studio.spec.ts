@@ -67,7 +67,7 @@ test("[LIB-01] [LIB-02] add a round table and a dance floor from the library", a
   await expect(page.getByTestId("count-seats")).toHaveText("8");
 });
 
-test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lights over a table, a neon sign's words", async ({
+test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lights over a table pick the table first, a neon sign's words", async ({
   page,
 }) => {
   await openStudio(page, "fresh");
@@ -77,6 +77,27 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   await page.getByTestId("category-light").click();
   await page.getByTestId("add-light-string").click();
   await page.getByRole("button", { name: "Done" }).click();
+  // Hung over table 2, the strand is allowed; seen from above, a click there picks the table first.
+  const strand = (await state(page)).active?.items.find((i) => i.libraryId === "light-string")?.id ?? "";
+  const t2 = await item(page, "t2");
+  await page.evaluate(
+    ({ id, x, z }) => {
+      const ed = (window as unknown as W).__studio.editor as unknown as {
+        moveItems: (m: { id: string; x: number; z: number }[]) => void;
+        select: (ids: string[]) => void;
+      };
+      ed.moveItems([{ id, x, z }]);
+      ed.select([]);
+    },
+    { id: strand, x: t2.x, z: t2.z },
+  );
+  await setCamera(page, "plan");
+  const [sx, sy] = await screenOf(page, t2.x, 2.8, t2.z);
+  await page.mouse.click(sx, sy);
+  expect((await state(page)).selection).toEqual(["t2"]);
+  await page.mouse.click(sx, sy);
+  expect((await state(page)).selection).toEqual([strand]);
+  await setCamera(page, "dollhouse");
   await page.getByTestId("category-sign").click();
   await page.getByTestId("add-sign-neon").click();
   await page.getByTestId("text").fill("Ana & Ben");
@@ -104,6 +125,9 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
       return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
   await page.getByTestId("section-decor").click();
+  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from the library.
+  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
+  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
   await page.getByTestId("linen-linen-white").click();
   await page.getByTestId("linen-length-lap").click();
   await page.getByTestId("candles-candle-tapers").click();
@@ -352,9 +376,14 @@ test("[CAM-04] sit at a chair: seated eye height, facing the table; stand up ret
   const pose = await page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
   const t2 = await item(page, "t2");
   // Seated eye height (1.2 m above the floor it stands on) at the edge of table 2.
-  expect(pose[1] ?? 0).toBeGreaterThan(1.1);
-  expect(pose[1] ?? 0).toBeLessThan(1.6);
+  expect(pose[1] ?? 0).toBeGreaterThan(1.15);
+  expect(pose[1] ?? 0).toBeLessThan(1.25);
   expect(Math.hypot((pose[0] ?? 0) - t2.x, (pose[2] ?? 0) - t2.z)).toBeLessThan(2.2);
+  // Facing the table's centre: the view's heading points at it within 10°.
+  const facing = await page.evaluate(() => (window as unknown as { __facing: () => number[] }).__facing());
+  const heading = Math.atan2(facing[0] ?? 0, facing[2] ?? 0);
+  const toTable = Math.atan2(t2.x - (pose[0] ?? 0), t2.z - (pose[2] ?? 0));
+  expect(Math.abs(Math.atan2(Math.sin(heading - toTable), Math.cos(heading - toTable)))).toBeLessThan(0.18);
   await page.getByRole("button", { name: "Stand up" }).click();
   expect((await state(page)).camera).toBe("dollhouse");
 });

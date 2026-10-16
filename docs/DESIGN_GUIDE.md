@@ -108,6 +108,9 @@ Desktop layout with the inspector as an overlay sheet from the right.
 | Badge | Fidelity labels and "approx." markers: caption size, hairline outline, never colour-only. |
 | Empty state | One sentence, one primary action, no illustration clutter. |
 | Dialog | Only for choices with consequences that undo cannot cover (version conflict, `SCN-03`). |
+| Category chips | Library families above the item grid (Tables, Event, Florals, Plants, Lights, Signs, Lounge); one selected, remembered for the session. Wrap on desktop; scroll sideways on phone. Step 3a, approved with its PR. |
+| Seat target | Sit here (`CAM-04`): a 44 pt circle with a chair glyph over each chair of the chosen table, surface fill and accent ring, pressed 0.97. Only while choosing a seat, with a glass bar "Choose a seat · table N" and Cancel. Step 3a, approved with its PR. |
+| Seated bar | While seated: a glass bar at the top, "Seated · table N · drag to look around", and Stand up (secondary button). Step 3a, approved with its PR. |
 
 ## 5. 3D interaction
 

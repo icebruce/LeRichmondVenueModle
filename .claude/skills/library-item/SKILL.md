@@ -35,7 +35,15 @@ Spec: `docs/PRODUCT_SPEC.md` §5.7 (LIB), §5.9 (REQ). Structure: `docs/ARCHITEC
 
 Add to `data/library/<family>.json`: `id`, `name` (owner's words), `family`, `placement`, `sizeM`, `sizePresets`, `model` (`{ kind: "parametric", generator, params }` or `{ kind: "glb", file }`), `lowModel`, `options` (they become the inspector controls), `source` (`built` | `cc0` | `custom` with origin and licence), `budget` (`triangles`, `phoneTriangles`, `drawCalls`), `requestId` if from a request.
 
-A preset of an existing generator needs nothing else: sizes come from `sizeM`, fixed inputs from `params` (e.g. `{ "width": 1.2 }`, `{ "finish": "wood" }`, `{ "seats": 2, "oneSide": true }`, a linen's `{ "colour": "#eee3cb" }`), and the inspector from `options`. Floor generators today: `rectTable`, `roundTable`, `cocktail`, `danceFloor`, `djBooth` (`FLOOR_GENERATORS` in `src/domain/layout/items.ts`). A new generator adds a case there plus its mesh in `src/scene/items/`, with a unit test.
+A preset of an existing generator needs nothing else: sizes come from `sizeM`, fixed inputs from `params` (e.g. `{ "width": 1.2 }`, `{ "finish": "wood" }`, `{ "seats": 2, "oneSide": true }`, a linen's `{ "colour": "#eee3cb" }`), and the inspector from `options`.
+
+- **Option types:** `number` (min, max, step), `choice` (choices of value + label; hex colours, uplight colours and floral palettes show as swatches), `boolean`, and `text` (`maxLength` ≤ 40; the words are cut to it before any generator sees them).
+- **Floor generators** (`FLOOR_GENERATORS` in `src/domain/layout/items.ts`): `rectTable`, `roundTable`, `cocktail`, `danceFloor`, `djBooth`, `backdrop`, and the **piece generators** in `src/domain/layout/pieces.ts`: `plant`, `light`, `floralPiece`, `sign`, `eventPiece`. A piece's `params.kind` picks its look (e.g. `light` → `string`, `edison`, `uplight`, `pinSpot`, `chandelier`, `disco`, `djLights`, `monogram`; `eventPiece` → `stage`, `photoBooth`, `station`, `bar`, `cake`, `gift`, `lounge`). An unknown kind throws.
+- **Pieces are built to `sizeM`**, measured from the floor at the default options (a hung piece's height includes where it hangs). A plant's species is data: `pot` (m), `crown` (share of the height), `leaves`, `leaf` (m), `colour`, `look` (`leaves`, `fronds`, `blossom`). A unit test fails if a piece's size differs from `sizeM` by more than 5 cm or spills outside its footprint.
+- **Blocking follows `placement`:** `floor` pieces taller than 5 cm take floor space (collisions, walk, aisles); `hanging`, `ceiling` and `wall` pieces, and flat floor projections, never block. Hanging pieces should have a `hang` number option.
+- `lowModel` for a piece is the same generator with `params.quality: "low"` (fewer leaves and blooms).
+
+A new generator, or a new `kind` of a piece generator, needs code: a case in `items.ts` or `pieces.ts`, its mesh in `src/scene/items/` if it is not made of the shared primitives, and a unit test.
 
 ## 5. Verify
 

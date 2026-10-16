@@ -7,6 +7,9 @@ import { join } from "node:path";
 const root = new URL("..", import.meta.url).pathname;
 const stepArg = process.argv.indexOf("--step");
 const steps = stepArg > 0 ? process.argv[stepArg + 1].split(",") : ["1"];
+// Requirement prefixes delivered later within a step (step 3 ships as 3a, then IMP/REQ in 3b).
+const deferArg = process.argv.indexOf("--defer");
+const deferred = deferArg > 0 ? process.argv[deferArg + 1].split(",") : [];
 
 const MANUAL = {
   "VEN-01": "owner recognition at step 1 gate (fidelity review)",
@@ -20,7 +23,7 @@ const spec = readFileSync(join(root, "docs/PRODUCT_SPEC.md"), "utf8");
 const required = [];
 for (const line of spec.split("\n")) {
   const m = line.match(/^\| ([A-Z]{2,4}-\d{2}) \| (M|S|C) \| ([0-9–-]+) \|/);
-  if (!m || m[2] !== "M") continue;
+  if (!m || m[2] !== "M" || deferred.some((d) => m[1].startsWith(`${d}-`))) continue;
   const [lo, hi] = m[3].split(/[–-]/).map(Number);
   const range = hi ? [lo, hi] : [lo, lo];
   if (steps.some((s) => Number(s) >= range[0] && Number(s) <= range[1])) required.push(m[1]);
