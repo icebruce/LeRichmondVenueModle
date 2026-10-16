@@ -95,8 +95,20 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   const [sx, sy] = await screenOf(page, t2.x, 2.8, t2.z);
   await page.mouse.click(sx, sy);
   expect((await state(page)).selection).toEqual(["t2"]);
-  await page.mouse.click(sx, sy);
-  expect((await state(page)).selection).toEqual([strand]);
+  // With the table selected, a press-and-drag there still moves the table, not the strand.
+  const strandAt = await item(page, strand);
+  const [tx, ty] = await screenOf(page, t2.x + 0.3, 2.8, t2.z);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move((sx + tx) / 2, (sy + ty) / 2, { steps: 4 });
+  await page.mouse.move(tx, ty, { steps: 4 });
+  await page.mouse.up();
+  expect((await item(page, "t2")).x).not.toBeCloseTo(t2.x, 2);
+  expect(await item(page, strand)).toMatchObject({ x: strandAt.x, z: strandAt.z });
+  expect((await state(page)).selection).toEqual(["t2"]);
+  // A plain click on the selected table reaches the strand.
+  await page.mouse.click(tx, ty);
+  await expect.poll(async () => (await state(page)).selection).toEqual([strand]);
   await setCamera(page, "dollhouse");
   await page.getByTestId("category-sign").click();
   await page.getByTestId("add-sign-neon").click();

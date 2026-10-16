@@ -710,13 +710,27 @@ export function Items({
     if (readOnly || camera === "walk" || e.button > 0) return;
     const id = p.item.id;
     const current = editor.store.getState().selection;
-    // A hanging or projected piece over a table gives way to the table (from above it covers it);
-    // once that table is selected, the next click reaches the piece.
+    // A hanging or projected piece over a table gives way to the table (from above it covers it),
+    // so pressing there selects and drags the table. A plain click on the already selected table
+    // (no movement) then selects the piece.
     if (!blocksFloor(p.shape)) {
       const under = e.intersections
         .map((i) => itemIdOf(i.object))
         .find((other) => other && other !== id && blocking.has(other));
-      if (under && !current.includes(id) && !current.includes(under)) return;
+      if (under && !current.includes(id)) {
+        if (current.includes(under)) {
+          const [x0, y0] = [e.clientX, e.clientY];
+          const up = (ev: PointerEvent) => {
+            if (ev.pointerId !== e.pointerId) return;
+            window.removeEventListener("pointerup", up);
+            // After the table's own release has run, so its drag (if any) ends first.
+            if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4)
+              window.setTimeout(() => editor.select([id]));
+          };
+          window.addEventListener("pointerup", up);
+        }
+        return;
+      }
     }
     e.stopPropagation();
     const ids = e.shiftKey

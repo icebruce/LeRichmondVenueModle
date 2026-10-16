@@ -125,7 +125,11 @@ function MainCamera() {
   const items = useEditor((s) => s.scenarios[s.activeId]?.items);
   const beforePick = useRef<Pose | null>(null);
   useEffect(() => {
-    if (mode === "walk") return;
+    if (mode === "walk") {
+      // Seated: the saved view has done its job ("Stand up" returns to the seat's own camera).
+      if (!pickSeat) beforePick.current = null;
+      return;
+    }
     const target = controls.current?.target ?? new THREE.Vector3();
     const from = { position: camera.position.clone(), target: target.clone() };
     const t = pickSeat ? items?.find((i) => i.id === pickSeat) : undefined;
