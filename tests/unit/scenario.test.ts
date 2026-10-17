@@ -111,6 +111,16 @@ describe("conflict summary", () => {
     expect(differences(mine, runner, catalog)).toEqual([
       `Runner: none here, ${catalog.get("runner-velvet-emerald")?.name} in theirs`,
     ]);
+    // A candle mix reads as its kinds and counts.
+    const tapers = {
+      ...structuredClone(mine),
+      style: { ...mine.style, candles: [{ id: "candle-tapers", n: 2 }] },
+    };
+    expect(differences(mine, tapers, catalog)).toEqual([
+      "Candles: 3 × Votives here, 2 × Tall tapers in theirs",
+    ]);
+    const bare = { ...structuredClone(mine), style: { ...mine.style, candles: [] } };
+    expect(differences(mine, bare, catalog)).toEqual(["Candles: 3 × Votives here, none in theirs"]);
     const art = structuredClone(mine);
     art.venueToggles.paintings = { horseman: "hidden" };
     expect(differences(mine, art, catalog)).toEqual(["Venue furniture or paintings differ"]);

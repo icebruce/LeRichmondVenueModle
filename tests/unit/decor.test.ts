@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { DECOR_GENERATORS, heightOf, stylePatch, tableDecor } from "../../src/domain/layout/decor";
+import { DECOR_GENERATORS, type Part, heightOf, stylePatch, tableDecor } from "../../src/domain/layout/decor";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import {
   DEFAULT_STYLE,
@@ -171,9 +171,7 @@ describe("scenario files", () => {
     // The communal table is no longer modelled (LAY-12): an old file opens without it.
     expect(s.venueToggles).toEqual({ barStools: false, paintings: {} });
   });
-});
 
-describe("candle mix", () => {
   test("[LIB-05] [SCN-08] a version 3 plan opens with its single candle choice as a mix, table overrides too", () => {
     const v3 = {
       schemaVersion: 3,
@@ -213,8 +211,10 @@ describe("candle mix", () => {
     expect(s.items[0]?.style?.candles).toEqual([]);
     expect(s.items[1]?.style?.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
   });
+});
 
-  test("[LIB-05] up to three kinds, each with its own count, arranged on the table", () => {
+describe("candle mix", () => {
+  test("[LIB-05] [DEC-02] up to three kinds, each with its own count, arranged on the table", () => {
     const flames = (mix: { id: string; n: number }[]) =>
       decor({ candles: mix }).filter((p) => p.slot === "flame").length;
     expect(flames([{ id: "candle-pillars", n: 1 }])).toBe(1);
@@ -239,12 +239,74 @@ describe("candle mix", () => {
       id,
       n: 1,
     }));
-    expect(() =>
+    const plan = (candles: unknown) =>
       parseScenario({
         ...newScenario("x", "x", "2026-10-17T00:00:00.000Z", []),
-        style: { ...DEFAULT_STYLE, candles: many },
-      }),
+        style: { ...DEFAULT_STYLE, candles },
+      });
+    expect(() => plan(many)).toThrow();
+    expect(() => plan([{ id: "candle-votives", n: 9 }])).toThrow();
+    // One row per kind: the same kind twice is not a mix.
+    expect(() =>
+      plan([
+        { id: "candle-votives", n: 2 },
+        { id: "candle-votives", n: 3 },
+      ]),
     ).toThrow();
+  });
+
+  test("[DEC-02] candles stay on the table top, clear of the place settings; what does not fit is left off", () => {
+    const heavy = ["candle-sand-trio", "candelabra-5", "candelabra-3"].map((id) => ({ id, n: 8 }));
+    const extras = { settings: true, menus: true, tableNumbers: true, linenLength: "floor" as const };
+    // A part's circle on the table top (boxes and planes by their half-diagonal).
+    const circle = (p: Part) => ({
+      x: p.x,
+      z: p.z,
+      r: p.prim === "box" || p.prim === "plane" ? Math.hypot(p.sx, p.sz) / 2 : Math.max(p.sx, p.sz),
+    });
+    for (const [libraryId, options] of [
+      ["table-round", { seats: 4 }],
+      ["table-round", { seats: 8 }],
+      ["table-rect", { seats: 12 }],
+      ["table-cocktail", {}],
+    ] as const) {
+      const t = shapeOf({ id: "t", libraryId, x: 4, z: 11, rotY: 0, options }, catalog);
+      const style = { ...DEFAULT_STYLE, florals: "floral-low", candles: heavy };
+      const run = (s: typeof style) => tableDecor(t, s, catalog, extras, 1);
+      const fixed = run({ ...style, florals: "none", runner: "none", candles: [] });
+      const base = run({ ...style, candles: [] });
+      const all = run(style);
+      const candles = all.slice(base.length - fixed.length, all.length - fixed.length);
+      // Round tables with flowers and settings may have room for none of these big pieces.
+      if (libraryId !== "table-round") expect(candles.length).toBeGreaterThan(0);
+      for (const part of candles) {
+        const p = circle(part);
+        const edge =
+          t.kind === "rectTable"
+            ? Math.min(t.length / 2 - Math.abs(p.x), t.width / 2 - Math.abs(p.z))
+            : t.kind === "roundTable" || t.kind === "cocktail"
+              ? t.diameter / 2 - Math.hypot(p.x, p.z)
+              : 0;
+        expect(edge - p.r).toBeGreaterThanOrEqual(0);
+        // Among the plates and glasses (candelabra arms pass above them).
+        if (part.y < 0.2)
+          for (const f of fixed.map(circle))
+            expect(Math.hypot(p.x - f.x, p.z - f.z)).toBeGreaterThanOrEqual(p.r + f.r - 1e-9);
+      }
+      // Twenty-four big pieces never all fit: some are left off rather than piled up.
+      expect(candles.filter((p) => p.slot === "flame").length).toBeLessThan(8 * (3 + 5 + 3));
+    }
+    // The usual mix on an eight-seat round fits whole.
+    const fits = decor(
+      {
+        candles: [
+          { id: "candle-votives", n: 3 },
+          { id: "candle-tapers", n: 2 },
+        ],
+      },
+      true,
+    );
+    expect(fits.filter((p) => p.slot === "flame").length).toBe(5);
   });
 });
 

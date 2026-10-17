@@ -111,6 +111,9 @@ src/domain/layout/items.ts       Shape generators keyed by model.generator (rect
                                 cocktail, danceFloor, djBooth, backdrop, and every piece generator):
                                 sizes from sizeM/params/options, never ids
 src/domain/layout/decor.ts       Table décor as unit-primitive parts (candles, florals, runners, settings)
+                                The candle mix is laid out per table: each candle (a candle entry's
+                                budget is for one) takes the free spot nearest its ideal one, clear of
+                                the settings and flowers; candles with no room are left off
 src/domain/layout/pieces.ts      Step-3 pieces (plant, light, floralPiece, sign, eventPiece) as the same
                                 parts plus size, whether they block the floor, and optional words
 src/scene/items/                 Meshes per shape kind; chairs instanced; table décor and pieces drawn

@@ -179,28 +179,6 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
 
 /** Centrepiece generators, keyed by library `model.generator` (candles and florals). */
 const centrepieces: Record<string, Gen> = {
-  votives: () => [-0.12, 0, 0.12].flatMap((x, i) => [...candle(x, 0, (i % 2) * 0.06 - 0.03, 0.03, 0.06)]),
-  pillars: () => [
-    ...candle(-0.07, 0, 0.02, 0.04, 0.1),
-    ...candle(0.03, 0, -0.03, 0.04, 0.16),
-    ...candle(0.1, 0, 0.04, 0.04, 0.22),
-  ],
-  tapers: () =>
-    [-0.12, 0.12].flatMap((x) => [
-      cyl("brass", x, 0, 0, 0.045, 0.012),
-      cyl("brass", x, 0.012, 0, 0.012, 0.16),
-      cyl("brass", x, 0.172, 0, 0.022, 0.015),
-      ...candle(x, 0.187, 0, 0.011, 0.28),
-    ]),
-  floatingGlass: () =>
-    [
-      [-0.1, 0.38],
-      [0.08, 0.28],
-    ].flatMap(([x = 0, h = 0.3]) => [
-      cyl("glass", x, 0, 0, 0.06, h),
-      cyl("water", x, 0.005, 0, 0.055, h * 0.8),
-      ...candle(x, h * 0.8, 0, 0.035, 0.02),
-    ]),
   candelabra: (p) => {
     const arms = Number(p.arms ?? 5);
     const parts: Part[] = [
@@ -356,9 +334,34 @@ const runners: Record<
   },
 };
 
+/**
+ * One candle of a kind, the `i`th on the table: a votive, a pillar (three heights in turn), a taper
+ * in its holder, a floating candle (two vase heights). Kinds that are one piece already (candelabra,
+ * hurricane, lantern, a set in glass) are their own unit.
+ */
+const candleUnits: Record<string, (i: number) => Part[]> = {
+  votives: () => candle(0, 0, 0, 0.03, 0.06),
+  pillars: (i) => candle(0, 0, 0, 0.04, [0.16, 0.22, 0.1][i % 3] ?? 0.16),
+  tapers: () => [
+    cyl("brass", 0, 0, 0, 0.045, 0.012),
+    cyl("brass", 0, 0.012, 0, 0.012, 0.16),
+    cyl("brass", 0, 0.172, 0, 0.022, 0.015),
+    ...candle(0, 0.187, 0, 0.011, 0.28),
+  ],
+  floatingGlass: (i) => {
+    const h = i % 2 ? 0.28 : 0.38;
+    return [
+      cyl("glass", 0, 0, 0, 0.06, h),
+      cyl("water", 0, 0.005, 0, 0.055, h * 0.8),
+      ...candle(0, h * 0.8, 0, 0.035, 0.02),
+    ];
+  },
+};
+
 /** Every generator a table-top library entry may name; napkins, menus and numbers are setting parts. */
 export const DECOR_GENERATORS: readonly string[] = [
   ...Object.keys(centrepieces),
+  ...Object.keys(candleUnits),
   ...Object.keys(runners),
   "napkin",
   "menuCard",
@@ -454,95 +457,139 @@ function numberHolder(x: number, z: number): Part[] {
   ];
 }
 
-/**
- * One candle of a kind, the `i`th on the table: a votive, a pillar (three heights in turn), a taper
- * in its holder, a floating candle (two vase heights). Kinds that are one piece already (candelabra,
- * hurricane, lantern, a set in glass) are their own unit.
- */
-const candleUnits: Record<string, (i: number) => Part[]> = {
-  votives: () => candle(0, 0, 0, 0.03, 0.06),
-  pillars: (i) => candle(0, 0, 0, 0.04, [0.16, 0.22, 0.1][i % 3] ?? 0.16),
-  tapers: () => [
-    cyl("brass", 0, 0, 0, 0.045, 0.012),
-    cyl("brass", 0, 0.012, 0, 0.012, 0.16),
-    cyl("brass", 0, 0.172, 0, 0.022, 0.015),
-    ...candle(0, 0.187, 0, 0.011, 0.28),
-  ],
-  floatingGlass: (i) => {
-    const h = i % 2 ? 0.28 : 0.38;
-    return [
-      cyl("glass", 0, 0, 0, 0.06, h),
-      cyl("water", 0, 0.005, 0, 0.055, h * 0.8),
-      ...candle(0, h * 0.8, 0, 0.035, 0.02),
-    ];
-  },
-};
-
-/** How many of a kind a table gets when it is first chosen: a small group of small candles, one of a big piece. */
-export function defaultCandleCount(g: string): number {
-  return g === "votives" || g === "pillars" ? 3 : g === "tapers" || g === "floatingGlass" ? 2 : 1;
-}
-
 /** The style change that puts an item on every table (DEC-01), or null if it is not table dressing. */
 export function stylePatch(e: LibraryEntry): Partial<TableStyle> | null {
   const key = styleKeyOf(e);
   if (!key) return null;
-  const g = e.model.kind === "parametric" ? e.model.generator : "";
-  return key === "candles" ? { candles: [{ id: e.id, n: defaultCandleCount(g) }] } : { [key]: e.id };
+  return key === "candles" ? { candles: [{ id: e.id, n: e.defaultCount ?? 1 }] } : { [key]: e.id };
 }
 
+/** Whether a piece of table dressing is already the room-wide choice for its part (DEC-01). */
+export function isRoomChoice(style: TableStyle, e: LibraryEntry): boolean {
+  const key = styleKeyOf(e);
+  return !!key && JSON.stringify(style[key]) === JSON.stringify(stylePatch(e)?.[key]);
+}
+
+/** How far a part reaches across the table top from its unit's centre: offset plus radius. */
+function reach(p: Part): number {
+  const r = p.prim === "box" || p.prim === "plane" ? Math.hypot(p.sx, p.sz) / 2 : Math.max(p.sx, p.sz);
+  return Math.hypot(p.x, p.z) + r;
+}
+const radiusOf = (parts: readonly Part[]) => parts.reduce((m, p) => Math.max(m, reach(p)), 0);
+/** Up to this height a piece stands among the plates and glasses; above it (candelabra arms) it is clear. */
+const TABLE_LEVEL = 0.2;
+
+/** On the table top: a setting part or the number (`low`, cleared by a candle's base) or flowers. */
+type Circle = { x: number; z: number; r: number; low?: boolean };
+type TableTop = Shape & { kind: "rectTable" | "roundTable" | "cocktail" };
+
+/** Room left between a table-top point and the table's edge (negative past it). */
+function toEdge(shape: TableTop, x: number, z: number): number {
+  return shape.kind === "rectTable"
+    ? Math.min(shape.length / 2 - Math.abs(x), shape.width / 2 - Math.abs(z))
+    : shape.diameter / 2 - Math.hypot(x, z);
+}
+
+/** Candles keep this far from the table edge, from each other and from settings and flowers (m). */
+const EDGE = 0.03;
+const GAP = 0.012;
+/** Grid of table-top spots a candle may move to when its ideal spot is taken (m). */
+const STEP = 0.03;
+
 /**
- * The candle mix arranged for the table (owner, 2026-10-17): the kinds in turn, tallest in the
- * middle, along the centre line of a long table (beside the centrepieces, both sides in turn, when
- * there are some), in a ring on a round one, a small group on a cocktail table.
+ * The candle mix arranged for the table (DEC-02, owner 2026-10-17): the kinds in turn, tallest in
+ * the middle, along the centre line of a long table (beside the centrepieces when there are some),
+ * in a ring on a round one, a small group on a cocktail table. Each candle takes the free spot
+ * nearest its ideal one, on the table top and clear of the settings, flowers and other candles;
+ * those that find none are left off (`placed` < `wanted`), never set in the air or on a plate.
  */
-function candleParts(
-  shape: Shape & { kind: "rectTable" | "roundTable" | "cocktail" },
+function arrangeCandles(
+  shape: TableTop,
   mix: CandleMix,
-  florals: boolean,
+  obstacles: readonly Circle[],
   catalog: Catalog,
   ctx: Ctx,
-): Part[] {
-  const units: Part[][] = [];
+): { parts: Part[]; placed: number; wanted: number } {
+  const s = shape.kind === "cocktail" ? 0.6 : 1;
   const kinds = mix.flatMap(({ id, n }) => {
     const e = catalog.get(id);
     if (!e || e.model.kind !== "parametric") return [];
-    const g = e.model.generator;
-    const own = ownLook(e.model.params, ctx);
+    const { generator: g, params } = e.model;
+    const own = ownLook(params, ctx);
     const make = (i: number) =>
-      scaled(
-        candleUnits[g]?.(i) ??
-          centrepieces[g]?.(e.model.kind === "parametric" ? e.model.params : {}, own.ctx) ??
-          [],
-        own.scale,
-      );
+      scaled(scaled(candleUnits[g]?.(i) ?? centrepieces[g]?.(params, own.ctx) ?? [], own.scale), s);
     return [{ n, make }];
   });
-  // Round-robin across kinds, so a mix reads as one arrangement.
-  for (let i = 0; units.length < kinds.reduce((t, k) => t + k.n, 0); i++)
-    for (const k of kinds) if (i < k.n) units.push(k.make(i));
-  // Tallest in the middle, falling away to both ends.
-  const sorted = [...units].sort((a, b) => heightOf(b) - heightOf(a));
-  const order: Part[][] = [];
-  sorted.forEach((u, i) => (i % 2 ? order.push(u) : order.unshift(u)));
-  const n = order.length;
-  const at: [number, number][] =
+  const wanted = kinds.reduce((t, k) => t + k.n, 0);
+  // Round-robin across kinds, so a mix reads as one arrangement; then tallest in the middle.
+  const units: Part[][] = [];
+  for (let i = 0; units.length < wanted; i++) for (const k of kinds) if (i < k.n) units.push(k.make(i));
+  const order: { parts: Part[]; r: number; base: number }[] = [];
+  [...units]
+    .sort((a, b) => heightOf(b) - heightOf(a))
+    .forEach((parts, i) =>
+      order[i % 2 ? "push" : "unshift"]({
+        parts,
+        r: radiusOf(parts),
+        base: radiusOf(parts.filter((p) => p.y < TABLE_LEVEL)),
+      }),
+    );
+  const ideal = idealSpots(shape, order, obstacles.length > 0);
+  // Table-top spots, each with its clearance to the edge and the flowers (for all of a candle) and
+  // to the settings (for its base).
+  const half =
     shape.kind === "rectTable"
-      ? order.map((_, i) => {
-          const span = Math.min(shape.length - 0.6, n * 0.24);
-          const x = n === 1 ? 0 : -span / 2 + (span / (n - 1)) * i;
-          return [x, florals ? (i % 2 ? 0.16 : -0.16) : 0];
-        })
-      : order.map((_, i) => {
-          const r =
-            shape.kind === "cocktail" ? (n === 1 ? 0 : 0.07) : florals ? 0.26 : n === 1 ? 0 : 0.1 + 0.02 * n;
-          const a = (i / n) * Math.PI * 2;
-          return [Math.cos(a) * r, Math.sin(a) * r];
-        });
-  const s = shape.kind === "cocktail" ? 0.6 : 1;
-  return order.flatMap((u, i) => {
-    const [x, z] = at[i] ?? [0, 0];
-    return scaled(u, s).map((p) => ({ ...p, x: p.x + x, z: p.z + z }));
+      ? [shape.length / 2, shape.width / 2]
+      : [shape.diameter / 2, shape.diameter / 2];
+  type Cell = { x: number; z: number; clear: number; low: number };
+  const room = (x: number, z: number, low: boolean) =>
+    obstacles.reduce(
+      (m, o) => (!!o.low === low ? Math.min(m, Math.hypot(x - o.x, z - o.z) - o.r - GAP) : m),
+      Infinity,
+    );
+  const cells: Cell[] = [];
+  for (let x = -(half[0] ?? 0); x <= (half[0] ?? 0); x += STEP)
+    for (let z = -(half[1] ?? 0); z <= (half[1] ?? 0); z += STEP) {
+      const clear = Math.min(toEdge(shape, x, z) - EDGE, room(x, z, false));
+      const low = room(x, z, true);
+      if (clear > 0 && low > 0) cells.push({ x, z, clear, low });
+    }
+  const taken: Circle[] = [];
+  const parts: Part[] = [];
+  order.forEach(({ parts: u, r, base }, i) => {
+    const [ix, iz] = ideal[i] ?? [0, 0];
+    const fits = (c: Cell) =>
+      c.clear >= r && c.low >= base && taken.every((t) => Math.hypot(c.x - t.x, c.z - t.z) >= r + t.r + GAP);
+    const at = cells
+      .filter(fits)
+      .reduce<{ x: number; z: number } | null>(
+        (best, c) =>
+          !best || Math.hypot(c.x - ix, c.z - iz) < Math.hypot(best.x - ix, best.z - iz) ? c : best,
+        null,
+      );
+    if (!at) return;
+    taken.push({ x: at.x, z: at.z, r });
+    for (const p of u) parts.push({ ...p, x: p.x + at.x, z: p.z + at.z });
+  });
+  return { parts, placed: taken.length, wanted };
+}
+
+/** Where each candle would ideally stand: a centred line, or a ring sized to the candles. */
+function idealSpots(shape: TableTop, order: { r: number }[], crowded: boolean): [number, number][] {
+  const widths = order.map((u) => 2 * u.r + GAP);
+  const total = widths.reduce((a, w) => a + w, 0);
+  let run = -total / 2;
+  if (shape.kind === "rectTable")
+    return widths.map((w, i) => {
+      run += w;
+      return [run - w / 2, crowded ? (i % 2 ? 0.16 : -0.16) : 0];
+    });
+  if (order.length === 1 && !crowded) return [[0, 0]];
+  const ring = Math.max(total / (2 * Math.PI), crowded ? 0.22 : 0);
+  return widths.map((w) => {
+    run += w;
+    const a = ((run - w / 2) / total) * Math.PI * 2;
+    return [Math.cos(a) * ring, Math.sin(a) * ring];
   });
 }
 
@@ -557,7 +604,29 @@ export function tableDecor(
   extras: Extras,
   seed: number,
 ): Part[] {
-  if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail") return [];
+  return dress(shape, style, catalog, extras, seed).parts;
+}
+
+/** How many of the table's candles have room on it, of how many its mix asks for (DEC-02). */
+export function candleFit(
+  shape: Shape,
+  style: TableStyle,
+  catalog: Catalog,
+  extras: Extras,
+): { placed: number; wanted: number } {
+  const { placed, wanted } = dress(shape, style, catalog, extras, 1);
+  return { placed, wanted };
+}
+
+function dress(
+  shape: Shape,
+  style: TableStyle,
+  catalog: Catalog,
+  extras: Extras,
+  seed: number,
+): { parts: Part[]; placed: number; wanted: number } {
+  if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail")
+    return { parts: [], placed: 0, wanted: 0 };
   const rand = seededRandom(seed);
   const ctx: Ctx = {
     colours: FLORAL_PALETTES[style.floralColour]?.colours ?? FLORAL_PALETTES.white?.colours ?? ["#ffffff"],
@@ -580,6 +649,7 @@ export function tableDecor(
         ? 0.065
         : 0.085;
   const at = spots(shape);
+  const flowers: { x: number; z: number; parts: Part[] }[] = [];
   for (const id of pieces) {
     const e = catalog.get(id);
     if (!e || e.model.kind !== "parametric") continue;
@@ -596,24 +666,32 @@ export function tableDecor(
     if (!gen) continue;
     const places = shape.kind === "cocktail" ? [[0, 0] as [number, number]] : at;
     const own = ownLook(e.model.params, ctx);
-    for (const [sx, sz] of places) {
-      for (const p of scaled(gen(e.model.params, own.ctx), own.scale))
-        parts.push({ ...p, x: p.x + sx, z: p.z + sz });
+    for (const [x, z] of places) {
+      const one = scaled(gen(e.model.params, own.ctx), own.scale);
+      flowers.push({ x, z, parts: one });
+      for (const p of one) parts.push({ ...p, x: p.x + x, z: p.z + z });
     }
   }
-  parts.push(...candleParts(shape, style.candles, style.florals !== "none", catalog, ctx));
+  // Settings and the table number first: the candles keep clear of them, and of the flowers.
+  const fixed: Part[] = [];
   if (extras.settings && shape.kind !== "cocktail") {
     const edge = shape.kind === "rectTable" ? 0.32 + 0.2 : 0.3 + 0.22;
     const n = catalog.get(style.napkin)?.model;
     const napkin = n?.kind === "parametric" ? String(n.params.colour ?? "#ffffff") : null;
-    for (const ch of shape.chairs) parts.push(...setting(ch, edge, style.charger, napkin, extras.menus));
+    for (const ch of shape.chairs) fixed.push(...setting(ch, edge, style.charger, napkin, extras.menus));
   }
   if (extras.tableNumbers && shape.kind !== "cocktail") {
     const [x, z] =
       shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
-    parts.push(...numberHolder(x, z));
+    fixed.push(...numberHolder(x, z));
   }
-  return parts;
+  const obstacles = [
+    ...flowers.map((f) => ({ x: f.x, z: f.z, r: radiusOf(f.parts) })),
+    ...fixed.map((p) => ({ x: p.x, z: p.z, r: reach({ ...p, x: 0, z: 0 }), low: true })),
+  ];
+  const candles = arrangeCandles(shape, style.candles, obstacles, catalog, ctx);
+  parts.push(...candles.parts, ...fixed);
+  return { parts, placed: candles.placed, wanted: candles.wanted };
 }
 
 /**
@@ -645,6 +723,8 @@ export function centrepieceHeight(
   generator: string,
   params: Record<string, number | string | boolean>,
 ): number | null {
+  const unit = candleUnits[generator];
+  if (unit) return Math.max(...[0, 1, 2].map((i) => heightOf(unit(i))));
   const gen = centrepieces[generator];
   if (!gen) return null;
   const ctx: Ctx = {

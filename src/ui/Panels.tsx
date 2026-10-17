@@ -5,9 +5,9 @@ import {
   FLORAL_PALETTES,
   FLOWER_TYPES,
   FLOWER_TYPE_GENERATORS,
-  defaultCandleCount,
+  candleFit,
   styleKeyOf,
-  stylePatch,
+  isRoomChoice,
 } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
@@ -374,17 +374,21 @@ export function NavRow({
   label,
   sub,
   value,
+  lead,
   onClick,
   testId,
 }: {
   label: string;
   sub?: string;
   value?: string;
+  /** A picture or icon before the label (Style's summary rows). */
+  lead?: React.ReactNode;
   onClick: () => void;
   testId?: string;
 }) {
   return (
     <button type="button" className="nav-row" onClick={onClick} data-testid={testId}>
+      {lead}
       <span className="nav-label">
         {label}
         {sub && <span className="nav-sub">{sub}</span>}
@@ -699,10 +703,7 @@ export function AddPanel({
     : placeable.filter((e) => e.family === category);
   const dressing = words.length ? live.filter((e) => styleKeyOf(e) && matches(e, words, catalog)) : [];
   // Already the room-wide choice (DEC-01): nothing to do but say so.
-  const onTables = (e: LibraryEntry) => {
-    const key = styleKeyOf(e);
-    return !!key && !!style && JSON.stringify(style[key]) === JSON.stringify(stylePatch(e)?.[key]);
-  };
+  const onTables = (e: LibraryEntry) => !!style && isRoomChoice(style, e);
   return (
     <div className="panel-body" data-testid="layout-panel">
       {head}
@@ -904,8 +905,15 @@ export function Chips({
   );
 }
 
-/** The Style section's own pages, opened from its summary rows (DESIGN_GUIDE §3.1). */
+/** The Style section's own pages, opened from its summary rows (DESIGN_GUIDE §4 Style). */
 export type StylePage = "runner" | "candles" | "centrepiece" | "chairs" | "settings";
+
+const CHARGERS = [
+  { id: "gold", name: "Gold" },
+  { id: "silver", name: "Silver" },
+  { id: "glass", name: "Glass" },
+  { id: "none", name: "None" },
+];
 
 const STYLE_PAGES: Record<StylePage, string> = {
   runner: "Runner",
@@ -915,7 +923,10 @@ const STYLE_PAGES: Record<StylePage, string> = {
   settings: "Place settings",
 };
 
-/** A grid of pictures to choose from (one, or several with `multi`), "None" first when offered. */
+/**
+ * A grid of pictures to choose from, "None" first when offered. A chosen picture carries a check,
+ * or its `count` (the candle mix), so a tap is answered where the finger is.
+ */
 function PickGrid({
   label,
   options,
@@ -923,7 +934,8 @@ function PickGrid({
   onPick,
   testId,
   none,
-  full = false,
+  count,
+  nameOf = (e) => e.name,
 }: {
   label: string;
   options: LibraryEntry[];
@@ -931,7 +943,8 @@ function PickGrid({
   onPick: (id: string) => void;
   testId: string;
   none?: boolean;
-  full?: boolean;
+  count?: (id: string) => number | undefined;
+  nameOf?: (e: LibraryEntry) => string;
 }) {
   return (
     <ul className="tiles g3" aria-label={label}>
@@ -957,12 +970,11 @@ function PickGrid({
               type="button"
               className={`tile ${on ? "on" : ""}`}
               aria-pressed={on}
-              disabled={full && !on}
               onClick={() => onPick(e.id)}
               data-testid={`${testId}-${e.id}`}
             >
-              <Thumb entry={e} size={64} />
-              <span className="tile-name">{e.name}</span>
+              <Thumb entry={e} />
+              <span className="tile-name">{nameOf(e)}</span>
               {e.imported && (
                 <span className="tile-caption">
                   <ResultBadge entry={e} />
@@ -970,7 +982,7 @@ function PickGrid({
               )}
               {on && (
                 <span className="tile-check" aria-hidden="true">
-                  <Icon name="check" size={14} />
+                  {count?.(e.id) !== undefined ? `×${count(e.id)}` : <Icon name="check" size={14} />}
                 </span>
               )}
             </button>
@@ -995,7 +1007,9 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
   const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
   const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
   const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
-  const used = (id: string) => JSON.stringify(shown).includes(`"${id}"`);
+  const used = (id: string) =>
+    [shown.linen, shown.runner, shown.florals, shown.chair, shown.napkin].includes(id) ||
+    shown.candles.some((m) => m.id === id);
   // Imported items join these lists with their label (IMP-06); removed ones only stay where used.
   const family = (f: string, generator?: string) =>
     [...catalog.values()].filter(
@@ -1008,7 +1022,12 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
     const model = catalog.get(id)?.model;
     return model?.kind === "parametric" ? String(model.params.colour ?? "var(--sunk)") : "var(--sunk)";
   };
-  const nameOf = (id: string) => (id === "none" ? "None" : (catalog.get(id)?.name ?? id));
+  // Imported items keep their fidelity label wherever their name shows (DESIGN_GUIDE §1.6).
+  const nameOf = (id: string) => {
+    if (id === "none") return "None";
+    const e = catalog.get(id);
+    return e?.imported ? `${e.name} · ${RESULT_LABELS[e.imported.result]}` : (e?.name ?? id);
+  };
   const labels = tableLabels(scenario.items, catalog);
   const floral = catalog.get(shown.florals)?.model;
   // Flower types shape mounded arrangements; bud vases and the garland take only colours.
@@ -1038,15 +1057,24 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
   if (page) {
     const mix = shown.candles;
     const setMix = (next: CandleMix) => apply({ candles: next });
+    // Tables too small or too full for the whole mix show what fits (DEC-02); say how many.
+    const short =
+      page === "candles"
+        ? (target === "all" ? scenario.items.filter((i) => isTable(i, catalog)) : tables).filter((t) => {
+            const fit = candleFit(shapeOf(t, catalog), styleOf(t, scenario.style), catalog, scenario.style);
+            return fit.placed < fit.wanted;
+          }).length
+        : 0;
     return (
       <div className="panel-body" data-testid={`style-${page}`}>
         <PageHead title={STYLE_PAGES[page]} back="Style" onBack={() => open(null)} />
-        {scopeControl}
+        {tables.length > 0 && scopeControl}
         {page === "runner" && (
           <PickGrid
             label="Runner"
             none
             options={family("linen", "runner")}
+            nameOf={(e) => e.name.replace(/ runner$/i, "")}
             isOn={(id) => shown.runner === id}
             onPick={(id) => apply({ runner: id })}
             testId="runner"
@@ -1054,10 +1082,13 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
         )}
         {page === "candles" && (
           <>
-            <p className="hint">
-              Mix up to {MAX_CANDLE_KINDS} kinds per table. They are arranged for you: along the centre of
-              long tables, in a ring on round ones.
-            </p>
+            <p className="hint">Up to {MAX_CANDLE_KINDS} kinds per table, arranged for you.</p>
+            {short > 0 && (
+              <p className="hint advisory" data-testid="candles-short">
+                {short === 1 ? "One table has" : `${short} tables have`} room for fewer: they show the candles
+                that fit beside the place settings.
+              </p>
+            )}
             {mix.length > 0 && (
               <div className="list" aria-label="On each table">
                 {mix.map((m, i) => {
@@ -1085,14 +1116,6 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
                           onStep={() => set(Math.min(MAX_CANDLES_PER_KIND, m.n + 1))}
                         />
                       </div>
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        onClick={() => setMix(mix.filter((_, j) => j !== i))}
-                        aria-label={`Remove ${nameOf(m.id)}`}
-                      >
-                        <Icon name="close" size={18} />
-                      </button>
                     </div>
                   );
                 })}
@@ -1100,26 +1123,24 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             )}
             <h3 className="group-title">
               {mix.length >= MAX_CANDLE_KINDS
-                ? `Kinds · ${MAX_CANDLE_KINDS} of ${MAX_CANDLE_KINDS} chosen`
-                : "Kinds · tap to add or remove"}
+                ? `Kinds · ${MAX_CANDLE_KINDS} of ${MAX_CANDLE_KINDS}, remove one to add another`
+                : `Kinds · choose up to ${MAX_CANDLE_KINDS}`}
             </h3>
             <PickGrid
               label="Candle kinds"
               options={family("candle")}
               isOn={(id) => mix.some((m) => m.id === id)}
-              full={mix.length >= MAX_CANDLE_KINDS}
+              count={(id) => mix.find((m) => m.id === id)?.n}
               onPick={(id) => {
+                if (mix.some((m) => m.id === id)) return setMix(mix.filter((m) => m.id !== id));
+                if (mix.length >= MAX_CANDLE_KINDS)
+                  return editor.notify(`Up to ${MAX_CANDLE_KINDS} kinds per table. Remove one first.`);
                 const e = catalog.get(id);
-                const g = e?.model.kind === "parametric" ? e.model.generator : "";
-                setMix(
-                  mix.some((m) => m.id === id)
-                    ? mix.filter((m) => m.id !== id)
-                    : [...mix, { id, n: defaultCandleCount(g) }],
-                );
+                setMix([...mix, { id, n: e?.defaultCount ?? 1 }]);
               }}
               testId="candles"
             />
-            <p className="hint">Lit in evening light. Counts are per table.</p>
+            <p className="hint">Lit in evening light.</p>
           </>
         )}
         {page === "centrepiece" && (
@@ -1161,6 +1182,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
           <PickGrid
             label="Chairs"
             options={family("chair", "chair")}
+            nameOf={(e) => e.name.replace(/ chairs?$/i, "")}
             isOn={(id) => shown.chair === id}
             onPick={(id) => apply({ chair: id })}
             testId="chair"
@@ -1168,6 +1190,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
         )}
         {page === "settings" && (
           <>
+            <h3 className="group-title">Every table</h3>
             <div className="list">
               <Toggle
                 label="Place settings"
@@ -1186,12 +1209,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
               <>
                 <Chips
                   label="Chargers"
-                  options={[
-                    { id: "gold", name: "Gold" },
-                    { id: "silver", name: "Silver" },
-                    { id: "glass", name: "Glass" },
-                    { id: "none", name: "None" },
-                  ]}
+                  options={CHARGERS}
                   value={shown.charger}
                   onPick={(id) => apply({ charger: id })}
                   testId="charger"
@@ -1218,20 +1236,35 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
     );
   }
 
-  const candleSummary = shown.candles.length
-    ? shown.candles.map((m) => `${m.n} × ${nameOf(m.id)}`).join(" · ")
-    : "None";
+  // One kind by name; a mix as a count, so the row stays one line.
+  const candleSummary =
+    shown.candles.length === 0
+      ? "None"
+      : shown.candles.length === 1
+        ? `${nameOf(shown.candles[0]?.id ?? "")} · ${shown.candles[0]?.n ?? 0}`
+        : `${shown.candles.reduce((a, m) => a + m.n, 0)} candles · ${shown.candles.length} kinds`;
   const first = (id: string) => catalog.get(id);
-  const row = (key: StylePage, value: string, thumb?: LibraryEntry) => (
-    <button type="button" className="nav-row" onClick={() => open(key)} data-testid={`style-row-${key}`}>
-      {thumb ? <Thumb entry={thumb} /> : <span className="library-icon none-icon" aria-hidden="true" />}
-      <span className="nav-label">{STYLE_PAGES[key]}</span>
-      <span className="nav-value">{value}</span>
-      <Icon name="next" size={16} className="nav-chevron" />
-    </button>
+  const row = (key: StylePage, value: string, thumb?: LibraryEntry, icon?: IconName) => (
+    <NavRow
+      label={STYLE_PAGES[key]}
+      value={value}
+      lead={
+        thumb ? (
+          <Thumb entry={thumb} />
+        ) : icon ? (
+          <span className="library-icon" aria-hidden="true">
+            <Icon name={icon} />
+          </span>
+        ) : (
+          <span className="library-icon none-icon" aria-hidden="true" />
+        )
+      }
+      onClick={() => open(key)}
+      testId={`style-row-${key}`}
+    />
   );
   return (
-    <div className="panel-body" data-testid="decor-panel">
+    <div className="panel-body" data-testid="style-panel">
       <PageHead title="Style" />
       {scopeControl}
       <Swatches
@@ -1259,8 +1292,10 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
         {row(
           "settings",
           scenario.style.settings
-            ? `${shown.charger === "none" ? "No" : shown.charger.replace(/^./, (c) => c.toUpperCase())} chargers · ${shown.napkin === "none" ? "no napkins" : nameOf(shown.napkin).toLowerCase()}`
+            ? `${shown.charger === "none" ? "No" : (CHARGERS.find((c) => c.id === shown.charger)?.name ?? "")} chargers · ${shown.napkin === "none" ? "no napkins" : nameOf(shown.napkin).toLowerCase()}`
             : "Off",
+          scenario.style.settings ? first(shown.napkin) : undefined,
+          scenario.style.settings ? "decor" : undefined,
         )}
       </div>
       <h3 className="group-title">Every table</h3>

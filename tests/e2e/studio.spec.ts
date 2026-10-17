@@ -184,7 +184,7 @@ test("[LIB-03] [LIB-05] [DEC-01] [DEC-04] [DEC-05] style for all tables or just 
     ],
     chair: "chair-chiavari-gold",
   });
-  await expect(page.getByTestId("style-row-candles")).toContainText("3 × Votives · 3 × Tall tapers");
+  await expect(page.getByTestId("style-row-candles")).toContainText("6 candles · 2 kinds");
   // One table: select it, dress it navy, then make its style everyone's.
   await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
   await expect(page.getByRole("radio", { name: "Table 2" })).toHaveAttribute("aria-checked", "true");
@@ -272,17 +272,18 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
         active: () => { items: { libraryId: string }[] };
       };
       // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing; the
-      // heaviest décor: tall arrangements, the fullest candle mix (two 5-arm candelabra, eight
-      // tapers, eight votives a table), runners and full place settings.
+      // heaviest table dressing the layout allows (DEC-02 leaves off candles with no room): eight
+      // each of 5-arm candelabra, candle sand trios and tapers, no flowers, so the most candles
+      // fit (heavier than tall arrangements with a candle mix), runners and full place settings.
       ed.createScenario("blank");
       for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
       ed.setGuests(150);
       ed.applyStyle("all", {
-        florals: "floral-tall",
+        florals: "none",
         candles: [
-          { id: "candelabra-5", n: 2 },
+          { id: "candelabra-5", n: 8 },
+          { id: "candle-sand-trio", n: 8 },
           { id: "candle-tapers", n: 8 },
-          { id: "candle-votives", n: 8 },
         ],
         runner: "runner-chiffon-ivory",
         napkin: "napkin-sage",

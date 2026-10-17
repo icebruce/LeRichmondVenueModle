@@ -17,7 +17,7 @@ import {
   customRequestSchema,
   importedSchema,
 } from "../domain/library/schema";
-import { styleKeyOf, stylePatch } from "../domain/layout/decor";
+import { isRoomChoice, styleKeyOf } from "../domain/layout/decor";
 import { isTable } from "../domain/layout/items";
 import { libraryStore } from "../state/library";
 import { viewStore } from "../state/view";
@@ -785,7 +785,7 @@ function ItemDetail({
   // Already the room-wide choice, with no table dressed differently.
   const onAll =
     !!styleKey &&
-    JSON.stringify(scenario.style[styleKey]) === JSON.stringify(stylePatch(e)?.[styleKey]) &&
+    isRoomChoice(scenario.style, e) &&
     scenario.items.every((i) => !i.style || i.style[styleKey] === undefined);
   return (
     <div className="panel-body" data-testid="imported-detail">

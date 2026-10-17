@@ -11,7 +11,8 @@ export const SCHEMA_VERSION = 4;
  */
 export const candleMixSchema = z
   .array(z.object({ id: z.string().min(1), n: z.number().int().min(1).max(MAX_CANDLES_PER_KIND) }))
-  .max(MAX_CANDLE_KINDS);
+  .max(MAX_CANDLE_KINDS)
+  .refine((mix) => new Set(mix.map((m) => m.id)).size === mix.length, "Each candle kind once");
 export type CandleMix = z.infer<typeof candleMixSchema>;
 
 /** Table décor (DEC-01..04, LIB-04..06): library ids, or "none" for florals and chargers. */

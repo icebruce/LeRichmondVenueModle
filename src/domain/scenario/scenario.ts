@@ -127,7 +127,10 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
   },
 };
 
-/** How many candles the single-choice candle sets of v3 showed, so an old plan keeps its look. */
+/**
+ * How many candles each single-choice candle set of v3 showed per centre spot. A long table had one
+ * spot per metre, so it opens with fewer candles than it showed; the kinds and their look stay.
+ */
 const LEGACY_CANDLE_COUNTS: Record<string, number> = {
   "candle-votives": 3,
   "candle-pillars": 3,
