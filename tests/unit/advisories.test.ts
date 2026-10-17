@@ -53,7 +53,7 @@ describe("advisories", () => {
   });
 
   test("[LAY-08] a table in front of the kitchen pass is flagged; the dance area there is not", () => {
-    const pass: Item = { ...t("p", 7.0, 12.7), rotY: 0 };
+    const pass: Item = { ...t("p", 7.0, 11.3), rotY: 0 };
     expect(advise([pass], 0, DEFAULT_THRESHOLDS, venue, catalog, NONE).map((x) => x.message)).toContain(
       "Clearance ≈ 0.6 m at the kitchen pass (table 1) — below your 1.2 m setting",
     );
@@ -61,7 +61,7 @@ describe("advisories", () => {
       id: "f",
       libraryId: "dance-floor",
       x: 7,
-      z: 12.5,
+      z: 11.1,
       rotY: 0,
       options: { width: 3, depth: 2 },
     };
@@ -72,13 +72,13 @@ describe("advisories", () => {
 
   test("[LAY-08] dance area size is compared with 35% of guests at 0.45 m² each", () => {
     const items = venueSampleItems();
-    // Sample dance area 4.8 × 3.0 ≈ 14.4 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
+    // Sample dance area 3.9 × 3.1 ≈ 12.1 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
     expect(advise(items, 75, DEFAULT_THRESHOLDS, venue, catalog, NONE).some((x) => x.kind === "dance")).toBe(
       false,
     );
     expect(
       advise(items, 150, DEFAULT_THRESHOLDS, venue, catalog, NONE).find((x) => x.kind === "dance")?.message,
-    ).toBe("Dance area ≈ 14 m² — below the ≈ 24 m² your settings suggest for 150 guests");
+    ).toBe("Dance area ≈ 12 m² — below the ≈ 24 m² your settings suggest for 150 guests");
   });
 
   test("[LAY-08] the venue sample plan: tightest aisles first; the garage-door tables pass", () => {

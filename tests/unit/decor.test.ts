@@ -16,6 +16,7 @@ import {
   styleOf,
   venueSampleScenario,
 } from "../../src/domain/scenario/scenario";
+import type { CandleMix } from "../../src/domain/scenario/schema";
 import { createEditor } from "../../src/state/editor";
 
 const round: Item = { id: "r", libraryId: "table-round", x: 4, z: 11, rotY: 0, options: { seats: 8 } };
@@ -171,7 +172,7 @@ describe("scenario files", () => {
       updatedAt: "2026-10-15T00:00:00.000Z",
     };
     const s = parseScenario(v1);
-    expect(s.schemaVersion).toBe(4);
+    expect(s.schemaVersion).toBe(5);
     expect(s.style).toMatchObject({ runner: "none", napkin: "none", menus: false, tableNumbers: false });
     expect(s.style).toMatchObject({ linen: "linen-white", linenLength: "lap" });
     expect(s.style.candles).toEqual([{ id: "candle-votives", n: 3 }]);
@@ -213,7 +214,7 @@ describe("scenario files", () => {
       updatedAt: "2026-10-16T00:00:00.000Z",
     };
     const s = parseScenario(v3);
-    expect(s.schemaVersion).toBe(4);
+    expect(s.schemaVersion).toBe(5);
     expect(s.style.candles).toEqual([{ id: "candle-pillars", n: 3 }]);
     expect(s.items[0]?.style?.candles).toEqual([]);
     expect(s.items[1]?.style?.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
@@ -222,8 +223,7 @@ describe("scenario files", () => {
 
 describe("candle mix", () => {
   test("[LIB-05] [DEC-02] up to three kinds, each with its own count, arranged on the table", () => {
-    const flames = (mix: { id: string; n: number }[]) =>
-      decor({ candles: mix }).filter((p) => p.slot === "flame").length;
+    const flames = (mix: CandleMix) => decor({ candles: mix }).filter((p) => p.slot === "flame").length;
     expect(flames([{ id: "candle-pillars", n: 1 }])).toBe(1);
     expect(flames([{ id: "candle-tapers", n: 3 }])).toBe(3);
     expect(
@@ -233,7 +233,7 @@ describe("candle mix", () => {
       ]),
     ).toBe(4);
     // A five-arm candelabra is one piece with five flames.
-    expect(flames([{ id: "candelabra-5", n: 2 }])).toBe(10);
+    expect(flames([{ id: "candelabra", n: 2, arms: 5 }])).toBe(10);
     // Arranged, not stacked: no two candles share a spot.
     const spots = new Set(
       decor({ candles: [{ id: "candle-votives", n: 5 }] })
@@ -263,7 +263,11 @@ describe("candle mix", () => {
   });
 
   test("[DEC-02] candles stay on the table top, clear of the plates; what does not fit is left off", () => {
-    const heavy = ["candle-sand-trio", "candelabra-5", "candelabra-3"].map((id) => ({ id, n: 8 }));
+    const heavy = [
+      { id: "candle-sand-trio", n: 8 },
+      { id: "candelabra", n: 8, arms: 5 },
+      { id: "candle-hurricane", n: 8 },
+    ];
     const extras = { settings: true, menus: true, tableNumbers: true, linenLength: "floor" as const };
     const table = (libraryId: string, options: Record<string, number> = {}) =>
       shapeOf({ id: "t", libraryId, x: 4, z: 11, rotY: 0, options }, catalog);
@@ -325,8 +329,8 @@ describe("candle mix", () => {
         }
     // One big piece beside a low arrangement: its arms pass over the flowers' edge.
     const eight = table("table-round", { seats: 8 });
-    for (const id of ["candelabra-5", "candle-hurricane"]) {
-      const style = { ...DEFAULT_STYLE, florals: "floral-low", candles: [{ id, n: 1 }] };
+    for (const id of ["candelabra", "candle-hurricane"]) {
+      const style = { ...DEFAULT_STYLE, florals: "floral-low", candles: [{ id, n: 1, arms: 5 }] };
       const { parts, placed } = candleLayout(eight, style, catalog, extras);
       expect(placed, id).toBe(1);
       // Never through the flowers: no candle part overlaps a flower part both across and in height.
@@ -341,6 +345,95 @@ describe("candle mix", () => {
             expect(Math.hypot(a.x - b.x, a.z - b.z), id).toBeGreaterThanOrEqual(a.r + b.r - 1e-9);
         }
     }
+  });
+
+  test("[DEC-02] [LIB-05] each kind takes its own sizes in cm, kept to its range and steps", () => {
+    const parts = (candles: CandleMix) => decor({ candles });
+    const wax = (ps: Part[]) => ps.filter((p) => p.slot === "wax");
+    // Pillars: a width, and a height for each pillar; past the range they stop at its end.
+    const pillars = wax(parts([{ id: "candle-pillars", n: 3, w: 6, h: [10, 30, 50] }]));
+    expect(pillars.map((p) => p.sx)).toEqual([0.03, 0.03, 0.03]);
+    expect(pillars.map((p) => p.sy).sort()).toEqual([0.1, 0.3, 0.3]);
+    // Unset, they are the pillars as first built: 15, 22.5 and 10 cm, 8 cm wide.
+    expect(
+      wax(parts([{ id: "candle-pillars", n: 3 }]))
+        .map((p) => p.sy)
+        .sort(),
+    ).toEqual([0.1, 0.15, 0.225]);
+    // A taper stands in its holder; a candelabra has the arms chosen and tops out at its height.
+    const taper = parts([{ id: "candle-tapers", n: 1, h: [30], holder: 25 }]);
+    expect(wax(taper)[0]).toMatchObject({ y: 0.25, sy: 0.3 });
+    const flames = (ps: Part[]) => ps.filter((p) => p.slot === "flame");
+    expect(flames(parts([{ id: "candelabra", n: 1, arms: 1 }]))).toHaveLength(1);
+    expect(flames(parts([{ id: "candelabra", n: 1 }]))).toHaveLength(3);
+    const low = parts([{ id: "candelabra", n: 1, arms: 5, h: [30] }]);
+    expect(Math.max(...wax(low).map((p) => p.y + p.sy))).toBeCloseTo(0.3, 2);
+    // Hurricanes and lanterns grow to their height.
+    expect(heightOf(parts([{ id: "candle-lantern", n: 1, h: [50] }]))).toBeCloseTo(0.5, 2);
+  });
+
+  test("[DEC-02] the candle group turns on the table, and a shuffle keeps its own order", () => {
+    const rect: Item = { id: "t", libraryId: "table-rect", x: 4, z: 4, rotY: 0, options: { seats: 8 } };
+    const long = shapeOf(rect, catalog);
+    const extras = { settings: false, menus: false, tableNumbers: false, linenLength: "floor" as const };
+    const flames = (patch: Partial<typeof DEFAULT_STYLE>) =>
+      candleLayout(
+        long,
+        { ...DEFAULT_STYLE, candles: [{ id: "candle-pillars", n: 3 }], ...patch },
+        catalog,
+        extras,
+      ).parts.filter((p) => p.slot === "flame");
+    // Along the table, then across it when turned a quarter (spots snap to a 3 cm grid).
+    const spread = (ps: Part[], k: "x" | "z") =>
+      Math.max(...ps.map((p) => p[k])) - Math.min(...ps.map((p) => p[k]));
+    const along = flames({});
+    expect(spread(along, "x")).toBeGreaterThan(0.15);
+    expect(spread(along, "z")).toBeLessThanOrEqual(0.031);
+    const across = flames({ candleTurn: 90 });
+    expect(across).toHaveLength(3);
+    expect(spread(across, "z")).toBeGreaterThan(0.15);
+    expect(spread(across, "x")).toBeLessThanOrEqual(0.031);
+    // Tallest in the middle by default; a shuffle puts them in its own order, the same each time.
+    const byX = (ps: Part[]) => [...ps].sort((a, b) => a.x - b.x).map((p) => p.y.toFixed(3));
+    expect(byX(along)[1]).toBe(Math.max(...along.map((p) => p.y)).toFixed(3));
+    const shuffles = [1, 2, 3, 4, 5].map((candleOrder) => byX(flames({ candleOrder })).join());
+    expect(shuffles[0]).toBe(byX(flames({ candleOrder: 1 })).join());
+    expect(shuffles.some((o) => o !== byX(along).join())).toBe(true);
+  });
+
+  test("[SCN-08] [LIB-05] a version 4 plan opens with one candelabra keeping its arms", () => {
+    const v4 = {
+      ...newScenario("v4", "Two candelabra", "2026-10-17T00:00:00.000Z", []),
+      schemaVersion: 4,
+      style: (({ candleOrder: _o, candleTurn: _t, ...rest }) => rest)({
+        ...DEFAULT_STYLE,
+        candles: [
+          { id: "candelabra-5", n: 2 },
+          { id: "candelabra-3", n: 1 },
+          { id: "candle-votives", n: 3 },
+        ],
+      }),
+      items: [
+        {
+          id: "t1",
+          libraryId: "table-round",
+          x: 4,
+          z: 4,
+          rotY: 0,
+          options: { seats: 8 },
+          style: { candles: [{ id: "candelabra-3", n: 1 }] },
+        },
+      ],
+    };
+    const s = parseScenario(v4);
+    expect(s.schemaVersion).toBe(5);
+    // Both become the one candelabra: the first one's arms, their counts together.
+    expect(s.style.candles).toEqual([
+      { id: "candelabra", n: 3, arms: 5 },
+      { id: "candle-votives", n: 3 },
+    ]);
+    expect(s.style).toMatchObject({ candleOrder: 0, candleTurn: 0 });
+    expect(s.items[0]?.style?.candles).toEqual([{ id: "candelabra", n: 1, arms: 3 }]);
   });
 });
 

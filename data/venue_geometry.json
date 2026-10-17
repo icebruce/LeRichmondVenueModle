@@ -12,11 +12,11 @@
       "sources": ["F01"]
     },
     "depth": {
-      "value": 14.3,
+      "value": 12.9,
       "min": 12.5,
       "max": 16,
       "confidence": "L",
-      "sources": ["F01", "C"]
+      "sources": ["F01", "C", "owner 2026-10-17"]
     },
     "ceiling": {
       "value": 6.5,
@@ -46,8 +46,8 @@
         "value": [
           [9.81, 0],
           [16, 0],
-          [16, 11.3],
-          [11.2, 11.3],
+          [16, 10.7],
+          [11.2, 10.7],
           [11.2, 9.6],
           [9.81, 7.85]
         ],
@@ -79,15 +79,15 @@
     },
     {
       "id": "west",
-      "from": [0, 14.3],
+      "from": [0, 12.9],
       "to": [0, 0],
       "finish": "brick",
       "openings": [
         {
           "id": "garage-north",
           "kind": "garageDoor",
-          "start": 7.8,
-          "end": 14.1,
+          "start": 7.1,
+          "end": 12.7,
           "sill": 0,
           "head": 4.4
         },
@@ -95,7 +95,7 @@
           "id": "garage-south",
           "kind": "garageDoor",
           "start": 0.9,
-          "end": 7.2,
+          "end": 6.5,
           "sill": 0,
           "head": 4.4
         }
@@ -106,7 +106,7 @@
     {
       "id": "east",
       "from": [16, 0],
-      "to": [16, 14.3],
+      "to": [16, 12.9],
       "finish": "brick",
       "dado": 1.05,
       "openings": [
@@ -148,8 +148,8 @@
     },
     {
       "id": "south",
-      "from": [16, 14.3],
-      "to": [0, 14.3],
+      "from": [16, 12.9],
+      "to": [0, 12.9],
       "finish": "brick",
       "height": 3.8,
       "openings": [
@@ -188,7 +188,7 @@
         }
       ],
       "confidence": "M",
-      "sources": ["C", "F01", "R04", "R09", "UV02"]
+      "sources": ["C", "F01", "R04", "R09", "UV02", "owner 2026-10-17"]
     }
   ],
   "bar": {
@@ -219,10 +219,10 @@
     "rearCounter": [5.67, 0.6, 10.6, 1.2]
   },
   "mezzanine": {
-    "edgeZ": 14.3,
+    "edgeZ": 12.9,
     "xFrom": 0.6,
     "xTo": 14.8,
-    "depth": 2.2,
+    "depth": 3.0,
     "fasciaDepth": 0.9,
     "floorHeight": {
       "value": 3.8,
@@ -235,20 +235,20 @@
     "sources": ["C", "UV02", "R09"]
   },
   "stair": {
-    "landing": [9.6, 12.5, 14.8, 14.3],
+    "landing": [9.6, 11.9, 14.8, 12.9],
     "flight": {
-      "from": [12.28, 11.3],
-      "to": [14.8, 12.5],
+      "from": [12.28, 10.7],
+      "to": [14.8, 11.9],
       "rise": 1.62,
       "treads": 9
     },
-    "upperLanding": [14.8, 11.3, 16, 12.5],
+    "upperLanding": [14.8, 10.7, 16, 11.9],
     "upperFlight": {
-      "from": [14.8, 12.5],
-      "to": [16, 15.86],
+      "from": [14.8, 11.9],
+      "to": [16, 15.26],
       "treads": 12
     },
-    "topLanding": [14.8, 15.86, 16, 16.5],
+    "topLanding": [14.8, 15.26, 16, 15.9],
     "confidence": "M",
     "sources": ["C", "R01", "R09", "UV02", "owner 2026-10-17"]
   },
@@ -261,15 +261,15 @@
       "label": "DJ option 1"
     },
     "dj2": {
-      "x": 9.95,
-      "z": 10.75,
-      "rotY": -1.5708,
+      "x": 4.75,
+      "z": 11.85,
+      "rotY": 1.5708,
       "level": "main",
       "label": "DJ option 2"
     },
     "dj3": {
       "x": 13.7,
-      "z": 15.0,
+      "z": 13.6,
       "rotY": 0,
       "level": "mezzanine",
       "label": "DJ option 3 · mezzanine"
@@ -417,22 +417,22 @@
   "cameraPresets": {
     "dollhouse": {
       "position": [26, 24, 30],
-      "target": [8, 0.5, 7],
+      "target": [8, 0.5, 6.3],
       "fov": 30
     },
     "plan": {
-      "position": [8, 40, 7.2],
-      "target": [8, 0, 7.15],
+      "position": [8, 40, 6.5],
+      "target": [8, 0, 6.45],
       "fov": 30
     },
     "walkStart": {
-      "position": [10.5, 1.65, 13.6],
+      "position": [10.5, 1.65, 12.2],
       "target": [7.5, 1.65, 6],
       "fov": 60
     },
     "R01": {
-      "position": [15.4, 4.5, 14.1],
-      "target": [9, 0, 6.5],
+      "position": [15.4, 4.3, 13.5],
+      "target": [9, 1, 6.5],
       "fov": 78,
       "reference": "R01"
     },
@@ -443,20 +443,20 @@
       "reference": "R03"
     },
     "R09": {
-      "position": [11.8, 1.95, 7.2],
-      "target": [14.6, 2.0, 13.6],
+      "position": [11.8, 1.95, 6.6],
+      "target": [13.5, 2.0, 12.3],
       "fov": 60,
       "reference": "R09"
     },
     "UV01": {
-      "position": [12.0, 5.2, 14.5],
+      "position": [12.0, 5.2, 13.1],
       "target": [13.0, 2.0, 1.0],
       "fov": 45,
       "reference": "UV01"
     },
     "UV02": {
       "position": [3.0, 1.6, 4.0],
-      "target": [10.0, 3.0, 14.3],
+      "target": [10.0, 3.0, 12.9],
       "fov": 70,
       "reference": "UV02"
     }

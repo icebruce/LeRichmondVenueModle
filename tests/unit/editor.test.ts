@@ -78,7 +78,7 @@ describe("editing", () => {
   test("[LAY-11] choosing DJ option 3 moves the booth to the mezzanine spot", () => {
     const { editor, item } = setup();
     expect(editor.setOption("dj", "spot", "dj3")).toBe(true);
-    expect(item("dj")).toMatchObject({ x: 13.7, z: 15 });
+    expect(item("dj")).toMatchObject({ x: 13.7, z: 13.6 });
   });
 });
 

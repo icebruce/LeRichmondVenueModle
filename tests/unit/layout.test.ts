@@ -36,13 +36,13 @@ describe("venue model", () => {
     }
   });
 
-  test("[VEN-01] the west wall is two garage doors of ≈ 6.3 m and a 0.6 m divider, then a small wall", () => {
+  test("[VEN-01] the west wall is two garage doors of ≈ 5.6 m and a 0.6 m divider, then a small wall", () => {
     const west = venue.data.walls.find((w) => w.id === "west");
     const doors = (west?.openings ?? [])
       .filter((o) => o.kind === "garageDoor")
       .sort((a, b) => a.start - b.start);
     expect(west?.openings.every((o) => o.kind === "garageDoor")).toBe(true);
-    expect(doors.map((o) => o.end - o.start)).toEqual([expect.closeTo(6.3, 1), expect.closeTo(6.3, 1)]);
+    expect(doors.map((o) => o.end - o.start)).toEqual([expect.closeTo(5.6, 1), expect.closeTo(5.6, 1)]);
     const [south, north] = doors;
     expect((north?.start ?? 0) - (south?.end ?? 0)).toBeCloseTo(0.6);
     // The wall runs from the kitchen (south) end: a short solid piece there, the doors up to the north end.
@@ -50,10 +50,10 @@ describe("venue model", () => {
     expect(venue.depth - (north?.end ?? 0)).toBeLessThan(0.3);
   });
 
-  test("[VEN-01] the bar fronts ≈ 6.3–6.5 m from the kitchen wall and seats 5 at its front", () => {
+  test("[VEN-01] the bar fronts ≈ 5 m from the kitchen wall and seats 5 at its front", () => {
     const [x0, z0, x1, z1] = venue.data.bar.outer.value;
-    expect(venue.depth - z1).toBeGreaterThanOrEqual(6.3);
-    expect(venue.depth - z1).toBeLessThanOrEqual(6.5);
+    expect(venue.depth - z1).toBeGreaterThanOrEqual(4.9);
+    expect(venue.depth - z1).toBeLessThanOrEqual(5.2);
     expect(z1 - z0).toBeGreaterThan(x1 - x0);
     expect(venue.data.fixtures.venueFurniture.barStools).toEqual({ front: 5, side: 6 });
     expect((x1 - x0) / 5).toBeGreaterThanOrEqual(0.6);
@@ -107,7 +107,7 @@ describe("entrance and stairwell", () => {
     expect(lx0).toBeLessThanOrEqual(south.from[0] - corridor.end);
     expect(lz1).toBe(venue.depth);
     expect(lz0).toBe(Math.max(venue.data.stair.flight.from[1], venue.data.stair.flight.to[1]));
-    expect(checkPlacement(table({ x: 10.5, z: 13.4 }), [], venue, catalog).ok).toBe(false);
+    expect(checkPlacement(table({ x: 10.5, z: 12.0 }), [], venue, catalog).ok).toBe(false);
   });
 });
 
@@ -126,7 +126,7 @@ describe("placement", () => {
   });
 
   test("[VEN-03] items outside the main room are refused", () => {
-    expect(checkPlacement(table({ x: 8, z: 15.5 }), [], venue, catalog)).toEqual({
+    expect(checkPlacement(table({ x: 8, z: 14.1 }), [], venue, catalog)).toEqual({
       ok: false,
       reason: "Outside the room",
     });
@@ -140,12 +140,12 @@ describe("placement", () => {
   });
 
   test("[VEN-04] a table straddling the raised floor edge is refused", () => {
-    const r = checkPlacement(table({ x: 11.2, z: 10.2 }), [], venue, catalog);
+    const r = checkPlacement(table({ x: 10.6, z: 9.4 }), [], venue, catalog);
     expect(r).toEqual({ ok: false, reason: "Straddles the raised floor edge" });
   });
 
   test("[LAY-11] the DJ booth may sit at the mezzanine spot (option 3) but nowhere else off the floor", () => {
-    const dj: Item = { id: "dj", libraryId: "dj-booth", x: 13.7, z: 15, rotY: 0, options: { spot: "dj3" } };
+    const dj: Item = { id: "dj", libraryId: "dj-booth", x: 13.7, z: 13.6, rotY: 0, options: { spot: "dj3" } };
     expect(checkPlacement(dj, [], venue, catalog)).toEqual({ ok: true, level: "mezzanine" });
     expect(checkPlacement({ ...dj, options: { spot: "free" } }, [], venue, catalog).ok).toBe(false);
   });
@@ -241,7 +241,7 @@ describe("venue sample and counts", () => {
   test("[LAY-07] 75 guests with the venue sample: 8 tables, 72 seats, 3 without a seat", () => {
     const c = countLayout(venueSampleItems(), 75, catalog);
     expect(c).toMatchObject({ tables: 8, seats: 72, guests: 75, withoutSeat: 3 });
-    expect(c.danceFloorM2).toBeCloseTo(14.4);
+    expect(c.danceFloorM2).toBeCloseTo(12.09);
   });
 
   test("[LAY-10] tables are numbered in order, the sweetheart table is ♥, own labels win", () => {
@@ -288,17 +288,17 @@ describe("walking", () => {
     expect(free([3, 9])).toBe(false);
     expect(free([7, 5])).toBe(false);
     expect(free([0.1, 5])).toBe(false);
-    expect(free([8, 14.25])).toBe(false);
+    expect(free([8, 12.85])).toBe(false);
   });
 
   test("[CAM-03] walking starts at the entrance; both stair flights and the turn landing block", () => {
     const free = walkArea(venue, [], catalog, off);
     const start = venue.data.cameraPresets.walkStart?.position ?? [0, 0, 0];
     expect(free([start[0] ?? 0, start[2] ?? 0])).toBe(true);
-    expect(free([13.5, 11.9])).toBe(false);
-    expect(free([15.4, 11.9])).toBe(false);
-    expect(free([15.4, 13.5])).toBe(false);
-    expect(free([13.5, 13.4])).toBe(true);
+    expect(free([13.5, 11.3])).toBe(false);
+    expect(free([15.4, 11.3])).toBe(false);
+    expect(free([15.4, 12.5])).toBe(false);
+    expect(free([13.5, 12.4])).toBe(true);
   });
 
   test("[CAM-03] the dance area is walked on; bar stools block only when shown", () => {
