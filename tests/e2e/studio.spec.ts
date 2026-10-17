@@ -690,6 +690,9 @@ test("[LIB-08] a hanging light shows its height to the floor and drags up or dow
   const hang = Number((await readout.textContent())?.match(/\d\.\d/)?.[0]);
   // The grip sits just under the light.
   const [x, y] = await screenOf(page, before.x, hang - 0.08, before.z);
+  // A press without a move changes nothing.
+  await page.mouse.click(x, y);
+  expect((await item(page, id)).options.hang).toBe(before.options.hang);
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x, y - 30, { steps: 4 });

@@ -11,11 +11,12 @@ import {
   localFootprint,
   shapeOf,
 } from "../../domain/layout/items";
+import { bottomOf } from "../../domain/layout/decor";
 import { alignSnap } from "../../domain/layout/align";
 import { checkPlacement, levelHeight, spotFor, toggledObstacles } from "../../domain/layout/validate";
 import { tableLabels } from "../../domain/layout/counts";
 import { type Polygon, centredRect, circle, snap } from "../../domain/geometry";
-import type { Catalog } from "../../domain/library/catalog";
+import { type Catalog, hangingLight } from "../../domain/library/catalog";
 import type { Scenario } from "../../domain/scenario/schema";
 import { styleOf } from "../../domain/scenario/scenario";
 import { GRID, ROTATE_STEP } from "../../state/editor";
@@ -562,11 +563,14 @@ function Guides({ drag, y, dark }: { drag: Drag; y: number; dark: boolean }) {
   );
 }
 
-/** The point under the pointer on the level plane at height `y` (m), or null when the ray misses it. */
+/**
+ * The point under the pointer on the level plane at height `at` (m), or on a given plane (a light's
+ * upright drag plane), or null when the ray misses it.
+ */
 export function useFloorPointer() {
   const { camera, gl, raycaster } = useThree();
   return useCallback(
-    (clientX: number, clientY: number, y: number): THREE.Vector3 | null => {
+    (clientX: number, clientY: number, at: number | THREE.Plane): THREE.Vector3 | null => {
       const r = gl.domElement.getBoundingClientRect();
       const ndc = new THREE.Vector2(
         ((clientX - r.left) / r.width) * 2 - 1,
@@ -574,7 +578,8 @@ export function useFloorPointer() {
       );
       raycaster.setFromCamera(ndc, camera);
       const hit = new THREE.Vector3();
-      return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), hit);
+      const plane = typeof at === "number" ? new THREE.Plane(new THREE.Vector3(0, 1, 0), -at) : at;
+      return raycaster.ray.intersectPlane(plane, hit);
     },
     [camera, gl, raycaster],
   );
@@ -995,9 +1000,10 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
 /** A press on a light's height grip belongs to the grip, even through the light in front of it. */
 const onGrip = (e: ThreeEvent<PointerEvent>) => e.intersections.some((i) => i.object.name === "height-grip");
 
-/** The grip's look and its hit area, in screen pixels (§2.5: 44 pt targets). */
+/** The grip's radius and its hit area's, in screen pixels (§2.5: 44 pt targets), and how far under the light it sits (m). */
 const GRIP_PX = 7;
 const GRIP_HIT_PX = 22;
+const GRIP_DROP = 0.08;
 
 /**
  * A hanging or ceiling light's height (LIB-08, owner 2026-10-17): a line drops from it to the floor
@@ -1018,50 +1024,55 @@ function HeightHandle({
 }) {
   const { catalog, editor } = useStudio();
   const get = useThree((s) => s.get);
+  const toPlane = useFloorPointer();
   const grip = useRef<THREE.Group>(null);
-  const colour = dark ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b");
-  const halo = token("--ink", "#202522");
+  const colours = useMemo(
+    () => ({
+      line: dark ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b"),
+      halo: token("--ink", "#202522"),
+    }),
+    [dark],
+  );
   // The grip keeps its size on screen, however far the camera is.
+  const probe = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3() }), []);
   useFrame(({ camera, size }) => {
     const g = grip.current;
     if (!g) return;
-    const a = g.getWorldPosition(new THREE.Vector3());
-    const b = a.clone().setY(a.y + 1);
+    const a = g.getWorldPosition(probe.a);
+    const b = probe.b.copy(a).setY(a.y + 1);
     const perMetre = Math.abs(a.project(camera).y - b.project(camera).y) * (size.height / 2);
     g.scale.setScalar(perMetre > 0 ? 1 / perMetre : 1);
   });
   useEffect(() => () => void (document.body.style.cursor = ""), []);
+  // Where the light really ends (a sagging strand, a mirror ball below its hanging point).
+  const bottom = useMemo(() => {
+    const s = placed.shape;
+    return s.kind === "piece" ? bottomOf(makePiece(s.generator, s.params, s.options, s.size).parts) : 0;
+  }, [placed.shape]);
   const entry = catalog.get(placed.item.libraryId);
   const option = entry?.options.find((o) => o.key === "hang");
-  if (option?.type !== "number" || (entry?.placement !== "hanging" && entry?.placement !== "ceiling"))
-    return null;
+  if (!entry || !hangingLight(entry) || option?.type !== "number") return null;
   const h = Number(placed.item.options.hang ?? option.default);
   const { x, z } = placed.item;
   const onDown = (e: ThreeEvent<PointerEvent>) => {
+    if (e.button > 0) return;
     e.stopPropagation();
     setControls(false);
     const saved = h;
-    const { camera, gl } = get();
-    // A vertical plane through the light, facing the camera: the pointer's height on it is the light's.
+    const { camera } = get();
+    // A vertical plane through the light, facing the camera: the pointer's height on it moves the
+    // light by as much, from wherever on the grip it was pressed (no jump on a press).
     const facing = new THREE.Vector3()
       .subVectors(camera.position, new THREE.Vector3(x, 0, z))
       .setY(0)
       .normalize();
     const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(facing, new THREE.Vector3(x, 0, z));
-    const ray = new THREE.Raycaster();
-    const hit = new THREE.Vector3();
+    const start = toPlane(e.clientX, e.clientY, plane)?.y;
     let last = saved;
     const move = (ev: PointerEvent) => {
-      const r = gl.domElement.getBoundingClientRect();
-      ray.setFromCamera(
-        new THREE.Vector2(
-          ((ev.clientX - r.left) / r.width) * 2 - 1,
-          -((ev.clientY - r.top) / r.height) * 2 + 1,
-        ),
-        camera,
-      );
-      if (!ray.ray.intersectPlane(plane, hit)) return;
-      last = Math.min(option.max, Math.max(option.min, snap(hit.y - placed.y, 0.1)));
+      const y = toPlane(ev.clientX, ev.clientY, plane)?.y;
+      if (y === undefined || start === undefined) return;
+      last = Math.min(option.max, Math.max(option.min, snap(saved + y - start, option.step)));
       viewStore.setState({ lift: { id: placed.item.id, hang: last } });
     };
     const end = (save: boolean) => {
@@ -1088,11 +1099,12 @@ function HeightHandle({
     window.addEventListener("pointercancel", cancel);
     window.addEventListener("keydown", key, true);
   };
-  const line = (width: number, c: string, order: number) => (
+  const top = placed.y + bottom;
+  const line = (width: number, c: string, opacity: number, order: number) => (
     <Line
       points={[
         [x, placed.y + 0.01, z],
-        [x, placed.y + h, z],
+        [x, top, z],
       ]}
       color={c}
       lineWidth={width}
@@ -1102,27 +1114,27 @@ function HeightHandle({
       depthTest={false}
       renderOrder={order}
       transparent
-      opacity={c === halo ? 0.45 : 1}
+      opacity={opacity}
     />
   );
   return (
     <group name="height-handle">
       {/* A dark halo under the line, so it reads on pale cloths in the evening. */}
-      {line(3.5, halo, 11)}
-      {line(1.5, colour, 12)}
+      {line(3.5, colours.halo, 0.45, 11)}
+      {line(1.5, colours.line, 1, 12)}
       <mesh position={[x, placed.y + 0.006, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={12}>
         <ringGeometry args={[0.06, 0.1, 24]} />
-        <meshBasicMaterial color={colour} depthTest={false} transparent />
+        <meshBasicMaterial color={colours.line} depthTest={false} transparent />
       </mesh>
       {grab && (
-        <group ref={grip} position={[x, placed.y + h - 0.08, z]}>
+        <group ref={grip} position={[x, top - GRIP_DROP, z]}>
           <mesh renderOrder={13}>
             <sphereGeometry args={[GRIP_PX + 1.5, 16, 12]} />
-            <meshBasicMaterial color={halo} depthTest={false} transparent opacity={0.6} />
+            <meshBasicMaterial color={colours.halo} depthTest={false} transparent opacity={0.6} />
           </mesh>
           <mesh renderOrder={14}>
             <sphereGeometry args={[GRIP_PX, 16, 12]} />
-            <meshBasicMaterial color={colour} depthTest={false} transparent />
+            <meshBasicMaterial color={colours.line} depthTest={false} transparent />
           </mesh>
           <mesh
             name="height-grip"
@@ -1140,7 +1152,7 @@ function HeightHandle({
           </mesh>
         </group>
       )}
-      <Html position={[x, placed.y + h / 2, z]} className="height-readout" zIndexRange={[5, 0]}>
+      <Html position={[x, placed.y + bottom / 2, z]} className="height-readout" zIndexRange={[5, 0]}>
         ≈ {h.toFixed(1)} m
       </Html>
     </group>

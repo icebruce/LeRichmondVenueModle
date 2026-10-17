@@ -5,6 +5,7 @@ import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
+import { hangingLight } from "../domain/library/catalog";
 import { pointInPolygon } from "../domain/geometry";
 import { footprint, shapeOf } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
@@ -266,12 +267,9 @@ function SelectionAnchor() {
       // light above its grip (its drawn top).
       const top = Math.max(
         ...items.map((i) => {
-          const hangs = catalog.get(i.libraryId)?.options.some((o) => o.key === "hang");
-          const shape = shapeOf(i, catalog);
-          const h =
-            hangs && shape.kind === "piece"
-              ? shape.height
-              : Math.min(catalog.get(i.libraryId)?.sizeM.h ?? 1, 2.5);
+          const e = catalog.get(i.libraryId);
+          const shape = e && hangingLight(e) ? shapeOf(i, catalog) : null;
+          const h = shape?.kind === "piece" ? shape.height : Math.min(e?.sizeM.h ?? 1, 2.5);
           return (pointInPolygon([i.x, i.z], venue.raised.outline) ? venue.raised.height : 0) + h;
         }),
       );

@@ -1,12 +1,12 @@
 import * as THREE from "three";
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { FLOWER_TYPES, type Part, type Prim } from "../../src/domain/layout/decor";
+import { FLOWER_TYPES, type Part, type Prim, bottomOf } from "../../src/domain/layout/decor";
 import { PIECE_GENERATORS, makePiece } from "../../src/domain/layout/pieces";
 import { type Item, blocksFloor, footprint, shapeOf } from "../../src/domain/layout/items";
 import { checkPlacement } from "../../src/domain/layout/validate";
 import { countLayout } from "../../src/domain/layout/counts";
-import { resolveOptions } from "../../src/domain/library/catalog";
+import { hangingLight, resolveOptions } from "../../src/domain/library/catalog";
 
 /** Triangles per unit primitive, as the scene builds them (Decor.tsx `primitives`). */
 const TRIS: Record<"high" | "low", Record<Prim, number>> = {
@@ -135,6 +135,24 @@ describe("step-3 library pieces", () => {
     expect(checkPlacement(strand, [table], venue, catalog).ok).toBe(true);
     expect(checkPlacement({ ...stage, x: 7.5, z: 5 }, [table], venue, catalog).ok).toBe(false);
     expect(footprint(strand, catalog).length).toBe(4);
+  });
+
+  test("[LIB-08] hanging lights, and only they, get a height handle under their lowest point", () => {
+    const get = (id: string) => catalog.get(id) as NonNullable<ReturnType<typeof catalog.get>>;
+    for (const id of ["light-string", "light-edison", "light-pinspot", "light-chandelier", "light-disco"])
+      expect(hangingLight(get(id)), id).toBe(true);
+    for (const id of ["light-uplight", "floral-hanging", "sign-neon"])
+      expect(hangingLight(get(id)), id).toBe(false);
+    const bottom = (id: string) => {
+      const s = shapeOf(item(id, 8, 7, { hang: 2.8 }), catalog);
+      return s.kind === "piece" ? bottomOf(makePiece(s.generator, s.params, s.options, s.size).parts) : NaN;
+    };
+    // A chandelier ends near its hanging height; a sagging strand and a mirror ball reach below it.
+    expect(Math.abs(bottom("light-chandelier") - 2.8)).toBeLessThan(0.2);
+    expect(bottom("light-string")).toBeLessThan(2.7);
+    expect(bottom("light-disco")).toBeLessThan(2.7);
+    for (const id of ["light-string", "light-edison", "light-pinspot", "light-chandelier", "light-disco"])
+      expect(bottom(id), id).toBeGreaterThan(1.8);
   });
 
   test("[LIB-11] [LIB-12] every piece is built to its catalogue size, and stays inside its footprint", () => {

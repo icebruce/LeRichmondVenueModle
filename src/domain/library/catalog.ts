@@ -54,6 +54,15 @@ export function placeholderEntry(id: string, name = "Imported item"): LibraryEnt
   };
 }
 
+/** A hanging or ceiling light, its height set by its `hang` option (LIB-08): the 3D height handle's. */
+export function hangingLight(e: Pick<LibraryEntry, "family" | "placement" | "options">): boolean {
+  return (
+    e.family === "light" &&
+    (e.placement === "hanging" || e.placement === "ceiling") &&
+    e.options.some((o) => o.key === "hang" && o.type === "number")
+  );
+}
+
 /** Lights, and pieces marked so, get their thumbnail on a dark ground, so glows and words read (LIB-11). */
 export function litThumbnail(e: Pick<LibraryEntry, "family" | "thumbnailGround">): boolean {
   return e.family === "light" || e.thumbnailGround === "dark";

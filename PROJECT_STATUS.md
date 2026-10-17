@@ -17,7 +17,7 @@
 | 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | Merged (PR #10) |
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | Merged (PR #11) |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | Merged (PR #12) |
-| 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | In review |
+| 4F | Light height handle in 3D | LIB-08 | UX review | In review |
 
 ## Decisions
 
