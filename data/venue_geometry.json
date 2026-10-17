@@ -261,9 +261,9 @@
       "label": "DJ option 1"
     },
     "dj2": {
-      "x": 9.95,
-      "z": 10.75,
-      "rotY": -1.5708,
+      "x": 4.75,
+      "z": 11.85,
+      "rotY": 1.5708,
       "level": "main",
       "label": "DJ option 2"
     },
