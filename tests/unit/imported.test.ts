@@ -298,6 +298,15 @@ describe("library API", () => {
     // Merging keeps each request's latest change.
     expect(mergeRequests([later], [request()])[0]?.notes).toBe("Five arms, brushed gold, 60 cm");
   });
+
+  test("[REQ-01] a request started from scratch, with no item behind it, is saved and reaches the partner", async () => {
+    const scratch = request({ id: "req-new123", name: "Ceremony arch", imageIds: [] });
+    delete scratch.itemId;
+    expect(customRequestSchema.parse(scratch)).not.toHaveProperty("itemId");
+    expect((await call("POST", "/api/library-requests", { request: scratch })).status).toBe(201);
+    const seen = (await (await call("GET", "/api/library-requests")).json()) as { requests: CustomRequest[] };
+    expect(seen.requests.find((r) => r.id === "req-new123")).toMatchObject({ name: "Ceremony arch" });
+  });
 });
 
 describe("custom requests and honest results", () => {

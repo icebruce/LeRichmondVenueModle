@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useStore } from "zustand";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
-import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS } from "../domain/layout/decor";
+import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS, styleKeyOf } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
-import type { Catalog } from "../domain/library/catalog";
+import { type Catalog, litThumbnail } from "../domain/library/catalog";
+import { matchesSearch, searchWords } from "../domain/library/search";
 import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
-import { requestCamera, viewStore } from "../state/view";
+import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
+import { libraryStore } from "../state/library";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
 import { Icon, type IconName } from "./icons";
-import { RESULT_LABELS } from "../domain/library/imported";
+import { RESULT_LABELS, requestStatus } from "../domain/library/imported";
 
 /** The five sections, in rail and tab-bar order (DESIGN_GUIDE §3). */
 export type Section = "room" | "add" | "style" | "guests" | "plans";
@@ -310,10 +313,17 @@ export function Thumb({ entry, size = 44 }: { entry: LibraryEntry; size?: number
     ? entry.thumbnail
     : `${import.meta.env.BASE_URL}assets/${entry.thumbnail}`;
   return (
-    <span className={`library-icon ${size > 44 ? "large" : ""}`}>
-      <img src={src} alt="" width={size} height={size} loading="lazy" />
+    <span className={`library-icon ${size > 44 ? "large" : ""} ${litThumbnail(entry) ? "dark" : ""}`}>
+      <img src={src} alt="" width={size} height={size} />
     </span>
   );
+}
+
+/** A page inside a section starts at its top when `key` changes (every page shares one scroll area). */
+export function useTopOnChange(key: string) {
+  useEffect(() => {
+    document.querySelector(".panel-scroll")?.scrollTo({ top: 0 });
+  }, [key]);
 }
 
 /** A page's title, with a way back to where it was opened from (DESIGN_GUIDE §3, one level deep). */
@@ -554,7 +564,39 @@ const LIBRARY_CATEGORIES: { id: Family | "yours"; name: string }[] = [
 ];
 
 /**
- * Add (LAY-01): the one library of placeable things, by category; "Yours" shows the couple's own
+ * What a search matches: every word starts a word of the name, the caption or the category
+ * ("candles" finds the candle family, "centerpiece" the centrepieces).
+ */
+function matches(e: LibraryEntry, words: string[], catalog: Catalog): boolean {
+  const family = LIBRARY_CATEGORIES.find((c) => c.id === e.family)?.name ?? e.family;
+  const key = styleKeyOf(e);
+  return matchesSearch(
+    words,
+    `${e.name} ${caption(e, catalog)} ${family} ${e.family} ${key ? DRESSING[key] : ""}`,
+  );
+}
+
+/** What a piece of table dressing is, on its row under "For the tables". */
+const DRESSING: Record<string, string> = {
+  linen: "Tablecloth",
+  runner: "Runner",
+  napkin: "Napkins",
+  chair: "Chairs",
+  candles: "Candles",
+  florals: "Centrepiece",
+};
+
+/** Sizes read as one unit and never break across lines ("≈ 2.8 m", "0.9 × 0.9 m"). */
+const keepUnits = (s: string) =>
+  s
+    .replace(/≈ /g, "≈\u00a0")
+    .replace(/ × /g, "\u00a0×\u00a0")
+    .replace(/ (m|cm|m²)\b/g, "\u00a0$1");
+
+/**
+ * Add (LAY-01, LIB-01..13): the one library. Pieces to place, by category or by search, as a grid
+ * of pictures: click (or drag into the room on desktop) to add. A search also finds table dressing
+ * (linens, candles, centrepieces, chairs) to use on every table. "Yours" holds the couple's own
  * imports and requests, drawn by `yours` under the same title and categories.
  */
 export function AddPanel({
@@ -565,68 +607,183 @@ export function AddPanel({
   yours: (head: React.ReactNode) => React.ReactNode;
 }) {
   const { catalog, editor } = useStudio();
+  const requests = useStore(libraryStore, (s) => s.requests);
+  const style = useEditor((s) => s.scenarios[s.activeId]?.style);
+  const hasTables = useEditor((s) => !!s.scenarios[s.activeId]?.items.some((i) => isTable(i, catalog)));
+  const live = useMemo(() => [...catalog.values()].filter((e) => !e.imported?.archived), [catalog]);
   const placeable = useMemo(
     () =>
-      [...catalog.values()].filter(
+      live.filter(
         // Table chairs are a décor choice; lounge seating is placed like any piece.
-        // Photo templates need a photo (Yours); removed imports stay out of the lists.
+        // Photo templates need a photo (Yours).
         (e) =>
           e.placement !== "table" &&
           e.placement !== "material" &&
           !(e.model.kind === "parametric" && e.model.generator === "chair") &&
-          !(e.model.kind === "parametric" && e.model.generator === "photo" && !e.model.params.image) &&
-          !e.imported?.archived,
+          !(e.model.kind === "parametric" && e.model.generator === "photo" && !e.model.params.image),
       ),
-    [catalog],
+    [live],
   );
   const [category, setCategory] = useState(lastCategory);
+  const [query, setQuery] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  const words = searchWords(query);
+  useTopOnChange(category);
+  // A custom model that is ready marks the Yours chip.
+  const ready = requests.some((r) => requestStatus(r, catalog).status === "ready");
+  const pick = (id: string) => {
+    setQuery("");
+    setCategory((lastCategory = id as Family | "yours"));
+  };
   const head = (
     <>
-      <PageHead title="Add" />
+      {/* Title and search stay in view while the pictures scroll under them. */}
+      <div className="page-head">
+        <PageHead title="Add" />
+        <label className="search">
+          <Icon name="search" size={18} />
+          <span className="sr-only">Search the library</span>
+          <input
+            ref={input}
+            type="search"
+            value={query}
+            placeholder="Search tables, lights, florals…"
+            onChange={(e) => setQuery(e.currentTarget.value)}
+            data-testid="library-search"
+          />
+          {query && (
+            <button
+              type="button"
+              className="icon-btn search-clear"
+              onClick={() => {
+                setQuery("");
+                input.current?.focus();
+              }}
+              aria-label="Clear search"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </label>
+      </div>
       <Chips
         label="Library"
         options={LIBRARY_CATEGORIES.filter(
           (c) => c.id === "yours" || placeable.some((e) => e.family === c.id),
-        )}
-        value={category}
-        onPick={(id) => setCategory((lastCategory = id as Family | "yours"))}
+        ).map((c) => ({ ...c, dot: c.id === "yours" && ready }))}
+        value={words.length ? "" : category}
+        onPick={pick}
         testId="category"
         wrap
+        hideLabel
       />
     </>
   );
-  if (category === "yours") return yours(head);
+  if (!words.length && category === "yours") return yours(head);
+
+  const shown = words.length
+    ? placeable.filter((e) => matches(e, words, catalog))
+    : placeable.filter((e) => e.family === category);
+  const dressing = words.length ? live.filter((e) => styleKeyOf(e) && matches(e, words, catalog)) : [];
+  // Already the room-wide choice (DEC-01): nothing to do but say so.
+  const onTables = (e: LibraryEntry) => {
+    const key = styleKeyOf(e);
+    return !!key && !!style && style[key] === e.id;
+  };
   return (
     <div className="panel-body" data-testid="layout-panel">
       {head}
-      <ul className="library" aria-label="Library">
-        {placeable
-          .filter((e) => e.family === category)
-          .map((e) => (
+      {shown.length > 0 && dressing.length > 0 && <h3 className="group-title">To place</h3>}
+      {shown.length > 0 && (
+        <ul className="tiles" aria-label="Library">
+          {shown.map((e) => (
             <li key={e.id}>
               <button
                 type="button"
-                className="library-item"
+                className="tile"
+                draggable={!touch}
+                onDragStart={(ev) => {
+                  ev.dataTransfer.setData(LIBRARY_DRAG, e.id);
+                  ev.dataTransfer.effectAllowed = "copy";
+                  // Only the picture follows the pointer; the room shows where it will land.
+                  const img = ev.currentTarget.querySelector("img");
+                  if (img) ev.dataTransfer.setDragImage(img, img.width / 2, img.height / 2);
+                  viewStore.setState({ dropping: { id: e.id, at: null } });
+                }}
+                onDragEnd={() => viewStore.setState({ dropping: null })}
                 onClick={() => {
                   if (editor.addItem(e.id, viewStore.getState().focus)) onAdded();
                 }}
                 data-testid={`add-${e.id}`}
               >
                 <Thumb entry={e} />
-                <span className="library-text">
-                  <span className="library-name">{e.name}</span>
-                  <span className="library-caption">
-                    {e.imported && <ResultBadge entry={e} />} {caption(e, catalog)}
-                  </span>
+                <span className="tile-name">{e.name.replace(/-/g, "\u2011")}</span>
+                <span className="tile-caption">
+                  {e.imported && <ResultBadge entry={e} />} {keepUnits(caption(e, catalog))}
                 </span>
-                <Icon name="plus" size={16} className="library-add" />
+                <span className="tile-add" aria-hidden="true">
+                  <Icon name="plus" size={16} />
+                </span>
               </button>
             </li>
           ))}
-      </ul>
-      <p className="hint">
-        {touch ? "Press and hold an item, then drag it." : "Drag an item to move it."} Sizes are approximate.
-      </p>
+        </ul>
+      )}
+      {dressing.length > 0 && (
+        <>
+          <h3 className="group-title">For the tables</h3>
+          <div className="list">
+            {dressing.map((e) => {
+              const key = styleKeyOf(e);
+              const on = onTables(e);
+              return (
+                <div key={e.id} className="row">
+                  <Thumb entry={e} />
+                  <span className="nav-label">
+                    {e.name}
+                    <span className="nav-sub">{key ? DRESSING[key] : ""}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={`btn small ${on ? "on-tables" : ""}`}
+                    disabled={on || !hasTables}
+                    title={hasTables ? undefined : "Add a table first"}
+                    onClick={() => editor.placeOrUse(e.id, viewStore.getState().focus)}
+                    data-testid={`use-${e.id}`}
+                  >
+                    {on ? (
+                      <>
+                        <Icon name="check" size={16} /> On tables
+                      </>
+                    ) : (
+                      "Use on tables"
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {words.length > 0 && !shown.length && !dressing.length && (
+        <p className="hint">Nothing called “{query.trim()}” yet.</p>
+      )}
+      {shown.length > 0 && (
+        <p className="hint">
+          {touch
+            ? "Tap to add at the centre of the view."
+            : "Click to add at the centre of the view, or drag a piece into the room."}{" "}
+          Sizes are approximate.
+        </p>
+      )}
+      <button type="button" className="more" onClick={() => pick("yours")} data-testid="cant-find">
+        <Icon name="camera" size={18} />
+        <span className="nav-label">
+          Can’t find it?
+          <span className="nav-sub">Add it from a photo, or ask for a custom model.</span>
+        </span>
+        <Icon name="next" size={16} className="nav-chevron" />
+      </button>
     </div>
   );
 }
@@ -679,14 +836,17 @@ export function Chips({
   onPick,
   testId,
   wrap = false,
+  hideLabel = false,
 }: {
   label: string;
-  options: { id: string; name: string }[];
+  options: { id: string; name: string; dot?: boolean }[];
   value: string;
   onPick: (id: string) => void;
   testId: string;
   /** Always wrap (navigation, where a hidden choice must never be missed). */
   wrap?: boolean;
+  /** The chips explain themselves (the library's categories): the label is for screen readers. */
+  hideLabel?: boolean;
 }) {
   // A sideways-scrolling row keeps its chosen chip in view (an imported item comes last).
   const row = useRef<HTMLDivElement>(null);
@@ -700,7 +860,7 @@ export function Chips({
   }, [value]);
   return (
     <div className="field">
-      <span className="row-label">{label}</span>
+      <span className={hideLabel ? "sr-only" : "row-label"}>{label}</span>
       <div
         ref={row}
         className={`chips ${!wrap && options.length > 5 ? "chips-scroll" : ""}`}
@@ -718,6 +878,12 @@ export function Chips({
             data-testid={`${testId}-${o.id}`}
           >
             {o.name}
+            {o.dot && (
+              <>
+                <span className="chip-dot" aria-hidden="true" />
+                <span className="sr-only">, a custom model is ready</span>
+              </>
+            )}
           </button>
         ))}
       </div>

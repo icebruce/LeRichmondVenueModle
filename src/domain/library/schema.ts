@@ -78,6 +78,8 @@ export const libraryEntrySchema = z.object({
   /** Seats only for tables; DJ booths etc. are 0. */
   seats: z.boolean(),
   thumbnail: z.string(),
+  /** A lit piece (a glow, light-coloured words) whose thumbnail is drawn on a dark ground (LIB-11). */
+  thumbnailGround: z.literal("dark").optional(),
   source: z.object({
     type: z.enum(["built", "cc0", "custom"]),
     origin: z.string(),
@@ -163,8 +165,11 @@ export type Imported = z.infer<typeof importedSchema>;
  */
 export const customRequestSchema = z.object({
   id: z.string().regex(/^req-[a-z0-9]{6,16}$/),
-  /** The library or imported item it starts from. */
-  itemId: z.string().regex(/^[a-z0-9-]+$/),
+  /** The library or imported item it starts from; none for a request started from scratch (LIB-13). */
+  itemId: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   name: z.string().trim().min(1).max(60),
   sizeCm: z.object({
     w: z.number().min(1).max(2000),

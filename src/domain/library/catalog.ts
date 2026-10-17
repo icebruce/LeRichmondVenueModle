@@ -53,3 +53,8 @@ export function placeholderEntry(id: string, name = "Imported item"): LibraryEnt
     imported: { result: "photo", imageId: "" },
   };
 }
+
+/** Lights, and pieces marked so, get their thumbnail on a dark ground, so glows and words read (LIB-11). */
+export function litThumbnail(e: Pick<LibraryEntry, "family" | "thumbnailGround">): boolean {
+  return e.family === "light" || e.thumbnailGround === "dark";
+}

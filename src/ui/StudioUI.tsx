@@ -105,15 +105,15 @@ export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () =>
       {id && <b className="pane-name">{c.name}</b>}
       <div className="count">
         <b data-testid={id ? undefined : "count-tables"}>{c.tables}</b>
-        <span>tables</span>
+        <span>{c.tables === 1 ? "table" : "tables"}</span>
       </div>
       <div className="count">
         <b data-testid={id ? undefined : "count-seats"}>{c.seats}</b>
-        <span>seats</span>
+        <span>{c.seats === 1 ? "seat" : "seats"}</span>
       </div>
       <div className="count">
         <b data-testid={id ? undefined : "count-guests"}>{c.guests}</b>
-        <span>guests</span>
+        <span>{c.guests === 1 ? "guest" : "guests"}</span>
       </div>
       <div className={`count ${c.withoutSeat ? "warn" : ""}`}>
         <b data-testid={id ? undefined : "count-without"}>{c.withoutSeat}</b>
@@ -145,7 +145,13 @@ function CountsLine({ onAdvisories }: { onAdvisories: () => void }) {
   const c = useSummary();
   return (
     <p className="counts-line" aria-label="Counts">
-      <span>{c.tables} tables</span> · <span>{c.seats} seats</span>
+      <span>
+        {c.tables} {c.tables === 1 ? "table" : "tables"}
+      </span>{" "}
+      ·{" "}
+      <span>
+        {c.seats} {c.seats === 1 ? "seat" : "seats"}
+      </span>
       {c.withoutSeat > 0 && (
         <>
           {" "}
@@ -591,7 +597,7 @@ export function StudioUI() {
         key={libraryKey}
         // Added and selected: phones drop the sheet to its peek to show it; desktop keeps the list.
         onAdded={() => phone && setSheet("peek")}
-        yours={(head) => <InspirationPanel head={head} />}
+        yours={(head) => <InspirationPanel head={head} onAdded={() => phone && setSheet("peek")} />}
       />
     ) : section === "style" ? (
       <DecorPanel key={selection.join(",")} />

@@ -40,6 +40,7 @@
   --t-footnote: 400 13px/18px var(--font-ui);
   --t-caption: 500 12px/16px var(--font-ui);
   --t-figure: 500 28px/32px var(--font-ui);
+  --t-field-phone: 400 16px/20px var(--font-ui);
 
   --s-1: 4px;
   --s-2: 8px;
@@ -64,6 +65,14 @@
   --target: 44px;
   /* Desktop section rail width (DESIGN_GUIDE §3.1). */
   --rail-w: 76px;
+  /* Library pictures (DESIGN_GUIDE §4 Library grid): tile size, phone size, a corner badge, and the
+     grounds the thumbnails are rendered on (light, and dark for lit pieces). */
+  --thumb-tile: 84px;
+  --thumb-tile-sm: 64px;
+  --badge: 28px;
+  --dot: 8px;
+  --thumb-ground: #f6f7f5;
+  --thumb-dark: #1d1f1c;
 }
 
 @media (prefers-reduced-motion: reduce) {

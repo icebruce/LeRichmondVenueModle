@@ -123,6 +123,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 | LIB-10 | S | 3 | **More event pieces** (P): stage/riser, DJ booth fronts, backdrop, photo booth, food/dessert stations, bar module. | — |
 | LIB-11 | M | 1 | Every item has: thumbnail, true metric size, size presets, placement rule (table / floor / wall / ceiling / hanging), a phone-weight version, source and licence; automated checks keep size, detail and licence within bounds. | Catalogue check fails CI on a missing field or a budget breach. |
 | LIB-12 | M | 1 | Items are data-driven: adding an item is a catalogue entry plus a model or a preset of an existing model; no UI code changes. | Documented in the `library-item` skill. |
+| LIB-13 | M | 4 | One library (Add, owner 2026-10-17): search across every category; pictures in a grid; table dressing found by search can be used on every table from there; "Yours" holds imports, ready custom models and requests; "Can't find it?" leads to a photo import or a custom request; on desktop a piece can be dragged into the room. | A search for a candle shows "Use on tables"; a piece dropped on the floor lands there. |
 
 ### 5.8 Inspiration import — IMP
 
@@ -140,7 +141,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
-| REQ-01 | M | 3 | "Request a custom model" from any imported item or library item: photos, real size, placement, notes. Stored privately in the app. | Request visible to both partners. |
+| REQ-01 | M | 3 | "Request a custom model" from any imported item or library item, or from scratch in Add › Yours (owner, 2026-10-17): photos, real size, placement, notes. Stored privately in the app. | Request visible to both partners. |
 | REQ-02 | M | 3 | Request status is automatic: Requested → Ready (once the built item is in the library), with a button to place or use it. Nobody sets it by hand (owner, 2026-10-17). | — |
 | REQ-03 | M | 3 | Claude can read open requests with a read-only token (`LIBRARY_REQUESTS_TOKEN`, never in Git) or from photos attached in chat, build the item per the `library-item` skill, and deliver it through a pull request with a preview link. | A test request goes from Requested to Ready through one pull request. |
 | REQ-04 | M | 3 | Reference photos in requests are never committed; only the models Claude builds are. | — |

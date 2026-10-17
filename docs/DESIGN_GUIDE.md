@@ -38,6 +38,8 @@ Defined once in `src/ui/tokens.css` as CSS custom properties. Never hard-code co
 | `--advisory-ink` | `#8A5A12` | Advisory text (≥ 4.5:1 on white and on the amber tint) |
 | `--blocked` | `#C2412D` | Refused move outline only |
 | `--ok` | `#3F7D58` | Rare positive confirmation |
+| `--thumb-ground` | `#F6F7F5` | Library picture well behind a light-ground thumbnail |
+| `--thumb-dark` | `#1D1F1C` | Library picture well behind a lit (dark-ground) thumbnail |
 
 Contrast: all text ≥ 4.5:1 against its background; large text and icons ≥ 3:1.
 
@@ -54,11 +56,13 @@ System UI font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, san
 | `--t-footnote` | 13/18 | 400 | Hints, metadata |
 | `--t-caption` | 12/16 | 500 | Badges, counts captions (minimum size anywhere) |
 | `--t-figure` | 28/32 | 500, tabular figures | Big counts |
+| `--t-field-phone` | 16/20 | 400 | Text fields on phones, so iOS Safari does not zoom into them when tapped (2026-10-17) |
 
 ### 2.3 Space, shape, depth
 
 - Spacing scale (pt): 4, 8, 12, 16, 24, 32, 48. Nothing off-scale.
 - Radius: 8 (controls), 12 (cards), 16 (sheets, floating panels), full (pills, swatches).
+- Library pictures: wells 84 pt tall (`--thumb-tile`), 64 on phones (`--thumb-tile-sm`); the + badge 28 pt (`--badge`); the "ready" dot on a chip 8 pt (`--dot`).
 - Elevation: one shadow for floating controls `0 8px 24px rgba(32,37,34,.12)`; sheets add a top hairline. No stacked shadows.
 
 ### 2.4 Motion
@@ -120,6 +124,7 @@ Desktop layout at 768–1023 px too: the panel folds away (its section button or
 | Empty state | One sentence, one primary action, no illustration clutter. |
 | Dialog | Only for choices with consequences that undo cannot cover (version conflict, `SCN-03`). |
 | Category chips | Library families above the item grid (Tables, Event, Florals, Plants, Lights, Signs, Lounge); one selected, remembered for the session. They wrap, so no category is ever hidden. Step 3a, owner-approved 2026-10-16. |
+| Library grid | Add: a search field, wrapping category chips ("Yours" carries a dot when a custom model is ready), then pictures two across on desktop and three on phones (name, caption, a + badge). Click or tap adds at the centre of the view; on desktop a picture can be dragged into the room. A search lists table dressing under "For the tables" with Use on tables. "Can't find it?" (dashed row) opens Yours. A dragged picture shows its outline where it will land, or the blocked outline and the reason; a refused drop adds nothing. Step 4D, pending owner approval in its PR. |
 | Seat target | Sit here (`CAM-04`): a 44 pt circle with a chair glyph over each chair of the chosen table, surface fill and accent ring, pressed 0.97. Only while choosing a seat, with a glass bar "Choose a seat · table N" and Cancel. Step 3a, owner-approved 2026-10-16. |
 | Crop frame | Inspiration (IMP-03): an accent-outlined frame over the photo with the outside dimmed; drag inside to move, drag a corner (22 pt mark in a 44 pt target) to resize. Step 3b, pending owner approval (PR #4). |
 | Seated bar | While seated: a glass bar at the top, "Seated · table N · drag to look around", and Stand up (secondary button). Step 3a, owner-approved 2026-10-16. |

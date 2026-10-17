@@ -82,6 +82,40 @@ describe("editing", () => {
   });
 });
 
+describe("adding from the library", () => {
+  test("[LIB-13] table dressing goes on every table with Undo; a piece is placed; a full room says so", () => {
+    const { editor } = setup();
+    const before = editor.active().style.candles;
+    expect(editor.placeOrUse("candle-tapers", [8, 7])).toBe("used");
+    expect(editor.active().style.candles).toBe("candle-tapers");
+    expect(editor.store.getState().toast?.text).toBe("Tall tapers on every table");
+    editor.undo();
+    expect(editor.active().style.candles).toBe(before);
+    // The full sample has no free spot left for a round table.
+    expect(editor.placeOrUse("table-round", [8, 7])).toBeNull();
+    expect(editor.store.getState().toast?.text).toMatch(/^No room for the round table anywhere/);
+    editor.createScenario("blank");
+    expect(editor.placeOrUse("table-round", [8, 7])).toBe("placed");
+    expect(editor.active().items).toHaveLength(1);
+  });
+
+  test("[LIB-13] a dropped piece lands exactly where it was dropped, or nothing changes and the reason shows", () => {
+    const { editor } = setup();
+    editor.createScenario("blank");
+    expect(editor.dropPlacement("table-round", [8.04, 9.97]).item).toMatchObject({ x: 8, z: 10 });
+    const id = editor.addItemAt("table-round", [8.04, 9.97]);
+    expect(editor.active().items.find((i) => i.id === id)).toMatchObject({ x: 8, z: 10, rotY: 0 });
+    // Over the bar: refused, never moved somewhere else.
+    expect(editor.dropPlacement("table-round", [7.7, 6]).placed).toEqual({
+      ok: false,
+      reason: "Overlaps the bar",
+    });
+    expect(editor.addItemAt("table-round", [7.7, 6])).toBeNull();
+    expect(editor.active().items).toHaveLength(1);
+    expect(editor.store.getState().toast?.text).toBe("Overlaps the bar. Nothing was changed.");
+  });
+});
+
 describe("toast undo", () => {
   test("[LAY-06] the Delete toast's Undo restores the deletion only while it is the latest change", () => {
     const { editor, item } = setup();

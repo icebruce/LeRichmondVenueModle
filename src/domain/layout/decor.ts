@@ -1,7 +1,24 @@
 import { seededRandom } from "../random";
 import type { Catalog } from "../library/catalog";
+import type { LibraryEntry } from "../library/schema";
 import type { TableStyle } from "../scenario/schema";
 import type { Chair, Shape } from "./items";
+
+/** Which table style an item fills when used on every table, if any (DEC-01). */
+export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
+  const g = e.model.kind === "parametric" ? e.model.generator : "";
+  if (g === "linen" || g === "runner" || g === "napkin") return g;
+  if (g === "chair") return "chair";
+  if (e.family === "candle") return "candles";
+  if (e.family === "floral" && e.placement === "table") return "florals";
+  return null;
+}
+
+/** The style change that puts an item on every table (DEC-01), or null if it is not table dressing. */
+export function stylePatch(e: LibraryEntry): Partial<TableStyle> | null {
+  const key = styleKeyOf(e);
+  return key ? { [key]: e.id } : null;
+}
 
 /**
  * Table décor as simple parts (DEC-02..03, LIB-04..06). Every part is a unit primitive scaled and

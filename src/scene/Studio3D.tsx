@@ -1,18 +1,18 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer } from "@react-three/drei";
+import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import { pointInPolygon } from "../domain/geometry";
-import { footprint } from "../domain/layout/items";
+import { footprint, shapeOf } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { requestCamera, viewStore } from "../state/view";
+import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
-import { Items } from "./items/Items";
+import { Items, Outline, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
 import { useMaterials } from "./materials";
@@ -185,6 +185,66 @@ function TestHooks() {
   return null;
 }
 
+/** Desktop: a piece dragged from Add and dropped on the room is added where it lands (LAY-01). */
+function LibraryDrop({ evening }: { evening: boolean }) {
+  const { editor, venue, catalog } = useStudio();
+  const el = useThree((s) => s.gl.domElement);
+  const toFloor = useFloorPointer();
+  const dropping = useView((s) => s.dropping);
+  // Re-checked when the plan changes under a held drag.
+  useEditor((s) => s.scenarios[s.activeId]?.items);
+  useEffect(() => {
+    // The floor under the cursor, on the raised level where that is what the cursor is over.
+    const floorAt = (e: DragEvent): [number, number] | null => {
+      const low = toFloor(e.clientX, e.clientY, 0);
+      const high = toFloor(e.clientX, e.clientY, venue.raised.height);
+      const hit = high && pointInPolygon([high.x, high.z], venue.raised.outline) ? high : low;
+      return hit ? [hit.x, hit.z] : null;
+    };
+    const over = (e: DragEvent) => {
+      if (!e.dataTransfer?.types.includes(LIBRARY_DRAG)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      const d = viewStore.getState().dropping;
+      if (d) viewStore.setState({ dropping: { ...d, at: floorAt(e) } });
+    };
+    const leave = () => {
+      const d = viewStore.getState().dropping;
+      if (d) viewStore.setState({ dropping: { ...d, at: null } });
+    };
+    const drop = (e: DragEvent) => {
+      const id = e.dataTransfer?.getData(LIBRARY_DRAG);
+      if (!id) return;
+      e.preventDefault();
+      viewStore.setState({ dropping: null });
+      const at = floorAt(e);
+      if (at) editor.addItemAt(id, at);
+    };
+    el.addEventListener("dragover", over);
+    el.addEventListener("dragleave", leave);
+    el.addEventListener("drop", drop);
+    return () => {
+      el.removeEventListener("dragover", over);
+      el.removeEventListener("dragleave", leave);
+      el.removeEventListener("drop", drop);
+    };
+  }, [el, editor, venue, toFloor]);
+  // Where it will land (DESIGN_GUIDE §5): its outline, or blocked with the reason; the drop agrees.
+  if (!dropping?.at) return null;
+  const { item, placed } = editor.dropPlacement(dropping.id, dropping.at);
+  const y = placed.ok && placed.level === "raised" ? venue.raised.height : 0;
+  return (
+    <group name="drop-ghost" position={[item.x, y, item.z]}>
+      <Outline shape={shapeOf(item, catalog)} tone={placed.ok ? "selected" : "refused"} dark={evening} />
+      {!placed.ok && (
+        <Html position={[0, 0.2, 0]} center className="drag-reason" zIndexRange={[20, 10]}>
+          {placed.reason}
+        </Html>
+      )}
+    </group>
+  );
+}
+
 /**
  * Where the desktop selection toolbar sits (DESIGN_GUIDE §3.1, §4): the screen point just above the selected
  * items, written to the view store when it moves; null while dragging, walking or with nothing selected.
@@ -264,6 +324,7 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
       {!follow && <SelectionAnchor />}
+      {!follow && <LibraryDrop evening={evening} />}
       <Effects evening={evening} quality={quality} />
     </>
   );

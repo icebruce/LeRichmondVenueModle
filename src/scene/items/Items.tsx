@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import {
@@ -469,7 +469,7 @@ type Tone = "selected" | "hover" | "refused" | "ghost";
  * Selection drawn on the item: its top edge in the accent colour, plus a soft fill over the floor
  * area it claims with its chairs (DESIGN_GUIDE §5). Refused moves use the blocked colour.
  */
-function Outline({ shape, tone, dark }: { shape: Shape; tone: Tone; dark: boolean }) {
+export function Outline({ shape, tone, dark }: { shape: Shape; tone: Tone; dark: boolean }) {
   // On the candlelit scene the accent is too dim to read; use its light variant there.
   const colours = useMemo(
     () => ({
@@ -558,18 +558,22 @@ function Guides({ drag, y, dark }: { drag: Drag; y: number; dark: boolean }) {
   );
 }
 
-function useFloorPointer() {
+/** The point under the pointer on the level plane at height `y` (m), or null when the ray misses it. */
+export function useFloorPointer() {
   const { camera, gl, raycaster } = useThree();
-  return (clientX: number, clientY: number, y: number): THREE.Vector3 | null => {
-    const r = gl.domElement.getBoundingClientRect();
-    const ndc = new THREE.Vector2(
-      ((clientX - r.left) / r.width) * 2 - 1,
-      -((clientY - r.top) / r.height) * 2 + 1,
-    );
-    raycaster.setFromCamera(ndc, camera);
-    const hit = new THREE.Vector3();
-    return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), hit);
-  };
+  return useCallback(
+    (clientX: number, clientY: number, y: number): THREE.Vector3 | null => {
+      const r = gl.domElement.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((clientX - r.left) / r.width) * 2 - 1,
+        -((clientY - r.top) / r.height) * 2 + 1,
+      );
+      raycaster.setFromCamera(ndc, camera);
+      const hit = new THREE.Vector3();
+      return raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), hit);
+    },
+    [camera, gl, raycaster],
+  );
 }
 
 export function Items({

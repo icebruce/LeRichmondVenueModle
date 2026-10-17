@@ -588,3 +588,56 @@ test("[PLT-04] desktop: labelled rail, a wide panel to resize or fold away, deta
   await expect(page.getByTestId("inspector")).toHaveCount(0);
   await expect(page.getByTestId("guests")).toBeVisible();
 });
+
+test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on the tables, can't find it, drag into the room", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const blank = () =>
+    page.evaluate(() =>
+      (
+        window as unknown as { __studio: { editor: { createScenario: (k: string) => string } } }
+      ).__studio.editor.createScenario("blank"),
+    );
+  await openSection(page, "add");
+  // A search finds pieces in any category, and table dressing to use on every table.
+  await page.getByTestId("library-search").fill("olive");
+  await expect(page.getByTestId("add-plant-olive")).toBeVisible();
+  // Plurals and US spellings find the same things.
+  await page.getByTestId("library-search").fill("candles");
+  await expect(page.getByTestId("use-candle-tapers")).toBeVisible();
+  await expect(page.locator('[data-testid^="add-table-"]')).toHaveCount(0);
+  // A search for nothing in the library says so and shows no pieces.
+  await page.getByTestId("library-search").fill("zzzz");
+  await expect(page.getByTestId("layout-panel")).toContainText("Nothing called “zzzz”");
+  await expect(page.locator(".tile")).toHaveCount(0);
+  await page.getByTestId("library-search").fill("centerpiece");
+  await expect(page.locator('[data-testid^="use-floral-"]').first()).toBeVisible();
+  await page.getByTestId("library-search").fill("taper");
+  await page.getByTestId("use-candle-tapers").click();
+  expect((await state(page)).active?.style.candles).toBe("candle-tapers");
+  await page.getByTestId("library-search").fill("");
+  await page.getByTestId("cant-find").click();
+  await expect(page.getByTestId("add-inspiration")).toBeVisible();
+  // A request can start from scratch: the form asks for a name and a size.
+  await page.getByTestId("request-new").click();
+  await expect(page.getByTestId("request-form")).toBeVisible();
+  await page.getByTestId("request-save").click();
+  await expect(page.getByTestId("request-form")).toContainText("Give it a name and a size");
+  await page.getByTestId("request-back").click();
+  // In an empty room there is no table to dress.
+  await blank();
+  await page.getByTestId("library-search").fill("taper");
+  await expect(page.getByTestId("use-candle-tapers")).toBeDisabled();
+  await page.getByTestId("library-search").fill("");
+  // Desktop: drag a piece from the library onto the floor; it lands there.
+  await page.getByTestId("category-table").click();
+  const canvas = page.locator("canvas").first();
+  const box = (await canvas.boundingBox()) ?? { x: 0, y: 0 };
+  const [x, y] = await screenOf(page, 8, 0, 10);
+  await page
+    .getByTestId("add-table-round")
+    .dragTo(canvas, { targetPosition: { x: x - box.x, y: y - box.y } });
+  const placed = (await state(page)).active?.items.find((i) => i.libraryId === "table-round");
+  expect(Math.hypot((placed?.x ?? 0) - 8, (placed?.z ?? 0) - 10)).toBeLessThan(0.6);
+});

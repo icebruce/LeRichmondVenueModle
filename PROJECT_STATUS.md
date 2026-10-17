@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a, 3b and 4A merged (PR #1–#4, #6, #8). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4A–4C merged (PR #1–#4, #6, #8–#10). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -14,8 +14,8 @@
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
 | 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
 | 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
-| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | In review |
-| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
+| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | Merged (PR #10) |
+| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | In review |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
 | 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | Planned |
 
@@ -66,6 +66,7 @@
   - Navigation (desktop option 1): a labelled rail on the left (Room · Add · Style · Guests · Plans) with a 400 px panel (360–520 px, collapsible); Compare becomes Plans (switch, new, duplicate, rename, history, compare, notes, export, files, delete); the plan name stays small in the desktop toolbar and is off the phone screen.
   - Phone: camera menu, lighting and reset in a top-right stack with an undo/redo stack under it; the sheet steps down by swipe to closed; system back steps out of menus; no pull-to-refresh; Style pickers work at half height; adding drops the sheet to peek with the piece selected.
   - Add vs Style: Add places objects; Style dresses tables. One search in Add; table dressing found there offers "Use on tables".
+  - Add: "Can't find it?" opens Yours, where a custom model can be requested from scratch (no item behind it); on desktop a picture can be dragged into the room and lands exactly where it is dropped, or is refused with the reason.
   - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
