@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4, #6). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4A merged (PR #1–#4, #6, #8). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -12,8 +12,8 @@
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
-| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | In progress |
-| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | Planned |
+| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
+| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
 | 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, LAY-08, SCN-01..06 | UX review | Planned |
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
@@ -104,8 +104,9 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 ## Open items
 
-- Raised floor height; stair tread count and the second flight's run under the mezzanine; where the R04 green wall and EXIT are (evidence matrix §6).
-- Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
+- Raised floor height; stair tread count. The fidelity review (2026-10-17) reads R04 and owner photo 1 as an EXIT door and tufted banquettes at the west end of the green south wall: not modelled until the owner confirms (it would sit near the sweetheart table and DJ option 1).
+- The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
+- Camera presets are approximate; R01, R03 and R09 were re-aimed in 4B (R01 now from the stair turn). Re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
