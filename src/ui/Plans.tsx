@@ -72,7 +72,7 @@ function ActionRow({
 
 /**
  * Plans (SCN-01..06, SCN-08, EXP-01..02): the plans to switch between and what to do with them,
- * compare side by side, notes for each other, and files for the venue. Was the scenario menu and Compare.
+ * compare side by side, notes for each other, and files for the venue.
  */
 export function PlansPanel() {
   const { editor } = useStudio();

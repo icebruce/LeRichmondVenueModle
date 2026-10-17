@@ -37,8 +37,18 @@ const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "plans", label: "Plans", icon: "plans" },
 ];
 
-/** Desktop rail width (the `--rail-w` token) and the panel's width range (DESIGN_GUIDE §3.1). */
+/** Desktop rail width (mirrors the `--rail-w` token) and the panel's width range (DESIGN_GUIDE §3.1). */
 const RAIL = 76;
+/** Desktop: the toolbar row over the room (12 + 44 + 8 px); the overview frames the room below it. */
+const TOOLBAR_INSET = 64;
+/** Phone: the control column on the right (44 pt and its margins); the overview keeps clear of it. */
+const PHONE_COLUMN = 64;
+/** A sheet swipe: at least this far (px); faster than this (px/ms) is a flick that skips a step. */
+const SWIPE_MIN = 48;
+/** The selection toolbar's half width and its rise above its anchor (px), to keep it in the free area. */
+const BAR_HALF = 260;
+const BAR_RISE = 68;
+const FLICK = 0.9;
 const PANEL = { min: 360, max: 520, initial: 400 };
 const WIDTH_KEY = "rs-panel-width";
 
@@ -356,10 +366,12 @@ function useBackLayers(depth: number, closeTop: () => void, guard: boolean) {
   }, [depth]);
 }
 
-/** Desktop: the selection's toolbar, just above it in the room (DESIGN_GUIDE §5). */
+/** Desktop: the selection's toolbar, just above it in the room (DESIGN_GUIDE §3.1, §4). */
 function SelectionBar({ onDetails }: { onDetails: () => void }) {
   const { catalog, venue } = useStudio();
   const anchor = useView((s) => s.anchor);
+  const insetLeft = useView((s) => s.insetLeft);
+  const insetTop = useView((s) => s.insetTop);
   const selection = useEditor((s) => s.selection);
   const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
   const chosen = items.filter((i) => selection.includes(i.id));
@@ -373,7 +385,11 @@ function SelectionBar({ onDetails }: { onDetails: () => void }) {
   return (
     <div
       className="selection-bar glass"
-      style={{ left: anchor[0], top: anchor[1] }}
+      // Kept in the free area: right of the panel, below the toolbar row.
+      style={{
+        left: Math.max(anchor[0], insetLeft + BAR_HALF),
+        top: Math.max(anchor[1], insetTop + BAR_RISE),
+      }}
       role="toolbar"
       aria-label={title}
       data-testid="selection-bar"
@@ -409,12 +425,14 @@ export function StudioUI() {
 
   const phone = useMedia(PHONE);
   const hasSelection = selection.length > 0;
+  const planName = useEditor((s) => s.scenarios[s.activeId]?.name ?? "");
   // Sit here (CAM-04): leaving walk ends the seat; a selection change ends picking one.
   const seat = useView((s) => s.seat);
   const activeItems = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
-  const seated = seat ? `table ${tableLabels(activeItems, catalog).get(seat.table) ?? ""}`.trim() : "";
+  const activeLabels = tableLabels(activeItems, catalog);
+  const seated = seat ? `table ${activeLabels.get(seat.table) ?? ""}`.trim() : "";
   const pickSeat = useView((s) => s.pickSeat);
-  const picking = pickSeat ? `table ${tableLabels(activeItems, catalog).get(pickSeat) ?? ""}`.trim() : "";
+  const picking = pickSeat ? `table ${activeLabels.get(pickSeat) ?? ""}`.trim() : "";
   useEffect(() => {
     if (camera !== "walk") viewStore.setState({ seat: null });
     // Changing camera also ends choosing a seat.
@@ -461,31 +479,28 @@ export function StudioUI() {
   const panelShown = camera !== "walk" && (phone ? detent !== "closed" : panelOpen);
 
   // The layers the back gesture closes, top first (DESIGN_GUIDE §3).
+  // Phones only: on desktop the browser's Back keeps its usual meaning.
   const phoneSelection = phone && hasSelection && selView;
-  const depth =
-    (checks ? 1 : 0) +
-    (!phone && details && hasSelection ? 1 : 0) +
-    (phoneSelection ? 1 : 0) +
-    (page ? 1 : 0) +
-    (phone && panelShown ? 1 : 0);
+  const depth = phone
+    ? (checks ? 1 : 0) + (phoneSelection ? 1 : 0) + (page && panelShown ? 1 : 0) + (panelShown ? 1 : 0)
+    : 0;
   useBackLayers(
     depth,
     () => {
       if (checks) setChecks(false);
-      else if (!phone && details && hasSelection) setDetails(false);
       else if (phoneSelection) editor.select([]);
-      else if (page) setPage(null);
-      else if (phone && panelShown) setSheet("closed");
+      else if (page && panelShown) setPage(null);
+      else if (panelShown) setSheet("closed");
     },
     phone,
   );
 
   // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
   const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
-  // Phone: the overview keeps the room clear of the control column on the right (44 pt + margins).
-  const insetRight = phone ? 64 : 0;
-  // Desktop: the toolbar row (12 + 44 + 8 px) sits over the top of the room.
-  const insetTop = phone ? 0 : 64;
+  const insetRight = phone ? PHONE_COLUMN : 0;
+  // The width the couple set is remembered on this device.
+  useEffect(() => saveWidth(width), [width]);
+  const insetTop = phone ? 0 : TOOLBAR_INSET;
   useEffect(() => {
     viewStore.setState({ insetLeft, insetRight, insetTop });
   }, [insetLeft, insetRight, insetTop]);
@@ -625,9 +640,9 @@ export function StudioUI() {
     if (!s || !t) return;
     const dy = t.clientY - s.y;
     // A short or sideways drag is not a swipe; content pulls the sheet down only from its very top.
-    if (Math.abs(dy) < 48 || Math.abs(dy) < Math.abs(t.clientX - s.x)) return;
+    if (Math.abs(dy) < SWIPE_MIN || Math.abs(dy) < Math.abs(t.clientX - s.x)) return;
     if (dy > 0 && !s.top) return;
-    const by = Math.abs(dy) / Math.max(1, performance.now() - s.t) > 0.9 ? 2 : 1;
+    const by = Math.abs(dy) / Math.max(1, performance.now() - s.t) > FLICK ? 2 : 1;
     const i = SHEET_ORDER.indexOf(detent) + (dy > 0 ? -by : by);
     setSheet(SHEET_ORDER[Math.max(0, Math.min(SHEET_ORDER.length - 1, i))] ?? detent);
   };
@@ -666,7 +681,7 @@ export function StudioUI() {
                 title="Plans"
                 data-testid="plan-name"
               >
-                <span className="plan-name-text">{editor.active().name}</span>
+                <span className="plan-name-text">{planName}</span>
                 <Icon name="chevron" size={16} />
               </button>
               <SaveState short />
@@ -731,7 +746,6 @@ export function StudioUI() {
             const by = e.key === "ArrowLeft" ? -20 : e.key === "ArrowRight" ? 20 : 0;
             if (!by) return;
             setWidth(clampWidth(width + by));
-            saveWidth(clampWidth(width + by));
           }}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -740,7 +754,6 @@ export function StudioUI() {
           onPointerMove={(e) => {
             if (e.currentTarget.hasPointerCapture(e.pointerId)) setWidth(clampWidth(e.clientX - RAIL));
           }}
-          onPointerUp={(e) => saveWidth(clampWidth(e.clientX - RAIL))}
           onLostPointerCapture={() => (document.body.style.cursor = "")}
         />
       )}

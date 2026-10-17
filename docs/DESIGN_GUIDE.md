@@ -87,7 +87,8 @@ Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Op
 - **Toolbar (one row over the room):** the plan's name, small, with its save state (opens Plans); Dollhouse / Plan / Walk and Reset view centred over the room; Undo, Redo and the light (moon / sun) on the right. Every control 44 pt.
 - **Counts:** bottom-right strip; "N checks" opens the checks popover above it, with "Adjust layout rules".
 - **Selection:** a floating glass toolbar just above the item (name, seats; Rotate, Duplicate, Sit here, Details, Delete). Details opens the inspector in the panel. Adding a piece selects it and keeps the library open for the next one. Hidden while comparing.
-- The camera frames the room in the space right of the panel; toasts, banners and hints centre in that space.
+- The camera frames the room in the space right of the panel and below the toolbar; toasts, banners and hints centre in that space. When that space is narrow the cameras show icons only.
+- The browser's Back keeps its usual meaning on desktop; in-app layers close with their own controls or Escape.
 
 ### 3.2 Phone (< 768 px)
 
@@ -100,7 +101,7 @@ Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Op
 
 ### 3.3 Tablet (768–1023 px)
 
-Desktop layout; the panel folds away to give the room the full width.
+Desktop layout at 768–1023 px too: the panel folds away (its section button or its header) to give the room the full width, and the cameras show icons only.
 
 ## 4. Components
 
@@ -114,7 +115,7 @@ Desktop layout; the panel folds away to give the room the full width.
 | Toast | Bottom-centre of the free room area (above the counts on desktop, above the sheet or the walk pad on phones), clear of every floating control; as wide as its text up to the screen less 16 pt a side. 4 s, one at a time; always carries Undo after a destructive action. |
 | Badge | Fidelity labels and "approx." markers: caption size, hairline outline, never colour-only. |
 | Grouped list | Rows of 52 pt in a hairline-bordered card: a label (with an optional line under it), its value and a chevron for rows that open a page; toggles sit in the same lists. Owner-approved 2026-10-17. |
-| Selection toolbar | Desktop: glass bar over the selected item with its name and icon + label actions; Delete in `--blocked`. Phone: the same actions as 60 pt tiles at the top of the sheet. Owner-approved 2026-10-17. |
+| Selection toolbar | Desktop: glass bar over the selected item, kept in the free area, with its name and icon + label actions (Rotate, Duplicate, Sit here, Details, Delete); Delete in `--blocked`. Phone: the actions as 60 pt tiles at the top of the sheet, with Style in place of Details (the sheet is the details). Owner-approved 2026-10-17. |
 | Checks popover | Desktop: a card above the counts listing the tightest three checks (Show all), each selecting its items, and "Adjust layout rules ›". Phone: the same list in the sheet. Owner-approved 2026-10-17. |
 | Empty state | One sentence, one primary action, no illustration clutter. |
 | Dialog | Only for choices with consequences that undo cannot cover (version conflict, `SCN-03`). |

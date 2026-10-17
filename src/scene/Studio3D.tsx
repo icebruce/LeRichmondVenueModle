@@ -186,7 +186,7 @@ function TestHooks() {
 }
 
 /**
- * Where the desktop selection toolbar sits (DESIGN_GUIDE §5): the screen point just above the selected
+ * Where the desktop selection toolbar sits (DESIGN_GUIDE §3.1, §4): the screen point just above the selected
  * items, written to the view store when it moves; null while dragging, walking or with nothing selected.
  */
 function SelectionAnchor() {

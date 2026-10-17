@@ -94,6 +94,7 @@ button:disabled {
   left: calc(var(--inset-left, var(--rail)) + var(--s-4));
   right: var(--s-4);
   /* The row spans the free area, so the middle column centres the cameras over the room. */
+  container: toolbar / inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -112,7 +113,6 @@ button:disabled {
   align-items: center;
   gap: var(--s-2);
   min-width: 0;
-  max-width: 100%;
   height: var(--target);
   padding: 0 var(--s-3);
   overflow: hidden;
@@ -244,15 +244,18 @@ button:disabled {
 .seg button:disabled {
   opacity: 0.55;
 }
-.camera-seg {
+/* Every toolbar control is a full 44 pt target (DESIGN_GUIDE §2.5); the pill is the control's height. */
+.seg.glass.camera-seg {
   box-sizing: border-box;
   align-items: center;
   height: var(--target);
+  padding: 0 var(--s-1);
 }
-.camera-seg button,
-.camera-seg .icon-btn {
-  min-height: 36px;
-  height: 36px;
+/* A narrow room area keeps the camera icons and drops their words. */
+@container toolbar (max-width: 720px) {
+  .camera-seg .seg-label {
+    display: none;
+  }
 }
 .seg-sep {
   width: 1px;
@@ -282,9 +285,7 @@ button:disabled {
   height: var(--target);
   padding: 0 2px;
 }
-.actions .icon-btn {
-  height: 40px;
-}
+
 .icon-btn {
   display: grid;
   place-items: center;
@@ -714,9 +715,7 @@ button:disabled {
   display: flex;
   gap: var(--s-1);
 }
-.counts-line {
-  display: none;
-}
+
 .swatches {
   display: flex;
   flex-wrap: wrap;

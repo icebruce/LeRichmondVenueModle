@@ -393,6 +393,10 @@ test("[SCN-06] compare two scenarios side by side from the same camera, with the
     .getByRole("radio", { name: "Option A · Venue sample", exact: true })
     .click();
   await expect(page.getByTestId("compare-canvas")).toBeVisible();
+  // Side by side, a selection has no toolbar in the room.
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t1"]));
+  await expect(page.getByTestId("selection-bar")).toHaveCount(0);
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
   // Each half is named, with its own counts; the panel sits beside them, not over one.
   const panes = page.getByTestId("pane-counts");
   await expect(panes).toHaveCount(2);
@@ -486,6 +490,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
   await page.getByTestId("plan-rename").click();
   await page.locator("#scenario-name").fill("Option B");
   await page.keyboard.press("Enter");
+  await expect(page.getByTestId("plan-name")).toHaveText("Option B");
   await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
   await expect(page.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved on this device");

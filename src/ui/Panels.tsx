@@ -1453,7 +1453,7 @@ export function Inspector({
           type="button"
           className="plain-btn inspector-foot"
           onClick={() => {
-            // The form opens in Inspiration, where requests are listed (REQ-01).
+            // The form opens in Add › Yours, where requests are listed (REQ-01).
             editor.select([]);
             viewStore.setState({ requestFor: entry.id });
           }}

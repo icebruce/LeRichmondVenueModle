@@ -42,13 +42,13 @@ function FollowCamera() {
   return null;
 }
 
+/** Space kept between the framed room and whatever borders the free area (px, `--s-5`). */
+const FIT_MARGIN = 24;
+
 /**
  * How far to scale a pose's distance from its target so that every point lands inside the central
  * `fx` × `fy` share of the view (the free area, in normalised device units).
  */
-/** Space kept between the framed room and whatever borders the free area (px, `--s-5`). */
-const FIT_MARGIN = 24;
-
 function fitScale(
   pose: Pose,
   fov: number,
