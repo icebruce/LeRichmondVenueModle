@@ -23,8 +23,9 @@ describe("venue model", () => {
   test("[VEN-01] the venue data parses and builds a closed room with the bar inside it", () => {
     expect(venue.width).toBeGreaterThan(10);
     expect(area(venue.room)).toBeCloseTo(venue.width * venue.depth);
+    // The stair's landing and flights meet the south wall; touching it counts as inside.
     for (const o of venue.obstacles)
-      expect(polygonInside(o.polygon, venue.room) || o.id.startsWith("stair")).toBe(true);
+      expect(polygonInside(o.polygon, venue.room) || o.id.startsWith("stair"), o.id).toBe(true);
   });
 
   test("[VEN-01] the west wall is two garage doors of ≈ 6.3 m and a 0.6 m divider, then a small wall", () => {
@@ -70,6 +71,35 @@ describe("venue model", () => {
     expect(Math.abs(upperFlight.to[1] - upperFlight.from[1])).toBeGreaterThan(
       Math.abs(upperFlight.to[0] - upperFlight.from[0]),
     );
+  });
+});
+
+describe("entrance and stairwell", () => {
+  test("[VEN-04] the entrance opens ≈ 1.5–2 m west of the stair foot; the second flight rises through a stairwell", () => {
+    const south = venue.data.walls.find((w) => w.id === "south");
+    const corridor = south?.openings.find((o) => o.id === "corridor");
+    if (!south || !corridor) throw new Error("no corridor");
+    // The south wall runs from the street (east) end, so a distance along it is measured from x = width.
+    const centre = south.from[0] - (corridor.start + corridor.end) / 2;
+    const { flight, upperFlight } = venue.data.stair;
+    const foot = Math.min(flight.from[0], flight.to[0]);
+    expect(foot - centre).toBeGreaterThanOrEqual(1.5);
+    expect(foot - centre).toBeLessThanOrEqual(2);
+    // The mezzanine floor stops at the second flight, and its wall opening is open to the full height.
+    expect(venue.data.mezzanine.xTo).toBeLessThanOrEqual(Math.min(upperFlight.from[0], upperFlight.to[0]));
+    const well = south.openings.find((o) => o.kind === "stairway");
+    expect(well?.head).toBeGreaterThanOrEqual(south.height ?? venue.ceiling);
+  });
+
+  test("[VEN-04] the entrance and the stair foot are kept clear", () => {
+    const [lx0, lz0, , lz1] = venue.data.stair.landing;
+    const south = venue.data.walls.find((w) => w.id === "south");
+    const corridor = south?.openings.find((o) => o.id === "corridor");
+    if (!south || !corridor) throw new Error("no corridor");
+    expect(lx0).toBeLessThanOrEqual(south.from[0] - corridor.end);
+    expect(lz1).toBe(venue.depth);
+    expect(lz0).toBe(Math.max(venue.data.stair.flight.from[1], venue.data.stair.flight.to[1]));
+    expect(checkPlacement(table({ x: 10.5, z: 13.4 }), [], venue, catalog).ok).toBe(false);
   });
 });
 
@@ -198,7 +228,7 @@ describe("venue sample and counts", () => {
   test("[LAY-07] 75 guests with the venue sample: 8 tables, 72 seats, 3 without a seat", () => {
     const c = countLayout(venueSampleItems(), 75, catalog);
     expect(c).toMatchObject({ tables: 8, seats: 72, guests: 75, withoutSeat: 3 });
-    expect(c.danceFloorM2).toBeCloseTo(16.2);
+    expect(c.danceFloorM2).toBeCloseTo(14.4);
   });
 
   test("[LAY-10] tables are numbered in order, the sweetheart table is ♥, own labels win", () => {

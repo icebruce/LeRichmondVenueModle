@@ -48,8 +48,8 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) is the authoritative p
 | Floors: large dark tiles with light wood joint strips (west/centre); dark hardwood planks (east) | O: R01 R02 R03 R04 U01 · C | H materials / M boundary | The "recovered brick floor" in a design write-up is not visible in any interior image; ignore. |
 | Raised floor: everything right (east) of the bar to the street windows; edge runs diagonally from the bar's south-east corner, then straight across to the stair | C · O: U01 U05 (chairs, not stools, at the bar's east side) · F01 | H outline / L height | Est. +0.15–0.45 m. Its only entrance is one step beside the bar (C, 2026-10-17). It runs straight up to the stair, no gap between them (C, owner photo 2026-10-17). |
 | Mezzanine: iron balustrade, dark green fascia, above the kitchen and the entrance corridor, i.e. behind the south wall line; NOT modelled as a floor | C · O: R09 UV02 UV01 | M | Front edge used only as the DJ option 3 spot (C). The dance floor and sweetheart table are not under it (C). |
-| Stair to mezzanine: starts ≈ 1.5–2 m right of where the entrance corridor enters the room; first flight east along the raised floor to the street wall, then a 90° right turn south along that wall up into the mezzanine; LED-lit treads, metal balustrade, timber handrail | C · O: R01 R09 U01 U02 UV02 · owner photo 2026-10-17 | M | Replaces the 180° return of 2026-10-16 (C, 2026-10-17). The second flight passes under the mezzanine edge. |
-| Entrance: street door on the east side, SE corner, into a corridor under the mezzanine that opens into the room at the stair landing | C | M | EXIT sign visible near it (UV02). Corridor itself is out of scope. |
+| Stair to mezzanine: starts ≈ 1.5–2 m right of where the entrance corridor enters the room; first flight east along the raised floor to the street wall, then a 90° right turn south along that wall up into the mezzanine; LED-lit treads, metal balustrade, timber handrail | C · O: R01 R09 U01 U02 UV02 · owner photo 2026-10-17 | M | Replaces the 180° return of 2026-10-16 (C, 2026-10-17). The second flight rises through a stairwell at the east end of the mezzanine: the mezzanine floor and fascia stop at the stair, and the balustrade returns along it (R09, owner photo 3). Handrails on both sides of the first flight and along the turn landing (R01, R09, owner photos 2 and 4). |
+| Entrance: street door on the east side, SE corner, into a corridor under the mezzanine that opens into the room ≈ 1.8 m west of the stair foot | C · O: R09, owner photo 4 | M | EXIT sign visible near it (UV02). Corridor itself is out of scope. |
 | South wall: kitchen behind it (out of scope); kitchen pass = opening in that wall. Sweetheart table goes against this wall. | C · O: UV02 · F01 | M | F01 "CUISINE" box is the kitchen beyond the wall. |
 | Communal high table with stools (tile zone, west of bar); bar stools | O: R01 R02 U01 U05 · C | H | Both removed for the wedding (C). The communal table is no longer modelled (C, 2026-10-17); bar stools stay as a toggle, hidden by default: 5 at the front, 6 on each side (C, 2026-10-17). |
 
@@ -57,7 +57,7 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) is the authoritative p
 
 | ID | Vantage → facing | Main floor? | Primary use |
 |---|---|---|---|
-| R01 | Stair top (mezzanine level, SE) → NW | Yes | Overall relationships, ceiling, bar, floors |
+| R01 | Stair turn (second flight, SE) → NW | Yes | Overall relationships, ceiling, bar, floors |
 | R02 | Stair top → NW, steeper | Yes | Bar footprint, glazing count, floor boundary |
 | R03 | Eye level, west of bar → N/NW | Yes | Materials, chandelier, back bar, glazing grid |
 | R04 | Eye level, centre → W/SW | Yes | Garage doors, tile grid, green wall + EXIT, chair scale |

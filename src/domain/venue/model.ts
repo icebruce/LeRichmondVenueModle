@@ -129,11 +129,12 @@ export function buildVenue(d: VenueData): VenueModel {
     {
       id: "stair-second-flight",
       label: "the stair",
+      // Only the part inside the room: the rest rises behind the south wall.
       polygon: rect(
         Math.min(f2.from[0], f2.to[0]),
         Math.min(f2.from[1], f2.to[1]),
         Math.max(f2.from[0], f2.to[0]),
-        Math.max(f2.from[1], f2.to[1]),
+        Math.min(depth, Math.max(f2.from[1], f2.to[1])),
       ),
     },
     { id: "wine-wall", label: "the wine wall", polygon: rect(wx0, wz0, wx1, wz1) },

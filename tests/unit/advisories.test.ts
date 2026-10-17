@@ -61,13 +61,13 @@ describe("advisories", () => {
 
   test("[LAY-08] dance area size is compared with 35% of guests at 0.45 m² each", () => {
     const items = venueSampleItems();
-    // Sample dance area 5.4 × 3.0 ≈ 16.2 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
+    // Sample dance area 4.8 × 3.0 ≈ 14.4 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
     expect(advise(items, 75, DEFAULT_THRESHOLDS, venue, catalog, NONE).some((x) => x.kind === "dance")).toBe(
       false,
     );
     expect(
       advise(items, 150, DEFAULT_THRESHOLDS, venue, catalog, NONE).find((x) => x.kind === "dance")?.message,
-    ).toBe("Dance area ≈ 16 m² — below the ≈ 24 m² your settings suggest for 150 guests");
+    ).toBe("Dance area ≈ 14 m² — below the ≈ 24 m² your settings suggest for 150 guests");
   });
 
   test("[LAY-08] the venue sample plan: tightest aisles first; the garage-door tables pass", () => {
