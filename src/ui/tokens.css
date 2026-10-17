@@ -40,6 +40,7 @@
   --t-footnote: 400 13px/18px var(--font-ui);
   --t-caption: 500 12px/16px var(--font-ui);
   --t-figure: 500 28px/32px var(--font-ui);
+  --t-field-phone: 400 16px/20px var(--font-ui);
 
   --s-1: 4px;
   --s-2: 8px;

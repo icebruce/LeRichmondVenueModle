@@ -318,6 +318,13 @@ export function Thumb({ entry, size = 44 }: { entry: LibraryEntry; size?: number
   );
 }
 
+/** A page inside a section starts at its top when `key` changes (every page shares one scroll area). */
+export function useTopOnChange(key: string) {
+  useEffect(() => {
+    document.querySelector(".panel-scroll")?.scrollTo({ top: 0 });
+  }, [key]);
+}
+
 /** A page's title, with a way back to where it was opened from (DESIGN_GUIDE §3, one level deep). */
 export function PageHead({
   title,
@@ -556,13 +563,22 @@ const LIBRARY_CATEGORIES: { id: Family | "yours"; name: string }[] = [
 ];
 
 /** Spellings a search treats as one (Canadian and US). */
-const SAME_WORD: Record<string, string> = { center: "centre", color: "colour", gray: "grey" };
-/** A search word in its plain form: lower case, its spelling unified, a plural "s" dropped. */
-const stem = (w: string) => {
-  const word = w.toLowerCase();
-  const one = SAME_WORD[word] ?? word;
-  return one.length > 3 && one.endsWith("s") ? one.slice(0, -1) : one;
+const SAME_WORD: Record<string, string> = {
+  center: "centre",
+  centerpiece: "centrepiece",
+  color: "colour",
+  gray: "grey",
 };
+/** Text as search words in their plain form: lower case, spelling unified, a plural "s" dropped. */
+const searchWords = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+    .map((word) => {
+      const one = SAME_WORD[word] ?? word;
+      return one.length > 3 && one.endsWith("s") ? one.slice(0, -1) : one;
+    });
 
 /**
  * What a search matches: every word starts a word of the name, the caption or the category
@@ -571,11 +587,10 @@ const stem = (w: string) => {
 function matches(e: LibraryEntry, words: string[], catalog: Catalog): boolean {
   const family = LIBRARY_CATEGORIES.find((c) => c.id === e.family)?.name ?? e.family;
   const key = styleKeyOf(e);
-  const text = `${e.name} ${caption(e, catalog)} ${family} ${e.family} ${key ? DRESSING[key] : ""}`
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .map(stem);
-  return words.every((w) => text.some((t) => t.startsWith(w) || w.startsWith(t)));
+  const text = searchWords(
+    `${e.name} ${caption(e, catalog)} ${family} ${e.family} ${key ? DRESSING[key] : ""}`,
+  );
+  return words.every((w) => text.some((t) => t.startsWith(w)));
 }
 
 /** What a piece of table dressing is, on its row under "For the tables". */
@@ -628,7 +643,8 @@ export function AddPanel({
   const [category, setCategory] = useState(lastCategory);
   const [query, setQuery] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  const words = query.split(/\s+/).filter(Boolean).map(stem);
+  const words = searchWords(query);
+  useTopOnChange(category);
   // A custom model that is ready marks the Yours chip.
   const ready = requests.some((r) => requestStatus(r, catalog).status === "ready");
   const pick = (id: string) => {
@@ -745,7 +761,7 @@ export function AddPanel({
                   </span>
                   <button
                     type="button"
-                    className="btn small"
+                    className="btn small on-tables"
                     disabled={on}
                     onClick={() => editor.useOrPlace(e.id, viewStore.getState().focus)}
                     data-testid={`use-${e.id}`}

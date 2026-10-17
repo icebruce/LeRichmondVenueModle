@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a, 3b and 4A merged (PR #1–#4, #6, #8). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4A–4C merged (PR #1–#4, #6, #8–#10). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps

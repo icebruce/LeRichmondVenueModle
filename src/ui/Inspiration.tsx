@@ -22,7 +22,7 @@ import { isTable } from "../domain/layout/items";
 import { libraryStore } from "../state/library";
 import { viewStore } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
-import { Chips, ResultBadge, Thumb } from "./Panels";
+import { Chips, ResultBadge, Thumb, useTopOnChange } from "./Panels";
 import { type Crop, useServices } from "./services";
 import { Icon } from "./icons";
 
@@ -49,6 +49,9 @@ export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: 
     const e = requestFor ? catalog.get(requestFor) : undefined;
     return e ? newRequest(e, libraryStore.getState().imports, library.newId(), cloud.partner) : null;
   }, [requestFor, catalog, library, cloud.partner]);
+  useTopOnChange(
+    fromInspector?.id ?? (mode.k === "item" ? mode.id : mode.k === "request" ? mode.request.id : mode.k),
+  );
   if (fromInspector)
     return (
       <RequestForm
@@ -966,7 +969,7 @@ function RequestForm({
               type="number"
               inputMode="numeric"
               min={1}
-              placeholder={k === "d" ? "optional" : "cm"}
+              placeholder={k === "d" ? "Optional" : undefined}
               value={r.sizeCm[k] || ""}
               onChange={(e) => {
                 const v = e.currentTarget.value;

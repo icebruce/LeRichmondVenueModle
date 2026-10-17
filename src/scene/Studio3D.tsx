@@ -187,7 +187,7 @@ function TestHooks() {
 }
 
 /** Desktop: a piece dragged from Add and dropped on the room is added where it lands (LAY-01). */
-function LibraryDrop() {
+function LibraryDrop({ evening }: { evening: boolean }) {
   const { editor, venue, catalog } = useStudio();
   const el = useThree((s) => s.gl.domElement);
   const toFloor = useFloorPointer();
@@ -242,10 +242,18 @@ function LibraryDrop() {
   const placed = checkPlacement(item, items, venue, catalog);
   const y = (placed.ok && placed.level === "raised" ? venue.raised.height : 0) + 0.03;
   const outline = footprint(item, catalog).map(([x, z]) => [x, y, z] as [number, number, number]);
-  const colour = placed.ok ? token("--accent", "#98775b") : token("--blocked", "#c2412d");
+  // The same colours as a moved item's outline: the light accent on the candlelit scene.
+  const accent = evening ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b");
+  const colour = placed.ok ? accent : token("--blocked", "#c2412d");
   return (
     <group name="drop-ghost">
-      <Line points={[...outline, outline[0] ?? [0, 0, 0]]} color={colour} lineWidth={2} depthTest={false} />
+      <Line
+        points={[...outline, outline[0] ?? [0, 0, 0]]}
+        color={colour}
+        lineWidth={3}
+        depthTest={false}
+        toneMapped={false}
+      />
       {!placed.ok && (
         <Html position={[item.x, y + 0.2, item.z]} center className="drag-reason" zIndexRange={[20, 10]}>
           {placed.reason}
@@ -334,7 +342,7 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
       {!follow && <SelectionAnchor />}
-      {!follow && <LibraryDrop />}
+      {!follow && <LibraryDrop evening={evening} />}
       <Effects evening={evening} quality={quality} />
     </>
   );

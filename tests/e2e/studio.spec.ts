@@ -605,6 +605,11 @@ test("[LIB-13] [LAY-01] one library: search every category, dressing on the tabl
   // Plurals and US spellings find the same things.
   await page.getByTestId("library-search").fill("candles");
   await expect(page.getByTestId("use-candle-tapers")).toBeVisible();
+  await expect(page.locator('[data-testid^="add-table-"]')).toHaveCount(0);
+  // A search for nothing in the library says so and shows no pieces.
+  await page.getByTestId("library-search").fill("zzzz");
+  await expect(page.getByTestId("layout-panel")).toContainText("Nothing called “zzzz”");
+  await expect(page.locator(".tile")).toHaveCount(0);
   await page.getByTestId("library-search").fill("centerpiece");
   await expect(page.locator('[data-testid^="use-floral-"]').first()).toBeVisible();
   await page.getByTestId("library-search").fill("taper");

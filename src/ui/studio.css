@@ -690,6 +690,11 @@ button:disabled {
 .chip.on .chip-dot {
   background: var(--accent-on-dark);
 }
+/* Already on every table: a state, not an unavailable action, so it stays legible (DESIGN_GUIDE §2.1). */
+.btn.on-tables:disabled {
+  opacity: 1;
+  color: var(--ink-2);
+}
 .btn.small {
   min-height: var(--target);
   padding: 0 var(--s-3);
@@ -1580,14 +1585,15 @@ button:disabled {
     overflow: hidden;
   }
   .tile-caption {
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
   /* 16 px keeps iOS Safari from zooming into a field (DESIGN_GUIDE §2.2). */
   .search input,
   .text-input {
-    font-size: 16px;
+    font: var(--t-field-phone);
   }
   /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
   .sheet-head .save-state {

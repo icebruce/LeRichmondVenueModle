@@ -38,6 +38,8 @@ Defined once in `src/ui/tokens.css` as CSS custom properties. Never hard-code co
 | `--advisory-ink` | `#8A5A12` | Advisory text (≥ 4.5:1 on white and on the amber tint) |
 | `--blocked` | `#C2412D` | Refused move outline only |
 | `--ok` | `#3F7D58` | Rare positive confirmation |
+| `--thumb-ground` | `#F6F7F5` | Library picture well behind a light-ground thumbnail |
+| `--thumb-dark` | `#1D1F1C` | Library picture well behind a lit (dark-ground) thumbnail |
 
 Contrast: all text ≥ 4.5:1 against its background; large text and icons ≥ 3:1.
 
@@ -54,8 +56,7 @@ System UI font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, san
 | `--t-footnote` | 13/18 | 400 | Hints, metadata |
 | `--t-caption` | 12/16 | 500 | Badges, counts captions (minimum size anywhere) |
 | `--t-figure` | 28/32 | 500, tabular figures | Big counts |
-
-On phones, text fields use 16 px so iOS Safari does not zoom into them when tapped (2026-10-17).
+| `--t-field-phone` | 16/20 | 400 | Text fields on phones, so iOS Safari does not zoom into them when tapped (2026-10-17) |
 
 ### 2.3 Space, shape, depth
 
