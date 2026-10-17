@@ -1091,8 +1091,8 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             <p className="hint">Up to {MAX_CANDLE_KINDS} kinds per table, arranged for you.</p>
             {short > 0 && (
               <p className="hint advisory" data-testid="candles-short">
-                {short === 1 ? "One table is" : `${short} tables are`} too small for the whole mix; they show
-                the candles that fit.
+                {short === 1 ? "One table has" : `${short} tables have`} room for fewer; they show the candles
+                that fit.
               </p>
             )}
             {mix.length > 0 && (

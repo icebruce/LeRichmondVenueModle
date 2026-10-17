@@ -479,8 +479,36 @@ const radiusOf = (parts: readonly Part[]) => parts.reduce((m, p) => Math.max(m, 
 /** Up to this height a piece stands among the plates and glasses; above it (candelabra arms) it is clear. */
 const TABLE_LEVEL = 0.2;
 
-/** On the table top: a setting part or the number (`low`, cleared by a candle's base) or flowers. */
-type Circle = { x: number; z: number; r: number; low?: boolean };
+/** A plate, the table number or a placed candle on the table top. */
+type Circle = { x: number; z: number; r: number };
+/**
+ * A piece's reach in two bands: its base (parts starting below TABLE_LEVEL), up to its top, and
+ * whatever starts higher (candelabra arms, a tall arrangement's flowers), with its heights.
+ */
+type Bands = { base: { r: number; top: number }; upper: { r: number; lo: number; hi: number } | null };
+function bandsOf(parts: readonly Part[]): Bands {
+  const low = parts.filter((p) => p.y < TABLE_LEVEL);
+  const high = parts.filter((p) => p.y >= TABLE_LEVEL);
+  return {
+    base: { r: radiusOf(low), top: heightOf(low) },
+    upper: high.length
+      ? { r: radiusOf(high), lo: Math.min(...high.map((p) => p.y)), hi: heightOf(high) }
+      : null,
+  };
+}
+/** Heights may graze (a candelabra arm over a low arrangement's edge) by this much (m). */
+const GRAZE = 0.05;
+/** How far apart two pieces must stand: every pair of their bands that share heights keeps clear. */
+function apart(a: Bands, b: Bands): number {
+  const meets = (lo1: number, hi1: number, lo2: number, hi2: number) =>
+    Math.min(hi1, hi2) - Math.max(lo1, lo2) > GRAZE;
+  let d = a.base.r + b.base.r;
+  if (a.upper && meets(a.upper.lo, a.upper.hi, 0, b.base.top)) d = Math.max(d, a.upper.r + b.base.r);
+  if (b.upper && meets(b.upper.lo, b.upper.hi, 0, a.base.top)) d = Math.max(d, b.upper.r + a.base.r);
+  if (a.upper && b.upper && meets(a.upper.lo, a.upper.hi, b.upper.lo, b.upper.hi))
+    d = Math.max(d, a.upper.r + b.upper.r);
+  return d;
+}
 type TableTop = Shape & { kind: "rectTable" | "roundTable" | "cocktail" };
 
 /** Room left between a table-top point and the table's edge (negative past it). */
@@ -506,7 +534,8 @@ const STEP = 0.03;
 function arrangeCandles(
   shape: TableTop,
   mix: CandleMix,
-  obstacles: readonly Circle[],
+  plates: readonly Circle[],
+  flowers: readonly { x: number; z: number; bands: Bands }[],
   catalog: Catalog,
   ctx: Ctx,
 ): { parts: Part[]; placed: number; wanted: number } {
@@ -524,46 +553,40 @@ function arrangeCandles(
   // Round-robin across kinds, so a mix reads as one arrangement; then tallest in the middle.
   const units: Part[][] = [];
   for (let i = 0; units.length < wanted; i++) for (const k of kinds) if (i < k.n) units.push(k.make(i));
-  const order: { parts: Part[]; r: number; base: number }[] = [];
+  const order: { parts: Part[]; r: number; bands: Bands }[] = [];
   [...units]
     .sort((a, b) => heightOf(b) - heightOf(a))
     .forEach((parts, i) =>
-      order[i % 2 ? "push" : "unshift"]({
-        parts,
-        r: radiusOf(parts),
-        base: radiusOf(parts.filter((p) => p.y < TABLE_LEVEL)),
-      }),
+      order[i % 2 ? "push" : "unshift"]({ parts, r: radiusOf(parts), bands: bandsOf(parts) }),
     );
-  const ideal = idealSpots(shape, order, obstacles.length > 0);
-  // Table-top spots, each with its clearance to the edge and the flowers (for all of a candle) and
-  // to the settings (for its base).
+  const ideal = idealSpots(shape, order, flowers.length > 0);
+  // Table-top spots, each with its room to the edge (for all of a candle), to the plates (for its
+  // base) and its distance to each flower arrangement (checked band by band).
   const half =
     shape.kind === "rectTable"
       ? [shape.length / 2, shape.width / 2]
       : [shape.diameter / 2, shape.diameter / 2];
-  type Cell = { x: number; z: number; clear: number; low: number };
-  const room = (x: number, z: number, low: boolean) =>
-    obstacles.reduce(
-      (m, o) => (!!o.low === low ? Math.min(m, Math.hypot(x - o.x, z - o.z) - o.r - GAP) : m),
-      Infinity,
-    );
+  type Cell = { x: number; z: number; edge: number; low: number; flowers: number[] };
   const cells: Cell[] = [];
   for (let x = -(half[0] ?? 0); x <= (half[0] ?? 0); x += STEP)
     for (let z = -(half[1] ?? 0); z <= (half[1] ?? 0); z += STEP) {
-      const clear = Math.min(toEdge(shape, x, z) - EDGE, room(x, z, false));
-      const low = room(x, z, true);
-      if (clear > 0 && low > 0) cells.push({ x, z, clear, low });
+      const edge = toEdge(shape, x, z) - EDGE;
+      const low = plates.reduce((m, o) => Math.min(m, Math.hypot(x - o.x, z - o.z) - o.r - GAP), Infinity);
+      if (edge > 0 && low > 0)
+        cells.push({ x, z, edge, low, flowers: flowers.map((f) => Math.hypot(x - f.x, z - f.z) - GAP) });
     }
   const taken: Circle[] = [];
   const parts: Part[] = [];
-  order.forEach(({ parts: u, r, base }, i) => {
+  order.forEach(({ parts: u, r, bands }, i) => {
     const [ix, iz] = ideal[i] ?? [0, 0];
+    const needs = flowers.map((f) => apart(f.bands, bands));
     // The nearest spot to the ideal one with room for it (distance first: it is the cheap test).
     let at: Cell | null = null;
     let best = Infinity;
     for (const c of cells) {
       const d = (c.x - ix) ** 2 + (c.z - iz) ** 2;
-      if (d >= best || c.clear < r || c.low < base) continue;
+      if (d >= best || c.edge < r || c.low < bands.base.r) continue;
+      if (c.flowers.some((f, k) => f < (needs[k] ?? 0))) continue;
       if (taken.every((t) => Math.hypot(c.x - t.x, c.z - t.z) >= r + t.r + GAP)) {
         at = c;
         best = d;
@@ -694,13 +717,16 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
     fixed.push(...numberHolder(x, z));
     plates.push({ x, z, r: 0.06 });
   }
-  // Candles keep clear of the plates and the table number (glasses and cutlery tuck in among them,
-  // as on a real table), and of the flowers where they stand (a tall arrangement by its stand).
-  const obstacles: Circle[] = [
-    ...flowers.map((f) => ({ x: f.x, z: f.z, r: radiusOf(f.parts.filter((p) => p.y < TABLE_LEVEL)) })),
-    ...plates.map((p) => ({ ...p, low: true })),
-  ];
-  const candles = arrangeCandles(shape, style.candles, obstacles, catalog, ctx);
+  // Candles keep their base clear of the plates and the table number (glasses and cutlery tuck in
+  // among them, as on a real table), and clear of the flowers wherever they share heights.
+  const candles = arrangeCandles(
+    shape,
+    style.candles,
+    plates,
+    flowers.map((f) => ({ x: f.x, z: f.z, bands: bandsOf(f.parts) })),
+    catalog,
+    ctx,
+  );
   parts.push(...candles.parts, ...fixed);
   return { parts, candles };
 }

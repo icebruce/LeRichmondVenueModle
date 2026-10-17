@@ -323,6 +323,24 @@ describe("candle mix", () => {
             fit.wanted,
           );
         }
+    // One big piece beside a low arrangement: its arms pass over the flowers' edge.
+    const eight = table("table-round", { seats: 8 });
+    for (const id of ["candelabra-5", "candle-hurricane"]) {
+      const style = { ...DEFAULT_STYLE, florals: "floral-low", candles: [{ id, n: 1 }] };
+      const { parts, placed } = candleLayout(eight, style, catalog, extras);
+      expect(placed, id).toBe(1);
+      // Never through the flowers: no candle part overlaps a flower part both across and in height.
+      const bare = { ...extras, settings: false, tableNumbers: false };
+      const flowers = tableDecor(eight, { ...style, candles: [] }, catalog, bare, 1);
+      for (const c of parts)
+        for (const f of flowers) {
+          const heights = Math.min(c.y + c.sy, f.y + f.sy) - Math.max(c.y, f.y);
+          const a = circle(c);
+          const b = circle(f);
+          if (heights > 0.05)
+            expect(Math.hypot(a.x - b.x, a.z - b.z), id).toBeGreaterThanOrEqual(a.r + b.r - 1e-9);
+        }
+    }
   });
 });
 
