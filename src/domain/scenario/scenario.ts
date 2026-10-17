@@ -44,7 +44,8 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
 /**
  * The venue's sample plan F01 (LAY-09), re-fitted to the owner's corrections (2026-10-17): three tables
  * of 12 by the garage doors (6 a side, across the room, ≈ 1.2 m from the doors and ≈ 1 m from the bar),
- * 1×10 and 3×8 on the raised floor, sweetheart, dance area (clear of the entrance), DJ option 1.
+ * 1×10 and 3×8 on the raised floor, sweetheart, DJ option 1. The dance area sits in front of the bar,
+ * clear of the kitchen pass and the entrance, since the south wall moved north (owner, 2026-10-17).
  */
 export function venueSampleItems(): Item[] {
   const t = (id: string, x: number, z: number, seats: number): Item => ({
@@ -63,14 +64,14 @@ export function venueSampleItems(): Item[] {
     t("t5", 13.6, 4.2, 8),
     t("t6", 13.6, 6.6, 8),
     t("t7", 13.6, 9.4, 8),
-    { id: "sweetheart", libraryId: "table-sweetheart", x: 2.8, z: 13.2, rotY: Math.PI, options: {} },
+    { id: "sweetheart", libraryId: "table-sweetheart", x: 3.0, z: 11.8, rotY: Math.PI, options: {} },
     {
       id: "dance",
       libraryId: "dance-floor",
-      x: 6.2,
-      z: 11.6,
+      x: 7.7,
+      z: 10.15,
       rotY: 0,
-      options: { width: 4.8, depth: 3.0 },
+      options: { width: 3.9, depth: 3.1 },
     },
     { id: "dj", libraryId: "dj-booth", x: 1.25, z: 11.5, rotY: Math.PI / 2, options: { spot: "dj1" } },
   ];

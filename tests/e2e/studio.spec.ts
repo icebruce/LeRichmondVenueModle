@@ -213,12 +213,12 @@ test("[LAY-05] dragging a table near another's centre line snaps into line with 
     const [a, b] = ed.active().items;
     ed.moveItems([
       { id: a?.id ?? "", x: 3, z: 9 },
-      { id: b?.id ?? "", x: 6, z: 12.5 },
+      { id: b?.id ?? "", x: 6, z: 11.2 },
     ]);
     return [a?.id ?? "", b?.id ?? ""];
   });
   await setCamera(page, "plan");
-  await dragItem(page, ids[1] as string, [3.12, 12.5]);
+  await dragItem(page, ids[1] as string, [3.12, 11.2]);
   const b = await item(page, ids[1] as string);
   expect(b.x).toBeCloseTo(3, 5);
 });
@@ -304,12 +304,12 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
         ["light-uplight", 0.6, 7],
         ["light-disco", 4.5, 11],
         ["light-chandelier", 11, 6],
-        ["floral-arch", 2.8, 14],
+        ["floral-arch", 2.8, 12.6],
         ["floral-wall", 15, 7],
         ["plant-olive", 15.5, 2],
-        ["plant-kentia", 12, 12.4],
+        ["plant-kentia", 12, 11.3],
         ["sign-neon", 9, 0.4],
-        ["sign-welcome", 14, 13],
+        ["sign-welcome", 14, 12.4],
       ] as const)
         ed.addItem(id, [x, z]);
       return ed.active().items.length;
