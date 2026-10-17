@@ -210,13 +210,13 @@ test("[DEC-02] [LIB-05] a candle kind's sizes open from Candles; two or more can
   // Sizes keep to one line (no-break spaces, word joiners in a range): read as plain text.
   const plain = async (id: string) =>
     ((await page.getByTestId(id).textContent()) ?? "").replace(/\u2060/g, "").replace(/\u00a0/g, " ");
-  await expect.poll(() => plain("candle-layer-candle-pillars")).toContain("8 cm wide · 10–22.5 cm");
+  await expect.poll(() => plain("candle-layer-candle-pillars")).toContain("10–22.5 cm");
   await page.getByTestId("candle-open-candle-pillars").click();
   await expect(page.getByTestId("style-candle-kind")).toBeVisible();
-  await page.getByRole("button", { name: "More: Pillar 1" }).click();
+  await page.getByRole("button", { name: "Taller pillar 1" }).click();
   await expect(page.getByTestId("candle-height-0")).toHaveText("17.5 cm");
   // An added pillar takes the next default height.
-  await page.getByRole("button", { name: "More: Per table" }).click();
+  await page.getByRole("button", { name: "More per table" }).click();
   await expect(page.getByTestId("candle-height-3")).toHaveText("15 cm");
   await page.getByTestId("back").click();
   await page.getByTestId("candles-candelabra").click();
@@ -225,7 +225,7 @@ test("[DEC-02] [LIB-05] a candle kind's sizes open from Candles; two or more can
   await page.getByTestId("back").click();
   await expect.poll(() => plain("candle-layer-candelabra")).toContain("5 arms · 65 cm");
   await page.getByTestId("candle-shuffle").click();
-  await page.getByRole("button", { name: "More: Rotation" }).click();
+  await page.getByRole("button", { name: "Turn on" }).click();
   await expect(page.getByTestId("candle-turn")).toHaveText("15°");
   const style = (await state(page)).active?.style;
   expect(style?.candles).toEqual([

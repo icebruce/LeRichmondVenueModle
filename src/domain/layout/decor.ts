@@ -611,45 +611,14 @@ function arrangeCandles(
   catalog: Catalog,
   ctx: Ctx,
 ): { parts: Part[]; placed: number; wanted: number } {
-  const s = shape.kind === "cocktail" ? 0.6 : 1;
   const turn = (style.candleTurn * Math.PI) / 180;
-  const kinds = style.candles.flatMap((kind) => {
-    const e = catalog.get(kind.id);
-    if (!e || e.model.kind !== "parametric") return [];
-    const { generator: g, params } = e.model;
-    const own = ownLook(params, ctx);
-    const unit = candleUnits[g];
-    const make = (i: number) =>
-      turned(
-        scaled(
-          scaled(
-            unit ? unit(candleSizes(g, kind, i, params)) : (centrepieces[g]?.(params, own.ctx) ?? []),
-            own.scale,
-          ),
-          s,
-        ),
-        turn,
-      );
-    return [{ n: kind.n, make }];
-  });
-  const wanted = kinds.reduce((t, k) => t + k.n, 0);
-  // Round-robin across kinds, so a mix reads as one arrangement; then tallest in the middle, or
-  // the order a shuffle gave.
-  const units: Part[][] = [];
-  for (let i = 0; units.length < wanted; i++) for (const k of kinds) if (i < k.n) units.push(k.make(i));
-  const unit = (parts: Part[]) => ({ parts, r: radiusOf(parts), bands: bandsOf(parts) });
-  const order: { parts: Part[]; r: number; bands: Bands }[] = [];
-  if (style.candleOrder > 0) {
-    const rand = seededRandom(style.candleOrder);
-    for (let i = units.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [units[i], units[j]] = [units[j] as Part[], units[i] as Part[]];
-    }
-    order.push(...units.map(unit));
-  } else
-    [...units]
-      .sort((a, b) => heightOf(b) - heightOf(a))
-      .forEach((parts, i) => order[i % 2 ? "push" : "unshift"](unit(parts)));
+  const units = candleUnitsFor(style, catalog, ctx, shape.kind === "cocktail" ? 0.6 : 1, turn);
+  const wanted = units.length;
+  const order = inOrder(units, (u) => heightOf(u.parts), style.candleOrder).map(({ parts }) => ({
+    parts,
+    r: radiusOf(parts),
+    bands: bandsOf(parts),
+  }));
   const ideal = idealSpots(shape, order, flowers.length > 0).map(([x, z]) => turnPoint(x, z, turn));
   // Table-top spots, each with its room to the edge (for all of a candle), to the plates (for its
   // base) and its distance to each flower arrangement (checked band by band).
@@ -688,6 +657,77 @@ function arrangeCandles(
     for (const p of u) parts.push({ ...p, x: p.x + at.x, z: p.z + at.z });
   });
   return { parts, placed: taken.length, wanted };
+}
+
+/**
+ * Every candle of the mix, each kind's `i`th at its sizes, taken round-robin across the kinds so a
+ * mix reads as one arrangement; scaled by `s` (cocktail tables) and turned by `turn` (radians).
+ */
+function candleUnitsFor(
+  style: Pick<TableStyle, "candles">,
+  catalog: Catalog,
+  ctx: Ctx,
+  s: number,
+  turn: number,
+): { id: string; parts: Part[] }[] {
+  const kinds = style.candles.flatMap((kind) => {
+    const e = catalog.get(kind.id);
+    if (!e || e.model.kind !== "parametric") return [];
+    const { generator: g, params } = e.model;
+    const own = ownLook(params, ctx);
+    const unit = candleUnits[g];
+    const make = (i: number) =>
+      turned(
+        scaled(
+          scaled(
+            unit ? unit(candleSizes(g, kind, i, params)) : (centrepieces[g]?.(params, own.ctx) ?? []),
+            own.scale,
+          ),
+          s,
+        ),
+        turn,
+      );
+    return [{ id: kind.id, n: kind.n, make }];
+  });
+  const total = kinds.reduce((t, k) => t + k.n, 0);
+  const units: { id: string; parts: Part[] }[] = [];
+  for (let i = 0; units.length < total; i++)
+    for (const k of kinds) if (i < k.n) units.push({ id: k.id, parts: k.make(i) });
+  return units;
+}
+
+/** The candles in their order: tallest in the middle (0), or as a shuffle's seed puts them. */
+function inOrder<T>(units: T[], height: (u: T) => number, seed: number): T[] {
+  if (seed > 0) {
+    const rand = seededRandom(seed);
+    const out = [...units];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [out[i], out[j]] = [out[j] as T, out[i] as T];
+    }
+    return out;
+  }
+  const out: T[] = [];
+  [...units].sort((a, b) => height(b) - height(a)).forEach((u, i) => out[i % 2 ? "push" : "unshift"](u));
+  return out;
+}
+
+/**
+ * The table's candles in order, as kind and height (DEC-02): what Shuffle changes. One kind of
+ * identical candles reads the same in any order.
+ */
+export function candleSequence(
+  style: Pick<TableStyle, "candles" | "candleOrder">,
+  catalog: Catalog,
+): string[] {
+  const ctx: Ctx = {
+    colours: ["#ffffff"],
+    rand: seededRandom(1),
+    scale: 1,
+    flower: FLOWER_TYPES.rose as Ctx["flower"],
+  };
+  const units = candleUnitsFor(style, catalog, ctx, 1, 0).map((u) => ({ ...u, h: heightOf(u.parts) }));
+  return inOrder(units, (u) => u.h, style.candleOrder).map((u) => `${u.id}:${u.h.toFixed(3)}`);
 }
 
 /** A table-top point turned about the table's centre, as a part turned by `ry` (radians). */
