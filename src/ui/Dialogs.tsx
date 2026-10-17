@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useEditor, useStudio } from "../scene/context";
 import { differences } from "../domain/scenario/diff";
 import { type Partner, type VersionInfo, useServices } from "./services";
+import { useBackLayer } from "./back";
 
 const time = (iso: string) =>
   new Date(iso).toLocaleString("en-CA", {
@@ -21,6 +22,8 @@ function Modal({
   onClose?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // A dialog that can be closed closes on back too; one that needs an answer holds.
+  useBackLayer(!!onClose, () => onClose?.());
   useEffect(() => {
     ref.current?.querySelector<HTMLElement>("button, input")?.focus();
     if (!onClose) return;
@@ -150,6 +153,35 @@ export function PartnerChooser() {
             Partner {p}
           </button>
         ))}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Phone back with nothing left to close (DESIGN_GUIDE §3.2): ask before leaving the app, Stay first.
+ * Back again leaves, as the browser does.
+ */
+export function LeaveDialog({
+  status,
+  onStay,
+  onLeave,
+}: {
+  /** Where the plans stand (the save state), so leaving is safe to judge. */
+  status: React.ReactNode;
+  onStay: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <Modal title="Leave Richmond Studio?">
+      <p className="dialog-text">{status}</p>
+      <div className="dialog-actions">
+        <button type="button" className="btn primary" onClick={onStay} data-testid="leave-stay">
+          Stay
+        </button>
+        <button type="button" className="btn" onClick={onLeave} data-testid="leave-go">
+          Leave
+        </button>
       </div>
     </Modal>
   );

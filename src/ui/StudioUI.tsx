@@ -4,6 +4,7 @@ import { countLayout, tableLabels } from "../domain/layout/counts";
 import { shapeOf } from "../domain/layout/items";
 import { itemTitle, spotFor } from "../domain/layout/validate";
 import type { Scenario } from "../domain/scenario/schema";
+import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 import { type EditorState, ROTATE_STEP } from "../state/editor";
 import { adviseScenario } from "../domain/layout/advisories";
@@ -27,7 +28,8 @@ import {
 } from "./Panels";
 import { PlansPanel, SaveState } from "./Plans";
 import { Actions, CameraSwitch, PhoneControls } from "./TopBar";
-import { ConflictDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
+import { ConflictDialog, LeaveDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
+import { backStore, useBackLayer } from "./back";
 import { InspirationPanel } from "./Inspiration";
 
 /** The five sections (DESIGN_GUIDE §3): a rail on desktop, a tab bar on phones, same order. */
@@ -328,50 +330,80 @@ type Sheet = Detent | "closed";
 const SHEET_ORDER: Sheet[] = ["closed", "peek", "half", "full"];
 
 /**
- * Keeps the browser's history in step with the open layers (a sheet, a page, details, the checks):
+ * Keeps the browser's history in step with the open layers (a sheet, a page, the checks, a menu):
  * opening one adds an entry, so the system back gesture closes the top layer; closing one in the app
- * takes its entry away again. With `guard` (phones) one more entry sits under the layers, so back
- * with nothing open never leaves the app (DESIGN_GUIDE §3.2).
+ * takes its entry away again. With `guard` (phones) one more entry sits under the layers, and back
+ * with nothing open calls `onExit` instead of leaving (DESIGN_GUIDE §3.2). Entries are only added
+ * after a tap: browsers skip history entries a page adds on its own, so an untapped guard would not
+ * hold. Returns `leave`, which goes back past the app's own entries to the page before it.
  */
-function useBackLayers(depth: number, closeTop: () => void, guard: boolean) {
+function useBackLayers(depth: number, closeTop: () => void, guard: boolean, onExit: () => void) {
   const synced = useRef(0);
   const skip = useRef(0);
   const guarded = useRef(false);
   const close = useRef(closeTop);
+  const exit = useRef(onExit);
+  const want = useRef(depth);
   useEffect(() => {
     close.current = closeTop;
+    exit.current = onExit;
+    want.current = depth;
   });
+  // The guard, then the layers already open, go in on a tap (again after back reached the bottom).
   useEffect(() => {
-    if (!guard || guarded.current) return;
-    guarded.current = true;
-    history.pushState({ rsGuard: true }, "");
+    if (!guard) return;
+    const arm = () => {
+      if (guarded.current) return;
+      guarded.current = true;
+      for (let i = 0; i <= want.current; i++) history.pushState(entry(i), "");
+      synced.current = want.current;
+    };
+    window.addEventListener("pointerdown", arm, true);
+    return () => window.removeEventListener("pointerdown", arm, true);
   }, [guard]);
   useEffect(() => {
-    const onPop = () => {
+    // Each entry knows its place, so a back the browser takes in one jump still lands right.
+    const onPop = (e: PopStateEvent) => {
+      const at = placeOf(e.state);
       if (skip.current) {
         skip.current--;
+        synced.current = Math.max(0, at);
         return;
       }
-      if (synced.current === 0) {
-        // Below the last layer: put the guard back and stay.
-        if (guarded.current) history.pushState({ rsGuard: true }, "");
-        return;
+      if (!guarded.current) return;
+      if (at < 0) {
+        // Below the guard: nothing left to close.
+        guarded.current = false;
+        synced.current = 0;
+        exit.current();
+      } else if (at < synced.current) {
+        synced.current = at;
+        close.current();
       }
-      synced.current--;
-      close.current();
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
   useEffect(() => {
+    if (!guarded.current) return;
     if (depth > synced.current) {
-      for (let i = synced.current; i < depth; i++) history.pushState({ rsLayer: i + 1 }, "");
+      for (let i = synced.current + 1; i <= depth; i++) history.pushState(entry(i), "");
     } else if (depth < synced.current) {
       skip.current++;
       history.go(depth - synced.current);
     }
     synced.current = depth;
   }, [depth]);
+  // Back past the layers and the guard (when they are in), then one more to the page before.
+  return () => history.go(-(guarded.current ? synced.current + 2 : 1));
+}
+
+/** This page load's history entries: the guard (0) and a layer each (1, 2…); others are outside. */
+const LOAD = Math.random().toString(36).slice(2);
+const entry = (place: number) => ({ rs: LOAD, place });
+function placeOf(state: unknown): number {
+  const s = state as { rs?: unknown; place?: unknown } | null;
+  return s?.rs === LOAD && typeof s.place === "number" ? s.place : -1;
 }
 
 /** Desktop: the selection's toolbar, just above it in the room (DESIGN_GUIDE §3.1, §4). */
@@ -490,21 +522,34 @@ export function StudioUI() {
   // The layers the back gesture closes, top first (DESIGN_GUIDE §3).
   // Phones only: on desktop the browser's Back keeps its usual meaning.
   const phoneSelection = phone && hasSelection && selView;
+  // Menus, dialogs and steps opened on top (latest first), compare and walking; then the checks, the
+  // selection, a page (a level for each page above Style's), and the sheet a height at a time.
+  const layers = useStore(backStore, (s) => s.layers);
+  const [leaving, setLeaving] = useState(false);
+  useBackLayer(phone && !!compare, () => viewStore.setState({ compare: null }));
+  useBackLayer(phone && camera === "walk", () =>
+    editor.setCamera(seat && seat.from !== "walk" ? seat.from : "dollhouse"),
+  );
+  useBackLayer(phone && !!pickSeat, () => viewStore.setState({ pickSeat: null }));
   const depth = phone
-    ? (checks ? 1 : 0) +
+    ? layers.length +
+      (checks ? 1 : 0) +
       (phoneSelection ? 1 : 0) +
       (page && panelShown ? (stylePage && parentPage(stylePage) ? 2 : 1) : 0) +
-      (panelShown ? 1 : 0)
+      (panelShown ? SHEET_ORDER.indexOf(detent) : 0)
     : 0;
-  useBackLayers(
+  const leave = useBackLayers(
     depth,
     () => {
-      if (checks) setChecks(false);
+      const top = layers[layers.length - 1];
+      if (top) top.close();
+      else if (checks) setChecks(false);
       else if (phoneSelection) editor.select([]);
       else if (page && panelShown) setPage(stylePage && parentPage(stylePage));
-      else if (panelShown) setSheet("closed");
+      else if (panelShown) setSheet(SHEET_ORDER[SHEET_ORDER.indexOf(detent) - 1] ?? "closed");
     },
     phone,
+    () => setLeaving(true),
   );
 
   // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
@@ -838,6 +883,16 @@ export function StudioUI() {
       <OfflineBanner />
       <ConflictDialog />
       <PartnerChooser />
+      {leaving && (
+        <LeaveDialog
+          status={<SaveState />}
+          onStay={() => setLeaving(false)}
+          onLeave={() => {
+            setLeaving(false);
+            leave();
+          }}
+        />
+      )}
       <Loading />
     </div>
   );

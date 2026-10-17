@@ -56,7 +56,7 @@ test("[PLT-02] phone controls: camera menu and lighting top right, undo under th
   await expect(page.getByTestId("camera-menu")).toHaveAccessibleName("Camera: Plan");
 });
 
-test("[PLT-02] phone sheet: swipes down a step at a time to closed; system back closes the top layer", async ({
+test("[PLT-02] phone sheet: swipes down a step at a time; back closes the top layer, then asks before leaving", async ({
   page,
 }) => {
   await openStudio(page);
@@ -66,18 +66,42 @@ test("[PLT-02] phone sheet: swipes down a step at a time to closed; system back 
   await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
   await swipe(page, ".grabber", 600, 720);
   await expect(page.locator(".panel")).toHaveCount(0);
-  // Back: a page, then the sheet, close in turn; the app stays open.
+  // Back: a page, then the sheet a height at a time, close in turn.
   await page.getByTestId("section-room").click();
   await page.getByTestId("room-rules").click();
   await expect(page.getByTestId("aisle")).toBeVisible();
   await page.goBack();
   await expect(page.getByTestId("venue-panel")).toBeVisible();
   await page.goBack();
-  await expect(page.locator(".panel")).toHaveCount(0);
-  // Nothing left open: back stays in the app.
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
   await page.goBack();
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // Nothing left open: back asks before leaving; Stay keeps the app as it was.
+  const leave = page.getByRole("dialog", { name: "Leave Richmond Studio?" });
+  await page.goBack();
+  await expect(leave).toBeVisible();
+  await page.getByTestId("leave-stay").click();
+  await expect(leave).toHaveCount(0);
   await expect(page.locator(".tabbar")).toBeVisible();
-  expect((await state(page)).active).toBeTruthy();
+  // Asked again, Leave goes to the page before the app.
+  await page.goBack();
+  await expect(leave).toBeVisible();
+  await page.getByTestId("leave-go").click();
+  await page.waitForURL("about:blank");
+});
+
+test("[PLT-02] phone back: closes the camera menu, then walks back to the room", async ({ page }) => {
+  await openStudio(page);
+  await page.getByTestId("camera-menu").click();
+  await expect(page.getByRole("menu", { name: "Camera" })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("menu", { name: "Camera" })).toHaveCount(0);
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
+  await setCamera(page, "walk");
+  await expect(page.locator(".joystick")).toBeVisible();
+  await page.goBack();
+  await expect.poll(async () => (await state(page)).camera).toBe("dollhouse");
+  await expect(page.getByRole("dialog", { name: "Leave Richmond Studio?" })).toHaveCount(0);
 });
 
 test("[PLT-02] phone sheet: content scrolls at half; only the grabber opens it full", async ({ page }) => {
