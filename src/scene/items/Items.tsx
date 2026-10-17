@@ -875,12 +875,13 @@ export function Items({
               onPointerOver={(e) => {
                 if (onGrip(e)) return;
                 e.stopPropagation();
-                if (camera === "walk" || readOnly) return;
+                // A held height grip keeps its cursor while the pointer crosses other pieces.
+                if (camera === "walk" || readOnly || viewStore.getState().lift) return;
                 document.body.style.cursor = "grab";
                 viewStore.setState({ hover: p.item.id });
               }}
               onPointerOut={() => {
-                document.body.style.cursor = "";
+                if (!viewStore.getState().lift) document.body.style.cursor = "";
                 if (viewStore.getState().hover === p.item.id) viewStore.setState({ hover: null });
               }}
               name={`item-${p.item.id}`}
@@ -1067,7 +1068,7 @@ function HeightHandle({
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
-      window.removeEventListener("keydown", key);
+      window.removeEventListener("keydown", key, true);
       document.body.style.cursor = "";
       setControls(true);
       viewStore.setState({ lift: null });
@@ -1075,14 +1076,17 @@ function HeightHandle({
     };
     const up = () => end(true);
     const cancel = () => end(false);
+    // Escape here only puts the height back (read first, so the selection stays).
     const key = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") end(false);
+      if (ev.key !== "Escape") return;
+      ev.stopPropagation();
+      end(false);
     };
     document.body.style.cursor = "ns-resize";
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
-    window.addEventListener("keydown", key);
+    window.addEventListener("keydown", key, true);
   };
   const line = (width: number, c: string, order: number) => (
     <Line
