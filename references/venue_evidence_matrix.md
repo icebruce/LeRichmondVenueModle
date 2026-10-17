@@ -84,7 +84,7 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) predates the owner's c
 
 | Quantity | Range | Conf. | Basis |
 |---|---|---|---|
-| Main room width W–E × depth N–S | ≈ 16 × 12.9 m (range 14–18 × 12.5–16) | L | From F01 proportions if its 8-seat tables are ≈ 3.5 m; south wall moved 1.4 m north of the F01 kitchen line (C, 2026-10-17, round 2). Kitchen + corridor beyond add ≈ 2 m. |
+| Main room width W–E × depth N–S | ≈ 16 × 12.9 m (range 14–18 × 12.5–16) | L | From F01 proportions if its 8-seat tables are ≈ 3.5 m; south wall moved 1.4 m north of the F01 kitchen line (C, 2026-10-17, round 2). Kitchen + corridor beyond the wall: the mezzanine above them is modelled ≈ 3 m deep (was ≈ 2.2 m) so the second flight, which now runs ≈ 2.4 m past the wall, lands on it (2026-10-17, round 2). |
 | Main ceiling (timber deck) | 6.5–8 m | L | Ceiling well above mezzanine level in R01/UV02 |
 | Mezzanine floor height | 3.5–4.2 m | L | Headroom over kitchen pass in UV02 |
 | Mezzanine projection into the main room | ≈ 0–1 m | L | Sits above kitchen + corridor (C). |

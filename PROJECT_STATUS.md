@@ -119,6 +119,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
 - Advisory checks on the venue sample plan (estimates, 2026-10-17): the garage-door tables pass; the raised-floor tables have aisles of 0.4–0.8 m (setting 1.0 m), and the DJ at option 1 stands within 1.2 m of the glass doors. Worth confirming spacing with the venue.
+- Venue (fidelity review, 2026-10-17, round 2): DJ option 2 (9.95, 10.75) now stands ≈ 1.25 m from the corridor mouth and 0.1 m from the sample dance area; owner to confirm where it belongs. The last street window (z 10.0–11.7) sits behind the turn landing, which moved 0.6 m north; window positions are inferred, re-check against R05 and R10. Buff-brick piers and velvet curtains in R09 still read as red brick and timber (look only).
 - Venue: table sizes for 8–14 seats.
 - Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
