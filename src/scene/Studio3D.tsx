@@ -258,17 +258,22 @@ function SelectionAnchor() {
     const s = editor.store.getState();
     const items = s.scenarios[s.activeId]?.items.filter((i) => s.selection.includes(i.id)) ?? [];
     let next: [number, number] | null = null;
-    if (items.length && s.camera !== "walk" && !viewStore.getState().drag) {
+    if (items.length && s.camera !== "walk" && !viewStore.getState().drag && !viewStore.getState().lift) {
       const x = items.reduce((a, i) => a + i.x, 0) / items.length;
       const z = items.reduce((a, i) => a + i.z, 0) / items.length;
-      // Just above the tallest selected piece (a tall hanging light counts only up to 2.5 m, so the
-      // toolbar stays near the floor plan), 15 cm clear of it.
+      // Just above the tallest selected piece, 15 cm clear of it: a tall piece counts only up to
+      // 2.5 m, so the toolbar stays near the floor plan, but a light with a height clears the whole
+      // light above its grip (its drawn top).
       const top = Math.max(
-        ...items.map(
-          (i) =>
-            (pointInPolygon([i.x, i.z], venue.raised.outline) ? venue.raised.height : 0) +
-            Math.min(catalog.get(i.libraryId)?.sizeM.h ?? 1, 2.5),
-        ),
+        ...items.map((i) => {
+          const hangs = catalog.get(i.libraryId)?.options.some((o) => o.key === "hang");
+          const shape = shapeOf(i, catalog);
+          const h =
+            hangs && shape.kind === "piece"
+              ? shape.height
+              : Math.min(catalog.get(i.libraryId)?.sizeM.h ?? 1, 2.5);
+          return (pointInPolygon([i.x, i.z], venue.raised.outline) ? venue.raised.height : 0) + h;
+        }),
       );
       const { camera, size } = get();
       point.set(x, top + 0.15, z).project(camera);

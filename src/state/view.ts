@@ -35,6 +35,8 @@ export type ViewState = {
   compare: string | null;
   /** Desktop: screen point (px) just above the selection, where its toolbar sits; null when hidden. */
   anchor: [number, number] | null;
+  /** Desktop: a light's height while its grip is dragged (LIB-08); drawn there, saved on release. */
+  lift: { id: string; hang: number } | null;
   /** Desktop: a library piece being dragged from Add, and the floor point under the pointer (LAY-01). */
   dropping: { id: string; at: [number, number] | null } | null;
   /** Floor point at the centre of the current view, where new items are added. */
@@ -66,6 +68,7 @@ export const viewStore = createStore<ViewState>(() => ({
   insetRight: 0,
   anchor: null,
   dropping: null,
+  lift: null,
   focus: [8, 7],
   showPeople: true,
   compare: null,

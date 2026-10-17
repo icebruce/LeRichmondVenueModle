@@ -1594,7 +1594,7 @@ function OptionField({
         min={option.min}
         max={option.max}
         step={option.step}
-        format={unit === "m" ? metres : unit ? (v) => `${v} ${unit}` : undefined}
+        format={unit === "m" ? (v) => `≈ ${metres(v)}` : unit ? (v) => `${v} ${unit}` : undefined}
         onChange={set}
         testId={option.key}
       />

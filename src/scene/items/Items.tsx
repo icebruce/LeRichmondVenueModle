@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useThree, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import {
   type Item,
@@ -54,14 +54,18 @@ function linenColour(catalog: Catalog, id: string): string | null {
 
 function usePlaced(scenario: Scenario): Placed[] {
   const { venue, catalog } = useStudio();
+  // A light whose height grip is held is drawn at the height under the pointer.
+  const lift = useView((s) => s.lift);
   return useMemo(() => {
     const extra = toggledObstacles(venue, scenario.venueToggles);
-    return scenario.items.map((item) => {
+    return scenario.items.map((saved) => {
+      const item =
+        lift?.id === saved.id ? { ...saved, options: { ...saved.options, hang: lift.hang } } : saved;
       const r = checkPlacement(item, scenario.items, venue, catalog, extra);
       const level = r.ok ? r.level : (spotFor(item, venue)?.level ?? "main");
       return { item, shape: shapeOf(item, catalog), y: levelHeight(level, venue), ok: r.ok };
     });
-  }, [scenario.items, scenario.venueToggles, venue, catalog]);
+  }, [scenario.items, scenario.venueToggles, venue, catalog, lift]);
 }
 
 function Legs({ pts, m }: { pts: [number, number][]; m: Materials }) {
@@ -772,7 +776,7 @@ export function Items({
   }
 
   function onDown(e: ThreeEvent<PointerEvent>, p: Placed) {
-    if (readOnly || camera === "walk" || e.button > 0) return;
+    if (readOnly || camera === "walk" || e.button > 0 || onGrip(e)) return;
     const id = p.item.id;
     const current = editor.store.getState().selection;
     // A hanging or projected piece over a table gives way to the table (from above it covers it),
@@ -869,6 +873,7 @@ export function Items({
               rotation={[0, item.rotY, 0]}
               onPointerDown={(e) => onDown(e, p)}
               onPointerOver={(e) => {
+                if (onGrip(e)) return;
                 e.stopPropagation();
                 if (camera === "walk" || readOnly) return;
                 document.body.style.cursor = "grab";
@@ -915,7 +920,13 @@ export function Items({
         />
       )}
       {single && camera !== "walk" && !drag && (
-        <HeightHandle placed={single} dark={evening} grab={!coarse} setControls={setControls} />
+        // The grip only in the dollhouse: from straight above (plan) a drag would change an unseen height.
+        <HeightHandle
+          placed={single}
+          dark={evening}
+          grab={!coarse && camera === "dollhouse"}
+          setControls={setControls}
+        />
       )}
       {drag && (
         <Guides drag={drag} y={placed.find((p) => p.item.id === drag.ids[0])?.y ?? 0} dark={evening} />
@@ -980,10 +991,18 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
   );
 }
 
+/** A press on a light's height grip belongs to the grip, even through the light in front of it. */
+const onGrip = (e: ThreeEvent<PointerEvent>) => e.intersections.some((i) => i.object.name === "height-grip");
+
+/** The grip's look and its hit area, in screen pixels (§2.5: 44 pt targets). */
+const GRIP_PX = 7;
+const GRIP_HIT_PX = 22;
+
 /**
  * A hanging or ceiling light's height (LIB-08, owner 2026-10-17): a line drops from it to the floor
- * with its height, and on desktop a handle on the light drags it up or down between its limits,
- * committed as one change on release (one undo step).
+ * with its height beside it, and in the dollhouse on desktop a grip just under the light drags it
+ * up or down between its limits. The light follows while dragging (`lift`); release saves it as
+ * one change (one undo step); Escape puts it back.
  */
 function HeightHandle({
   placed,
@@ -998,16 +1017,29 @@ function HeightHandle({
 }) {
   const { catalog, editor } = useStudio();
   const get = useThree((s) => s.get);
-  const [preview, setPreview] = useState<number | null>(null);
+  const grip = useRef<THREE.Group>(null);
   const colour = dark ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b");
-  const option = catalog.get(placed.item.libraryId)?.options.find((o) => o.key === "hang");
-  if (option?.type !== "number") return null;
-  const saved = Number(placed.item.options.hang ?? option.default);
-  const h = preview ?? saved;
+  const halo = token("--ink", "#202522");
+  // The grip keeps its size on screen, however far the camera is.
+  useFrame(({ camera, size }) => {
+    const g = grip.current;
+    if (!g) return;
+    const a = g.getWorldPosition(new THREE.Vector3());
+    const b = a.clone().setY(a.y + 1);
+    const perMetre = Math.abs(a.project(camera).y - b.project(camera).y) * (size.height / 2);
+    g.scale.setScalar(perMetre > 0 ? 1 / perMetre : 1);
+  });
+  useEffect(() => () => void (document.body.style.cursor = ""), []);
+  const entry = catalog.get(placed.item.libraryId);
+  const option = entry?.options.find((o) => o.key === "hang");
+  if (option?.type !== "number" || (entry?.placement !== "hanging" && entry?.placement !== "ceiling"))
+    return null;
+  const h = Number(placed.item.options.hang ?? option.default);
   const { x, z } = placed.item;
   const onDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     setControls(false);
+    const saved = h;
     const { camera, gl } = get();
     // A vertical plane through the light, facing the camera: the pointer's height on it is the light's.
     const facing = new THREE.Vector3()
@@ -1029,59 +1061,82 @@ function HeightHandle({
       );
       if (!ray.ray.intersectPlane(plane, hit)) return;
       last = Math.min(option.max, Math.max(option.min, snap(hit.y - placed.y, 0.1)));
-      setPreview(last);
+      viewStore.setState({ lift: { id: placed.item.id, hang: last } });
     };
-    const up = () => {
+    const end = (save: boolean) => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", key);
+      document.body.style.cursor = "";
       setControls(true);
-      setPreview(null);
-      if (Math.abs(last - saved) > 1e-3) editor.setOption(placed.item.id, "hang", last);
+      viewStore.setState({ lift: null });
+      if (save && Math.abs(last - saved) > 1e-3) editor.setOption(placed.item.id, "hang", last);
     };
+    const up = () => end(true);
+    const cancel = () => end(false);
+    const key = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") end(false);
+    };
+    document.body.style.cursor = "ns-resize";
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", key);
   };
+  const line = (width: number, c: string, order: number) => (
+    <Line
+      points={[
+        [x, placed.y + 0.01, z],
+        [x, placed.y + h, z],
+      ]}
+      color={c}
+      lineWidth={width}
+      dashed
+      dashSize={0.12}
+      gapSize={0.08}
+      depthTest={false}
+      renderOrder={order}
+      transparent
+      opacity={c === halo ? 0.45 : 1}
+    />
+  );
   return (
     <group name="height-handle">
-      <Line
-        points={[
-          [x, placed.y + 0.01, z],
-          [x, placed.y + h, z],
-        ]}
-        color={colour}
-        lineWidth={1.5}
-        dashed
-        dashSize={0.12}
-        gapSize={0.08}
-        depthTest={false}
-        renderOrder={12}
-      />
+      {/* A dark halo under the line, so it reads on pale cloths in the evening. */}
+      {line(3.5, halo, 11)}
+      {line(1.5, colour, 12)}
       <mesh position={[x, placed.y + 0.006, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={12}>
         <ringGeometry args={[0.06, 0.1, 24]} />
         <meshBasicMaterial color={colour} depthTest={false} transparent />
       </mesh>
       {grab && (
-        <mesh
-          position={[x, placed.y + h, z]}
-          onPointerDown={onDown}
-          onPointerOver={() => (document.body.style.cursor = "ns-resize")}
-          onPointerOut={() => (document.body.style.cursor = "")}
-          name="height-grip"
-          renderOrder={13}
-        >
-          <sphereGeometry args={[0.11, 16, 12]} />
-          <meshBasicMaterial color={colour} depthTest={false} transparent opacity={0.95} />
-        </mesh>
+        <group ref={grip} position={[x, placed.y + h - 0.08, z]}>
+          <mesh renderOrder={13}>
+            <sphereGeometry args={[GRIP_PX + 1.5, 16, 12]} />
+            <meshBasicMaterial color={halo} depthTest={false} transparent opacity={0.6} />
+          </mesh>
+          <mesh renderOrder={14}>
+            <sphereGeometry args={[GRIP_PX, 16, 12]} />
+            <meshBasicMaterial color={colour} depthTest={false} transparent />
+          </mesh>
+          <mesh
+            name="height-grip"
+            onPointerDown={onDown}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = "ns-resize";
+            }}
+            onPointerOut={() => {
+              if (!viewStore.getState().lift) document.body.style.cursor = "";
+            }}
+          >
+            <sphereGeometry args={[GRIP_HIT_PX, 8, 6]} />
+            <meshBasicMaterial visible={false} />
+          </mesh>
+        </group>
       )}
-      <Html
-        position={[x, placed.y + h / 2, z]}
-        center
-        className="drag-readout"
-        zIndexRange={[20, 10]}
-        data-testid="height-readout"
-      >
+      <Html position={[x, placed.y + h / 2, z]} className="height-readout" zIndexRange={[5, 0]}>
         ≈ {h.toFixed(1)} m
       </Html>
     </group>

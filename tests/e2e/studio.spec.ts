@@ -684,9 +684,12 @@ test("[LIB-08] a hanging light shows its height to the floor and drags up or dow
     return added;
   });
   const before = await item(page, id);
-  const hang = Number(before.options.hang);
-  await expect(page.getByTestId("height-readout")).toContainText(`≈ ${hang.toFixed(1)} m`);
-  const [x, y] = await screenOf(page, before.x, hang, before.z);
+  // A new light hangs at its default height, shown beside its drop line.
+  const readout = page.locator(".height-readout");
+  await expect(readout).toHaveText(/≈ \d\.\d m/);
+  const hang = Number((await readout.textContent())?.match(/\d\.\d/)?.[0]);
+  // The grip sits just under the light.
+  const [x, y] = await screenOf(page, before.x, hang - 0.08, before.z);
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x, y - 30, { steps: 4 });
@@ -695,5 +698,5 @@ test("[LIB-08] a hanging light shows its height to the floor and drags up or dow
   await expect.poll(async () => Number((await item(page, id)).options.hang)).toBeGreaterThan(hang);
   // One change, one undo.
   await page.getByTestId("undo").click();
-  expect(Number((await item(page, id)).options.hang)).toBeCloseTo(hang, 2);
+  await expect(readout).toHaveText(`≈ ${hang.toFixed(1)} m`);
 });
