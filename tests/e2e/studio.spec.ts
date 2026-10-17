@@ -213,7 +213,7 @@ test("[LAY-05] dragging a table near another's centre line snaps into line with 
     };
     const [a, b] = ed.active().items;
     ed.moveItems([
-      { id: a?.id ?? "", x: 3, z: 9 },
+      { id: a?.id ?? "", x: 3, z: 8.4 },
       { id: b?.id ?? "", x: 6, z: 11.2 },
     ]);
     return [a?.id ?? "", b?.id ?? ""];
