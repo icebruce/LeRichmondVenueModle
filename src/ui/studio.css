@@ -93,7 +93,9 @@ button:disabled {
   top: var(--top);
   left: calc(var(--inset-left, var(--rail)) + var(--s-4));
   right: var(--s-4);
-  display: flex;
+  /* The row spans the free area, so the middle column centres the cameras over the room. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--s-2);
   pointer-events: none;
@@ -103,9 +105,9 @@ button:disabled {
 }
 /* The plan's name, small: a way into Plans (DESIGN_GUIDE §3.1). */
 .plan-name {
-  flex: 0 1 auto;
+  justify-self: start;
   box-sizing: border-box;
-  max-width: calc(50% - 190px);
+  max-width: 100%;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -243,10 +245,6 @@ button:disabled {
   opacity: 0.55;
 }
 .camera-seg {
-  /* Centred over the room: the toolbar spans the free area with equal margins. */
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   box-sizing: border-box;
   align-items: center;
   height: var(--target);
@@ -277,8 +275,7 @@ button:disabled {
   flex: 1;
 }
 .actions {
-  flex: none;
-  margin-left: auto;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 2px;
