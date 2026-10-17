@@ -558,7 +558,8 @@ function Guides({ drag, y, dark }: { drag: Drag; y: number; dark: boolean }) {
   );
 }
 
-function useFloorPointer() {
+/** The point under the pointer on the level plane at height `y` (m), or null when the ray misses it. */
+export function useFloorPointer() {
   const { camera, gl, raycaster } = useThree();
   return (clientX: number, clientY: number, y: number): THREE.Vector3 | null => {
     const r = gl.domElement.getBoundingClientRect();

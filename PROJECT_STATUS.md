@@ -14,8 +14,8 @@
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
 | 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
 | 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
-| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | In review |
-| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
+| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | Merged (PR #10) |
+| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | In review |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
 | 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | Planned |
 

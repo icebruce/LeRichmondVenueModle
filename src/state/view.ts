@@ -92,3 +92,6 @@ export const sharedPose = {
 export function requestCamera(key: string | null) {
   cameraCommands.setState((s) => ({ request: { key, n: s.request.n + 1 } }));
 }
+
+/** The drag-and-drop type of a library piece dragged from Add into the room (LAY-01, desktop). */
+export const LIBRARY_DRAG = "application/x-richmond-library";

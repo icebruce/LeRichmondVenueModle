@@ -9,10 +9,10 @@ import { pointInPolygon } from "../domain/geometry";
 import { footprint } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { requestCamera, viewStore } from "../state/view";
+import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
-import { Items } from "./items/Items";
+import { Items, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
 import { useMaterials } from "./materials";
@@ -185,6 +185,37 @@ function TestHooks() {
   return null;
 }
 
+/** Desktop: a piece dragged from Add and dropped on the room is added where it lands (LAY-01). */
+function LibraryDrop() {
+  const { editor, venue } = useStudio();
+  const el = useThree((s) => s.gl.domElement);
+  const toFloor = useFloorPointer();
+  useEffect(() => {
+    const over = (e: DragEvent) => {
+      if (!e.dataTransfer?.types.includes(LIBRARY_DRAG)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    };
+    const drop = (e: DragEvent) => {
+      const id = e.dataTransfer?.getData(LIBRARY_DRAG);
+      if (!id) return;
+      e.preventDefault();
+      // The floor under the cursor, on the raised level where that is what the cursor is over.
+      const low = toFloor(e.clientX, e.clientY, 0);
+      const high = toFloor(e.clientX, e.clientY, venue.raised.height);
+      const hit = high && pointInPolygon([high.x, high.z], venue.raised.outline) ? high : low;
+      if (hit) editor.addItem(id, [hit.x, hit.z]);
+    };
+    el.addEventListener("dragover", over);
+    el.addEventListener("drop", drop);
+    return () => {
+      el.removeEventListener("dragover", over);
+      el.removeEventListener("drop", drop);
+    };
+  }, [el, editor, venue, toFloor]);
+  return null;
+}
+
 /**
  * Where the desktop selection toolbar sits (DESIGN_GUIDE §3.1, §4): the screen point just above the selected
  * items, written to the view store when it moves; null while dragging, walking or with nothing selected.
@@ -264,6 +295,7 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
       {!follow && <SelectionAnchor />}
+      {!follow && <LibraryDrop />}
       <Effects evening={evening} quality={quality} />
     </>
   );

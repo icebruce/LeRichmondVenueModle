@@ -11,6 +11,7 @@ import {
   toggledObstacles,
 } from "../domain/layout/validate";
 import { tableLabels } from "../domain/layout/counts";
+import { stylePatch } from "../domain/layout/decor";
 import { normalizeAngle, snap } from "../domain/geometry";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
@@ -404,6 +405,20 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
           } else if (target.includes(it.id)) settle(it, { ...it.style, ...patch }, d.style);
         }
       });
+    },
+
+    /**
+     * A library item where it belongs: table dressing on every table (DEC-01), anything else placed
+     * near `focus` (LAY-01). Says which, or null when nothing fits.
+     */
+    useOrPlace(libraryId: string, focus: [number, number]): "used" | "placed" | null {
+      const e = deps.catalog.get(libraryId);
+      const patch = e ? stylePatch(e) : null;
+      if (patch) {
+        api.applyStyle("all", patch);
+        return "used";
+      }
+      return api.addItem(libraryId, focus) ? "placed" : null;
     },
 
     undo() {

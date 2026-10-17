@@ -163,8 +163,11 @@ export type Imported = z.infer<typeof importedSchema>;
  */
 export const customRequestSchema = z.object({
   id: z.string().regex(/^req-[a-z0-9]{6,16}$/),
-  /** The library or imported item it starts from. */
-  itemId: z.string().regex(/^[a-z0-9-]+$/),
+  /** The library or imported item it starts from; none for a request started from scratch (LIB-13). */
+  itemId: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   name: z.string().trim().min(1).max(60),
   sizeCm: z.object({
     w: z.number().min(1).max(2000),

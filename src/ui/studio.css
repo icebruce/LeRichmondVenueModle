@@ -303,7 +303,6 @@ button:disabled {
 }
 .icon-btn:active:not(:disabled),
 .btn:active,
-.library-item:active,
 .chip:active {
   transform: scale(0.97);
 }
@@ -547,33 +546,6 @@ button:disabled {
   margin: 0;
   accent-color: var(--accent);
 }
-.library {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-}
-.library-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  min-height: 56px;
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  text-align: left;
-  transition:
-    border-color var(--m-fast),
-    background var(--m-fast);
-}
-.library-item:hover {
-  border-color: var(--line-2);
-  background: var(--bg);
-}
 .library-icon {
   width: 44px;
   height: 44px;
@@ -590,24 +562,121 @@ button:disabled {
   height: 44px;
   object-fit: contain;
 }
-.library-text {
+/* Add (DESIGN_GUIDE §4 Library): search, then pictures in a grid. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: var(--target);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-card);
+  background: var(--sunk);
+  color: var(--ink-3);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: var(--t-body);
+  color: var(--ink);
+  outline: none;
+}
+.search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  flex: 1;
+  align-items: stretch;
+  gap: var(--s-1);
+  padding: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    border-color var(--m-fast),
+    background var(--m-fast);
 }
-.library-name {
-  font: 500 15px/20px var(--font-ui);
+.tile:hover {
+  border-color: var(--line-2);
 }
-.library-caption {
-  font: var(--t-footnote);
+.tile:active {
+  transform: scale(0.97);
+}
+.tile .library-icon {
+  width: 100%;
+  height: 84px;
+}
+.tile .library-icon img {
+  width: 84px;
+  height: 84px;
+}
+.tile-name {
+  font: var(--t-callout);
+  font-weight: 500;
+}
+.tile-caption {
+  font: var(--t-caption);
   color: var(--ink-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.library-add {
+.tile-add {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface);
   color: var(--accent);
+  box-shadow: var(--shadow-control);
+}
+.more {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 56px;
+  padding: var(--s-3);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-card);
+  background: none;
+  text-align: left;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.more:hover {
+  background: var(--sunk);
+}
+.chip-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: var(--s-1);
+  border-radius: 50%;
+  background: var(--accent);
+}
+.chip.on .chip-dot {
+  background: var(--accent-on-dark);
+}
+.btn.small {
+  min-height: var(--target);
+  padding: 0 var(--s-3);
+  font: var(--t-footnote);
+  white-space: nowrap;
 }
 .chips {
   display: flex;
@@ -1474,6 +1543,17 @@ button:disabled {
   .walk-hint {
     left: 50%;
   }
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-2);
+  }
+  .tile .library-icon {
+    height: 64px;
+  }
+  .tile .library-icon img {
+    width: 64px;
+    height: 64px;
+  }
   /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
   .sheet-head .save-state {
     display: block;
@@ -1882,9 +1962,6 @@ textarea.text-input {
 .import-result figcaption {
   font: var(--t-caption);
   color: var(--ink-2);
-}
-.rot-left {
-  transform: rotate(-90deg);
 }
 .source-link {
   color: var(--accent);

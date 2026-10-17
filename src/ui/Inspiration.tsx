@@ -17,7 +17,7 @@ import {
   customRequestSchema,
   importedSchema,
 } from "../domain/library/schema";
-import type { TableStyle } from "../domain/scenario/schema";
+import { styleKeyOf } from "../domain/layout/decor";
 import { isTable } from "../domain/layout/items";
 import { libraryStore } from "../state/library";
 import { viewStore } from "../state/view";
@@ -25,16 +25,6 @@ import { useEditor, useStudio, useView } from "../scene/context";
 import { Chips, ResultBadge, Thumb } from "./Panels";
 import { type Crop, useServices } from "./services";
 import { Icon } from "./icons";
-
-/** Which table style an item fills when used on every table, if any (DEC-01). */
-export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
-  const g = e.model.kind === "parametric" ? e.model.generator : "";
-  if (g === "linen" || g === "runner" || g === "napkin") return g;
-  if (g === "chair") return "chair";
-  if (e.family === "candle") return "candles";
-  if (e.family === "floral" && e.placement === "table") return "florals";
-  return null;
-}
 
 type Mode =
   | { k: "list" }
@@ -47,7 +37,7 @@ type Mode =
  * item can become a request for a custom model that Claude builds.
  */
 export function InspirationPanel({ head }: { head: ReactNode }) {
-  const { catalog } = useStudio();
+  const { catalog, editor } = useStudio();
   const { library, cloud } = useServices();
   const imports = useStore(libraryStore, (s) => s.imports);
   const requests = useStore(libraryStore, (s) => s.requests);
@@ -83,6 +73,13 @@ export function InspirationPanel({ head }: { head: ReactNode }) {
     return <RequestForm initial={mode.request} isNew={mode.isNew} onDone={() => setMode({ k: "list" })} />;
 
   const shown = imports.filter((i) => !i.archived);
+  const status = requests.map((r) => ({ r, ...requestStatus(r, catalog) }));
+  const ready = status.filter((x): x is typeof x & { entry: LibraryEntry } => !!x.entry);
+  const waiting = status.filter((x) => !x.entry);
+  const use = (e: LibraryEntry) => {
+    if (editor.useOrPlace(e.id, viewStore.getState().focus) === "used")
+      editor.notify(`${e.name} on every table`);
+  };
   return (
     <div className="panel-body" data-testid="inspiration-panel">
       {head}
@@ -94,81 +91,134 @@ export function InspirationPanel({ head }: { head: ReactNode }) {
       >
         <Icon name="camera" size={16} /> Add from a photo
       </button>
+      {ready.length > 0 && (
+        <>
+          <h3 className="group-title">Ready</h3>
+          <div className="list" aria-label="Ready">
+            {ready.map(({ r, entry }) =>
+              entry ? (
+                <div key={r.id} className="row">
+                  <Thumb entry={entry} />
+                  <span className="nav-label">
+                    {entry.name}
+                    <span className="nav-sub">Your custom model · ready</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => use(entry)}
+                    data-testid={`ready-${r.id}`}
+                  >
+                    {styleKeyOf(entry) ? "Use on tables" : "Place"}
+                  </button>
+                </div>
+              ) : null,
+            )}
+          </div>
+        </>
+      )}
       <h3 className="group-title">Your items</h3>
       {shown.length ? (
-        <ul className="library" aria-label="Your items">
+        <div className="list" aria-label="Your items">
           {shown.map((i) => {
             const e = catalog.get(i.id);
             return (
               e && (
-                <li key={i.id}>
-                  <button
-                    type="button"
-                    className="library-item"
-                    onClick={() => setMode({ k: "item", id: i.id })}
-                    data-testid={`imported-${i.id}`}
-                  >
-                    <Thumb entry={e} />
-                    <span className="library-text">
-                      <span className="library-name">{e.name}</span>
-                      <span className="library-caption">
-                        <ResultBadge entry={e} /> {importKind(i.type).name}
-                      </span>
+                <button
+                  key={i.id}
+                  type="button"
+                  className="nav-row"
+                  onClick={() => setMode({ k: "item", id: i.id })}
+                  data-testid={`imported-${i.id}`}
+                >
+                  <Thumb entry={e} />
+                  <span className="nav-label">
+                    {e.name}
+                    <span className="nav-sub">
+                      <ResultBadge entry={e} /> {importKind(i.type).name}
                     </span>
-                    <Icon name="chevron" size={16} className="library-add rot-left" />
-                  </button>
-                </li>
+                  </span>
+                  <Icon name="next" size={16} className="nav-chevron" />
+                </button>
               )
             );
           })}
-        </ul>
+        </div>
       ) : (
         <p className="hint">Photos you add become items you can place or use on every table.</p>
       )}
-      <h3 className="group-title">Custom model requests</h3>
-      {requests.length ? (
-        <ul className="library" aria-label="Custom model requests">
-          {requests.map((r) => (
-            <li key={r.id}>
+      {waiting.length > 0 && (
+        <>
+          <h3 className="group-title">Requests</h3>
+          <div className="list" aria-label="Requests">
+            {waiting.map(({ r, label }) => (
               <button
+                key={r.id}
                 type="button"
-                className="library-item"
+                className="nav-row"
                 onClick={() => setMode({ k: "request", request: r, isNew: false })}
                 data-testid={`request-${r.id}`}
               >
-                <span className="library-text">
-                  <span className="library-name">{r.name}</span>
-                  <span className="library-caption">{requestStatus(r, catalog).label}</span>
+                <span className="nav-label">
+                  {r.name}
+                  <span className="nav-sub">
+                    Sent{" "}
+                    {new Date(r.createdAt).toLocaleDateString("en-CA", { month: "short", day: "numeric" })} ·
+                    shows under Ready when built
+                  </span>
                 </span>
-                <Icon name="chevron" size={16} className="library-add rot-left" />
+                <span className="badge">{label}</span>
               </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="hint">Want something exact? Open an item and choose “Request a custom model”.</p>
+            ))}
+          </div>
+        </>
       )}
+      <button
+        type="button"
+        className="more"
+        onClick={() =>
+          setMode({
+            k: "request",
+            request: newRequest(null, imports, library.newId(), cloud.partner),
+            isNew: true,
+          })
+        }
+        data-testid="request-new"
+      >
+        <Icon name="plus" size={18} />
+        <span className="nav-label">
+          Request a custom model
+          <span className="nav-sub">Photos, real size and notes. Claude builds it.</span>
+        </span>
+        <Icon name="next" size={16} className="nav-chevron" />
+      </button>
     </div>
   );
 }
 
+/**
+ * A new request, from a library or imported item (its name, size, placement and photo), or from
+ * scratch (`e` null): nothing filled in, so the form asks for a name and a size (REQ-01, LIB-13).
+ */
 function newRequest(
-  e: LibraryEntry,
+  e: LibraryEntry | null,
   imports: readonly Imported[],
   id: string,
   partner: "A" | "B" | null,
 ): CustomRequest {
-  const imp = imports.find((i) => i.id === e.id);
+  const imp = e && imports.find((i) => i.id === e.id);
   const now = new Date().toISOString();
   const cm = (m: number) => Math.max(1, Math.round(m * 100));
   return {
     id: `req-${id}`,
-    itemId: e.id,
-    name: e.name,
+    ...(e ? { itemId: e.id } : {}),
+    name: e?.name ?? "",
     sizeCm: imp
       ? { w: imp.sizeCm.w, h: imp.sizeCm.h }
-      : { w: cm(e.sizeM.w), d: cm(e.sizeM.d), h: cm(Math.max(e.sizeM.h, 0.01)) },
-    placement: e.placement === "material" ? "table" : e.placement,
+      : e
+        ? { w: cm(e.sizeM.w), d: cm(e.sizeM.d), h: cm(Math.max(e.sizeM.h, 0.01)) }
+        : { w: 0, h: 0 },
+    placement: !e || e.placement === "material" ? "table" : e.placement,
     notes: "",
     imageIds: imp ? [imp.imageId] : [],
     createdAt: now,
@@ -279,12 +329,9 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
           onSave={async (item, blob, then) => {
             await library.addImport(item, blob);
             const e = catalog.get(item.id);
-            const key = e ? styleKeyOf(e) : null;
-            if (then === "use" && key) {
-              editor.applyStyle("all", { [key]: item.id } as Partial<TableStyle>);
+            if (!then) editor.notify(`“${item.name}” is in your library`);
+            else if (e && editor.useOrPlace(e.id, viewStore.getState().focus) === "used")
               editor.notify(`“${item.name}” is in your library and on every table`);
-            } else if (then === "place") editor.addItem(item.id, viewStore.getState().focus);
-            else editor.notify(`“${item.name}” is in your library`);
             onDone(item.id);
           }}
           newId={library.newId}
@@ -770,7 +817,7 @@ function ItemDetail({
           className="btn primary"
           disabled={!tables || onAll}
           onClick={() => {
-            editor.applyStyle("all", { [styleKey]: e.id } as Partial<TableStyle>);
+            editor.useOrPlace(e.id, viewStore.getState().focus);
             editor.notify(`“${e.name}” is on every table`);
           }}
           data-testid="use-on-tables"
@@ -874,7 +921,7 @@ function RequestForm({
   return (
     <div className="panel-body" data-testid="request-form">
       <div className="panel-head">
-        <button type="button" className="plain-btn" onClick={onDone}>
+        <button type="button" className="plain-btn" onClick={onDone} data-testid="request-back">
           <Icon name="back" size={18} /> Yours
         </button>
       </div>
@@ -895,9 +942,7 @@ function RequestForm({
           type="button"
           className="btn primary"
           onClick={() => {
-            const key = styleKeyOf(built);
-            if (key) editor.applyStyle("all", { [key]: built.id } as Partial<TableStyle>);
-            else editor.addItem(built.id, viewStore.getState().focus);
+            editor.useOrPlace(built.id, viewStore.getState().focus);
           }}
         >
           {styleKeyOf(built) ? "Use on all tables" : "Place in the room"} · {built.name}
