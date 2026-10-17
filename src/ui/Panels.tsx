@@ -323,7 +323,7 @@ export function PageHead({
   onBack,
   action,
 }: {
-  title: string;
+  title: React.ReactNode;
   back?: string;
   onBack?: () => void;
   action?: React.ReactNode;
@@ -1366,20 +1366,20 @@ export function Inspector({
   const seated = !many && "seats" in shape && shape.seats > 0;
   return (
     <div className="panel-body" data-testid="inspector">
-      {back && (
-        <button type="button" className="back-btn" onClick={back.onBack} data-testid="back">
-          <Icon name="back" size={18} />
-          {back.label}
-        </button>
-      )}
-      <div className="panel-head">
-        <h2 className="panel-title">
-          {title} {!many && entry && <ResultBadge entry={entry} />}
-        </h2>
-        <button type="button" className="plain-btn" onClick={() => editor.select([])}>
-          Done
-        </button>
-      </div>
+      <PageHead
+        title={
+          <>
+            {title} {!many && entry && <ResultBadge entry={entry} />}
+          </>
+        }
+        back={back?.label}
+        onBack={back?.onBack}
+        action={
+          <button type="button" className="plain-btn" onClick={() => editor.select([])}>
+            Done
+          </button>
+        }
+      />
       {phone && (
         <SelectionActions
           ids={ids}

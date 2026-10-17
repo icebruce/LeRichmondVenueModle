@@ -167,11 +167,6 @@ button:disabled {
   z-index: 30;
   animation: rise var(--m-base);
 }
-.menu-group + .menu-group {
-  border-top: 1px solid var(--line);
-  margin-top: var(--s-1);
-  padding-top: var(--s-1);
-}
 .menu-item {
   display: flex;
   align-items: center;
@@ -187,16 +182,6 @@ button:disabled {
 }
 .menu-item:hover {
   background: var(--sunk);
-}
-.menu-item .check {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  flex: none;
-  color: var(--ink-2);
-}
-.menu-item[aria-checked="true"] .check {
-  color: var(--accent);
 }
 
 .seg {
@@ -897,11 +882,6 @@ button:disabled {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-@media (min-width: 768px) {
-  .viewport.split {
-    left: var(--rail-w);
-  }
 }
 /* Narrower desktops: each half's strip keeps to one line of counts. */
 @media (max-width: 1300px) {
@@ -1820,9 +1800,6 @@ textarea.text-input {
 }
 .rot-left {
   transform: rotate(-90deg);
-}
-.rot-right {
-  transform: rotate(90deg);
 }
 .source-link {
   color: var(--accent);

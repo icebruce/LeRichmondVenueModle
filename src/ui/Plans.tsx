@@ -306,10 +306,9 @@ function CompareControls() {
   const order = useEditor((s) => s.order);
   const activeId = useEditor((s) => s.activeId);
   const scenarios = useEditor((s) => s.scenarios);
-  const st = { order, activeId, scenarios };
   const compare = useView((s) => s.compare);
-  const others = st.order.filter((id) => id !== st.activeId);
-  const pair = [st.scenarios[st.activeId], compare ? st.scenarios[compare] : undefined].filter(
+  const others = order.filter((id) => id !== activeId);
+  const pair = [scenarios[activeId], compare ? scenarios[compare] : undefined].filter(
     (s): s is Scenario => !!s,
   );
   const rows = pair.map((s) => {
@@ -326,7 +325,7 @@ function CompareControls() {
           type="button"
           className="btn primary"
           onClick={() => {
-            const from = st.activeId;
+            const from = activeId;
             editor.duplicateScenario(from);
             viewStore.setState({ compare: from });
           }}
@@ -342,7 +341,7 @@ function CompareControls() {
         label="Compare with"
         options={[
           { id: "none", name: "Off" },
-          ...others.map((id) => ({ id, name: st.scenarios[id]?.name ?? id })),
+          ...others.map((id) => ({ id, name: scenarios[id]?.name ?? id })),
         ]}
         value={compare ?? "none"}
         onPick={(id) => viewStore.setState({ compare: id === "none" ? null : id })}

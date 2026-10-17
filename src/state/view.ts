@@ -23,8 +23,7 @@ export type ViewState = {
   view: string | null;
   /** Pixels on the left covered by the desktop rail and panel; the camera frames the room beside them. */
   insetLeft: number;
-  /** Phone: pixels covered by the top bar and by the tab bar plus bottom sheet. */
-  insetTop: number;
+  /** Phone: pixels covered by the tab bar plus bottom sheet. */
   insetBottom: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
@@ -56,7 +55,6 @@ export const viewStore = createStore<ViewState>(() => ({
   controlsEnabled: true,
   view: null,
   insetLeft: 0,
-  insetTop: 0,
   insetBottom: 0,
   anchor: null,
   focus: [8, 7],

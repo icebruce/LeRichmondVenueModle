@@ -75,8 +75,10 @@ test("[LIB-01] [LIB-02] add a round table and a dance area from the library", as
   await page.getByTestId("plan-new-empty").click();
   await openSection(page, "add");
   await page.getByTestId("add-table-round").click();
-  await expect(page.getByTestId("inspector")).toContainText("Table 1");
-  await page.getByRole("button", { name: "Done" }).click();
+  // Added and selected; the library stays open for the next piece.
+  await expect(page.getByTestId("selection-bar")).toContainText("Table 1");
+  await expect(page.getByTestId("layout-panel")).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByTestId("category-eventPiece").click();
   await page.getByTestId("add-dance-floor").click();
   const s = await state(page);
@@ -91,10 +93,10 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   await openSection(page, "add");
   await page.getByTestId("category-plant").click();
   await page.getByTestId("add-plant-olive").click();
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("Escape");
   await page.getByTestId("category-light").click();
   await page.getByTestId("add-light-string").click();
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("Escape");
   // Hung over table 2, the strand is allowed; seen from above, a click there picks the table first.
   const strand = (await state(page)).active?.items.find((i) => i.libraryId === "light-string")?.id ?? "";
   const t2 = await item(page, "t2");
@@ -131,6 +133,7 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
   await page.getByTestId("category-sign").click();
   await page.getByTestId("add-sign-neon").click();
+  await page.getByTestId("details").click();
   await page.getByTestId("text").fill("Ana & Ben");
   await page.getByTestId("text").press("Enter");
   const s = await state(page);
@@ -186,9 +189,9 @@ test("[LAY-05] dragging a table near another's centre line snaps into line with 
   await page.getByTestId("plan-new-empty").click();
   await openSection(page, "add");
   await page.getByTestId("add-table-round").click();
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("Escape");
   await page.getByTestId("add-table-round").click();
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("Escape");
   const ids = await page.evaluate(() => {
     const ed = (window as unknown as W).__studio.editor as unknown as {
       active: () => { items: { id: string }[] };

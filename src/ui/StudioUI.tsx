@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState, useSyncExtern
 import { useProgress } from "@react-three/drei";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { shapeOf } from "../domain/layout/items";
-import { spotFor } from "../domain/layout/validate";
+import { itemTitle, spotFor } from "../domain/layout/validate";
 import type { Scenario } from "../domain/scenario/schema";
 import type { StoreApi } from "zustand/vanilla";
 import { type EditorState, ROTATE_STEP } from "../state/editor";
@@ -37,15 +37,17 @@ const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
   { id: "plans", label: "Plans", icon: "plans" },
 ];
 
-/** Desktop rail width and the panel's width range (DESIGN_GUIDE §3.1). */
+/** Desktop rail width (the `--rail-w` token) and the panel's width range (DESIGN_GUIDE §3.1). */
 const RAIL = 76;
 const PANEL = { min: 360, max: 520, initial: 400 };
 const WIDTH_KEY = "rs-panel-width";
 
+const clampWidth = (w: number) => Math.round(Math.min(PANEL.max, Math.max(PANEL.min, w)));
+
 function storedWidth(): number {
   try {
     const w = Number(localStorage.getItem(WIDTH_KEY));
-    return w >= PANEL.min && w <= PANEL.max ? w : PANEL.initial;
+    return w ? clampWidth(w) : PANEL.initial;
   } catch {
     return PANEL.initial;
   }
@@ -73,7 +75,7 @@ function useSummary(id?: string) {
 }
 
 /**
- * Desktop: floating counts strip, bottom-left (LAY-07). Side by side (SCN-06) each half shows its
+ * Desktop: floating counts strip, bottom-right (LAY-07). Side by side (SCN-06) each half shows its
  * own, named, strip; `onAdvisories` opens the list of checks.
  */
 export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () => void }) {
@@ -305,26 +307,40 @@ function useShortcuts() {
 
 type Detent = "peek" | "half" | "full";
 type Sheet = Detent | "closed";
+/** The sheet's heights, low to high: a swipe steps one along, a flick two. */
+const SHEET_ORDER: Sheet[] = ["closed", "peek", "half", "full"];
 
 /**
  * Keeps the browser's history in step with the open layers (a sheet, a page, details, the checks):
- * opening one adds an entry, so the system back gesture closes the top layer instead of leaving the
- * app; closing one in the app takes its entry away again.
+ * opening one adds an entry, so the system back gesture closes the top layer; closing one in the app
+ * takes its entry away again. With `guard` (phones) one more entry sits under the layers, so back
+ * with nothing open never leaves the app (DESIGN_GUIDE §3.2).
  */
-function useBackLayers(depth: number, closeTop: () => void) {
+function useBackLayers(depth: number, closeTop: () => void, guard: boolean) {
   const synced = useRef(0);
   const skip = useRef(0);
+  const guarded = useRef(false);
   const close = useRef(closeTop);
   useEffect(() => {
     close.current = closeTop;
   });
+  useEffect(() => {
+    if (!guard || guarded.current) return;
+    guarded.current = true;
+    history.pushState({ rsGuard: true }, "");
+  }, [guard]);
   useEffect(() => {
     const onPop = () => {
       if (skip.current) {
         skip.current--;
         return;
       }
-      synced.current = Math.max(0, synced.current - 1);
+      if (synced.current === 0) {
+        // Below the last layer: put the guard back and stay.
+        if (guarded.current) history.pushState({ rsGuard: true }, "");
+        return;
+      }
+      synced.current--;
       close.current();
     };
     window.addEventListener("popstate", onPop);
@@ -354,11 +370,7 @@ function SelectionBar({ onDetails }: { onDetails: () => void }) {
   const shape = shapeOf(first, catalog);
   const single = chosen.length === 1;
   const seats = single && "seats" in shape ? shape.seats : 0;
-  const title = single
-    ? labels.get(first.id) && labels.get(first.id) !== "♥"
-      ? `Table ${labels.get(first.id)}`
-      : (catalog.get(first.libraryId)?.name ?? "Item")
-    : `${chosen.length} items`;
+  const title = single ? itemTitle(first, labels, catalog) : `${chosen.length} items`;
   return (
     <div
       className="selection-bar glass"
@@ -457,13 +469,17 @@ export function StudioUI() {
     (phoneSelection ? 1 : 0) +
     (page ? 1 : 0) +
     (phone && panelShown ? 1 : 0);
-  useBackLayers(depth, () => {
-    if (checks) setChecks(false);
-    else if (!phone && details && hasSelection) setDetails(false);
-    else if (phoneSelection) editor.select([]);
-    else if (page) setPage(null);
-    else if (phone && panelShown) setSheet("closed");
-  });
+  useBackLayers(
+    depth,
+    () => {
+      if (checks) setChecks(false);
+      else if (!phone && details && hasSelection) setDetails(false);
+      else if (phoneSelection) editor.select([]);
+      else if (page) setPage(null);
+      else if (phone && panelShown) setSheet("closed");
+    },
+    phone,
+  );
 
   // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
   const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
@@ -477,7 +493,7 @@ export function StudioUI() {
   useEffect(() => {
     const root = ui.current;
     if (!phone || camera === "walk" || !root) {
-      viewStore.setState({ insetTop: 0, insetBottom: 0 });
+      viewStore.setState({ insetBottom: 0 });
       return;
     }
     const measure = () => {
@@ -485,10 +501,7 @@ export function StudioUI() {
       const covers = [...root.querySelectorAll(".panel, .tabbar")].map(
         (el) => el.getBoundingClientRect().top,
       );
-      viewStore.setState({
-        insetTop: 0,
-        insetBottom: Math.round(h - Math.min(h, ...covers)),
-      });
+      viewStore.setState({ insetBottom: Math.round(h - Math.min(h, ...covers)) });
     };
     measure();
     root.addEventListener("transitionend", measure);
@@ -499,23 +512,32 @@ export function StudioUI() {
     };
   }, [phone, camera, panelShown, detent, phoneSelection]);
 
-  const go = (id: Section) => {
+  // Shows a section, whatever was open.
+  const show = (id: Section) => {
     setChecks(false);
     setPage(null);
     setDetails(false);
     setSelView(false);
-    if (phone) {
-      setSection(id);
-      setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
-      return;
-    }
-    // The open section's rail button folds the panel away, and brings it back.
-    if (id === section && panelOpen && !details && !page) setPanelOpen(false);
-    else {
-      setSection(id);
-      setPanelOpen(true);
-    }
+    setSection(id);
+    setPanelOpen(true);
+    if (phone) setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
   };
+  // A rail or tab button: on desktop the open section's button folds the panel away, and brings it back.
+  const go = (id: Section) => {
+    if (!phone && id === section && panelOpen && !details && !page) setPanelOpen(false);
+    else show(id);
+  };
+  // Escape closes the checks before anything else reads it (deselecting, leaving walk).
+  useEffect(() => {
+    if (!checks) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setChecks(false);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [checks]);
   const openChecks = () => {
     setChecks((c) => !c || phone);
     if (phone) setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
@@ -551,7 +573,8 @@ export function StudioUI() {
         key={libraryKey}
         // Added: on desktop its details open beside the room; on phones the sheet drops to its peek
         // with the new piece selected, ready to drag.
-        onAdded={() => (phone ? setSheet("peek") : setDetails(true))}
+        // Added and selected: phones drop the sheet to its peek to show it; desktop keeps the list.
+        onAdded={() => phone && setSheet("peek")}
         yours={(head) => <InspirationPanel head={head} />}
       />
     ) : section === "style" ? (
@@ -576,32 +599,31 @@ export function StudioUI() {
   // Phone sheet: drag its handle, or its content once scrolled to the top, to step it down to closed
   // or up to full; a quick flick skips a step (DESIGN_GUIDE §3.2).
   const panel = useRef<HTMLElement>(null);
-  const swipe = useRef<{ y: number; t: number; top: boolean } | null>(null);
-  const ORDER: Sheet[] = ["closed", "peek", "half", "full"];
-  const step = (dy: number, dt: number) => {
-    if (Math.abs(dy) < 48) return;
-    const by = Math.abs(dy) / Math.max(1, dt) > 0.9 ? 2 : 1;
-    setSheet((d) => {
-      const i = ORDER.indexOf(d);
-      return ORDER[Math.max(0, Math.min(ORDER.length - 1, i + (dy > 0 ? -by : by)))] ?? d;
-    });
-  };
-  const startSwipe = (y: number, fromHandle: boolean) => {
+  const swipe = useRef<{ x: number; y: number; t: number; top: boolean } | null>(null);
+  const startSwipe = (t: { clientX: number; clientY: number } | undefined, from: EventTarget) => {
+    // Sliders and scrubbed figures keep their own drags.
+    if (!t || (from instanceof Element && from.closest("input[type=range], .scrub"))) return;
     swipe.current = {
-      y,
+      x: t.clientX,
+      y: t.clientY,
       t: performance.now(),
-      top: fromHandle || (panel.current?.scrollTop ?? 0) <= 0,
+      top:
+        from instanceof Element && from.closest(".grabber") !== null
+          ? true
+          : (panel.current?.scrollTop ?? 0) <= 0,
     };
   };
-  const endSwipe = (y: number) => {
+  const endSwipe = (t: { clientX: number; clientY: number } | undefined) => {
     const s = swipe.current;
     swipe.current = null;
-    if (!s) return;
-    const dy = y - s.y;
-    // Content only pulls the sheet down from its very top, so a scroll never closes it.
+    if (!s || !t) return;
+    const dy = t.clientY - s.y;
+    // A short or sideways drag is not a swipe; content pulls the sheet down only from its very top.
+    if (Math.abs(dy) < 48 || Math.abs(dy) < Math.abs(t.clientX - s.x)) return;
     if (dy > 0 && !s.top) return;
-    if (dy < 0 && detent === "full") return;
-    step(dy, performance.now() - s.t);
+    const by = Math.abs(dy) / Math.max(1, performance.now() - s.t) > 0.9 ? 2 : 1;
+    const i = SHEET_ORDER.indexOf(detent) + (dy > 0 ? -by : by);
+    setSheet(SHEET_ORDER[Math.max(0, Math.min(SHEET_ORDER.length - 1, i))] ?? detent);
   };
 
   const showCounts = !phone && !compare;
@@ -634,7 +656,7 @@ export function StudioUI() {
               <button
                 type="button"
                 className="plan-name-btn"
-                onClick={() => go("plans")}
+                onClick={() => show("plans")}
                 title="Plans"
                 data-testid="plan-name"
               >
@@ -655,8 +677,8 @@ export function StudioUI() {
           className={`panel detent-${detent}`}
           aria-label={label}
           style={phone ? undefined : { width }}
-          onTouchStart={(e) => startSwipe(e.touches[0]?.clientY ?? 0, false)}
-          onTouchEnd={(e) => endSwipe(e.changedTouches[0]?.clientY ?? 0)}
+          onTouchStart={phone ? (e) => startSwipe(e.touches[0], e.target) : undefined}
+          onTouchEnd={phone ? (e) => endSwipe(e.changedTouches[0]) : undefined}
         >
           {phone && (
             <div className="sheet-head">
@@ -665,12 +687,8 @@ export function StudioUI() {
                 className="grabber"
                 aria-label="Resize sheet"
                 onClick={() => setSheet((d) => (d === "peek" ? "half" : d === "half" ? "full" : "peek"))}
-                onPointerDown={(e) => e.pointerType === "mouse" && startSwipe(e.clientY, true)}
-                onPointerUp={(e) => e.pointerType === "mouse" && endSwipe(e.clientY)}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  startSwipe(e.touches[0]?.clientY ?? 0, true);
-                }}
+                onPointerDown={(e) => e.pointerType === "mouse" && startSwipe(e, e.target)}
+                onPointerUp={(e) => e.pointerType === "mouse" && endSwipe(e)}
               />
               <CountsLine onAdvisories={openChecks} />
               <SaveState />
@@ -704,22 +722,18 @@ export function StudioUI() {
           onKeyDown={(e) => {
             const by = e.key === "ArrowLeft" ? -20 : e.key === "ArrowRight" ? 20 : 0;
             if (!by) return;
-            const next = Math.min(PANEL.max, Math.max(PANEL.min, width + by));
-            setWidth(next);
-            saveWidth(next);
+            setWidth(clampWidth(width + by));
+            saveWidth(clampWidth(width + by));
           }}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
             document.body.style.cursor = "col-resize";
           }}
           onPointerMove={(e) => {
-            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-            setWidth(Math.round(Math.min(PANEL.max, Math.max(PANEL.min, e.clientX - RAIL))));
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) setWidth(clampWidth(e.clientX - RAIL));
           }}
-          onPointerUp={() => {
-            document.body.style.cursor = "";
-            saveWidth(width);
-          }}
+          onPointerUp={(e) => saveWidth(clampWidth(e.clientX - RAIL))}
+          onLostPointerCapture={() => (document.body.style.cursor = "")}
         />
       )}
 
@@ -729,7 +743,7 @@ export function StudioUI() {
           <ChecksList onAdjust={adjustRules} />
         </div>
       )}
-      {!phone && camera !== "walk" && !pickSeat && (
+      {!phone && !compare && camera !== "walk" && !pickSeat && (
         <SelectionBar
           onDetails={() => {
             setDetails(true);
@@ -774,7 +788,7 @@ export function StudioUI() {
               key={s.id}
               type="button"
               className={section === s.id && panelShown && !phoneSelection && !checks ? "on" : ""}
-              aria-pressed={section === s.id && panelShown}
+              aria-pressed={section === s.id && panelShown && !phoneSelection && !checks}
               onClick={() => go(s.id)}
               data-testid={`section-${s.id}`}
             >

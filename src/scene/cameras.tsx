@@ -53,7 +53,6 @@ function MainCamera() {
   const controlsEnabled = useView((s) => s.controlsEnabled);
   const view = useView((s) => s.view);
   const insetLeft = useView((s) => s.insetLeft);
-  const insetTop = useView((s) => s.insetTop);
   const insetBottom = useView((s) => s.insetBottom);
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
@@ -90,8 +89,8 @@ function MainCamera() {
     // Narrow screens, or a panel covering the left side: pull overview cameras back so the room fits.
     const flat = mode === "walk" || comparing;
     const visible = flat ? size.width : size.width - insetLeft;
-    // Phone: fit the band between the top bar and the sheet, not the whole screen.
-    const band = flat ? size.height : size.height - insetTop - insetBottom;
+    // Phone: fit the band above the sheet, not the whole screen.
+    const band = flat ? size.height : size.height - insetBottom;
     const aspect = visible / Math.max(1, band);
     if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
       const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
@@ -109,7 +108,7 @@ function MainCamera() {
   // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
   // unless the couple has moved the view since: their view is never thrown away.
   const pane = comparing ? `${size.width}x${size.height}` : "";
-  const band = comparing ? "" : `${insetTop}:${insetBottom}`;
+  const band = comparing ? "" : String(insetBottom);
   const userMoved = useRef(false);
   const framed = useRef({ mode, comparing });
   useEffect(() => {
@@ -183,7 +182,7 @@ function MainCamera() {
     const walk = mode === "walk";
     // Side by side, the halves already sit beside the interface and frame alike.
     const flat = walk || comparing;
-    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom - insetTop };
+    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };

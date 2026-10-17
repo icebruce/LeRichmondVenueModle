@@ -199,6 +199,8 @@ function SelectionAnchor() {
     if (items.length && s.camera !== "walk" && !viewStore.getState().drag) {
       const x = items.reduce((a, i) => a + i.x, 0) / items.length;
       const z = items.reduce((a, i) => a + i.z, 0) / items.length;
+      // Just above the tallest selected piece (a tall hanging light counts only up to 2.5 m, so the
+      // toolbar stays near the floor plan), 15 cm clear of it.
       const top = Math.max(
         ...items.map(
           (i) =>
@@ -208,7 +210,7 @@ function SelectionAnchor() {
       );
       const { camera, size } = get();
       point.set(x, top + 0.15, z).project(camera);
-      if (point.z < 1) next = [((point.x + 1) / 2) * size.width, ((1 - point.y) / 2) * size.height];
+      if (Math.abs(point.z) < 1) next = [((point.x + 1) / 2) * size.width, ((1 - point.y) / 2) * size.height];
     }
     const prev = viewStore.getState().anchor;
     const moved = !prev || !next || Math.hypot(prev[0] - next[0], prev[1] - next[1]) > 0.5;

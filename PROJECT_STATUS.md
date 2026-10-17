@@ -14,7 +14,7 @@
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
 | 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
 | 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
-| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, LAY-08, SCN-01..06 | UX review | Planned |
+| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | In review |
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
 | 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | Planned |
@@ -33,7 +33,7 @@
 - Library: ~90 items across tables, chairs, linens, tableware, candles, florals, plants, lights, signs, event pieces; custom pieces added later through in-app requests built by Claude (owner-approved 2026-10-15).
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
-- Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
+- Phone sheet peek is 164 pt (owner, 2026-10-16); 212 pt proposed in 4C so the action tiles fit under the two-line counts (pending owner approval; DESIGN_GUIDE §3.2).
 - Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine. **Superseded 2026-10-17**, see below.
 - Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
 - Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).

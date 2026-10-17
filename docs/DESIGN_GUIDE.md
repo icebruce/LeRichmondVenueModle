@@ -86,14 +86,14 @@ Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Op
 - **Panel (left, beside the rail):** 400 px by default, resizable 360–520 px by its edge grip (arrow keys too; remembered on the device), collapsible from its header. A section shows its own page; deeper pages (Room › Layout rules, Room › Paintings, a selection's Details) open inside it with a "‹ Section" back link. Choosing another section always shows that section.
 - **Toolbar (one row over the room):** the plan's name, small, with its save state (opens Plans); Dollhouse / Plan / Walk and Reset view centred over the room; Undo, Redo and the light (moon / sun) on the right. Every control 44 pt.
 - **Counts:** bottom-right strip; "N checks" opens the checks popover above it, with "Adjust layout rules".
-- **Selection:** a floating glass toolbar just above the item (name, seats; Rotate, Duplicate, Sit here, Details, Delete). Details opens the inspector in the panel.
+- **Selection:** a floating glass toolbar just above the item (name, seats; Rotate, Duplicate, Sit here, Details, Delete). Details opens the inspector in the panel. Adding a piece selects it and keeps the library open for the next one. Hidden while comparing.
 - The camera frames the room in the space right of the panel; toasts, banners and hints centre in that space.
 
 ### 3.2 Phone (< 768 px)
 
 - Full-screen viewport. Bottom tab bar with the same five sections. No plan name on screen (it lives in Plans).
 - **Top right:** a stack with the camera (opens a menu of Dollhouse / Plan / Walk), the light and Reset view; Undo / Redo in a second stack under it.
-- **Bottom sheet** with three detents (peek 212 pt: counts line, title and the key actions; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two; swipe up steps it up. Content pulls the sheet down only from its very top.
+- **Bottom sheet** with three detents (peek 212 pt: counts line, title and the key actions — was 164 pt, owner 2026-10-16; raised in 4C because the counts line now takes two lines and the action tiles were cut; pending owner approval; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two; swipe up steps it up. Content pulls the sheet down only from its very top.
 - **Back:** the system back gesture closes the top layer (checks, a page, the selection, the sheet) and never leaves the app. No pull-to-refresh.
 - Adding a piece drops the sheet to its peek with the piece selected; a selection shows its actions first.
 - Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item.

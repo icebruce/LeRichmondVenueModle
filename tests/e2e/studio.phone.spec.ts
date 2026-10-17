@@ -69,5 +69,21 @@ test("[PLT-02] phone sheet: swipes down a step at a time to closed; system back 
   await expect(page.getByTestId("venue-panel")).toBeVisible();
   await page.goBack();
   await expect(page.locator(".panel")).toHaveCount(0);
+  // Nothing left open: back stays in the app.
+  await page.goBack();
   await expect(page.locator(".tabbar")).toBeVisible();
+  expect((await state(page)).active).toBeTruthy();
+});
+
+test("[PLT-02] phone: adding a piece drops the sheet to its peek with the piece selected", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("section-add").click();
+  await expect(page.locator(".panel")).toHaveClass(/detent-half/);
+  await page.getByTestId("add-table-round").click();
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
+  await expect(page.getByTestId("inspector")).toBeVisible();
+  await expect(page.getByTestId("rotate-90")).toBeInViewport();
+  expect((await state(page)).selection).toHaveLength(1);
 });

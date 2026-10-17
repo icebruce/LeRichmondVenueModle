@@ -240,7 +240,7 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
     <div className="panel-body" data-testid="add-inspiration-panel">
       <div className="panel-head sticky-head">
         <button type="button" className="plain-btn" onClick={back} data-testid="import-back">
-          <Icon name="chevron" size={16} className="rot-right" /> {step === 1 ? "Cancel" : "Back"}
+          <Icon name="back" size={16} /> {step === 1 ? "Cancel" : "Back"}
         </button>
         <span className="hint">Step {step} of 4</span>
       </div>
