@@ -933,8 +933,9 @@ const STYLE_PAGES: Record<Exclude<StylePage, `candle:${string}`>, string> = {
   settings: "Place settings",
 };
 
-/** A figure in its unit: "22.5 cm", "15°". */
-const withUnit = (v: number, unit: string) => `${Number.isInteger(v) ? v : v.toFixed(1)}${unit}`;
+/** A figure in its unit, kept on one line: "22.5 cm", "15°". */
+const withUnit = (v: number, unit: string) =>
+  `${Number.isInteger(v) ? v : v.toFixed(1)}${unit.replace(" ", "\u00a0")}`;
 
 /** A size row (DEC-02): its name, then − / + in the size's steps, with a plain figure and its unit. */
 function SizeStepper({
@@ -963,7 +964,7 @@ function SizeStepper({
           disabled={value <= range.min}
           onStep={() => to(value - range.step)}
         />
-        <output aria-label={label} data-testid={testId}>
+        <output className="size" aria-label={label} data-testid={testId}>
           {withUnit(value, unit)}
         </output>
         <RepeatButton
@@ -991,11 +992,12 @@ function kindSizes(kind: CandleKind, e: LibraryEntry | undefined): string | null
   if (!first) return null;
   const lo = Math.min(...all.map((s) => s.h));
   const hi = Math.max(...all.map((s) => s.h));
-  const heights = lo === hi ? withUnit(hi, " cm") : `${withUnit(lo, "")}–${withUnit(hi, " cm")}`;
+  // Word joiners keep a range on one line.
+  const heights = lo === hi ? withUnit(hi, " cm") : `${withUnit(lo, "")}\u2060–\u2060${withUnit(hi, " cm")}`;
   if (spec.arms) return `${first.arms} ${first.arms === 1 ? "arm" : "arms"} · ${heights}`;
   if (spec.holder) return `${heights} in ${withUnit(first.holder, " cm")} holders`;
   if (!spec.height) return withUnit(first.w, " cm");
-  return spec.width ? `${withUnit(first.w, " cm")} wide · ${heights}` : heights;
+  return spec.width ? `${withUnit(first.w, " cm")}\u00a0wide · ${heights}` : heights;
 }
 
 /**

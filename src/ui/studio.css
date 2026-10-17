@@ -2066,3 +2066,7 @@ textarea.text-input {
 .layer-next {
   cursor: pointer;
 }
+/* Size rows line their − / + up, whatever the figure ("3", "22.5 cm"). */
+.stepper output.size {
+  min-width: 7ch;
+}
