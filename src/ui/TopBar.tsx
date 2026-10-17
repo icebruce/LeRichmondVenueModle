@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useBackLayer } from "./back";
 import type { CameraMode } from "../state/editor";
 import { requestCamera } from "../state/view";
 import { useEditor, useStudio } from "../scene/context";
@@ -59,6 +60,7 @@ export function PhoneControls() {
   const { editor } = useStudio();
   const mode = useEditor((s) => s.camera);
   const [open, setOpen] = useState(false);
+  useBackLayer(open, () => setOpen(false));
   const ref = useRef<HTMLDivElement>(null);
   const current = CAMERAS.find((c) => c.mode === mode) ?? CAMERAS[0];
   useEffect(() => {

@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a, 3b and 4 merged (PR #1–#4, #6, #8–#13); step 4 is the polish from the owner's test on laptop and phone (2026-10-17), as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4 merged (PR #1–#4, #6, #8–#14); step 4 is the polish from the owner's test on laptop and phone (2026-10-17), as PRs 4A–4G. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -18,6 +18,7 @@
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | Merged (PR #11) |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | Merged (PR #12) |
 | 4F | Light height handle in 3D | LIB-08 | UX review | Merged (PR #13) |
+| 4G | Owner feedback, round 2: phone sheet scrolls at half; venue revision (platform, stair, south wall, garage doors); candle settings per kind and per group | PLT-02, VEN-01, VEN-04, LAY-11, DEC-02, LIB-05 | UX and fidelity review; owner approves the candle mock-up | Merged (PR #14; owner approved on the preview, 2026-10-17) |
 
 ## Decisions
 
@@ -68,6 +69,12 @@
   - Add vs Style: Add places objects; Style dresses tables. One search in Add; table dressing found there offers "Use on tables".
   - Add: "Can't find it?" opens Yours, where a custom model can be requested from scratch (no item behind it); on desktop a picture can be dragged into the room and lands exactly where it is dropped, or is refused with the reason.
   - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
+- Owner feedback, round 2 (2026-10-17):
+  - Phone sheet: at half height its content scrolls; only the grabber opens it full. From peek, a swipe up on the content still opens half.
+  - Candles: sizes for each kind in cm (pillars and floating vases a height each, a width; tapers and their holder; votives, hurricanes and lanterns; one Candelabra with 1, 3 or 5 arms in place of the 3- and 5-arm pieces, which stay only so older plans and imports still show); with two or more candles, Shuffle (or tallest in the middle) and a rotation of the group in 15° steps; they follow Apply to. The count stays on the Candles page. Mock-up `docs/mockups/candles.html` approved; in-app hints kept to one short line (owner).
+  - Venue (supersedes "bar front to kitchen wall ≈ 6.3–6.5 m" and "garage doors ≈ 6.3 m"): the raised floor's straight railing after its step 1.7 → 1.1 m, so the platform and the stair move 0.6 m north; the south (kitchen) wall moves 1.4 m north (bar front to kitchen wall ≈ 5.05 m, room ≈ 16 × 12.9 m, entrance landing ≈ 1.0 m); both garage doors ≈ 5.6 m, keeping the 0.9 m small wall at the south end; the mezzanine edge, DJ option 3, the cameras and the sample plan move with the wall.
+  - Phone back (supersedes "never leaves the app"): steps back through everything open, latest first (menus, dialogs, Add › Yours steps, compare, walking or Sit here, checks, selection, pages, the sheet a height at a time); with nothing open, a "Leave Richmond Studio?" dialog with the save state, Stay first. History is only added after a tap, so browsers keep it.
+  - DJ option 2 beside the kitchen pass, for now.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)
@@ -108,12 +115,13 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Raised floor height; stair tread count. The fidelity review (2026-10-17) reads R04 and owner photo 1 as an EXIT door and tufted banquettes at the west end of the green south wall: not modelled until the owner confirms (it would sit near the sweetheart table and DJ option 1).
 - The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
 - Fidelity (2026-10-17, look only, not yet done): the mezzanine fascia may project ≈ 0.6 m into the room (a dark recess over the entrance, R09, owner photo 3); the LED treads glow lime-yellow across the whole tread top; the kitchen pass reads too bright in UV02.
-- Sample plan (4B): DJ option 1 moved to z 11.5 to clear table 3; the dance area is 4.8 × 3.0 m (≈ 14 m²) to stay clear of the entrance. Confirm at the visual review.
+- Sample plan (4G): with the south wall 1.4 m north, the dance area moves in front of the bar, 3.9 × 3.1 m (≈ 12 m², just above the ≈ 11.8 m² suggested for 75 guests), clear of the kitchen pass and the corridor, ≈ 0.75 m from the bar front (the bar stools, when shown, take that walkway); the sweetheart table stays against the south wall at x 3.0, beside DJ option 1. Plans already saved keep their pieces; any now past the wall show "outside the room — move it". Confirm at the visual review.
 - Camera presets are approximate; R01, R03 and R09 were re-aimed in 4B (R01 now from the stair turn). Re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
 - Advisory checks on the venue sample plan (estimates, 2026-10-17): the garage-door tables pass; the raised-floor tables have aisles of 0.4–0.8 m (setting 1.0 m), and the DJ at option 1 stands within 1.2 m of the glass doors. Worth confirming spacing with the venue.
+- Venue (fidelity review, 2026-10-17, round 2): DJ option 2 moved beside the kitchen pass, west of it, facing the dance area (owner, "for now"); it reaches into the pass clearance (check ≈ 0.1 m) when chosen. The last street window (z 10.0–11.7) sits partly behind the turn landing (owner OK, 2026-10-17). Buff-brick piers and velvet curtains in R09 still read as red brick and timber (look only).
 - Venue: table sizes for 8–14 seats.
 - Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).

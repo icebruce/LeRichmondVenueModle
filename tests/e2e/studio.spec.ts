@@ -117,7 +117,8 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   expect((await state(page)).selection).toEqual(["t2"]);
   // With the table selected, a press-and-drag there still moves the table, not the strand.
   const strandAt = await item(page, strand);
-  const [tx, ty] = await screenOf(page, t2.x + 0.3, 2.8, t2.z);
+  // West, away from the olive tree, which lands beside the table at the centre of the view.
+  const [tx, ty] = await screenOf(page, t2.x - 0.3, 2.8, t2.z);
   await page.mouse.move(sx, sy);
   await page.mouse.down();
   await page.mouse.move((sx + tx) / 2, (sy + ty) / 2, { steps: 4 });
@@ -196,6 +197,46 @@ test("[LIB-03] [LIB-05] [DEC-01] [DEC-04] [DEC-05] style for all tables or just 
   expect((await style()).t2).toBeUndefined();
 });
 
+test("[DEC-02] [LIB-05] a candle kind's sizes open from Candles; two or more candles shuffle and turn", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await openSection(page, "style");
+  await page.getByTestId("style-row-candles").click();
+  // One candelabra, with its arms, in place of the 3- and 5-arm pieces.
+  await expect(page.getByTestId("candles-candelabra")).toBeVisible();
+  await expect(page.getByTestId("candles-candelabra-5")).toHaveCount(0);
+  await page.getByTestId("candles-candle-pillars").click();
+  // Sizes keep to one line (no-break spaces, word joiners in a range): read as plain text.
+  const plain = async (id: string) =>
+    ((await page.getByTestId(id).textContent()) ?? "").replace(/\u2060/g, "").replace(/\u00a0/g, " ");
+  await expect.poll(() => plain("candle-layer-candle-pillars")).toContain("10–22.5 cm");
+  await page.getByTestId("candle-open-candle-pillars").click();
+  await expect(page.getByTestId("style-candle-kind")).toBeVisible();
+  await page.getByRole("button", { name: "Taller pillar 1" }).click();
+  await expect(page.getByTestId("candle-height-0")).toHaveText("17.5 cm");
+  // An added pillar takes the next default height.
+  await page.getByRole("button", { name: "More per table" }).click();
+  await expect(page.getByTestId("candle-height-3")).toHaveText("15 cm");
+  await page.getByTestId("back").click();
+  await page.getByTestId("candles-candelabra").click();
+  await page.getByTestId("candle-open-candelabra").click();
+  await page.getByRole("radio", { name: "5", exact: true }).click();
+  await page.getByTestId("back").click();
+  await expect.poll(() => plain("candle-layer-candelabra")).toContain("5 arms · 65 cm");
+  await page.getByTestId("candle-shuffle").click();
+  await page.getByRole("button", { name: "Turn on" }).click();
+  await expect(page.getByTestId("candle-turn")).toHaveText("15°");
+  const style = (await state(page)).active?.style;
+  expect(style?.candles).toEqual([
+    { id: "candle-votives", n: 3 },
+    { id: "candle-pillars", n: 4, h: [17.5, 22.5, 10] },
+    { id: "candelabra", n: 1, arms: 5 },
+  ]);
+  expect(style?.candleOrder).toBeGreaterThan(0);
+  expect(style?.candleTurn).toBe(15);
+});
+
 test("[LAY-05] dragging a table near another's centre line snaps into line with it", async ({ page }) => {
   await openStudio(page);
   await page.getByTestId("plan-name").click();
@@ -212,13 +253,13 @@ test("[LAY-05] dragging a table near another's centre line snaps into line with 
     };
     const [a, b] = ed.active().items;
     ed.moveItems([
-      { id: a?.id ?? "", x: 3, z: 9 },
-      { id: b?.id ?? "", x: 6, z: 12.5 },
+      { id: a?.id ?? "", x: 3, z: 8.4 },
+      { id: b?.id ?? "", x: 6, z: 11.2 },
     ]);
     return [a?.id ?? "", b?.id ?? ""];
   });
   await setCamera(page, "plan");
-  await dragItem(page, ids[1] as string, [3.12, 12.5]);
+  await dragItem(page, ids[1] as string, [3.12, 11.2]);
   const b = await item(page, ids[1] as string);
   expect(b.x).toBeCloseTo(3, 5);
 });
@@ -282,12 +323,15 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
       // each of 5-arm candelabra, candle sand trios and tapers, no flowers, so the most candles
       // fit (heavier than tall arrangements with a candle mix), runners and full place settings.
       ed.createScenario("blank");
-      for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
+      // Seeded across the room on a 2.8 m grid: from one point the free-spot search packs only 13.
+      for (let z = 1.45; z < 12.9; z += 2.8)
+        for (let x = 1.45; x < 16; x += 2.8)
+          if (ed.active().items.length < 15) ed.addItem("table-round", [x, z], { seats: 8 });
       ed.setGuests(150);
       ed.applyStyle("all", {
         florals: "none",
         candles: [
-          { id: "candelabra-5", n: 8 },
+          { id: "candelabra", n: 8, arms: 5 },
           { id: "candle-sand-trio", n: 8 },
           { id: "candle-tapers", n: 8 },
         ],
@@ -304,12 +348,12 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
         ["light-uplight", 0.6, 7],
         ["light-disco", 4.5, 11],
         ["light-chandelier", 11, 6],
-        ["floral-arch", 2.8, 14],
+        ["floral-arch", 2.8, 12.6],
         ["floral-wall", 15, 7],
         ["plant-olive", 15.5, 2],
-        ["plant-kentia", 12, 12.4],
+        ["plant-kentia", 12, 11.3],
         ["sign-neon", 9, 0.4],
-        ["sign-welcome", 14, 13],
+        ["sign-welcome", 14, 12.4],
       ] as const)
         ed.addItem(id, [x, z]);
       return ed.active().items.length;

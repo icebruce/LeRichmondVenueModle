@@ -65,7 +65,7 @@ describe("inspiration import", () => {
   test("[IMP-02] [IMP-05] the closest model comes first: by proportions and by colour", () => {
     // 60 cm tall and twice as tall as wide: a candelabra; a small low one: votives.
     const tall = suggest("candle", { sizeCm: { w: 30, h: 60 }, colours: [] }, catalog);
-    expect(tall[0]?.id).toMatch(/^candelabra-/);
+    expect(tall[0]?.id).toBe("candelabra");
     expect(suggest("candle", { sizeCm: { w: 30, h: 8 }, colours: [] }, catalog)[0]?.id).toBe(
       "candle-votives",
     );

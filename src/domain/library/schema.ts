@@ -93,6 +93,8 @@ export const libraryEntrySchema = z.object({
     drawCalls: z.number().int().positive(),
   }),
   requestId: z.string().optional(),
+  /** Replaced by another entry: kept so plans and imports that name it still show, never listed. */
+  retired: z.literal(true).optional(),
   /** Set on items the couple imported from a photo (IMP-05): what the result is, honestly labelled. */
   imported: z
     .object({

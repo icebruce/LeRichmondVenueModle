@@ -187,10 +187,11 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
 export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "showCeiling">) {
   const g = useMemo(() => {
     const W = venue.width;
-    const D = venue.depth;
     const C = venue.ceiling;
     const f = venue.data.fixtures;
-    const planks = boxGeo(-0.4, C, -0.4, W + 0.4, C + 0.12, D + 2.6, TILE.ceiling);
+    // Over the mezzanine too, to its back wall.
+    const back = venue.data.mezzanine.edgeZ + venue.data.mezzanine.depth;
+    const planks = boxGeo(-0.4, C, -0.4, W + 0.4, C + 0.12, back + 0.3, TILE.ceiling);
     const beams = merge(
       f.timberBeams.positions.map((x) =>
         boxGeo(
@@ -199,7 +200,7 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
           -0.35,
           x + f.timberBeams.width / 2,
           C,
-          D + 2.4,
+          back + 0.2,
           TILE.timber,
         ),
       ),
@@ -271,6 +272,8 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
     const fascia = boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, z.xTo, H, z0 + 0.25);
     const floor = boxGeo(z.xFrom, H - 0.02, z0, z.xTo, H, z1, TILE.floor);
     const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
+    // The street wall carries on along the stairwell to the back, lit like the room (R09).
+    const street = boxGeo(venue.width, 0, z0, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
     // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
     const edge = guard([z.xFrom, z0 + 0.06], [z.xTo, z0 + 0.06], H);
     const well = guard([z.xTo - 0.06, z0 + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
@@ -280,6 +283,7 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
       fascia,
       floor,
       back,
+      street,
       bal: merge([...edge.steel, ...well.steel]),
       rail: merge([edge.rail, well.rail]),
       below,
@@ -290,6 +294,7 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
       <mesh geometry={g.fascia} material={m.greenPanel} />
       <mesh geometry={g.floor} material={m.woodFloor} />
       <mesh geometry={g.back} material={m.darkVoid} />
+      <mesh geometry={g.street} material={m.brick} />
       <mesh geometry={g.bal} material={m.blackMetal} />
       <mesh geometry={g.rail} material={m.timber} />
       <mesh geometry={g.below} material={m.darkVoid} />
@@ -342,7 +347,9 @@ function flightGeo(
     alongX ? boxGeo(u0, ya, w0, u1, yb, w1, tile) : boxGeo(w0, ya, u0, w1, yb, u1, tile);
   const run = (ub - ua) / treads;
   const step = (y1 - y0) / treads;
-  const shown = stopAt === undefined ? treads : Math.max(0, Math.min(treads, Math.ceil((stopAt - ua) / run)));
+  // Cut at a wall: only the treads that end before it.
+  const shown =
+    stopAt === undefined ? treads : Math.max(0, Math.min(treads, Math.floor((stopAt - ua) / run)));
   const wood: THREE.BufferGeometry[] = [];
   const led: THREE.BufferGeometry[] = [];
   const base: THREE.BufferGeometry[] = [];

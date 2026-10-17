@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useBackLayer } from "./back";
 import { useStore } from "zustand";
 import {
   IMPORT_TYPES,
@@ -43,6 +44,11 @@ export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: 
   const requests = useStore(libraryStore, (s) => s.requests);
   const requestFor = useView((s) => s.requestFor);
   const [mode, setMode] = useState<Mode>({ k: "list" });
+  // Back steps out of an import, a request or an item to the list (DESIGN_GUIDE §3.2).
+  useBackLayer(!!requestFor || mode.k !== "list", () => {
+    viewStore.setState({ requestFor: null });
+    setMode({ k: "list" });
+  });
 
   // "Request a custom model" from the inspector opens the form here.
   const fromInspector = useMemo(() => {

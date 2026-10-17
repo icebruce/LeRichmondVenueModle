@@ -1,7 +1,7 @@
 import { seededRandom } from "../random";
 import type { Catalog } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
-import type { CandleMix, TableStyle } from "../scenario/schema";
+import type { CandleKind, TableStyle } from "../scenario/schema";
 import type { Chair, Shape } from "./items";
 
 /** Which table style an item fills when used on every table, if any (DEC-01). */
@@ -179,36 +179,6 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
 
 /** Centrepiece generators, keyed by library `model.generator` (candles and florals). */
 const centrepieces: Record<string, Gen> = {
-  candelabra: (p) => {
-    const arms = Number(p.arms ?? 5);
-    const parts: Part[] = [
-      cyl("brass", 0, 0, 0, 0.07, 0.015),
-      cyl("brass", 0, 0.015, 0, 0.014, 0.38),
-      ...candle(0, 0.395, 0, 0.011, 0.25),
-    ];
-    const side = Math.floor((arms - 1) / 2);
-    for (let i = 1; i <= side; i++) {
-      for (const s of [-1, 1]) {
-        const x = s * i * 0.11;
-        parts.push(
-          {
-            prim: "cylinder",
-            slot: "brass",
-            x: x / 2,
-            y: 0.28,
-            z: 0,
-            sx: 0.008,
-            sy: Math.abs(x),
-            sz: 0.008,
-            rz: (s * Math.PI) / 2,
-          },
-          cyl("brass", x, 0.28, 0, 0.01, 0.06),
-          ...candle(x, 0.34, 0, 0.011, 0.25),
-        );
-      }
-    }
-    return parts;
-  },
   // Three glass cylinders (20 / 25 / 30 cm) of white candle sand, a wick burning on top, on a ring
   // of eucalyptus with baby's breath (REQ req-f6462824).
   sandCylinders: () => {
@@ -249,13 +219,6 @@ const centrepieces: Record<string, Gen> = {
     }
     return parts;
   },
-  hurricane: () => [cyl("glass", 0, 0, 0, 0.08, 0.34), ...candle(0, 0, 0, 0.04, 0.14)],
-  lantern: () => [
-    { prim: "box", slot: "black", x: 0, y: 0, z: 0, sx: 0.16, sy: 0.015, sz: 0.16 },
-    { prim: "box", slot: "glass", x: 0, y: 0.015, z: 0, sx: 0.15, sy: 0.24, sz: 0.15 },
-    { prim: "cone", slot: "black", x: 0, y: 0.255, z: 0, sx: 0.11, sy: 0.07, sz: 0.11 },
-    ...candle(0, 0.015, 0, 0.03, 0.1),
-  ],
   lowMound: (_p, ctx) => mound(0, 0, 0, 0.16 * ctx.scale, 0.16, ctx, 34),
   budVases: (_p, ctx) =>
     [-0.16, 0, 0.16].flatMap((x, i) => {
@@ -334,28 +297,136 @@ const runners: Record<
   },
 };
 
+/** A size a candle kind can be set to, in cm (DEC-02, owner 2026-10-17). */
+export type CandleRange = { label: string; min: number; max: number; step: number };
 /**
- * One candle of a kind, the `i`th on the table: a votive, a pillar (three heights in turn), a taper
- * in its holder, a floating candle (two vase heights). Kinds that are one piece already (candelabra,
- * hurricane, lantern, a set in glass) are their own unit.
+ * What each kind of candle can be sized by, keyed by generator, in cm: a width, a height (one for
+ * each candle where `each` is set, the defaults taken in turn), a taper's holder, a candelabra's
+ * arms. The defaults are the candles as first built, to the nearest step.
  */
-const candleUnits: Record<string, (i: number) => Part[]> = {
-  votives: () => candle(0, 0, 0, 0.03, 0.06),
-  pillars: (i) => candle(0, 0, 0, 0.04, [0.16, 0.22, 0.1][i % 3] ?? 0.16),
-  tapers: () => [
-    cyl("brass", 0, 0, 0, 0.045, 0.012),
-    cyl("brass", 0, 0.012, 0, 0.012, 0.16),
-    cyl("brass", 0, 0.172, 0, 0.022, 0.015),
-    ...candle(0, 0.187, 0, 0.011, 0.28),
-  ],
-  floatingGlass: (i) => {
-    const h = i % 2 ? 0.28 : 0.38;
+export type CandleSpec = {
+  width?: CandleRange & { def: number };
+  height?: CandleRange & { def: readonly number[]; each?: true };
+  holder?: CandleRange & { def: number };
+  arms?: { options: readonly number[]; def: number };
+};
+export const CANDLE_SPECS: Record<string, CandleSpec> = {
+  votives: { width: { label: "Size", min: 5, max: 8, step: 0.5, def: 6 } },
+  pillars: {
+    width: { label: "Width", min: 5, max: 10, step: 0.5, def: 8 },
+    height: { label: "Pillar", min: 7.5, max: 30, step: 2.5, def: [15, 22.5, 10], each: true },
+  },
+  tapers: {
+    height: { label: "Candle", min: 20, max: 38, step: 2.5, def: [27.5] },
+    holder: { label: "Holder", min: 5, max: 25, step: 2.5, def: 17.5 },
+  },
+  floatingGlass: {
+    width: { label: "Vase width", min: 8, max: 15, step: 1, def: 12 },
+    height: { label: "Vase", min: 15, max: 45, step: 2.5, def: [37.5, 27.5], each: true },
+  },
+  candelabra: {
+    arms: { options: [1, 3, 5], def: 3 },
+    height: { label: "Height", min: 30, max: 75, step: 5, def: [65] },
+  },
+  hurricane: { height: { label: "Height", min: 20, max: 50, step: 2.5, def: [35] } },
+  lantern: { height: { label: "Height", min: 20, max: 50, step: 2.5, def: [32.5] } },
+};
+
+/** A value kept inside its range, on its steps. */
+const onSteps = (v: number, r: CandleRange) =>
+  Math.min(r.max, Math.max(r.min, r.min + Math.round((v - r.min) / r.step) * r.step));
+
+/** One candle's sizes, in cm: as set for its kind, else the kind's defaults. */
+export type CandleSizes = { w: number; h: number; holder: number; arms: number };
+export function candleSizes(
+  generator: string,
+  kind: Pick<CandleKind, "w" | "h" | "holder" | "arms">,
+  i: number,
+  params: Record<string, number | string | boolean> = {},
+): CandleSizes {
+  const spec = CANDLE_SPECS[generator] ?? {};
+  const { width, height, holder, arms } = spec;
+  const ownH = height?.each ? kind.h?.[i] : kind.h?.[0];
+  const defH = height ? (height.def[height.each ? i % height.def.length : 0] ?? 0) : 0;
+  const wantArms = kind.arms ?? Number(params.arms ?? arms?.def ?? 1);
+  return {
+    w: width ? onSteps(kind.w ?? width.def, width) : 0,
+    h: height ? onSteps(ownH ?? defH, height) : 0,
+    holder: holder ? onSteps(kind.holder ?? holder.def, holder) : 0,
+    arms: arms?.options.includes(wantArms) ? wantArms : (arms?.def ?? 1),
+  };
+}
+
+/** Parts stretched upward only, about the table top. */
+const taller = (parts: Part[], k: number): Part[] =>
+  parts.map((p) => ({ ...p, y: p.y * k, sy: p.slot === "flame" ? p.sy : p.sy * k }));
+
+/**
+ * One candle of a kind at its sizes (cm): a votive, a pillar, a taper in its holder, a floating
+ * candle in its vase, a candelabra, a hurricane, a lantern. A set in glass is a centrepiece.
+ */
+const candleUnits: Record<string, (s: CandleSizes) => Part[]> = {
+  votives: ({ w }) => candle(0, 0, 0, w / 200, w / 100),
+  pillars: ({ w, h }) => candle(0, 0, 0, w / 200, h / 100),
+  tapers: ({ h, holder }) => {
+    const top = holder / 100;
     return [
-      cyl("glass", 0, 0, 0, 0.06, h),
-      cyl("water", 0, 0.005, 0, 0.055, h * 0.8),
-      ...candle(0, h * 0.8, 0, 0.035, 0.02),
+      cyl("brass", 0, 0, 0, 0.045, 0.012),
+      cyl("brass", 0, 0.012, 0, 0.012, top - 0.027),
+      cyl("brass", 0, top - 0.015, 0, 0.022, 0.015),
+      ...candle(0, top, 0, 0.011, h / 100),
     ];
   },
+  floatingGlass: ({ w, h }) => {
+    const r = w / 200;
+    const fill = (h / 100) * 0.8;
+    return [
+      cyl("glass", 0, 0, 0, r, h / 100),
+      cyl("water", 0, 0.005, 0, r - 0.005, fill),
+      ...candle(0, fill, 0, Math.min(0.035, r * 0.6), 0.02),
+    ];
+  },
+  // Its flames top out at the height set; the arms reach 11 cm apart (first built at 65 cm).
+  candelabra: ({ h, arms }) => {
+    const parts: Part[] = [
+      cyl("brass", 0, 0, 0, 0.07, 0.015),
+      cyl("brass", 0, 0.015, 0, 0.014, 0.38),
+      ...candle(0, 0.395, 0, 0.011, 0.25),
+    ];
+    for (let i = 1; i <= Math.floor((arms - 1) / 2); i++) {
+      for (const s of [-1, 1]) {
+        const x = s * i * 0.11;
+        parts.push(
+          {
+            prim: "cylinder",
+            slot: "brass",
+            x: x / 2,
+            y: 0.28,
+            z: 0,
+            sx: 0.008,
+            sy: Math.abs(x),
+            sz: 0.008,
+            rz: (s * Math.PI) / 2,
+          },
+          cyl("brass", x, 0.28, 0, 0.01, 0.06),
+          ...candle(x, 0.34, 0, 0.011, 0.25),
+        );
+      }
+    }
+    // The arms are horizontal: stretching keeps their thickness and only lifts them.
+    return taller(parts, h / 64.5).map((p) => (p.rz ? { ...p, sy: Math.abs(p.x) * 2 } : p));
+  },
+  hurricane: ({ h }) => scaled([cyl("glass", 0, 0, 0, 0.08, 0.35), ...candle(0, 0, 0, 0.04, 0.14)], h / 35),
+  lantern: ({ h }) =>
+    scaled(
+      [
+        { prim: "box", slot: "black", x: 0, y: 0, z: 0, sx: 0.16, sy: 0.015, sz: 0.16 },
+        { prim: "box", slot: "glass", x: 0, y: 0.015, z: 0, sx: 0.15, sy: 0.24, sz: 0.15 },
+        { prim: "cone", slot: "black", x: 0, y: 0.255, z: 0, sx: 0.11, sy: 0.07, sz: 0.11 },
+        ...candle(0, 0.015, 0, 0.03, 0.1),
+      ],
+      h / 32.5,
+    ),
 };
 
 /** Every generator a table-top library entry may name; napkins, menus and numbers are setting parts. */
@@ -525,41 +596,30 @@ const GAP = 0.012;
 const STEP = 0.03;
 
 /**
- * The candle mix arranged for the table (DEC-02, owner 2026-10-17): the kinds in turn, tallest in
- * the middle, along the centre line of a long table (beside the centrepieces when there are some),
- * in a ring on a round one, a small group on a cocktail table. Each candle takes the free spot
- * nearest its ideal one, on the table top and clear of the settings, flowers and other candles;
- * those that find none are left off (`placed` < `wanted`), never set in the air or on a plate.
+ * The candle mix arranged for the table (DEC-02, owner 2026-10-17): the kinds in turn, at their own
+ * sizes, tallest in the middle (or in a shuffled order), along the centre line of a long table
+ * (beside the centrepieces when there are some), in a ring on a round one, a small group on a
+ * cocktail table, the whole group turned by `candleTurn`. Each candle takes the free spot nearest
+ * its ideal one, on the table top and clear of the settings, flowers and other candles; those that
+ * find none are left off (`placed` < `wanted`), never set in the air or on a plate.
  */
 function arrangeCandles(
   shape: TableTop,
-  mix: CandleMix,
+  style: Pick<TableStyle, "candles" | "candleOrder" | "candleTurn">,
   plates: readonly Circle[],
   flowers: readonly { x: number; z: number; bands: Bands }[],
   catalog: Catalog,
   ctx: Ctx,
 ): { parts: Part[]; placed: number; wanted: number } {
-  const s = shape.kind === "cocktail" ? 0.6 : 1;
-  const kinds = mix.flatMap(({ id, n }) => {
-    const e = catalog.get(id);
-    if (!e || e.model.kind !== "parametric") return [];
-    const { generator: g, params } = e.model;
-    const own = ownLook(params, ctx);
-    const make = (i: number) =>
-      scaled(scaled(candleUnits[g]?.(i) ?? centrepieces[g]?.(params, own.ctx) ?? [], own.scale), s);
-    return [{ n, make }];
-  });
-  const wanted = kinds.reduce((t, k) => t + k.n, 0);
-  // Round-robin across kinds, so a mix reads as one arrangement; then tallest in the middle.
-  const units: Part[][] = [];
-  for (let i = 0; units.length < wanted; i++) for (const k of kinds) if (i < k.n) units.push(k.make(i));
-  const order: { parts: Part[]; r: number; bands: Bands }[] = [];
-  [...units]
-    .sort((a, b) => heightOf(b) - heightOf(a))
-    .forEach((parts, i) =>
-      order[i % 2 ? "push" : "unshift"]({ parts, r: radiusOf(parts), bands: bandsOf(parts) }),
-    );
-  const ideal = idealSpots(shape, order, flowers.length > 0);
+  const turn = (style.candleTurn * Math.PI) / 180;
+  const units = candleUnitsFor(style, catalog, ctx, shape.kind === "cocktail" ? 0.6 : 1, turn);
+  const wanted = units.length;
+  const order = inOrder(units, (u) => heightOf(u.parts), style.candleOrder).map(({ parts }) => ({
+    parts,
+    r: radiusOf(parts),
+    bands: bandsOf(parts),
+  }));
+  const ideal = idealSpots(shape, order, flowers.length > 0).map(([x, z]) => turnPoint(x, z, turn));
   // Table-top spots, each with its room to the edge (for all of a candle), to the plates (for its
   // base) and its distance to each flower arrangement (checked band by band).
   const half =
@@ -597,6 +657,91 @@ function arrangeCandles(
     for (const p of u) parts.push({ ...p, x: p.x + at.x, z: p.z + at.z });
   });
   return { parts, placed: taken.length, wanted };
+}
+
+/**
+ * Every candle of the mix, each kind's `i`th at its sizes, taken round-robin across the kinds so a
+ * mix reads as one arrangement; scaled by `s` (cocktail tables) and turned by `turn` (radians).
+ */
+function candleUnitsFor(
+  style: Pick<TableStyle, "candles">,
+  catalog: Catalog,
+  ctx: Ctx,
+  s: number,
+  turn: number,
+): { id: string; parts: Part[] }[] {
+  const kinds = style.candles.flatMap((kind) => {
+    const e = catalog.get(kind.id);
+    if (!e || e.model.kind !== "parametric") return [];
+    const { generator: g, params } = e.model;
+    const own = ownLook(params, ctx);
+    const unit = candleUnits[g];
+    const make = (i: number) =>
+      turned(
+        scaled(
+          scaled(
+            unit ? unit(candleSizes(g, kind, i, params)) : (centrepieces[g]?.(params, own.ctx) ?? []),
+            own.scale,
+          ),
+          s,
+        ),
+        turn,
+      );
+    return [{ id: kind.id, n: kind.n, make }];
+  });
+  const total = kinds.reduce((t, k) => t + k.n, 0);
+  const units: { id: string; parts: Part[] }[] = [];
+  for (let i = 0; units.length < total; i++)
+    for (const k of kinds) if (i < k.n) units.push({ id: k.id, parts: k.make(i) });
+  return units;
+}
+
+/** The candles in their order: tallest in the middle (0), or as a shuffle's seed puts them. */
+function inOrder<T>(units: T[], height: (u: T) => number, seed: number): T[] {
+  if (seed > 0) {
+    const rand = seededRandom(seed);
+    const out = [...units];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [out[i], out[j]] = [out[j] as T, out[i] as T];
+    }
+    return out;
+  }
+  const out: T[] = [];
+  [...units].sort((a, b) => height(b) - height(a)).forEach((u, i) => out[i % 2 ? "push" : "unshift"](u));
+  return out;
+}
+
+/**
+ * The table's candles in order, as kind and height (DEC-02): what Shuffle changes. One kind of
+ * identical candles reads the same in any order.
+ */
+export function candleSequence(
+  style: Pick<TableStyle, "candles" | "candleOrder">,
+  catalog: Catalog,
+): string[] {
+  const ctx: Ctx = {
+    colours: ["#ffffff"],
+    rand: seededRandom(1),
+    scale: 1,
+    flower: FLOWER_TYPES.rose as Ctx["flower"],
+  };
+  const units = candleUnitsFor(style, catalog, ctx, 1, 0).map((u) => ({ ...u, h: heightOf(u.parts) }));
+  return inOrder(units, (u) => u.h, style.candleOrder).map((u) => `${u.id}:${u.h.toFixed(3)}`);
+}
+
+/** A table-top point turned about the table's centre, as a part turned by `ry` (radians). */
+function turnPoint(x: number, z: number, a: number): [number, number] {
+  return a ? [x * Math.cos(a) + z * Math.sin(a), -x * Math.sin(a) + z * Math.cos(a)] : [x, z];
+}
+
+/** Parts turned about the table-top centre (radians). */
+function turned(parts: Part[], a: number): Part[] {
+  if (!a) return parts;
+  return parts.map((p) => {
+    const [x, z] = turnPoint(p.x, p.z, a);
+    return { ...p, x, z, ry: (p.ry ?? 0) + a };
+  });
 }
 
 /** Where each candle would ideally stand: a centred line, or a ring sized to the candles. */
@@ -721,7 +866,7 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
   // among them, as on a real table), and clear of the flowers wherever they share heights.
   const candles = arrangeCandles(
     shape,
-    style.candles,
+    style,
     plates,
     flowers.map((f) => ({ x: f.x, z: f.z, bands: bandsOf(f.parts) })),
     catalog,
@@ -761,7 +906,7 @@ export function centrepieceHeight(
   params: Record<string, number | string | boolean>,
 ): number | null {
   const unit = candleUnits[generator];
-  if (unit) return Math.max(...[0, 1, 2].map((i) => heightOf(unit(i))));
+  if (unit) return Math.max(...[0, 1, 2].map((i) => heightOf(unit(candleSizes(generator, {}, i, params)))));
   const gen = centrepieces[generator];
   if (!gen) return null;
   const ctx: Ctx = {

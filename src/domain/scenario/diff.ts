@@ -7,6 +7,8 @@ const STYLE_LABELS: Partial<Record<keyof Scenario["style"], string>> = {
   linenLength: "Tablecloth length",
   chair: "Chairs",
   candles: "Candles",
+  candleOrder: "Candle order",
+  candleTurn: "Candle rotation",
   florals: "Florals",
   floralColour: "Flower colours",
   flowerType: "Flowers",
@@ -69,7 +71,21 @@ export function differences(mine: Scenario, theirs: Scenario, catalog: Catalog):
   const keys = [
     ...new Set([...Object.keys(mine.style), ...Object.keys(theirs.style)]),
   ] as (keyof Scenario["style"])[];
-  for (const k of keys) pair(STYLE_LABELS[k] ?? k, name(mine.style[k]), name(theirs.style[k]));
+  const shown = (k: keyof Scenario["style"], v: unknown) =>
+    k === "candleOrder"
+      ? v
+        ? "shuffled"
+        : "tallest in the middle"
+      : k === "candleTurn"
+        ? `${String(v)}°`
+        : name(v);
+  for (const k of keys) pair(STYLE_LABELS[k] ?? k, shown(k, mine.style[k]), shown(k, theirs.style[k]));
+  // The same candles at other sizes read alike above.
+  if (
+    name(mine.style.candles) === name(theirs.style.candles) &&
+    JSON.stringify(mine.style.candles) !== JSON.stringify(theirs.style.candles)
+  )
+    out.push("Candle sizes differ");
   const dressing = (s: Scenario) => JSON.stringify(s.items.map((i) => [i.id, i.style ?? null]));
   if (dressing(mine) !== dressing(theirs)) out.push("Some tables are dressed differently");
   if (JSON.stringify(mine.thresholds) !== JSON.stringify(theirs.thresholds))

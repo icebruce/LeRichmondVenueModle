@@ -5,7 +5,11 @@ import {
   FLORAL_PALETTES,
   FLOWER_TYPES,
   FLOWER_TYPE_GENERATORS,
+  CANDLE_SPECS,
+  type CandleRange,
   candleLayout,
+  candleSequence,
+  candleSizes,
   styleKeyOf,
   isRoomChoice,
 } from "../domain/layout/decor";
@@ -14,10 +18,11 @@ import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
-import { type Catalog, litThumbnail } from "../domain/library/catalog";
+import { type Catalog, listed, litThumbnail } from "../domain/library/catalog";
 import { matchesSearch, searchWords } from "../domain/library/search";
 import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
 import {
+  type CandleKind,
   type CandleMix,
   MAX_CANDLES_PER_KIND,
   MAX_CANDLE_KINDS,
@@ -627,7 +632,7 @@ export function AddPanel({
   const requests = useStore(libraryStore, (s) => s.requests);
   const style = useEditor((s) => s.scenarios[s.activeId]?.style);
   const hasTables = useEditor((s) => !!s.scenarios[s.activeId]?.items.some((i) => isTable(i, catalog)));
-  const live = useMemo(() => [...catalog.values()].filter((e) => !e.imported?.archived), [catalog]);
+  const live = useMemo(() => [...catalog.values()].filter(listed), [catalog]);
   const placeable = useMemo(
     () =>
       live.filter(
@@ -905,8 +910,14 @@ export function Chips({
   );
 }
 
-/** The Style section's own pages, opened from its summary rows (DESIGN_GUIDE §4 Style). */
-export type StylePage = "runner" | "candles" | "centrepiece" | "chairs" | "settings";
+/**
+ * The Style section's own pages, opened from its summary rows (DESIGN_GUIDE §4 Style); a candle
+ * kind's sizes (`candle:<id>`) open from Candles.
+ */
+export type StylePage = "runner" | "candles" | "centrepiece" | "chairs" | "settings" | `candle:${string}`;
+
+/** The page a Style page steps back to: a candle kind's sizes to Candles, the others to Style. */
+export const parentPage = (p: StylePage): StylePage | null => (p.startsWith("candle:") ? "candles" : null);
 
 const CHARGERS = [
   { id: "gold", name: "Gold" },
@@ -915,13 +926,218 @@ const CHARGERS = [
   { id: "none", name: "None" },
 ];
 
-const STYLE_PAGES: Record<StylePage, string> = {
+const STYLE_PAGES: Record<Exclude<StylePage, `candle:${string}`>, string> = {
   runner: "Runner",
   candles: "Candles",
   centrepiece: "Centrepiece",
   chairs: "Chairs",
   settings: "Place settings",
 };
+
+/** A shuffle's seed for the candle order (DEC-02); 0 is kept for tallest in the middle. */
+const newSeed = () => 1 + Math.floor(Math.random() * 2 ** 31);
+
+/** A figure in its unit, kept on one line: "22.5 cm", "15°". */
+const withUnit = (v: number, unit: string) =>
+  `${Number.isInteger(v) ? v : v.toFixed(1)}${unit.replace(" ", "\u00a0")}`;
+
+/**
+ * A size row (DEC-02): its name (and a line under it), then − / + in the size's steps with a plain
+ * figure and its unit; `less` and `more` name the buttons ("Narrower", "Taller pillar 2").
+ */
+function SizeStepper({
+  label,
+  sub,
+  value,
+  range,
+  unit = " cm",
+  less,
+  more,
+  onSet,
+  testId,
+}: {
+  label: string;
+  sub?: string;
+  value: number;
+  range: Pick<CandleRange, "min" | "max" | "step">;
+  unit?: string;
+  less: string;
+  more: string;
+  onSet: (v: number) => void;
+  testId: string;
+}) {
+  const to = (v: number) => onSet(Math.min(range.max, Math.max(range.min, Math.round(v * 100) / 100)));
+  return (
+    <div className="row">
+      {sub ? (
+        <span className="nav-label">
+          {label}
+          <span className="nav-sub">{sub}</span>
+        </span>
+      ) : (
+        <span className="row-label">{label}</span>
+      )}
+      <div className="stepper">
+        <RepeatButton
+          label={less}
+          icon="minus"
+          disabled={value <= range.min}
+          onStep={() => to(value - range.step)}
+        />
+        <output className="size" aria-label={label} data-testid={testId}>
+          {withUnit(value, unit)}
+        </output>
+        <RepeatButton
+          label={more}
+          icon="plus"
+          disabled={value >= range.max}
+          onStep={() => to(value + range.step)}
+        />
+      </div>
+    </div>
+  );
+}
+
+const paramsOf = (e: LibraryEntry | undefined) => (e?.model.kind === "parametric" ? e.model.params : {});
+const generatorOf = (e: LibraryEntry | undefined) =>
+  e?.model.kind === "parametric" ? e.model.generator : "";
+
+/** A candle kind's heights on one line: "10–22.5 cm", "3 arms · 65 cm", a votive's size; null if none. */
+function kindSizes(kind: CandleKind, e: LibraryEntry | undefined): string | null {
+  const g = generatorOf(e);
+  const spec = CANDLE_SPECS[g];
+  if (!spec) return null;
+  const all = Array.from({ length: kind.n }, (_, i) => candleSizes(g, kind, i, paramsOf(e)));
+  const [first] = all;
+  if (!first) return null;
+  if (!spec.height) return withUnit(first.w, " cm");
+  const lo = Math.min(...all.map((s) => s.h));
+  const hi = Math.max(...all.map((s) => s.h));
+  // Word joiners keep a range on one line.
+  const heights = lo === hi ? withUnit(hi, " cm") : `${withUnit(lo, "")}\u2060–\u2060${withUnit(hi, " cm")}`;
+  return spec.arms ? `${first.arms} ${first.arms === 1 ? "arm" : "arms"} · ${heights}` : heights;
+}
+
+/**
+ * A candle kind's settings (DEC-02, owner 2026-10-17): how many per table, a candelabra's arms, then
+ * each size the kind has, in cm (a height for each candle where the kind has one each).
+ */
+function CandleKindSizes({
+  kind,
+  entry,
+  onChange,
+}: {
+  kind: CandleKind;
+  entry: LibraryEntry | undefined;
+  onChange: (k: CandleKind) => void;
+}) {
+  const g = generatorOf(entry);
+  const spec = CANDLE_SPECS[g] ?? {};
+  const at = (i: number) => candleSizes(g, kind, i, paramsOf(entry));
+  const first = at(0);
+  const heights = Array.from({ length: kind.n }, (_, i) => at(i).h);
+  const each = spec.height?.each ? spec.height : null;
+  // Back to the kind as first built; only its count stays.
+  const changed =
+    kind.w !== undefined || kind.h !== undefined || kind.holder !== undefined || kind.arms !== undefined;
+  const reset = () => onChange({ id: kind.id, n: kind.n });
+  return (
+    <>
+      <div className="list">
+        <SizeStepper
+          label="Per table"
+          value={kind.n}
+          range={{ min: 1, max: MAX_CANDLES_PER_KIND, step: 1 }}
+          unit=""
+          less="Fewer per table"
+          more="More per table"
+          onSet={(n) => onChange({ ...kind, n })}
+          testId="candle-count"
+        />
+        {spec.arms && (
+          <div className="row">
+            <span className="row-label">Arms</span>
+            <div className="seg seg-arms" role="radiogroup" aria-label="Arms">
+              {spec.arms.options.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  role="radio"
+                  aria-checked={first.arms === a}
+                  className={first.arms === a ? "on" : ""}
+                  onClick={() => onChange({ ...kind, arms: a })}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {spec.width && (
+          <SizeStepper
+            label={spec.width.label}
+            value={first.w}
+            range={spec.width}
+            less={spec.height ? "Narrower" : "Smaller"}
+            more={spec.height ? "Wider" : "Bigger"}
+            onSet={(w) => onChange({ ...kind, w })}
+            testId="candle-width"
+          />
+        )}
+        {spec.height && !each && (
+          <SizeStepper
+            label={spec.height.label}
+            value={first.h}
+            range={spec.height}
+            less={`Lower ${spec.height.label.toLowerCase()}`}
+            more={`Taller ${spec.height.label.toLowerCase()}`}
+            onSet={(h) => onChange({ ...kind, h: [h] })}
+            testId="candle-height"
+          />
+        )}
+        {spec.holder && (
+          <SizeStepper
+            label={spec.holder.label}
+            value={first.holder}
+            range={spec.holder}
+            less="Lower holder"
+            more="Taller holder"
+            onSet={(holder) => onChange({ ...kind, holder })}
+            testId="candle-holder"
+          />
+        )}
+      </div>
+      {each && (
+        <>
+          <h3 className="group-title">Heights</h3>
+          <div className="list">
+            {heights.map((h, i) => (
+              <SizeStepper
+                key={i}
+                label={`${each.label} ${i + 1}`}
+                value={h}
+                range={each}
+                less={`Lower ${each.label.toLowerCase()} ${i + 1}`}
+                more={`Taller ${each.label.toLowerCase()} ${i + 1}`}
+                onSet={(v) => onChange({ ...kind, h: heights.map((x, j) => (j === i ? v : x)) })}
+                testId={`candle-height-${i}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        type="button"
+        className="plain-btn start"
+        disabled={!changed}
+        onClick={reset}
+        data-testid="candle-reset"
+      >
+        Reset sizes
+      </button>
+    </>
+  );
+}
 
 /**
  * A grid of pictures to choose from, "None" first when offered. A chosen picture carries a check,
@@ -1015,7 +1231,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
     [...catalog.values()].filter(
       (e) =>
         e.family === f &&
-        (!e.imported?.archived || used(e.id)) &&
+        (listed(e) || used(e.id)) &&
         (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
     );
   const colourOf = (id: string) => {
@@ -1057,10 +1273,28 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
   if (page) {
     const mix = shown.candles;
     const setMix = (next: CandleMix) => apply({ candles: next });
+    // A candle kind's sizes; once the kind is off the table, Candles itself.
+    const kind = page.startsWith("candle:") ? mix.find((m) => `candle:${m.id}` === page) : undefined;
+    const view = page.startsWith("candle:") && !kind ? "candles" : page;
+    const setKind = (k: CandleKind) => setMix(mix.map((m) => (m.id === k.id ? k : m)));
+    const total = mix.reduce((t, m) => t + m.n, 0);
+    // Shuffle only where the order shows (DEC-02): different kinds or heights; each shuffle a new order.
+    const sequence = candleSequence(shown, catalog).join();
+    const varied = new Set(candleSequence({ ...shown, candleOrder: 0 }, catalog)).size > 1;
+    const shuffle = () => {
+      let seed = newSeed();
+      for (
+        let i = 0;
+        i < 8 && candleSequence({ ...shown, candleOrder: seed }, catalog).join() === sequence;
+        i++
+      )
+        seed = newSeed();
+      apply({ candleOrder: seed });
+    };
     // Tables too small or too full for the whole mix show what fits (DEC-02): say on how many of
     // the tables being styled.
     const short =
-      page === "candles"
+      view === "candles" || kind
         ? (target === "all" ? scenario.items.filter((i) => isTable(i, catalog)) : tables).filter((t) => {
             const fit = candleLayout(
               shapeOf(t, catalog),
@@ -1072,10 +1306,28 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
           }).length
         : 0;
     return (
-      <div className="panel-body" data-testid={`style-${page}`}>
-        <PageHead title={STYLE_PAGES[page]} back="Style" onBack={() => open(null)} />
+      <div className="panel-body" data-testid={kind ? "style-candle-kind" : `style-${view}`}>
+        {kind ? (
+          <PageHead title={nameOf(kind.id)} back="Candles" onBack={() => open("candles")} />
+        ) : (
+          <PageHead
+            title={STYLE_PAGES[view as keyof typeof STYLE_PAGES]}
+            back="Style"
+            onBack={() => open(null)}
+          />
+        )}
         {tables.length > 0 && scopeControl}
-        {page === "runner" && (
+        {kind && (
+          <>
+            {short > 0 && (
+              <p className="hint advisory" data-testid="candles-short">
+                {short === 1 ? "One table has" : `${short} tables have`} room for fewer.
+              </p>
+            )}
+            <CandleKindSizes kind={kind} entry={catalog.get(kind.id)} onChange={setKind} />
+          </>
+        )}
+        {view === "runner" && (
           <PickGrid
             label="Runner"
             none
@@ -1086,9 +1338,8 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             testId="runner"
           />
         )}
-        {page === "candles" && (
+        {view === "candles" && (
           <>
-            <p className="hint">Up to {MAX_CANDLE_KINDS} kinds per table, arranged for you.</p>
             {short > 0 && (
               <p className="hint advisory" data-testid="candles-short">
                 {short === 1 ? "One table has" : `${short} tables have`} room for fewer; they show the candles
@@ -1100,13 +1351,29 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
                 {mix.map((m, i) => {
                   const e = catalog.get(m.id);
                   const set = (n: number) => setMix(mix.map((x, j) => (j === i ? { ...x, n } : x)));
+                  const sizes = kindSizes(m, e);
+                  // No picture here: the kinds grid below shows them, and the sizes need the room.
+                  const head = (
+                    <span className="nav-label">
+                      {nameOf(m.id)}
+                      <span className="nav-sub">{sizes ?? "per table"}</span>
+                    </span>
+                  );
                   return (
                     <div key={m.id} className="row layer" data-testid={`candle-layer-${m.id}`}>
-                      {e && <Thumb entry={e} />}
-                      <span className="nav-label">
-                        {nameOf(m.id)}
-                        <span className="nav-sub">per table</span>
-                      </span>
+                      {sizes ? (
+                        <button
+                          type="button"
+                          className="layer-open"
+                          aria-label={`${nameOf(m.id)} sizes`}
+                          onClick={() => open(`candle:${m.id}`)}
+                          data-testid={`candle-open-${m.id}`}
+                        >
+                          {head}
+                        </button>
+                      ) : (
+                        head
+                      )}
                       <div className="stepper">
                         <RepeatButton
                           label={`Fewer: ${nameOf(m.id)}`}
@@ -1122,14 +1389,73 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
                           onStep={() => set(Math.min(MAX_CANDLES_PER_KIND, m.n + 1))}
                         />
                       </div>
+                      {sizes && (
+                        // A wider target for the chevron; the name before it is the keyboard's way in.
+                        <button
+                          type="button"
+                          className="layer-next"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          onClick={() => open(`candle:${m.id}`)}
+                        >
+                          <Icon name="next" size={16} className="nav-chevron" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             )}
+            {total >= 2 && (
+              <>
+                <h3 className="group-title">Arrangement</h3>
+                <div className="list">
+                  {varied && (
+                    <div className="row">
+                      <span className="nav-label">
+                        Order
+                        <span className="nav-sub">
+                          {shown.candleOrder ? "Shuffled" : "Tallest in the middle"}
+                        </span>
+                      </span>
+                      {shown.candleOrder > 0 && (
+                        <button
+                          type="button"
+                          className="btn small"
+                          onClick={() => apply({ candleOrder: 0 })}
+                          data-testid="candle-order-reset"
+                        >
+                          Reset
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn small"
+                        onClick={shuffle}
+                        data-testid="candle-shuffle"
+                      >
+                        Shuffle
+                      </button>
+                    </div>
+                  )}
+                  <SizeStepper
+                    label="Rotation"
+                    sub="Whole group"
+                    value={shown.candleTurn}
+                    range={{ min: 0, max: 180, step: 15 }}
+                    unit="°"
+                    less="Turn back"
+                    more="Turn on"
+                    onSet={(candleTurn) => apply({ candleTurn })}
+                    testId="candle-turn"
+                  />
+                </div>
+                <p className="hint">Line on long tables, ring on round ones.</p>
+              </>
+            )}
             <h3 className="group-title">
               {mix.length >= MAX_CANDLE_KINDS
-                ? `Kinds · ${MAX_CANDLE_KINDS} of ${MAX_CANDLE_KINDS}, remove one to add another`
+                ? `Kinds · ${MAX_CANDLE_KINDS} of ${MAX_CANDLE_KINDS}`
                 : `Kinds · choose up to ${MAX_CANDLE_KINDS}`}
             </h3>
             <PickGrid
@@ -1149,7 +1475,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             <p className="hint">Lit in evening light.</p>
           </>
         )}
-        {page === "centrepiece" && (
+        {view === "centrepiece" && (
           <>
             <PickGrid
               label="Centrepiece"
@@ -1184,7 +1510,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             )}
           </>
         )}
-        {page === "chairs" && (
+        {view === "chairs" && (
           <PickGrid
             label="Chairs"
             options={family("chair", "chair")}
@@ -1194,7 +1520,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             testId="chair"
           />
         )}
-        {page === "settings" && (
+        {view === "settings" && (
           <>
             {scenario.style.settings && (
               <>
@@ -1251,7 +1577,7 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
         ? `${nameOf(shown.candles[0]?.id ?? "")} · ${shown.candles[0]?.n ?? 0}`
         : `${shown.candles.reduce((a, m) => a + m.n, 0)} candles · ${shown.candles.length} kinds`;
   const first = (id: string) => catalog.get(id);
-  const row = (key: StylePage, value: string, thumb?: LibraryEntry, icon?: IconName) => (
+  const row = (key: keyof typeof STYLE_PAGES, value: string, thumb?: LibraryEntry, icon?: IconName) => (
     <NavRow
       label={STYLE_PAGES[key]}
       value={value}
