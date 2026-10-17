@@ -58,7 +58,7 @@ Status: **M** modelled · **V0–V6** planned in that step · **—** skipped (l
 | Bar flowers: tall white blossom branches in glass vases (seasonal) | R02 R07 R11 | V3 |
 | Wine wall: tall glass case with racks near the east windows | R15 UV02 | M; bottles as cards V3 |
 | North wall: buff brick over red-brick dado; tufted nail-head headboard banquettes; paintings | R01 R06 R07 R10 | M (plain); brick V2, banquettes V2 |
-| Opening to a green-walled space with a framed photo beside the back bar's east end | R07 | ? |
+| Restroom corridor: opening to a green-walled space with a framed photo, north wall near the pop-art painting (owner, 2026-10-17) | R07 | V1 (opening; exact position from R07 in the fidelity review) |
 | South (kitchen) wall: dark green panelling, EXIT door, tufted banquettes, fiddle-leaf fig | R04 | M (green wall); EXIT door and banquettes ? (open item); fig V6 |
 | Mezzanine fascia: dark green, long linear HVAC grille, projection screen above, red SORTIE neon | R09 | M (fascia, exit); grille as texture V1; screen — |
 | Stair: LED treads (lime-yellow glow across each tread top), scrolled iron balustrade panels, timber handrail | R01 R09 R11 | M (plain bars); tread glow V1; scroll panels V6 |
@@ -69,7 +69,7 @@ Status: **M** modelled · **V0–V6** planned in that step · **—** skipped (l
 | Garage doors: black steel frames, fine pane grid, brick piers between | R01 R03 R04 R17 | M; frames and piers V2 |
 | Terrace string-light canopy seen through the glass at night | R11 R16 | V6 |
 | Floors: dark tiles with light wood joint strips (west and centre), dark hardwood (east) | R01 R02 R03 R04 R05 | M; real scale V2 |
-| Gold cordless table lamps on the tables | R11 R12 | ? (library item, owner decision) |
+| Gold cordless table lamps on the tables | R11 R12 | Library item (owner, 2026-10-17) |
 | Farm tables with X-base, cane-back and cross-back chairs | R08 R10 | M (library) |
 | Wall speakers, fire alarm, thermostat, HVAC cassettes | R04 R07 R10 | — |
 | Bar cellar | none | Not in any image; the wine wall is the closest feature |

@@ -330,6 +330,7 @@ export const CANDLE_SPECS: Record<string, CandleSpec> = {
   },
   hurricane: { height: { label: "Height", min: 20, max: 50, step: 2.5, def: [35] } },
   lantern: { height: { label: "Height", min: 20, max: 50, step: 2.5, def: [32.5] } },
+  cordlessLamp: { height: { label: "Height", min: 25, max: 40, step: 2.5, def: [30] } },
 };
 
 /** A value kept inside its range, on its steps. */
@@ -427,6 +428,16 @@ const candleUnits: Record<string, (s: CandleSizes) => Part[]> = {
       ],
       h / 32.5,
     ),
+  // The venue's gold cordless lamp (R11, R12): a round base, a slim stem and a flat shade lit underneath.
+  cordlessLamp: ({ h }) => {
+    const top = h / 100;
+    return [
+      cyl("brass", 0, 0, 0, 0.045, 0.1),
+      cyl("brass", 0, 0.1, 0, 0.006, top - 0.122),
+      cyl("brass", 0, top - 0.022, 0, 0.055, 0.022),
+      cyl("bulb", 0, top - 0.025, 0, 0.04, 0.003),
+    ];
+  },
 };
 
 /** Every generator a table-top library entry may name; napkins, menus and numbers are setting parts. */
