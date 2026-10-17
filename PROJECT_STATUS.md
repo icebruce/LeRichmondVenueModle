@@ -31,6 +31,7 @@
 - Live browser lighting only for now; pre-computed lighting only if the step 1 render falls short (ADR-2).
 - Docs structure and tooling chosen on their merits; WeddingRunbookPlanner was a reference only.
 - Pull request per step with Vercel preview for owner review.
+- Visual upgrade (look and performance) is a separate track in `VISUAL_STATUS.md`, V0–V6, finishing before the freeze; no visual merges after 2026-11-07. Live lighting stays; baked lighting and path-traced stills postponed (owner, 2026-10-16; plan revised 2026-10-17, supersedes PR #7).
 - Library: ~90 items across tables, chairs, linens, tableware, candles, florals, plants, lights, signs, event pieces; custom pieces added later through in-app requests built by Claude (owner-approved 2026-10-15).
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
@@ -91,6 +92,7 @@ To do, in order:
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. Step 4 (owner feedback of 2026-10-17): merged as PR #8–#13 (2026-10-17). Owner checks on a real phone: no pull-to-refresh, the back gesture steps out of layers, the sheet swipes down a step at a time, cloud saves; visual sign-off of the Add library, Style pages and light handle (marked pending in DESIGN_GUIDE). Freeze around 2026-11-10.
+5. Visual track V0 (`VISUAL_STATUS.md`): on-demand rendering, shadows drawn once, constant light count, `?perf` overlay; owner reads the baseline on the iPhone 16 and Galaxy S24. Owner: attach the people reference image to a custom request ("Guest figures") before V4.
 
 ## Step 1 quality (2026-10-16)
 
