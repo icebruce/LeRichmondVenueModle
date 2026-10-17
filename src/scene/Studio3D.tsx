@@ -5,6 +5,7 @@ import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
+import { hangingLight } from "../domain/library/catalog";
 import { pointInPolygon } from "../domain/geometry";
 import { footprint, shapeOf } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
@@ -258,17 +259,19 @@ function SelectionAnchor() {
     const s = editor.store.getState();
     const items = s.scenarios[s.activeId]?.items.filter((i) => s.selection.includes(i.id)) ?? [];
     let next: [number, number] | null = null;
-    if (items.length && s.camera !== "walk" && !viewStore.getState().drag) {
+    if (items.length && s.camera !== "walk" && !viewStore.getState().drag && !viewStore.getState().lift) {
       const x = items.reduce((a, i) => a + i.x, 0) / items.length;
       const z = items.reduce((a, i) => a + i.z, 0) / items.length;
-      // Just above the tallest selected piece (a tall hanging light counts only up to 2.5 m, so the
-      // toolbar stays near the floor plan), 15 cm clear of it.
+      // Just above the tallest selected piece, 15 cm clear of it: a tall piece counts only up to
+      // 2.5 m, so the toolbar stays near the floor plan, but a light with a height clears the whole
+      // light above its grip (its drawn top).
       const top = Math.max(
-        ...items.map(
-          (i) =>
-            (pointInPolygon([i.x, i.z], venue.raised.outline) ? venue.raised.height : 0) +
-            Math.min(catalog.get(i.libraryId)?.sizeM.h ?? 1, 2.5),
-        ),
+        ...items.map((i) => {
+          const e = catalog.get(i.libraryId);
+          const shape = e && hangingLight(e) ? shapeOf(i, catalog) : null;
+          const h = shape?.kind === "piece" ? shape.height : Math.min(e?.sizeM.h ?? 1, 2.5);
+          return (pointInPolygon([i.x, i.z], venue.raised.outline) ? venue.raised.height : 0) + h;
+        }),
       );
       const { camera, size } = get();
       point.set(x, top + 0.15, z).project(camera);

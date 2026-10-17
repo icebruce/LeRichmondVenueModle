@@ -777,3 +777,15 @@ export function centrepieceHeight(
 export function heightOf(parts: readonly Part[]): number {
   return parts.reduce((m, p) => Math.max(m, p.y + p.sy), 0);
 }
+
+/**
+ * The lowest solid point of some parts (a sphere hangs below its centre; light it casts, beams and
+ * glows, does not count): where a hanging piece ends.
+ */
+export function bottomOf(parts: readonly Part[]): number {
+  return parts.reduce(
+    (m, p) =>
+      p.slot === "beam" || p.slot === "glow" ? m : Math.min(m, p.prim === "sphere" ? p.y - p.sy : p.y),
+    Infinity,
+  );
+}

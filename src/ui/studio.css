@@ -1132,7 +1132,8 @@ button:disabled {
   white-space: nowrap;
 }
 .drag-reason,
-.drag-readout {
+.drag-readout,
+.height-readout {
   /* Above the item, not over its table number (Html anchors at the item's centre). */
   translate: 0 calc(-1 * var(--s-7));
   font: var(--t-caption);
@@ -1145,10 +1146,15 @@ button:disabled {
   white-space: nowrap;
   pointer-events: none;
 }
-.drag-readout {
+.drag-readout,
+.height-readout {
   color: var(--ink);
   border-color: var(--line);
   box-shadow: var(--shadow-control);
+}
+/* A light's height: beside its drop line, halfway down (Html anchors its corner at that point). */
+.height-readout {
+  translate: var(--s-2) -50%;
 }
 .loading {
   position: absolute;
