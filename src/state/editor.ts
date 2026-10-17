@@ -302,11 +302,15 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     deleteSelection(): void {
       const ids = new Set(get().selection);
       if (!ids.size) return;
+      const items = active().items;
+      const one = items.find((i) => ids.has(i.id));
+      const what =
+        one && ids.size === 1 ? itemTitle(one, tableLabels(items, deps.catalog), deps.catalog) : "";
       commit("Delete", (d) => {
         d.items = d.items.filter((i) => !ids.has(i.id));
       });
       set({ selection: [] });
-      toast(ids.size === 1 ? "Deleted" : `Deleted ${ids.size} items`, undoLast());
+      toast(what ? `${what} deleted` : `${ids.size} items deleted`, undoLast());
     },
 
     /** Evening moment (SCN-07): changes where standing guests go (PPL-01). */

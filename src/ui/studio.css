@@ -69,6 +69,10 @@ button:disabled {
   pointer-events: none;
   --rail: var(--rail-w);
   --top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
+  /* The desktop counts strip (one row of figures) and the phone walk pad. */
+  --counts-h: 58px;
+  --pad-size: 120px;
+  --above-counts: calc(env(safe-area-inset-bottom, 0px) + var(--s-4) + var(--counts-h) + var(--s-3));
 }
 .ui > * {
   pointer-events: auto;
@@ -89,8 +93,7 @@ button:disabled {
   top: var(--top);
   left: calc(var(--inset-left, var(--rail)) + var(--s-4));
   right: var(--s-4);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: var(--s-2);
   pointer-events: none;
@@ -100,7 +103,7 @@ button:disabled {
 }
 /* The plan's name, small: a way into Plans (DESIGN_GUIDE §3.1). */
 .plan-name {
-  justify-self: start;
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -112,6 +115,9 @@ button:disabled {
 }
 .plan-name-btn {
   flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
   min-width: 0;
   border: 0;
   background: none;
@@ -119,13 +125,15 @@ button:disabled {
   min-height: var(--target);
   font: var(--t-callout);
   font-weight: 600;
+}
+.plan-name-text {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .plan-name .save-state {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: none;
   padding-left: var(--s-2);
   border-left: 1px solid var(--line);
   white-space: nowrap;
@@ -134,7 +142,16 @@ button:disabled {
 }
 .save-state {
   font: var(--t-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
+}
+.save-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
 }
 .save-state.error {
   color: var(--blocked);
@@ -224,8 +241,16 @@ button:disabled {
   opacity: 0.55;
 }
 .camera-seg {
+  flex: none;
+  box-sizing: border-box;
   align-items: center;
   height: var(--target);
+  margin-inline: auto;
+}
+.camera-seg button,
+.camera-seg .icon-btn {
+  min-height: 36px;
+  height: 36px;
 }
 .seg-sep {
   width: 1px;
@@ -248,7 +273,7 @@ button:disabled {
   flex: 1;
 }
 .actions {
-  justify-self: end;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -293,7 +318,8 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   gap: var(--s-1);
-  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) 6px var(--s-3);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) var(--s-1) var(--s-3);
+  box-sizing: border-box;
   z-index: 12;
 }
 .rail button {
@@ -302,7 +328,7 @@ button:disabled {
   border: 0;
   border-radius: var(--r-card);
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -330,17 +356,39 @@ button:disabled {
   left: var(--rail);
   background: var(--surface);
   border-right: 1px solid var(--line);
-  overflow: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   animation: slide-in var(--m-base);
   z-index: 11;
+}
+/* The panel's content scrolls under its fixed head (the phone sheet's grabber and counts). */
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+/* A deeper page keeps its way back and its title in view while it scrolls (DESIGN_GUIDE §3). */
+.page-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-4)) 0;
+  padding: var(--s-4) var(--s-4) var(--s-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
 }
 .panel-collapse {
   position: absolute;
   top: var(--s-3);
   right: var(--s-2);
 }
-.panel > .panel-body > .panel-head {
+.panel-scroll > .panel-body > .panel-head,
+.panel-scroll > .panel-body > .page-head {
   padding-right: var(--s-7);
 }
 /* Drag the panel's edge to widen it (360–520 px); the grip sits on the edge, mid-height. */
@@ -383,6 +431,10 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: var(--s-2);
+}
+.title-sub {
+  font-weight: 400;
+  color: var(--ink-2);
 }
 .panel-title {
   font: var(--t-title);
@@ -599,7 +651,6 @@ button:disabled {
   flex: none;
   margin-left: auto;
   color: var(--ink-2);
-  transform: rotate(-90deg);
 }
 .chip {
   display: inline-flex;
@@ -919,7 +970,7 @@ button:disabled {
   position: absolute;
   /* Centred in the room beside the panel, above the counts strip. */
   left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-6));
+  bottom: var(--above-counts);
   transform: translateX(-50%);
   width: max-content;
   max-width: calc(100% - var(--inset-left, 0px) - 2 * var(--s-4));
@@ -1070,6 +1121,11 @@ button:disabled {
   min-height: 52px;
   padding: var(--s-2) var(--s-3);
 }
+/* Every row in a grouped list reads alike, toggles and pages (DESIGN_GUIDE §4 Grouped list). */
+.list > .row > .row-label {
+  font: var(--t-body);
+  color: var(--ink);
+}
 .nav-row {
   display: flex;
   align-items: center;
@@ -1179,12 +1235,16 @@ button:disabled {
   background: var(--ok);
 }
 /* Desktop checks: a popover above the counts (DESIGN_GUIDE §3.1). */
+.pop-title {
+  margin: 0;
+  font: var(--t-headline);
+}
 .checks-pop {
   position: absolute;
   right: var(--s-4);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-4) + 76px);
+  bottom: var(--above-counts);
   width: 380px;
-  max-height: calc(100% - 200px);
+  max-height: calc(100% - var(--above-counts) - var(--top) - var(--target) - var(--s-4));
   overflow: auto;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1203,6 +1263,20 @@ button:disabled {
   transform: translate(-50%, calc(-100% - var(--s-2)));
   white-space: nowrap;
   z-index: 10;
+}
+/* The caret points at the selection. */
+.selection-bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  background: var(--surface-glass);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 .selection-title {
   display: flex;
@@ -1336,7 +1410,7 @@ button:disabled {
   .ui {
     --rail: 0px;
     --tabbar: calc(56px + env(safe-area-inset-bottom, 0px));
-    --peek: 212px;
+    --peek: 164px;
     --above-sheet: var(--tabbar);
   }
   .ui[data-sheet="peek"] {
@@ -1352,7 +1426,7 @@ button:disabled {
   }
   /* In walk the toast rises above the pad. */
   .ui.cam-walk .toast {
-    bottom: calc(var(--tabbar) + var(--s-5) + 120px + var(--s-2));
+    bottom: calc(var(--tabbar) + var(--s-5) + var(--pad-size) + var(--s-2));
   }
   /* Top right: the camera, the light and Reset view; undo and redo under them (DESIGN_GUIDE §3.2). */
   .phone-controls {
@@ -1506,9 +1580,11 @@ button:disabled {
     animation: none;
     z-index: 15;
   }
+  .panel.detent-peek .panel-scroll {
+    overflow: hidden;
+  }
   .panel.detent-peek {
     height: var(--peek);
-    overflow: hidden;
   }
   .panel.detent-half {
     height: 48%;
@@ -1517,10 +1593,12 @@ button:disabled {
     height: calc(100% - var(--tabbar) - var(--top) - var(--s-4));
   }
   .sheet-head {
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    flex: none;
     background: var(--surface);
+  }
+  .panel-scroll > .panel-body > .page-head {
+    margin-top: 0;
+    padding: var(--s-2) var(--s-4);
   }
   .grabber {
     display: block;
@@ -1564,8 +1642,8 @@ button:disabled {
     position: absolute;
     left: var(--s-5);
     bottom: calc(var(--tabbar) + var(--s-5));
-    width: 120px;
-    height: 120px;
+    width: var(--pad-size);
+    height: var(--pad-size);
     border-radius: 50%;
     background: var(--pad-bg);
     border: 1px solid var(--pad-line);
@@ -1809,7 +1887,7 @@ textarea.text-input {
 .inspector-foot {
   align-self: flex-start;
   border-top: 1px solid var(--line);
-  padding-top: var(--s-2);
+  padding: var(--s-2) 0 0;
   width: 100%;
   text-align: left;
 }

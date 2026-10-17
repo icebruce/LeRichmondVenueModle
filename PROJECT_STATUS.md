@@ -33,7 +33,7 @@
 - Library: ~90 items across tables, chairs, linens, tableware, candles, florals, plants, lights, signs, event pieces; custom pieces added later through in-app requests built by Claude (owner-approved 2026-10-15).
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
-- Phone sheet peek is 164 pt (owner, 2026-10-16); 212 pt proposed in 4C so the action tiles fit under the two-line counts (pending owner approval; DESIGN_GUIDE §3.2).
+- Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
 - Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine. **Superseded 2026-10-17**, see below.
 - Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
 - Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).

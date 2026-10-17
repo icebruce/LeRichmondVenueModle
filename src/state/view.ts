@@ -25,6 +25,8 @@ export type ViewState = {
   insetLeft: number;
   /** Phone: pixels covered by the tab bar plus bottom sheet. */
   insetBottom: number;
+  /** Phone: the width of the control column on the right; the overview keeps the room clear of it. */
+  insetRight: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
   /** Scenario shown side by side with the active one, from the same camera (SCN-06). */
@@ -56,6 +58,7 @@ export const viewStore = createStore<ViewState>(() => ({
   view: null,
   insetLeft: 0,
   insetBottom: 0,
+  insetRight: 0,
   anchor: null,
   focus: [8, 7],
   showPeople: true,

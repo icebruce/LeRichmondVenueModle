@@ -30,7 +30,9 @@ async function signIn(browser: Browser, partner: "A" | "B") {
   });
   await expect(page.locator(".loading")).toHaveCount(0, { timeout: 120_000 });
   await settle(page);
-  await expect(page.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
+  await expect(page.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved · shared", {
+    timeout: 20_000,
+  });
   return page;
 }
 
@@ -61,7 +63,9 @@ test("[SCN-02] [SCN-05] a change and a note on the laptop appear on the phone af
   await a.getByTestId("note-input").fill("Long tables feel fuller.");
   await a.getByTestId("notes").getByRole("button", { name: "Add" }).click();
   await expect(a.getByTestId("notes")).toContainText("Partner A");
-  await expect(a.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
+  await expect(a.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved · shared", {
+    timeout: 20_000,
+  });
   await a.waitForTimeout(2500);
   await a.context().close();
   const b = await signIn(browser, "B");

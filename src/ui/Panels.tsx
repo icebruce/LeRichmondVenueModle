@@ -328,19 +328,21 @@ export function PageHead({
   onBack?: () => void;
   action?: React.ReactNode;
 }) {
+  const head = (
+    <div className="panel-head">
+      <h2 className="panel-title">{title}</h2>
+      {action}
+    </div>
+  );
+  if (!back) return head;
   return (
-    <>
-      {back && (
-        <button type="button" className="back-btn" onClick={onBack} data-testid="back">
-          <Icon name="back" size={18} />
-          {back}
-        </button>
-      )}
-      <div className="panel-head">
-        <h2 className="panel-title">{title}</h2>
-        {action}
-      </div>
-    </>
+    <div className="page-head">
+      <button type="button" className="back-btn" onClick={onBack} data-testid="back">
+        <Icon name="back" size={18} />
+        {back}
+      </button>
+      {head}
+    </div>
   );
 }
 
@@ -371,7 +373,15 @@ export function NavRow({
 }
 
 /** The checks (LAY-08), tightest first; a row selects the items involved. Advice only, never a block. */
-export function ChecksList({ onAdjust }: { onAdjust: () => void }) {
+export function ChecksList({
+  onAdjust,
+  onClose,
+  phone,
+}: {
+  onAdjust: () => void;
+  onClose: () => void;
+  phone: boolean;
+}) {
   const { editor } = useStudio();
   const list = useAdvisories();
   const [all, setAll] = useState(false);
@@ -379,9 +389,20 @@ export function ChecksList({ onAdjust }: { onAdjust: () => void }) {
   const shown = all ? list : list.slice(0, 3);
   return (
     <div className="panel-body" data-testid="checks" id="checks">
-      <h2 className="panel-title">
-        {list.length ? `${list.length} ${list.length === 1 ? "check" : "checks"}` : "Checks"}
-      </h2>
+      <div className="panel-head">
+        <h2 className={phone ? "panel-title" : "pop-title"}>
+          {list.length ? `${list.length} ${list.length === 1 ? "check" : "checks"}` : "Checks"}
+        </h2>
+        {phone ? (
+          <button type="button" className="plain-btn" onClick={onClose}>
+            Done
+          </button>
+        ) : (
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close checks">
+            <Icon name="close" />
+          </button>
+        )}
+      </div>
       <p className="hint">Places tighter than your layout rules. Advice only: nothing is blocked.</p>
       {list.length === 0 ? (
         <p className="hint">Nothing is tighter than your rules.</p>
@@ -739,7 +760,7 @@ export function DecorPanel() {
   const labels = tableLabels(scenario.items, catalog);
   return (
     <div className="panel-body" data-testid="decor-panel">
-      <h2 className="panel-title">Décor</h2>
+      <h2 className="panel-title">Style</h2>
       {tables.length > 0 ? (
         <Segmented
           label="Apply to"
@@ -1369,7 +1390,11 @@ export function Inspector({
       <PageHead
         title={
           <>
-            {title} {!many && entry && <ResultBadge entry={entry} />}
+            {title}
+            {phone && seated && (
+              <span className="title-sub"> · {"seats" in shape ? shape.seats : 0} seats</span>
+            )}{" "}
+            {!many && entry && <ResultBadge entry={entry} />}
           </>
         }
         back={back?.label}
@@ -1417,6 +1442,11 @@ export function Inspector({
           ≈ {item.x.toFixed(1)} m from the glass-door wall, {item.z.toFixed(1)} m from the back-bar wall.
           {touch ? "" : " Arrow keys nudge 10 cm."}
         </p>
+      )}
+      {!phone && isTable(item, catalog) && (
+        <div className="list">
+          <NavRow label="Style this table" onClick={onStyle} testId="style-table" />
+        </div>
       )}
       {!many && entry && (
         <button

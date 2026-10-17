@@ -6,6 +6,7 @@ import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three
 import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import { pointInPolygon } from "../domain/geometry";
+import { footprint } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
@@ -192,6 +193,7 @@ function SelectionAnchor() {
   const { editor, catalog, venue } = useStudio();
   const get = useThree((s) => s.get);
   const point = useMemo(() => new THREE.Vector3(), []);
+  const corner = useMemo(() => new THREE.Vector3(), []);
   useFrame(() => {
     const s = editor.store.getState();
     const items = s.scenarios[s.activeId]?.items.filter((i) => s.selection.includes(i.id)) ?? [];
@@ -210,7 +212,14 @@ function SelectionAnchor() {
       );
       const { camera, size } = get();
       point.set(x, top + 0.15, z).project(camera);
-      if (Math.abs(point.z) < 1) next = [((point.x + 1) / 2) * size.width, ((1 - point.y) / 2) * size.height];
+      if (Math.abs(point.z) < 1) {
+        // Above the whole selection as drawn: the highest corner of its footprint on screen.
+        let y = point.y;
+        for (const i of items)
+          for (const [cx, cz] of footprint(i, catalog))
+            y = Math.max(y, corner.set(cx, top + 0.15, cz).project(camera).y);
+        next = [((point.x + 1) / 2) * size.width, ((1 - y) / 2) * size.height];
+      }
     }
     const prev = viewStore.getState().anchor;
     const moved = !prev || !next || Math.hypot(prev[0] - next[0], prev[1] - next[1]) > 0.5;

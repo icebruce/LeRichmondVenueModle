@@ -42,6 +42,39 @@ function FollowCamera() {
   return null;
 }
 
+/**
+ * How far to scale a pose's distance from its target so that every point lands inside the central
+ * `fx` × `fy` share of the view (the free area, in normalised device units), with a small margin.
+ */
+function fitScale(
+  pose: Pose,
+  fov: number,
+  aspect: number,
+  fx: number,
+  fy: number,
+  points: readonly THREE.Vector3[],
+): number {
+  const cam = new THREE.PerspectiveCamera(fov, aspect, 0.1, 500);
+  const dir = pose.position.clone().sub(pose.target);
+  const p = new THREE.Vector3();
+  const fits = (k: number) => {
+    cam.position.copy(dir).multiplyScalar(k).add(pose.target);
+    cam.lookAt(pose.target);
+    cam.updateMatrixWorld();
+    return points.every((q) => {
+      p.copy(q).project(cam);
+      return Math.abs(p.z) < 1 && Math.abs(p.x) <= fx * 0.94 && Math.abs(p.y) <= fy * 0.94;
+    });
+  };
+  let [lo, hi] = [0.3, 6];
+  for (let i = 0; i < 24; i++) {
+    const k = (lo + hi) / 2;
+    if (fits(k)) hi = k;
+    else lo = k;
+  }
+  return hi;
+}
+
 export function CameraRig({ follow = false }: { follow?: boolean }) {
   if (follow) return <FollowCamera />;
   return <MainCamera />;
@@ -54,12 +87,21 @@ function MainCamera() {
   const view = useView((s) => s.view);
   const insetLeft = useView((s) => s.insetLeft);
   const insetBottom = useView((s) => s.insetBottom);
+  const insetRight = useView((s) => s.insetRight);
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
+  // The room to frame: its floor and walls up to the mezzanine's height (the cut-away view).
+  const roomCorners = useMemo(
+    () =>
+      [0, venue.width].flatMap((x) =>
+        [0, venue.depth].flatMap((z) => [0, venue.mezzanineHeight].map((y) => new THREE.Vector3(x, y, z))),
+      ),
+    [venue],
+  );
 
   const poses = useMemo(() => {
     const get = (k: string) => {
@@ -86,15 +128,16 @@ function MainCamera() {
           target: new THREE.Vector3(seat.look[0], seat.y + SEAT_EYE - 0.35, seat.look[1]),
         }
       : presetPose(p);
-    // Narrow screens, or a panel covering the left side: pull overview cameras back so the room fits.
-    const flat = mode === "walk" || comparing;
-    const visible = flat ? size.width : size.width - insetLeft;
-    // Phone: fit the band above the sheet, not the whole screen.
-    const band = flat ? size.height : size.height - insetBottom;
-    const aspect = visible / Math.max(1, band);
-    if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
-      const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
-      to.position.sub(to.target).multiplyScalar(k).add(to.target);
+    // Overview cameras pull back until the room fits the free area: beside the desktop panel, or
+    // above a phone's sheet and clear of its control column. They never come closer than the preset.
+    if (key === "dollhouse" || key === "plan") {
+      const flat = comparing;
+      const fullW = size.width + (flat ? 0 : insetLeft);
+      const fullH = size.height + (flat ? 0 : insetBottom);
+      const freeW = size.width - (flat ? 0 : insetLeft + 2 * insetRight);
+      const freeH = size.height - (flat ? 0 : insetBottom);
+      const k = fitScale(to, p.fov, fullW / Math.max(1, fullH), freeW / fullW, freeH / fullH, roomCorners);
+      to.position.sub(to.target).multiplyScalar(Math.max(1, k)).add(to.target);
     }
     tween.current = {
       from: { position: camera.position.clone(), target: target.clone() },
@@ -108,7 +151,7 @@ function MainCamera() {
   // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
   // unless the couple has moved the view since: their view is never thrown away.
   const pane = comparing ? `${size.width}x${size.height}` : "";
-  const band = comparing ? "" : String(insetBottom);
+  const band = comparing ? "" : `${insetBottom}:${insetRight}`;
   const userMoved = useRef(false);
   const framed = useRef({ mode, comparing });
   useEffect(() => {

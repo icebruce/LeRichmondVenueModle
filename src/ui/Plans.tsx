@@ -9,8 +9,11 @@ import { useServices } from "./services";
 import { VersionHistory } from "./Dialogs";
 import { Chips, PageHead } from "./Panels";
 
-/** Where the active plan is saved (DESIGN_GUIDE §7): "Saving…", "Saved · shared", or what went wrong. */
-export function SaveState() {
+/**
+ * Where the active plan is saved (DESIGN_GUIDE §7): "Saving…", "Saved · shared", or what went wrong.
+ * `short` (the desktop toolbar): a saved plan reads "● Saved", the rest in its tooltip.
+ */
+export function SaveState({ short = false }: { short?: boolean }) {
   const state = useEditor((s) => s.saveState);
   const cloud = useEditor((s) => s.cloud);
   const text =
@@ -25,9 +28,17 @@ export function SaveState() {
           : cloud
             ? "Saved · shared"
             : "Saved on this device";
+  const saved = state !== "saving" && state !== "offline" && state !== "error";
   return (
-    <span className={`save-state ${state}`} data-testid="save-state">
-      {text}
+    <span className={`save-state ${state}`} title={text} aria-label={text} data-testid="save-state">
+      {short && saved ? (
+        <>
+          <i className="save-dot" aria-hidden="true" />
+          Saved
+        </>
+      ) : (
+        text
+      )}
     </span>
   );
 }
@@ -331,7 +342,7 @@ function CompareControls() {
           }}
           data-testid="compare-duplicate"
         >
-          Duplicate this plan
+          Duplicate to compare
         </button>
       </div>
     );

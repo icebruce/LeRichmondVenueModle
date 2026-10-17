@@ -135,8 +135,7 @@ function CountsLine({ onAdvisories }: { onAdvisories: () => void }) {
   const c = useSummary();
   return (
     <p className="counts-line" aria-label="Counts">
-      <span>{c.tables} tables</span> · <span>{c.seats} seats</span> · <span>{c.guests} guests</span> ·{" "}
-      <span>≈ {Math.round(c.danceFloorM2)} m² dance area</span>
+      <span>{c.tables} tables</span> · <span>{c.seats} seats</span>
       {c.withoutSeat > 0 && (
         <>
           {" "}
@@ -483,9 +482,11 @@ export function StudioUI() {
 
   // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
   const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
+  // Phone: the overview keeps the room clear of the control column on the right (44 pt + margins).
+  const insetRight = phone ? 64 : 0;
   useEffect(() => {
-    viewStore.setState({ insetLeft });
-  }, [insetLeft]);
+    viewStore.setState({ insetLeft, insetRight });
+  }, [insetLeft, insetRight]);
 
   // Phone: the camera centres the room above the sheet and the tab bar, measured again once the
   // sheet's height transition ends.
@@ -587,7 +588,7 @@ export function StudioUI() {
   const label = SECTIONS.find((s) => s.id === section)?.label ?? "";
   const content =
     phone && checks ? (
-      <ChecksList onAdjust={adjustRules} />
+      <ChecksList onAdjust={adjustRules} onClose={() => setChecks(false)} phone />
     ) : phoneSelection ? (
       <Inspector phone onStyle={styleSelection} />
     ) : !phone && details && hasSelection ? (
@@ -598,7 +599,12 @@ export function StudioUI() {
 
   // Phone sheet: drag its handle, or its content once scrolled to the top, to step it down to closed
   // or up to full; a quick flick skips a step (DESIGN_GUIDE §3.2).
-  const panel = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // Each new page starts at its top (the scroll area is shared by every section and page).
+  const scrollKey = `${section}:${page}:${details}:${phoneSelection}:${checks}`;
+  useEffect(() => {
+    panel.current?.scrollTo({ top: 0 });
+  }, [scrollKey]);
   const swipe = useRef<{ x: number; y: number; t: number; top: boolean } | null>(null);
   const startSwipe = (t: { clientX: number; clientY: number } | undefined, from: EventTarget) => {
     // Sliders and scrubbed figures keep their own drags.
@@ -660,9 +666,10 @@ export function StudioUI() {
                 title="Plans"
                 data-testid="plan-name"
               >
-                {editor.active().name}
+                <span className="plan-name-text">{editor.active().name}</span>
+                <Icon name="chevron" size={16} />
               </button>
-              <SaveState />
+              <SaveState short />
             </div>
             <CameraSwitch />
             <Actions />
@@ -673,7 +680,6 @@ export function StudioUI() {
 
       {panelShown && (
         <aside
-          ref={panel}
           className={`panel detent-${detent}`}
           aria-label={label}
           style={phone ? undefined : { width }}
@@ -694,7 +700,9 @@ export function StudioUI() {
               <SaveState />
             </div>
           )}
-          {content}
+          <div className="panel-scroll" ref={panel}>
+            {content}
+          </div>
           {!phone && (
             <button
               type="button"
@@ -740,7 +748,7 @@ export function StudioUI() {
       {showCounts && <Counts onAdvisories={openChecks} />}
       {!phone && checks && (
         <div className="checks-pop" role="dialog" aria-label="Checks">
-          <ChecksList onAdjust={adjustRules} />
+          <ChecksList onAdjust={adjustRules} onClose={() => setChecks(false)} phone={false} />
         </div>
       )}
       {!phone && !compare && camera !== "walk" && !pickSeat && (

@@ -488,7 +488,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
   await page.keyboard.press("Enter");
   await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
-  await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved on this device");
   await page.goto("/");
   await page.waitForFunction(() => (window as unknown as { __studio?: unknown }).__studio);
   const s = await state(page);
@@ -500,7 +500,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
   await openStudio(page, "fresh");
   await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /Fewer/ }).click();
-  await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved on this device");
   await page.goto("/?quality=low");
   await page.waitForFunction(() => (window as unknown as { __studio?: unknown }).__studio);
   const after = await state(page);
