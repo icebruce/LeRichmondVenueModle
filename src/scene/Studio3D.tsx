@@ -206,13 +206,7 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <Railing venue={venue} m={m} />
       <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
       <BackBar venue={venue} m={m} />
-      <Furnishings
-        venue={venue}
-        m={m}
-        communalTable={scenario.venueToggles.communalTable}
-        art={mode !== "plan"}
-        choices={scenario.venueToggles.paintings}
-      />
+      <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
       {!cut.has("south") && <Mezzanine venue={venue} m={m} />}

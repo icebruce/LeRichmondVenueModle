@@ -67,13 +67,14 @@ describe("placement", () => {
     expect(checkPlacement({ ...dj, options: { spot: "free" } }, [], venue, catalog).ok).toBe(false);
   });
 
-  test("[LAY-12] the communal high table blocks placement only when shown", () => {
-    const t = table({ x: 4.1, z: 5.0, rotY: Math.PI / 2, options: { seats: 4 } });
+  test("[LAY-12] the bar stools block placement only when shown", () => {
+    const [x0, , x1, z1] = venue.data.bar.outer.value;
+    const t = table({ x: (x0 + x1) / 2, z: z1 + 1.4, options: { seats: 4 } });
     expect(checkPlacement(t, [], venue, catalog).ok).toBe(true);
-    const shown = toggledObstacles(venue, { communalTable: true, barStools: false });
+    const shown = toggledObstacles(venue, { barStools: true });
     expect(checkPlacement(t, [], venue, catalog, shown)).toEqual({
       ok: false,
-      reason: "Overlaps the communal high table",
+      reason: "Overlaps the bar stools",
     });
   });
 
@@ -99,9 +100,9 @@ describe("placement", () => {
 });
 
 describe("tables and chairs", () => {
-  test("[LAY-03] rectangle length follows seats; 12 seats = 6 + 6, or 5 + 5 + 2 ends", () => {
-    expect(rectTable(12, false)).toMatchObject({ perSide: 6, length: 4.5, width: 1.0 });
-    expect(rectTable(12, true)).toMatchObject({ perSide: 5, length: 3.8 });
+  test("[LAY-03] [LIB-01] rectangle length follows seats (0.70 m a guest); 12 = 6 + 6, or 5 + 5 + 2 ends", () => {
+    expect(rectTable(12, false)).toMatchObject({ perSide: 6, length: 4.2, width: 1.0 });
+    expect(rectTable(12, true)).toMatchObject({ perSide: 5, length: 3.5 });
     const s = shapeOf(table({ options: { seats: 12, ends: true } }), catalog);
     expect(s.kind === "rectTable" && s.chairs.length).toBe(12);
   });
@@ -170,14 +171,14 @@ describe("alignment snapping", () => {
     expect(alignSnap({ x: 10.05, z: 1 }, others, catalog).guides).toEqual([]);
   });
 
-  test("[LAY-05] the dance floor is not a line to snap to", () => {
+  test("[LAY-05] the dance area is not a line to snap to", () => {
     const floor: Item = { id: "f", libraryId: "dance-floor", x: 6, z: 6, rotY: 0, options: {} };
     expect(alignSnap({ x: 6.05, z: 7 }, [floor], catalog).guides).toEqual([]);
   });
 });
 
 describe("walking", () => {
-  const off = { communalTable: false, barStools: false };
+  const off = { barStools: false };
 
   test("[CAM-03] a guest can stand on open floor but not in the bar, a table or past the walls", () => {
     const t = table({ x: 3, z: 9 });
@@ -197,13 +198,13 @@ describe("walking", () => {
     expect(free([14, 12.5])).toBe(false);
   });
 
-  test("[CAM-03] the dance floor is walked on; venue furniture blocks only when shown", () => {
+  test("[CAM-03] the dance area is walked on; bar stools block only when shown", () => {
     const floor: Item = { id: "f", libraryId: "dance-floor", x: 3, z: 11, rotY: 0, options: {} };
     expect(walkArea(venue, [floor], catalog, off)([3, 11])).toBe(true);
-    const [x0, z0, x1, z1] = venue.data.fixtures.venueFurniture.communalTable.rect;
-    const mid: [number, number] = [(x0 + x1) / 2, (z0 + z1) / 2];
-    expect(walkArea(venue, [], catalog, off)(mid)).toBe(true);
-    expect(walkArea(venue, [], catalog, { ...off, communalTable: true })(mid)).toBe(false);
+    const [x0, , x1, z1] = venue.data.bar.outer.value;
+    const front: [number, number] = [(x0 + x1) / 2, z1 + 0.3];
+    expect(walkArea(venue, [], catalog, off)(front)).toBe(true);
+    expect(walkArea(venue, [], catalog, { barStools: true })(front)).toBe(false);
   });
 
   test("[CAM-03] the raised-floor railing blocks; its steps let a guest through", () => {

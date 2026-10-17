@@ -103,7 +103,7 @@ Desktop layout with the inspector as an overlay sheet from the right.
 | Segmented control | 2–4 options, equal widths, sliding selection indicator. |
 | Swatch | 32 pt circle in a 44 pt target; selected = 2 pt accent ring with 3 pt offset; name below on hover/long-press. |
 | Stepper + figure | For counts (seats, guests): large tabular figure, −/+ buttons, drag on the figure to scrub. |
-| Slider | Only for continuous values (dance floor size, thresholds); always shows the value and unit. |
+| Slider | Only for continuous values (dance area size, thresholds); always shows the value and unit. |
 | Toast | Bottom-centre, 4 s, one at a time; always carries Undo after a destructive action. |
 | Badge | Fidelity labels and "approx." markers: caption size, hairline outline, never colour-only. |
 | Empty state | One sentence, one primary action, no illustration clutter. |
@@ -117,7 +117,7 @@ Desktop layout with the inspector as an overlay sheet from the right.
 
 - **Hover** (desktop): soft accent outline. **Selection:** solid accent outline + footprint ring on the floor + rotate handle (a small brass circle 0.4 m off the item's edge).
 - **Dragging:** the item lifts 2 cm with a soft shadow; a ghost footprint shows where it lands; snapping guides are thin accent lines.
-- **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release.
+- **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release. Any refused change (move, turn, option, venue furniture) also shows a toast with the reason ("Overlaps the bar. Nothing was changed."), so it is seen wherever the couple is (2026-10-17).
 - **Advisory:** amber dashed overlay on the problem area (aisle, doorway), with a short label and a details row in the inspector. Never blocks the action.
 - **Dimensions** appear while dragging or resizing, in metres with one decimal, prefixed "≈".
 

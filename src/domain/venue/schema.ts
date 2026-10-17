@@ -172,7 +172,6 @@ export const venueSchema = z.object({
     ducts: z.object({ positions: z.array(z.number()), radius: z.number(), drop: z.number() }),
     skylight: z.object({ x: z.number(), z: z.number(), size: z.number() }),
     venueFurniture: z.object({
-      communalTable: z.object({ rect: rect4, height: z.number() }),
       barStools: z.object({ count: z.number().int() }),
     }),
   }),

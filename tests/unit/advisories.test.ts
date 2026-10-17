@@ -4,8 +4,8 @@ import { advise } from "../../src/domain/layout/advisories";
 import type { Item } from "../../src/domain/layout/items";
 import { DEFAULT_THRESHOLDS, venueSampleItems } from "../../src/domain/scenario/scenario";
 
-/** Communal table and bar stools hidden (the venue's default). */
-const NONE = { communalTable: false, barStools: false };
+/** Bar stools hidden (the venue's default). */
+const NONE = { barStools: false };
 
 const t = (id: string, x: number, z: number): Item => ({
   id,
@@ -18,7 +18,7 @@ const t = (id: string, x: number, z: number): Item => ({
 
 describe("advisories", () => {
   test("[LAY-08] a narrow aisle between chair backs is named, with its width and the setting", () => {
-    // Rect 8: 3.0 × 0.9 m with 0.55 m chair zones → 2.0 m deep; 2.8 m apart leaves ≈ 0.8 m.
+    // Rect 8: 2.8 × 0.9 m with 0.55 m chair zones → 2.0 m deep; 2.8 m apart leaves ≈ 0.8 m.
     const a = advise([t("a", 4, 4), t("b", 4, 6.8)], 16, DEFAULT_THRESHOLDS, venue, catalog, NONE);
     const aisle = a.find((x) => x.kind === "aisle");
     expect(aisle?.message).toBe("Aisle ≈ 0.8 m between table 1 and table 2 — below your 1.0 m setting");
@@ -29,7 +29,7 @@ describe("advisories", () => {
     const xs = (aisle?.area ?? []).map((p) => p[0]);
     expect(Math.min(...zs)).toBeCloseTo(5.0, 1);
     expect(Math.max(...zs)).toBeCloseTo(5.8, 1);
-    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(2.8);
     const relaxed = advise(
       [t("a", 4, 4), t("b", 4, 6.8)],
       16,
@@ -41,7 +41,7 @@ describe("advisories", () => {
     expect(relaxed.some((x) => x.kind === "aisle")).toBe(false);
   });
 
-  test("[LAY-08] a table in front of the kitchen pass is flagged; the dance floor there is not", () => {
+  test("[LAY-08] a table in front of the kitchen pass is flagged; the dance area there is not", () => {
     const pass: Item = { ...t("p", 7.0, 12.7), rotY: 0 };
     expect(advise([pass], 0, DEFAULT_THRESHOLDS, venue, catalog, NONE).map((x) => x.message)).toContain(
       "Clearance ≈ 0.6 m at the kitchen pass (table 1) — below your 1.2 m setting",
@@ -59,7 +59,7 @@ describe("advisories", () => {
     ).toBe(false);
   });
 
-  test("[LAY-08] dance floor size is compared with 35% of guests at 0.45 m² each", () => {
+  test("[LAY-08] dance area size is compared with 35% of guests at 0.45 m² each", () => {
     const items = venueSampleItems();
     // Sample floor 6.6 × 3.3 ≈ 21.8 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
     expect(advise(items, 75, DEFAULT_THRESHOLDS, venue, catalog, NONE).some((x) => x.kind === "dance")).toBe(
@@ -67,7 +67,7 @@ describe("advisories", () => {
     );
     expect(
       advise(items, 150, DEFAULT_THRESHOLDS, venue, catalog, NONE).find((x) => x.kind === "dance")?.message,
-    ).toBe("Dance floor ≈ 22 m² — below the ≈ 24 m² your settings suggest for 150 guests");
+    ).toBe("Dance area ≈ 22 m² — below the ≈ 24 m² your settings suggest for 150 guests");
   });
 
   test("[LAY-08] the venue sample plan: tightest aisles first, and the DJ near the exit door", () => {
@@ -83,19 +83,14 @@ describe("advisories", () => {
   });
 
   test("[LAY-12] shown venue furniture counts for the checks; hidden, it frees its floor", () => {
-    // Communal table with stools spans x 3.15–5.0; a turned table 8 at x 6.4 leaves ≈ 0.4 m.
-    const near: Item = { ...t("n", 6.4, 5), rotY: Math.PI / 2 };
-    const shown = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, {
-      communalTable: true,
-      barStools: false,
-    });
+    // The stools take 0.6 m in front of the bar; chair backs 1.0 m further leave ≈ 0.4 m.
+    const [x0, , x1, z1] = venue.data.bar.outer.value;
+    const near = t("n", (x0 + x1) / 2, z1 + 2.0);
+    const shown = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, { barStools: true });
     expect(shown.map((x) => x.message)).toContain(
-      "Aisle ≈ 0.4 m between table 1 and the communal high table — below your 1.0 m setting",
+      "Aisle ≈ 0.4 m between table 1 and the bar stools — below your 1.0 m setting",
     );
-    const hidden = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, {
-      communalTable: false,
-      barStools: false,
-    });
-    expect(hidden.some((x) => x.message.includes("communal"))).toBe(false);
+    const hidden = advise([near], 0, DEFAULT_THRESHOLDS, venue, catalog, { barStools: false });
+    expect(hidden.some((x) => x.message.includes("stools"))).toBe(false);
   });
 });

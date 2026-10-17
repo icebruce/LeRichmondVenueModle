@@ -23,6 +23,9 @@ export type Item = {
 export type Chair = { x: number; z: number; rotY: number };
 
 /** Resolved shape of an item, in its local frame (centred on the origin, before rotation). */
+/** The dance area's colour (LIB-01): a warm sand, the same in the room and on the printed plan. */
+export const DANCE_AREA_COLOUR = "#c4a578";
+
 export type Shape =
   | {
       kind: "rectTable";
@@ -35,7 +38,7 @@ export type Shape =
     }
   | { kind: "roundTable"; diameter: number; height: number; seats: number; chairs: Chair[] }
   | { kind: "cocktail"; diameter: number; height: number }
-  | { kind: "danceFloor"; width: number; depth: number; finish: string }
+  | { kind: "danceFloor"; width: number; depth: number }
   | { kind: "djBooth"; width: number; depth: number; height: number; front: string }
   /** Fabric panels on a free-standing frame (LIB-03 drapery), e.g. behind the sweetheart table. */
   | { kind: "backdrop"; width: number; height: number; colour: string }
@@ -160,7 +163,6 @@ const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p
     kind: "danceFloor",
     width: num(o.width, e.sizeM.w),
     depth: num(o.depth, e.sizeM.d),
-    finish: String(o.finish ?? "wood"),
   }),
   djBooth: (e, o) => ({
     kind: "djBooth",

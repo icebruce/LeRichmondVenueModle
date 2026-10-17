@@ -22,7 +22,7 @@ function grid(x0: number, z0: number, x1: number, z1: number, pitch: number): Ve
 
 /**
  * Where the guests are (PPL-01): seats fill first, in table order; the rest stand in open floor near
- * the bar, never on the dance floor at dinner. At the party the dance floor fills first.
+ * the bar, never on the dance area at dinner. At the party the dance area fills first.
  */
 export function placePeople(
   items: readonly Item[],

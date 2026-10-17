@@ -5,6 +5,7 @@ import { FLOWER_TYPES, type Part, type Prim } from "../../src/domain/layout/deco
 import { PIECE_GENERATORS, makePiece } from "../../src/domain/layout/pieces";
 import { type Item, blocksFloor, footprint, shapeOf } from "../../src/domain/layout/items";
 import { checkPlacement } from "../../src/domain/layout/validate";
+import { countLayout } from "../../src/domain/layout/counts";
 import { resolveOptions } from "../../src/domain/library/catalog";
 
 /** Triangles per unit primitive, as the scene builds them (Decor.tsx `primitives`). */
@@ -188,6 +189,49 @@ describe("step-3 library pieces", () => {
       expect(o?.type === "choice" ? o.choices.map((c) => c.value) : [], e.id).toEqual(
         Object.keys(FLOWER_TYPES),
       );
+    }
+  });
+});
+
+describe("dance area and hanging lights", () => {
+  test("[LIB-01] the dance area is an outline: sized freely, no floor finish, its area counted", () => {
+    const entry = catalog.get("dance-floor");
+    expect(entry?.name).toBe("Dance area");
+    expect(entry?.options.map((o) => o.key)).toEqual(["width", "depth"]);
+    const area: Item = {
+      id: "d",
+      libraryId: "dance-floor",
+      x: 6,
+      z: 11,
+      rotY: 0,
+      options: { width: 5, depth: 4 },
+    };
+    expect(countLayout([area], 75, catalog).danceFloorM2).toBeCloseTo(20);
+  });
+
+  test("[LIB-08] hanging and ceiling lights hang from 2.2 m to just under the ceiling, even on the raised floor", () => {
+    const ceiling = venue.data.room.ceiling.value - venue.raised.height;
+    const lights = [...catalog.values()].filter(
+      (e) => e.family === "light" && (e.placement === "hanging" || e.placement === "ceiling"),
+    );
+    expect(lights.length).toBeGreaterThan(0);
+    for (const e of lights) {
+      const hang = e.options.find((o) => o.key === "hang");
+      if (hang?.type !== "number") throw new Error(`${e.id} has no hang`);
+      expect(hang.min, e.id).toBe(2.2);
+      expect(hang.max, e.id).toBeGreaterThanOrEqual(5);
+      const shape = shapeOf(
+        { id: "l", libraryId: e.id, x: 6, z: 6, rotY: 0, options: { hang: hang.max } },
+        catalog,
+      );
+      if (shape.kind !== "piece") throw new Error(`${e.id} is not a piece`);
+      const { parts } = makePiece(shape.generator, shape.params, shape.options, shape.size);
+      // Every solid part (cords included) stays under the ceiling at the highest setting.
+      // A tilted rod (a wire) rises only by its length times the cosine of its tilt.
+      const top = Math.max(
+        ...parts.filter((x) => x.prim !== "plane").map((x) => x.y + Math.max(0, x.sy * Math.cos(x.rz ?? 0))),
+      );
+      expect(top, e.id).toBeLessThanOrEqual(ceiling + 1e-9);
     }
   });
 });

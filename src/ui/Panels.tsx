@@ -880,8 +880,8 @@ export function PeoplePanel() {
       </div>
       <Toggle label="Show people" checked={show} onChange={(v) => viewStore.setState({ showPeople: v })} />
       <p className="hint">
-        People are simple neutral figures. Seated first; the rest stand near the bar, never on the dance floor
-        at dinner. At the party the dance floor fills.
+        People are simple neutral figures. Seated first; the rest stand near the bar, never on the dance area
+        at dinner. At the party the dance area fills.
       </p>
     </div>
   );
@@ -992,7 +992,7 @@ function CompareControls() {
     const notes = adviseScenario(s, venue, catalog).length;
     return [c.tables, c.seats, c.withoutSeat, `≈ ${Math.round(c.danceFloorM2)} m²`, notes] as const;
   });
-  const labels = ["Tables", "Seats", "Without a seat", "Dance floor", "Advisories"];
+  const labels = ["Tables", "Seats", "Without a seat", "Dance area", "Advisories"];
   if (others.length === 0)
     return (
       <div className="field">
@@ -1073,7 +1073,7 @@ const VIEWS: { key: string; label: string; detail: string }[] = [
   { key: "R03", label: "At the bar", detail: "Chandelier, back bar and paintings" },
   { key: "R09", label: "Toward the stair", detail: "Street windows and the mezzanine" },
   { key: "UV01", label: "From the mezzanine", detail: "The whole room from above" },
-  { key: "UV02", label: "Toward the kitchen", detail: "Dance floor side and the stair" },
+  { key: "UV02", label: "Toward the kitchen", detail: "Dance area side and the stair" },
 ];
 
 export function VenuePanel() {
@@ -1106,12 +1106,6 @@ export function VenuePanel() {
         ))}
       </ul>
       <h3 className="group-title">Restaurant furniture</h3>
-      <Toggle
-        label="Communal high table"
-        checked={toggles?.communalTable ?? false}
-        onChange={(v) => editor.setVenueToggle("communalTable", v)}
-        testId="toggle-communal"
-      />
       <Toggle
         label="Bar stools"
         checked={toggles?.barStools ?? false}
@@ -1278,7 +1272,6 @@ export function Inspector() {
   const { editor, catalog, venue } = useStudio();
   const selection = useEditor((s) => s.selection);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
-  const refusal = useEditor((s) => s.refusal);
   const advisories = useAdvisories();
   const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const items = scenario.items.filter((i) => selection.includes(i.id));
@@ -1328,7 +1321,6 @@ export function Inspector() {
     </>
   );
 
-  const myRefusal = refusal && ids.includes(refusal.itemId) ? refusal.reason : null;
   const mine = advisories.filter((a) => a.items.some((id) => ids.includes(id)));
 
   // Key actions sit right under the title so the phone sheet's peek height shows them (DESIGN_GUIDE §3.2).
@@ -1402,11 +1394,6 @@ export function Inspector() {
           <Icon name="trash" size={18} />
         </button>
       </div>
-      {myRefusal && (
-        <p className="refusal" role="alert">
-          {myRefusal}. Nothing was moved.
-        </p>
-      )}
       {mine.map((a) => (
         <p key={a.id} className="advice" data-testid="item-advisory">
           {a.message} (advisory)

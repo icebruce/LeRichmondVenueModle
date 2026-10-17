@@ -32,7 +32,7 @@ Rendering in CI uses software WebGL (SwiftShader), verified to work in this envi
 5. Create scenario B from A, change it, reload → both intact; export/import JSON round trip. (`SCN-01`, `SCN-08`, `SCN-09`)
 6. Two browser contexts edit the same scenario → second save gets the conflict choice. (`SCN-03`)
 7. Upload an image on phone emulation → crop → size → place on a table → reload → present. (`IMP-01..06`)
-8. Walk from the entrance to the dance floor without passing through objects. (`CAM-03`)
+8. Walk from the entrance to the dance area without passing through objects. (`CAM-03`)
 9. Export the layout PDF → file has table numbers and totals. (`EXP-01`)
 
 ## 4. What not to test

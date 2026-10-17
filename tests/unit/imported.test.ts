@@ -13,7 +13,12 @@ import {
   withImported,
 } from "../../src/domain/library/imported";
 import { entry } from "../../src/domain/library/catalog";
-import { type CustomRequest, type Imported, importedSchema } from "../../src/domain/library/schema";
+import {
+  type CustomRequest,
+  type Imported,
+  customRequestSchema,
+  importedSchema,
+} from "../../src/domain/library/schema";
 import { makePiece } from "../../src/domain/layout/pieces";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import { tableDecor, heightOf } from "../../src/domain/layout/decor";
@@ -222,7 +227,6 @@ const request = (over: Partial<CustomRequest> = {}): CustomRequest => ({
   placement: "table",
   notes: "Five arms, brushed gold",
   imageIds: ["img-abc123"],
-  status: "requested",
   createdAt: "2026-10-16T10:00:00.000Z",
   updatedAt: "2026-10-16T10:00:00.000Z",
   createdBy: "A",
@@ -269,7 +273,7 @@ describe("library API", () => {
 
   test("[REQ-01] [REQ-02] requests are private to the couple; Claude reads them with a read-only token", async () => {
     expect((await call("POST", "/api/library-requests", { request: request() })).status).toBe(201);
-    const later = request({ status: "in_progress", updatedAt: "2026-10-16T12:00:00.000Z" });
+    const later = request({ notes: "Five arms, brushed gold, 60 cm", updatedAt: "2026-10-16T12:00:00.000Z" });
     expect((await call("POST", "/api/library-requests", { request: later })).status).toBe(201);
     // An older change sent late does not undo the newer one.
     await call("POST", "/api/library-requests", { request: request({ notes: "old" }) });
@@ -277,13 +281,11 @@ describe("library API", () => {
     await call("PUT", "/api/uploads/img-abc123", jpeg, { "content-type": "image/jpeg" });
     cookie = "";
     const auth = { authorization: `Bearer ${TOKEN}` };
-    const open = (await (
-      await call("GET", "/api/library-requests?status=in_progress", undefined, auth)
-    ).json()) as {
+    const open = (await (await call("GET", "/api/library-requests", undefined, auth)).json()) as {
       requests: CustomRequest[];
     };
     expect(open.requests).toHaveLength(1);
-    expect(open.requests[0]).toMatchObject({ status: "in_progress", notes: "Five arms, brushed gold" });
+    expect(open.requests[0]).toMatchObject({ notes: "Five arms, brushed gold, 60 cm" });
     expect((await call("GET", "/api/uploads/img-abc123", undefined, auth)).status).toBe(200);
     // Read-only: the token cannot change anything, and a wrong token reads nothing.
     expect(
@@ -294,19 +296,20 @@ describe("library API", () => {
       (await call("GET", "/api/library-requests", undefined, { authorization: "Bearer nope" })).status,
     ).toBe(401);
     // Merging keeps each request's latest change.
-    expect(mergeRequests([later], [request()])[0]?.status).toBe("in_progress");
+    expect(mergeRequests([later], [request()])[0]?.notes).toBe("Five arms, brushed gold, 60 cm");
   });
 });
 
 describe("custom requests and honest results", () => {
-  test("[REQ-02] a request shows In library, with its item, once a library entry carries its id", () => {
+  test("[REQ-02] a request shows Ready, with its item, once a library entry carries its id", () => {
     const r = request();
     expect(requestStatus(r, catalog)).toMatchObject({ status: "requested", label: "Requested" });
-    expect(requestStatus({ ...r, status: "in_progress" }, catalog).label).toBe("In progress");
+    // A request stored with the old hand-set status still opens; the status is simply dropped.
+    expect(customRequestSchema.parse({ ...r, status: "in_progress" })).not.toHaveProperty("status");
     const built = { ...entry(catalog, "candelabra-5"), id: "candelabra-gold", requestId: r.id };
     const withBuilt = new Map([...catalog, [built.id, built]]);
     expect(requestStatus(r, withBuilt)).toMatchObject({
-      status: "in_library",
+      status: "ready",
       entry: { id: "candelabra-gold" },
     });
   });

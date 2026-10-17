@@ -288,10 +288,9 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
 export function Furnishings({
   venue,
   m,
-  communalTable,
   art,
   choices,
-}: Omit<P, "evening"> & { communalTable: boolean; art: boolean; choices: Record<string, string> }) {
+}: Omit<P, "evening"> & { art: boolean; choices: Record<string, string> }) {
   const g = useMemo(() => {
     const f = venue.data.fixtures;
     const seats: THREE.BufferGeometry[] = [];
@@ -311,9 +310,7 @@ export function Furnishings({
       f.wineWall.height + 0.12,
       wz1 + 0.2,
     );
-    const [cx0, cz0, cx1, cz1] = f.venueFurniture.communalTable.rect;
-    const communal = boxGeo(cx0, 0, cz0, cx1, f.venueFurniture.communalTable.height, cz1);
-    return { seats: merge(seats), backs: merge(backs), wine, wineCanopy, communal };
+    return { seats: merge(seats), backs: merge(backs), wine, wineCanopy };
   }, [venue]);
   // Hidden or swapped per scenario (VEN-05).
   const paintings = useMemo(
@@ -336,7 +333,6 @@ export function Furnishings({
       {g.backs && <mesh geometry={g.backs} material={m.leather} receiveShadow />}
       <mesh geometry={g.wine} material={m.wineFrame} />
       <mesh geometry={g.wineCanopy} material={m.steel} />
-      {communalTable && <mesh geometry={g.communal} material={m.barBase} castShadow />}
       {/* Plan view is a flat working drawing: no wall art lying outside the walls. */}
       {art &&
         paintings.map((p) => (

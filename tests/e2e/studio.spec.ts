@@ -41,7 +41,7 @@ test("[LAY-02] [LAY-04] [LAY-06] drag a table, get refused on the bar, undo", as
 
   await dragItem(page, "t1", [7.7, 6.0]);
   expect((await item(page, "t1")).x).toBeCloseTo(moved.x, 1);
-  await expect(page.getByRole("alert")).toContainText("Overlaps the bar");
+  await expect(page.getByTestId("toast")).toContainText("Overlaps the bar. Nothing was changed.");
 
   await page.getByTestId("undo").click();
   expect((await item(page, "t1")).z).toBeCloseTo(before.z, 1);
@@ -63,7 +63,7 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
   expect((await state(page)).active?.items.length).toBe(count);
 });
 
-test("[LIB-01] [LIB-02] add a round table and a dance floor from the library", async ({ page }) => {
+test("[LIB-01] [LIB-02] add a round table and a dance area from the library", async ({ page }) => {
   await openStudio(page, "fresh");
   await page.getByRole("button", { name: /Option A/ }).click();
   await page.getByRole("menuitem", { name: "New empty room" }).click();
@@ -299,7 +299,7 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room an
   }
 });
 
-test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills the dance floor", async ({
+test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills the dance area", async ({
   page,
 }) => {
   await openStudio(page);

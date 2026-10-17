@@ -72,12 +72,12 @@ type Scenario = {                       // src/domain/scenario/schema.ts (zod) i
   schemaVersion: 3;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
-  items: Item[];                        // tables, dance floor, DJ; décor and imports from step 2
+  items: Item[];                        // tables, dance area, DJ; décor and imports from step 2
   style: TableStyle & { linenLength: "lap" | "floor"; settings: boolean; menus: boolean;
                         tableNumbers: boolean; lighting: "evening" | "day" };
   guests: { count: number; seed: number };
   thresholds: { aisleM: number; clearanceM: number; m2PerDancer: number; dancingShare: number };
-  venueToggles: { communalTable: boolean; barStools: boolean; paintings: Record<string, string> };
+  venueToggles: { barStools: boolean; paintings: Record<string, string> };
   notes: Note[];
   updatedAt: string; updatedBy?: "A" | "B";
 };
@@ -118,7 +118,7 @@ public/assets/models/            GLB files (CC0 adapted or custom-built), meshop
 public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
 ```
 
-The inspector builds its controls from `options`, and library captions from the resolved shape, so a preset of an existing generator is a JSON entry only (LIB-12, tested). Validated with zod at load (`domain/library`). `scripts/check-library` fails CI on missing fields, missing licence, sizes outside family bounds or budget breaches. Imported items (IMP) store a built-in library model (`baseId`), the parameters the photo changes (colours, a table-top `scale` to the real height, the photo id for prints and photo previews), the real size, the crop's thumbnail and an optional product link; `domain/library/imported.ts` turns each into a catalogue entry with an `imported` label (Material, Approximate 3D, Photo preview) and suggests the closest model by proportions, real height and colour. The catalogue is the built-in files plus these entries, updated in place when an import arrives; an id the device has not loaded yet resolves to a plain placeholder panel. Imports are never edited after saving, only removed from the lists or put back with Undo (`archived`), so rooms that use one keep showing it. Custom requests (REQ) live in the app store, not Git; "In library" is not stored but shown once a built-in entry carries the request's id in `requestId`. Exact 3D (GLB) import is deferred (owner decision, 2026-10-16).
+The inspector builds its controls from `options`, and library captions from the resolved shape, so a preset of an existing generator is a JSON entry only (LIB-12, tested). Validated with zod at load (`domain/library`). `scripts/check-library` fails CI on missing fields, missing licence, sizes outside family bounds or budget breaches. Imported items (IMP) store a built-in library model (`baseId`), the parameters the photo changes (colours, a table-top `scale` to the real height, the photo id for prints and photo previews), the real size, the crop's thumbnail and an optional product link; `domain/library/imported.ts` turns each into a catalogue entry with an `imported` label (Material, Approximate 3D, Photo preview) and suggests the closest model by proportions, real height and colour. The catalogue is the built-in files plus these entries, updated in place when an import arrives; an id the device has not loaded yet resolves to a plain placeholder panel. Imports are never edited after saving, only removed from the lists or put back with Undo (`archived`), so rooms that use one keep showing it. Custom requests (REQ) live in the app store, not Git; "Ready" is not stored but shown once a built-in entry carries the request's id in `requestId`. Exact 3D (GLB) import is deferred (owner decision, 2026-10-16).
 
 ## 5. Rendering
 

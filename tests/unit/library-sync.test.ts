@@ -50,7 +50,6 @@ const request = (imageIds: string[], updatedAt = "2026-10-16T10:00:00.000Z"): Cu
   placement: "table",
   notes: "",
   imageIds,
-  status: "requested",
   createdAt: "2026-10-16T10:00:00.000Z",
   updatedAt,
   createdBy: "A",

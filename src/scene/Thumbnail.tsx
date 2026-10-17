@@ -105,8 +105,11 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
     >
       <StudioContext.Provider value={studio.studio}>
         <Suspense fallback={null}>
-          {/* Lights are shown lit, so their glow and beams read in the catalogue. */}
-          <ThumbScene evening={base.catalog.get(id)?.family === "light" || id === "sign-neon"} />
+          {/* Lights are shown lit, so their glow and beams read in the catalogue; the dance area, a
+              mark on the floor, on the dark of the venue's tile. */}
+          <ThumbScene
+            evening={base.catalog.get(id)?.family === "light" || id === "sign-neon" || id === "dance-floor"}
+          />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

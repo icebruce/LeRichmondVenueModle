@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4). Step 3 gate open: one real custom request and one real centrepiece import. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4, #6). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -12,6 +12,12 @@
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
+| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | In progress |
+| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | Planned |
+| 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, LAY-08, SCN-01..06 | UX review | Planned |
+| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
+| 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
+| 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | Planned |
 
 ## Decisions
 
@@ -28,7 +34,7 @@
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
 - Phone sheet peek is 164 pt (owner, 2026-10-16; DESIGN_GUIDE §3.2).
-- Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine — as modelled.
+- Stair direction (owner, 2026-10-16): first flight rises toward the street-window (east) wall, the second turns back inward toward the mezzanine. **Superseded 2026-10-17**, see below.
 - Advisory text uses its own darker amber token (`--advisory-ink`) for contrast; `--advisory` stays for dots and outlines (2026-10-16).
 - Runners lie along long tables and across round ones (not on cocktail tables); their ends hang outside the tablecloth (2026-10-16).
 - LIB-03 "drapery panels" is a placeable drapery backdrop (fabric panels on a frame), e.g. behind the sweetheart table; runners also run across round tables (owner confirmed, 2026-10-16).
@@ -42,12 +48,25 @@
 - Step 3b is a second PR on its own branch, stacked on 3a (owner, 2026-10-16).
 - Exact 3D (GLB) import is deferred; exact models come through custom requests that Claude builds (owner, 2026-10-16).
 - Imports: the photo picks the closest built-in model by proportions, real height and colour; results are labelled Material, Approximate 3D or Photo preview; imported items are shared, never edited after saving, and only removed from the lists. Prints and photo previews show the couple's photo; "Sign or print" makes a framed print on an easel (2026-10-16).
-- Custom requests: the requests token is read-only (spec REQ-03); the couple sets "In progress" in the app, and "In library" shows once a built-in entry carries the request id (2026-10-16).
+- Custom requests: the requests token is read-only (spec REQ-03). Status is automatic: "Requested", then "Ready" once a built-in entry carries the request id; nobody sets it by hand (owner, 2026-10-17; replaces the 2026-10-16 "In progress" set by the couple).
 - Lounge armchair and loveseat (LIB-02 step 3) are placeable pieces in a "Lounge" library category, not table chairs (2026-10-16).
 - Phone compare: the two halves stack above the sheet; the half-height sheet stays at peek while comparing (2026-10-16).
 - Tablecloth length, place settings, menu cards and table numbers apply to every table; linens, runners, candles, florals, chairs, chargers and napkins can differ per table (2026-10-16).
 - Reference views (Venue panel) show the room at eye level with full walls and ceiling; the dollhouse cutaway applies only to orbiting (2026-10-16).
 - New items are added at the centre of the current view.
+- Owner test feedback (2026-10-17), all owner-approved:
+  - Rectangular tables allow 0.70 m of edge per guest (was 0.75).
+  - The dance floor is a dance area: a subtle outline on the floor, resizable, no finishes.
+  - The communal high table toggle is removed (the table is gone for the wedding); bar stools stay as a toggle: 5 at the front, 6 on each side.
+  - Hanging and ceiling lights hang from 2.2 m to just under the ceiling; a 3D handle raises and lowers them (4F).
+  - Custom request status is automatic (Requested → Ready).
+  - Refused changes always show a toast with the reason.
+  - Venue: bar ≈ 3.6 m front × ≈ 5.5 m long, its front moves south so bar front to kitchen wall is ≈ 6.3–6.5 m; west wall = two garage doors ≈ 6.3 m each with a 0.6 m divider, starting at the north end, a small wall at the south end; no green panel or exit door on the west wall; the platform runs up to the stair with no gap and its only entrance is beside the bar; the stair's first flight starts ≈ 2 m right of the entrance, runs east to the street wall and turns 90° right up to the mezzanine; railings stay metal.
+  - Sample plan: 12-seat tables (6 per side) beside the garage doors, perpendicular to them, with ≈ 1 m walkways.
+  - Navigation (desktop option 1): a labelled rail on the left (Room · Add · Style · Guests · Plans) with a 400 px panel (360–520 px, collapsible); Compare becomes Plans (switch, new, duplicate, rename, history, compare, notes, export, files, delete); the plan name stays small in the desktop toolbar and is off the phone screen.
+  - Phone: camera menu, lighting and reset in a top-right stack with an undo/redo stack under it; the sheet steps down by swipe to closed; system back steps out of menus; no pull-to-refresh; Style pickers work at half height; adding drops the sheet to peek with the piece selected.
+  - Add vs Style: Add places objects; Style dresses tables. One search in Add; table dressing found there offers "Use on tables".
+  - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)
@@ -60,10 +79,10 @@ Where things stand:
 
 To do, in order:
 
-1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "In library" (REQ-03 acceptance).
+1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "Ready" (REQ-03 acceptance).
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
-4. After step 3: freeze around 2026-11-10. No step 4 is planned; remaining work is the open items below and polish from owner feedback.
+4. Step 4 (owner feedback of 2026-10-17): PRs 4A–4F in the order of the steps table, each merged once checks and reviews pass (owner-approved, 2026-10-17). Freeze around 2026-11-10.
 
 ## Step 1 quality (2026-10-16)
 
@@ -97,7 +116,8 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET, LIBRARY_REQUESTS_TOKEN. Token read verified from here; the first shared save and an import seen on the second device are owner checks (Claude cannot sign in).
 - Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
 - Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
-- "In progress" on a request is set by the couple (the requests token is read-only); confirm with the owner. Crop frame (DESIGN_GUIDE §4) pending owner approval.
+- Crop frame (DESIGN_GUIDE §4) pending owner approval.
+- Owner checks on a real phone after step 4: no pull-to-refresh, system back steps out of menus, sheet swiping.
 
 ## Media ingestion (2026-10-15)
 

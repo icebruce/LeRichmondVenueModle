@@ -65,7 +65,6 @@ export const scenarioSchema = z.object({
     dancingShare: z.number().min(0).max(1),
   }),
   venueToggles: z.object({
-    communalTable: z.boolean(),
     barStools: z.boolean(),
     /** Painting id → "hidden" or a replacement artwork id; absent = the current artwork (VEN-05). */
     paintings: z.record(z.string(), z.string()),

@@ -267,9 +267,10 @@ function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
         ],
       };
     case "chandelier": {
-      // Crystal chandelier as wide as its footprint: tiers of drops around warm bulbs, on a chain.
+      // Crystal chandelier as wide as its footprint: tiers of drops around warm bulbs, on a chain up
+      // to its ceiling anchor (`params.anchor`, m), so it never pokes through the ceiling.
       const parts: Part[] = [
-        cyl("brass", 0, hang + 0.9, 0, 0.008, 1.5),
+        cyl("brass", 0, hang + 0.9, 0, 0.008, Math.max(0.3, num(p.anchor, hang + 2.4) - hang - 0.9)),
         cyl("brass", 0, hang + 0.55, 0, 0.05, 0.35),
       ];
       const outer = size.w / 2 - 0.025;
@@ -287,9 +288,9 @@ function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
       return { width: size.w, depth: size.d, height: hang + 1, parts };
     }
     case "disco": {
-      // A faceted mirror ball, and spots of light scattered over the floor around it.
+      // A faceted mirror ball on a cord to its ceiling anchor, and spots of light on the floor around it.
       const parts: Part[] = [
-        cyl("black", 0, hang + 0.25, 0, 0.005, 1.5),
+        cyl("black", 0, hang + 0.25, 0, 0.005, Math.max(0.3, num(p.anchor, hang + 1.75) - hang - 0.25)),
         ball("mirror", 0, hang, 0, size.w / 2 - 0.05),
       ];
       for (let i = 0; i < 64; i++) {
@@ -340,7 +341,7 @@ function light(p: Values, o: Values, size: Size, rand: () => number): Piece {
       return { width: size.w, depth: size.d, height: size.h, parts };
     }
     case "monogram":
-      // Monogram projection: the couple's initials in light on the dance floor.
+      // Monogram projection: the couple's initials in light on the dance area.
       return {
         width: size.w,
         depth: size.d,
@@ -477,7 +478,7 @@ function floral(p: Values, o: Values, size: Size, rand: () => number): Piece {
       };
     }
     case "hanging": {
-      // Hanging installation: a cloud of flowers and greenery above a table or the dance floor.
+      // Hanging installation: a cloud of flowers and greenery above a table or the dance area.
       const hang = num(o.hang, 2.6);
       const w = num(o.width, size.w);
       const n = Math.round(w * 55 * share(p) * look.count);

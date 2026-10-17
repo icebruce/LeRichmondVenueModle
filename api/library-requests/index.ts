@@ -3,11 +3,7 @@ import { listRequests, saveRequest } from "../_lib/library.js";
 
 /** Custom model requests (REQ-01..03): the couple and Claude's read-only token can read them. */
 export function GET(request: Request): Promise<Response> {
-  return signedInOrToken(request, async ({ store }) => {
-    const status = new URL(request.url).searchParams.get("status");
-    const all = await listRequests(store);
-    return json({ requests: status ? all.filter((r) => r.status === status) : all });
-  });
+  return signedInOrToken(request, async ({ store }) => json({ requests: await listRequests(store) }));
 }
 
 export function POST(request: Request): Promise<Response> {

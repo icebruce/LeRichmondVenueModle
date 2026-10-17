@@ -189,7 +189,7 @@ export function advise(
 
   // Clearances in front of the entrance, stair, kitchen pass and glazed doors.
   for (const zone of clearanceZones(venue, thresholds.clearanceM)) {
-    // Placed items (not the dance floor, which is meant to be walked on) and shown furniture.
+    // Placed items (not the dance area, which is meant to be walked on) and shown furniture.
     const inside = [
       ...items
         .filter((it) => {
@@ -225,7 +225,7 @@ export function advise(
     });
   }
 
-  // Dance floor size for the share of guests dancing.
+  // Dance area size for the share of guests dancing.
   const floor = items
     .map((it) => shapeOf(it, catalog))
     .reduce((sum, s) => sum + (s.kind === "danceFloor" ? s.width * s.depth : 0), 0);
@@ -236,8 +236,8 @@ export function advise(
       kind: "dance",
       message:
         floor === 0
-          ? `No dance floor yet — about ${Math.round(need)} m² suits ${guests} guests`
-          : `Dance floor ≈ ${Math.round(floor)} m² — below the ≈ ${Math.round(need)} m² your settings suggest for ${guests} guests`,
+          ? `No dance area yet — about ${Math.round(need)} m² suits ${guests} guests`
+          : `Dance area ≈ ${Math.round(floor)} m² — below the ≈ ${Math.round(need)} m² your settings suggest for ${guests} guests`,
       area: null,
       label: null,
       items: [],

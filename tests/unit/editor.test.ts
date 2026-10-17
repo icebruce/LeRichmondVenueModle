@@ -32,7 +32,18 @@ describe("editing", () => {
     const { editor, item } = setup();
     expect(editor.moveItems([{ id: "t1", x: 7.7, z: 6 }])).toBe(false);
     expect(item("t1").x).toBeCloseTo(2.8);
-    expect(editor.store.getState().refusal?.reason).toBe("Overlaps the bar");
+    expect(editor.store.getState().toast?.text).toBe("Overlaps the bar. Nothing was changed.");
+  });
+
+  test("[LAY-12] showing the bar stools where a table stands is refused, with a toast", () => {
+    const { editor } = setup();
+    const [x0, , x1, z1] = venue.data.bar.outer.value;
+    editor.addItem("table-rect", [(x0 + x1) / 2, z1 + 1.4], { seats: 4 });
+    expect(editor.setVenueToggle("barStools", true)).toBe(false);
+    expect(editor.active().venueToggles.barStools).toBe(false);
+    expect(editor.store.getState().toast?.text).toBe(
+      "Table 8 is where the bar stools go. Nothing was changed.",
+    );
   });
 
   test("[LAY-05] moves snap to a 10 cm grid unless snapping is off", () => {

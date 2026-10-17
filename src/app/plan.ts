@@ -1,6 +1,6 @@
 import { type Polygon, type Vec2, centredRect, circle, transform } from "../domain/geometry";
 import { countLayout, tableLabels } from "../domain/layout/counts";
-import { chairsWorld, seatsOf, shapeOf } from "../domain/layout/items";
+import { DANCE_AREA_COLOUR, chairsWorld, seatsOf, shapeOf } from "../domain/layout/items";
 import { spotFor, toggledObstacles } from "../domain/layout/validate";
 import type { Catalog } from "../domain/library/catalog";
 import type { Scenario } from "../domain/scenario/schema";
@@ -179,9 +179,10 @@ export function drawPlan(
     const entry = catalog.get(it.libraryId);
     if (shape.kind === "danceFloor") {
       const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
-      poly(fp, SOFT, ACCENT, 1.5);
+      // The same sand as in the room (LIB-01), over a faint wash of it.
+      poly(fp, `${DANCE_AREA_COLOUR}22`, DANCE_AREA_COLOUR, 2.5);
       const [x, y] = P([it.x, it.z]);
-      text("Dance floor", x, y - 10, `600 18px ${UI}`, INK, "center");
+      text("Dance area", x, y - 10, `600 18px ${UI}`, INK, "center");
       text(
         `≈ ${shape.width.toFixed(1)} × ${shape.depth.toFixed(1)} m`,
         x,
@@ -290,7 +291,7 @@ export function drawPlan(
   ly += 50;
   const facts = [
     `Guests: ${c.guests}${c.withoutSeat ? ` (${c.withoutSeat} without a seat)` : ""}`,
-    `Dance floor ≈ ${Math.round(c.danceFloorM2)} m²`,
+    `Dance area ≈ ${Math.round(c.danceFloorM2)} m²`,
     ...djLine(scenario, venue, catalog),
     `Tablecloths: ${(catalog.get(scenario.style.linen)?.name ?? "").replace(" tablecloth", "").toLowerCase()}, ${scenario.style.linenLength === "lap" ? "lap length" : "to the floor"}`,
   ];

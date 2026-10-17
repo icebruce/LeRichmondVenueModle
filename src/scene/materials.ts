@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { useTexture } from "@react-three/drei";
 import { useMemo } from "react";
 import { adjustedTexture, glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
 const base = `${import.meta.env.BASE_URL}assets/textures/`;
 
@@ -134,9 +135,16 @@ export function useMaterials() {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
-      danceWood: std({ map: tex.timberDiff, color: "#c49a6c", roughness: 0.35 }),
-      danceWhite: std({ color: "#f4f2ee", roughness: 0.25 }),
-      danceBlack: std({ color: "#141414", roughness: 0.2, metalness: 0.1 }),
+      // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and
+      // daylight, and a faint lit tint that darkens with the room instead of glowing.
+      danceLine: new THREE.MeshBasicMaterial({ color: DANCE_AREA_COLOUR, depthWrite: false }),
+      danceTint: new THREE.MeshStandardMaterial({
+        color: DANCE_AREA_COLOUR,
+        roughness: 1,
+        transparent: true,
+        opacity: 0.1,
+        depthWrite: false,
+      }),
       djFacade: std({ color: "#15161a", roughness: 0.4, metalness: 0.3 }),
     };
   }, [tex]);
