@@ -589,7 +589,7 @@ test("[PLT-04] desktop: labelled rail, a wide panel to resize or fold away, deta
   await expect(page.getByTestId("guests")).toBeVisible();
 });
 
-test("[LIB-13] [LAY-01] one library: search every category, dressing on the tables, can't find it, drag into the room", async ({
+test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on the tables, can't find it, drag into the room", async ({
   page,
 }) => {
   await openStudio(page);

@@ -8,6 +8,7 @@ import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
 import { type Catalog, litThumbnail } from "../domain/library/catalog";
+import { matchesSearch, searchWords } from "../domain/library/search";
 import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
@@ -562,24 +563,6 @@ const LIBRARY_CATEGORIES: { id: Family | "yours"; name: string }[] = [
   { id: "yours", name: "Yours" },
 ];
 
-/** Spellings a search treats as one (Canadian and US). */
-const SAME_WORD: Record<string, string> = {
-  center: "centre",
-  centerpiece: "centrepiece",
-  color: "colour",
-  gray: "grey",
-};
-/** Text as search words in their plain form: lower case, spelling unified, a plural "s" dropped. */
-const searchWords = (s: string) =>
-  s
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
-    .map((word) => {
-      const one = SAME_WORD[word] ?? word;
-      return one.length > 3 && one.endsWith("s") ? one.slice(0, -1) : one;
-    });
-
 /**
  * What a search matches: every word starts a word of the name, the caption or the category
  * ("candles" finds the candle family, "centerpiece" the centrepieces).
@@ -587,10 +570,10 @@ const searchWords = (s: string) =>
 function matches(e: LibraryEntry, words: string[], catalog: Catalog): boolean {
   const family = LIBRARY_CATEGORIES.find((c) => c.id === e.family)?.name ?? e.family;
   const key = styleKeyOf(e);
-  const text = searchWords(
+  return matchesSearch(
+    words,
     `${e.name} ${caption(e, catalog)} ${family} ${e.family} ${key ? DRESSING[key] : ""}`,
   );
-  return words.every((w) => text.some((t) => t.startsWith(w)));
 }
 
 /** What a piece of table dressing is, on its row under "For the tables". */
@@ -626,6 +609,7 @@ export function AddPanel({
   const { catalog, editor } = useStudio();
   const requests = useStore(libraryStore, (s) => s.requests);
   const style = useEditor((s) => s.scenarios[s.activeId]?.style);
+  const hasTables = useEditor((s) => !!s.scenarios[s.activeId]?.items.some((i) => isTable(i, catalog)));
   const live = useMemo(() => [...catalog.values()].filter((e) => !e.imported?.archived), [catalog]);
   const placeable = useMemo(
     () =>
@@ -761,9 +745,10 @@ export function AddPanel({
                   </span>
                   <button
                     type="button"
-                    className="btn small on-tables"
-                    disabled={on}
-                    onClick={() => editor.useOrPlace(e.id, viewStore.getState().focus)}
+                    className={`btn small ${on ? "on-tables" : ""}`}
+                    disabled={on || !hasTables}
+                    title={hasTables ? undefined : "Add a table first"}
+                    onClick={() => editor.placeOrUse(e.id, viewStore.getState().focus)}
                     data-testid={`use-${e.id}`}
                   >
                     {on ? (

@@ -58,7 +58,7 @@ function ThumbScene({ evening }: { evening: boolean }) {
   const m = useMaterials();
   return (
     <>
-      {/* Lit pieces on a dark tile, so glows and light-coloured words read. */}
+      {/* Lit pieces on a dark tile, so glows and light-coloured words read; the same colour as --thumb-dark. */}
       {evening && <color attach="background" args={["#1d1f1c"]} />}
       <hemisphereLight args={["#ffffff", "#b9a991", 1.4]} />
       <directionalLight position={[4, 8, 6]} intensity={2.2} />
@@ -96,6 +96,8 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
     return { studio: { ...base, editor }, d: size * 1.25 + 1.2, target: 0.45 };
   }, [base, id]);
   const { d, target } = studio;
+  const own = base.catalog.get(id);
+  const lit = !!own && litThumbnail(own);
   return (
     <Canvas
       gl={{ alpha: true, preserveDrawingBuffer: true, toneMapping: THREE.AgXToneMapping }}
@@ -108,7 +110,7 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
         <Suspense fallback={null}>
           {/* Lights are shown lit, so their glow and beams read in the catalogue; the dance area, a
               mark on the floor, on the dark of the venue's tile. */}
-          <ThumbScene evening={litThumbnail({ id, family: base.catalog.get(id)?.family ?? "table" })} />
+          <ThumbScene evening={lit} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

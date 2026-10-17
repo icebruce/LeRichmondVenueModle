@@ -4,6 +4,7 @@ import type { Catalog } from "../domain/library/catalog";
 import type { VenueModel } from "../domain/venue/model";
 import type { Item, ItemOptions } from "../domain/layout/items";
 import {
+  type Placement,
   checkPlacement,
   findFreeSpot,
   itemTitle,
@@ -159,6 +160,28 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     return null;
   }
 
+  /** A new item at `at`, snapped to the grid, and whether it may stand there. */
+  function dropPlacement(libraryId: string, at: [number, number]): { item: Item; placed: Placement } {
+    const item: Item = {
+      id: newId(),
+      libraryId,
+      x: snap(at[0], GRID),
+      z: snap(at[1], GRID),
+      rotY: 0,
+      options: {},
+    };
+    const others = [...active().items, item];
+    const placed = checkPlacement(
+      item,
+      others,
+      venue,
+      deps.catalog,
+      obstacles(),
+      tableLabels(others, deps.catalog),
+    );
+    return { item, placed };
+  }
+
   function withSpot(item: Item): Item {
     const s = spotFor(item, venue);
     return s ? { ...item, x: s.x, z: s.z, rotY: s.rotY } : item;
@@ -192,6 +215,20 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     /** A message, with Undo when `undo` is given (e.g. putting back a removed import). */
     notify(text: string, undo?: () => void) {
       toast(text, undo);
+    },
+
+    /** Where a piece dragged from the library would land and whether it may (LIB-13); the drop agrees. */
+    dropPlacement,
+
+    /** Add a piece exactly where it was dropped (LIB-13); a refused drop changes nothing and says why. */
+    addItemAt(libraryId: string, at: [number, number]): string | null {
+      const { item, placed } = dropPlacement(libraryId, at);
+      if (!placed.ok) return (refuse(placed.reason), null);
+      commit("Add", (d) => {
+        d.items.push(item);
+      });
+      set({ selection: [item.id] });
+      return item.id;
     },
 
     /** Add a library item near `preferred`; refuses with a message when nothing fits (LAY-01). */
@@ -413,7 +450,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
      * A library item where it belongs: table dressing on every table (DEC-01), anything else placed
      * near `focus` (LAY-01). Says which, or null when nothing fits.
      */
-    useOrPlace(libraryId: string, focus: [number, number]): "used" | "placed" | null {
+    placeOrUse(libraryId: string, focus: [number, number]): "used" | "placed" | null {
       const e = deps.catalog.get(libraryId);
       const patch = e ? stylePatch(e) : null;
       if (patch && e) {

@@ -70,6 +70,7 @@
       ],
       "seats": false,
       "thumbnail": "thumbs/dance-floor.webp",
+      "thumbnailGround": "dark",
       "source": {
         "type": "built",
         "origin": "Richmond Studio generator: danceFloor",

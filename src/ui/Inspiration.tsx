@@ -59,6 +59,7 @@ export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: 
         initial={fromInspector}
         isNew
         onDone={() => viewStore.setState({ requestFor: null })}
+        onAdded={onAdded}
       />
     );
 
@@ -73,14 +74,21 @@ export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: 
       />
     );
   if (mode.k === "request")
-    return <RequestForm initial={mode.request} isNew={mode.isNew} onDone={() => setMode({ k: "list" })} />;
+    return (
+      <RequestForm
+        initial={mode.request}
+        isNew={mode.isNew}
+        onDone={() => setMode({ k: "list" })}
+        onAdded={onAdded}
+      />
+    );
 
   const shown = imports.filter((i) => !i.archived);
   const status = requests.map((r) => ({ r, ...requestStatus(r, catalog) }));
   const ready = status.filter((x): x is typeof x & { entry: LibraryEntry } => !!x.entry);
   const waiting = status.filter((x) => !x.entry);
   const use = (e: LibraryEntry) => {
-    if (editor.useOrPlace(e.id, viewStore.getState().focus) === "placed") onAdded();
+    if (editor.placeOrUse(e.id, viewStore.getState().focus) === "placed") onAdded();
   };
   return (
     <div className="panel-body" data-testid="inspiration-panel">
@@ -97,27 +105,25 @@ export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: 
         <>
           <h3 className="group-title">Ready</h3>
           <div className="list" aria-label="Ready">
-            {ready.map(({ r, entry }) =>
-              entry ? (
-                <div key={r.id} className="row">
-                  <Thumb entry={entry} />
-                  <span className="nav-label">
-                    {entry.name}
-                    <span className="nav-sub">
-                      Your custom model · <span className="ok-text">ready</span>
-                    </span>
+            {ready.map(({ r, entry }) => (
+              <div key={r.id} className="row">
+                <Thumb entry={entry} />
+                <span className="nav-label">
+                  {entry.name}
+                  <span className="nav-sub">
+                    Your custom model · <span className="ok-text">ready</span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn small"
-                    onClick={() => use(entry)}
-                    data-testid={`ready-${r.id}`}
-                  >
-                    {styleKeyOf(entry) ? "Use on tables" : "Place"}
-                  </button>
-                </div>
-              ) : null,
-            )}
+                </span>
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => use(entry)}
+                  data-testid={`ready-${r.id}`}
+                >
+                  {styleKeyOf(entry) ? "Use on tables" : "Place"}
+                </button>
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -330,11 +336,10 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
       {step === 4 && draft.file && draft.type && (
         <ResultStep
           draft={draft}
-          onSave={async (item, blob, then) => {
+          onSave={async (item, blob, add) => {
             await library.addImport(item, blob);
-            const e = catalog.get(item.id);
-            if (!then || !e) editor.notify(`“${item.name}” is in your library`);
-            else editor.useOrPlace(e.id, viewStore.getState().focus);
+            if (add && catalog.has(item.id)) editor.placeOrUse(item.id, viewStore.getState().focus);
+            else editor.notify(`“${item.name}” is in your library`);
             onDone(item.id);
           }}
           newId={library.newId}
@@ -573,8 +578,8 @@ function ResultStep({
   partner,
 }: {
   draft: Draft;
-  /** Saves, then uses it on every table or places it in the room (`then`), or only saves. */
-  onSave: (item: Imported, blob: Blob, then: "use" | "place" | null) => Promise<void>;
+  /** Saves, then (`add`) uses it on every table or places it in the room, or only saves. */
+  onSave: (item: Imported, blob: Blob, add: boolean) => Promise<void>;
   newId: () => string;
   partner: "A" | "B" | null;
 }) {
@@ -616,7 +621,7 @@ function ResultStep({
   if (!prepared || !base) return <p className="hint">Reading your photo…</p>;
 
   const link = draft.link.trim();
-  const save = async (then: "use" | "place" | null) => {
+  const save = async (add: boolean) => {
     const imageId = `img-${newId()}`;
     const item: Imported = {
       id: `imp-${newId()}`,
@@ -644,7 +649,7 @@ function ResultStep({
       return;
     }
     setBusy(true);
-    await onSave(ok.data, prepared.blob, then);
+    await onSave(ok.data, prepared.blob, add);
   };
   // Say exactly what the photo changed: size, colours, both or neither (DESIGN_GUIDE §1.6).
   const adj = importAdjusts(
@@ -724,7 +729,7 @@ function ResultStep({
           type="button"
           className="btn primary"
           disabled={busy}
-          onClick={() => void save(styleKeyOf(base) ? "use" : "place")}
+          onClick={() => void save(true)}
           data-testid="import-save-use"
         >
           {styleKeyOf(base) ? "Save and use on all tables" : "Save and place in the room"}
@@ -733,7 +738,7 @@ function ResultStep({
           type="button"
           className="btn"
           disabled={busy}
-          onClick={() => void save(null)}
+          onClick={() => void save(false)}
           data-testid="import-save"
         >
           Save to library
@@ -820,7 +825,7 @@ function ItemDetail({
           className="btn primary"
           disabled={!tables || onAll}
           onClick={() => {
-            editor.useOrPlace(e.id, viewStore.getState().focus);
+            editor.placeOrUse(e.id, viewStore.getState().focus);
           }}
           data-testid="use-on-tables"
         >
@@ -880,10 +885,13 @@ function RequestForm({
   initial,
   isNew,
   onDone,
+  onAdded,
 }: {
   initial: CustomRequest;
   isNew: boolean;
   onDone: () => void;
+  /** A ready model placed in the room (the phone sheet then drops to its peek). */
+  onAdded: () => void;
 }) {
   const { catalog, editor } = useStudio();
   const { library } = useServices();
@@ -944,7 +952,7 @@ function RequestForm({
           type="button"
           className="btn primary"
           onClick={() => {
-            editor.useOrPlace(built.id, viewStore.getState().focus);
+            if (editor.placeOrUse(built.id, viewStore.getState().focus) === "placed") onAdded();
           }}
         >
           {styleKeyOf(built) ? "Use on all tables" : "Place in the room"} · {built.name}

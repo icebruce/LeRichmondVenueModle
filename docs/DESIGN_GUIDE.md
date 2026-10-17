@@ -62,6 +62,7 @@ System UI font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, san
 
 - Spacing scale (pt): 4, 8, 12, 16, 24, 32, 48. Nothing off-scale.
 - Radius: 8 (controls), 12 (cards), 16 (sheets, floating panels), full (pills, swatches).
+- Library pictures: wells 84 pt tall (`--thumb-tile`), 64 on phones (`--thumb-tile-sm`); the + badge 28 pt (`--badge`); the "ready" dot on a chip 8 pt (`--dot`).
 - Elevation: one shadow for floating controls `0 8px 24px rgba(32,37,34,.12)`; sheets add a top hairline. No stacked shadows.
 
 ### 2.4 Motion
@@ -123,7 +124,7 @@ Desktop layout at 768–1023 px too: the panel folds away (its section button or
 | Empty state | One sentence, one primary action, no illustration clutter. |
 | Dialog | Only for choices with consequences that undo cannot cover (version conflict, `SCN-03`). |
 | Category chips | Library families above the item grid (Tables, Event, Florals, Plants, Lights, Signs, Lounge); one selected, remembered for the session. They wrap, so no category is ever hidden. Step 3a, owner-approved 2026-10-16. |
-| Library grid | Add: a search field, wrapping category chips ("Yours" carries a dot when a custom model is ready), then pictures two across on desktop and three on phones (name, caption, a + badge). Click or tap adds at the centre of the view; on desktop a picture can be dragged into the room. A search lists table dressing under "For the tables" with Use on tables. "Can't find it?" (dashed row) opens Yours. Owner-approved 2026-10-17. |
+| Library grid | Add: a search field, wrapping category chips ("Yours" carries a dot when a custom model is ready), then pictures two across on desktop and three on phones (name, caption, a + badge). Click or tap adds at the centre of the view; on desktop a picture can be dragged into the room. A search lists table dressing under "For the tables" with Use on tables. "Can't find it?" (dashed row) opens Yours. A dragged picture shows its outline where it will land, or the blocked outline and the reason; a refused drop adds nothing. Step 4D, pending owner approval in its PR. |
 | Seat target | Sit here (`CAM-04`): a 44 pt circle with a chair glyph over each chair of the chosen table, surface fill and accent ring, pressed 0.97. Only while choosing a seat, with a glass bar "Choose a seat · table N" and Cancel. Step 3a, owner-approved 2026-10-16. |
 | Crop frame | Inspiration (IMP-03): an accent-outlined frame over the photo with the outside dimmed; drag inside to move, drag a corner (22 pt mark in a 44 pt target) to resize. Step 3b, pending owner approval (PR #4). |
 | Seated bar | While seated: a glass bar at the top, "Seated · table N · drag to look around", and Stand up (secondary button). Step 3a, owner-approved 2026-10-16. |

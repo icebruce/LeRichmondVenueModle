@@ -78,6 +78,8 @@ export const libraryEntrySchema = z.object({
   /** Seats only for tables; DJ booths etc. are 0. */
   seats: z.boolean(),
   thumbnail: z.string(),
+  /** A lit piece (a glow, light-coloured words) whose thumbnail is drawn on a dark ground (LIB-11). */
+  thumbnailGround: z.literal("dark").optional(),
   source: z.object({
     type: z.enum(["built", "cc0", "custom"]),
     origin: z.string(),

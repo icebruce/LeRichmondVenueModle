@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { DECOR_GENERATORS, heightOf, tableDecor } from "../../src/domain/layout/decor";
+import { DECOR_GENERATORS, heightOf, stylePatch, tableDecor } from "../../src/domain/layout/decor";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import {
   DEFAULT_STYLE,
@@ -133,6 +133,16 @@ describe("décor", () => {
     expect(s2.items.map(({ x, z, rotY }) => ({ x, z, rotY }))).toEqual(before);
     editor.undo();
     expect(styleOf(editor.active().items[0] as Item, editor.active().style).linen).toBe("linen-navy");
+  });
+});
+
+describe("table dressing from the library", () => {
+  test("[LIB-13] [DEC-01] dressing found in the library fills its part of the style; other pieces fill none", () => {
+    const get = (id: string) => catalog.get(id) as NonNullable<ReturnType<typeof catalog.get>>;
+    expect(stylePatch(get("candle-tapers"))).toEqual({ candles: "candle-tapers" });
+    expect(stylePatch(get("chair-chiavari-gold"))).toEqual({ chair: "chair-chiavari-gold" });
+    expect(stylePatch(get("table-round"))).toBeNull();
+    expect(stylePatch(get("floral-hanging"))).toBeNull();
   });
 });
 

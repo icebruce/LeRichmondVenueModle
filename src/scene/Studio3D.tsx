@@ -1,19 +1,18 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Html, Lightformer, Line } from "@react-three/drei";
+import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { wallFrame } from "../domain/venue/model";
 import { pointInPolygon } from "../domain/geometry";
-import { footprint } from "../domain/layout/items";
-import { checkPlacement } from "../domain/layout/validate";
+import { footprint, shapeOf } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
 import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
-import { Items, token, useFloorPointer } from "./items/Items";
+import { Items, Outline, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
 import { useMaterials } from "./materials";
@@ -192,7 +191,8 @@ function LibraryDrop({ evening }: { evening: boolean }) {
   const el = useThree((s) => s.gl.domElement);
   const toFloor = useFloorPointer();
   const dropping = useView((s) => s.dropping);
-  const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
+  // Re-checked when the plan changes under a held drag.
+  useEditor((s) => s.scenarios[s.activeId]?.items);
   useEffect(() => {
     // The floor under the cursor, on the raised level where that is what the cursor is over.
     const floorAt = (e: DragEvent): [number, number] | null => {
@@ -218,7 +218,7 @@ function LibraryDrop({ evening }: { evening: boolean }) {
       e.preventDefault();
       viewStore.setState({ dropping: null });
       const at = floorAt(e);
-      if (at) editor.addItem(id, at);
+      if (at) editor.addItemAt(id, at);
     };
     el.addEventListener("dragover", over);
     el.addEventListener("dragleave", leave);
@@ -229,33 +229,15 @@ function LibraryDrop({ evening }: { evening: boolean }) {
       el.removeEventListener("drop", drop);
     };
   }, [el, editor, venue, toFloor]);
-  // Where it will land (DESIGN_GUIDE §5): its footprint, in the accent, or blocked with the reason.
+  // Where it will land (DESIGN_GUIDE §5): its outline, or blocked with the reason; the drop agrees.
   if (!dropping?.at) return null;
-  const item = {
-    id: "drop",
-    libraryId: dropping.id,
-    x: dropping.at[0],
-    z: dropping.at[1],
-    rotY: 0,
-    options: {},
-  };
-  const placed = checkPlacement(item, items, venue, catalog);
-  const y = (placed.ok && placed.level === "raised" ? venue.raised.height : 0) + 0.03;
-  const outline = footprint(item, catalog).map(([x, z]) => [x, y, z] as [number, number, number]);
-  // The same colours as a moved item's outline: the light accent on the candlelit scene.
-  const accent = evening ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b");
-  const colour = placed.ok ? accent : token("--blocked", "#c2412d");
+  const { item, placed } = editor.dropPlacement(dropping.id, dropping.at);
+  const y = placed.ok && placed.level === "raised" ? venue.raised.height : 0;
   return (
-    <group name="drop-ghost">
-      <Line
-        points={[...outline, outline[0] ?? [0, 0, 0]]}
-        color={colour}
-        lineWidth={3}
-        depthTest={false}
-        toneMapped={false}
-      />
+    <group name="drop-ghost" position={[item.x, y, item.z]}>
+      <Outline shape={shapeOf(item, catalog)} tone={placed.ok ? "selected" : "refused"} dark={evening} />
       {!placed.ok && (
-        <Html position={[item.x, y + 0.2, item.z]} center className="drag-reason" zIndexRange={[20, 10]}>
+        <Html position={[0, 0.2, 0]} center className="drag-reason" zIndexRange={[20, 10]}>
           {placed.reason}
         </Html>
       )}

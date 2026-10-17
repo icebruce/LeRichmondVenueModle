@@ -172,6 +172,7 @@
       ],
       "seats": false,
       "thumbnail": "thumbs/sign-neon.webp",
+      "thumbnailGround": "dark",
       "source": {
         "type": "built",
         "origin": "Richmond Studio generator: sign",

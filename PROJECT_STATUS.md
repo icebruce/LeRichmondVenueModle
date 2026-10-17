@@ -66,6 +66,7 @@
   - Navigation (desktop option 1): a labelled rail on the left (Room · Add · Style · Guests · Plans) with a 400 px panel (360–520 px, collapsible); Compare becomes Plans (switch, new, duplicate, rename, history, compare, notes, export, files, delete); the plan name stays small in the desktop toolbar and is off the phone screen.
   - Phone: camera menu, lighting and reset in a top-right stack with an undo/redo stack under it; the sheet steps down by swipe to closed; system back steps out of menus; no pull-to-refresh; Style pickers work at half height; adding drops the sheet to peek with the piece selected.
   - Add vs Style: Add places objects; Style dresses tables. One search in Add; table dressing found there offers "Use on tables".
+  - Add: "Can't find it?" opens Yours, where a custom model can be requested from scratch (no item behind it); on desktop a picture can be dragged into the room and lands exactly where it is dropped, or is refused with the reason.
   - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
