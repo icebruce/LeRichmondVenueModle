@@ -110,7 +110,8 @@ test("[PLT-02] phone sheet: content scrolls at half; only the grabber opens it f
   await expect(page.locator(".panel")).toHaveClass(/detent-half/);
   await swipe(page, ".panel-scroll", 700, 520);
   await expect(page.locator(".panel")).toHaveClass(/detent-half/);
-  await swipe(page, ".grabber", 400, 250);
+  // The sheet's head is the handle, not just the thin grabber: a drag from the counts line opens it.
+  await swipe(page, ".sheet-head .counts-line", 400, 250);
   await expect(page.locator(".panel")).toHaveClass(/detent-full/);
   // From its peek the content still raises the sheet, one step to half.
   await swipe(page, ".grabber", 100, 220);

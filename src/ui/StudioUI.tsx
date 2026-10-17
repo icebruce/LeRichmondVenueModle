@@ -669,8 +669,8 @@ export function StudioUI() {
       sectionContent
     );
 
-  // Phone sheet: drag its handle, or its content once scrolled to the top, to step it down to closed;
-  // the handle steps it up to full, its content only from peek to half; a quick flick skips a step
+  // Phone sheet: drag its head, or its content once scrolled to the top, to step it down to closed;
+  // the head steps it up to full, its content only from peek to half; a quick flick skips a step
   // (DESIGN_GUIDE §3.2).
   const panel = useRef<HTMLDivElement>(null);
   // Each new page starts at its top (the scroll area is shared by every section and page).
@@ -682,7 +682,8 @@ export function StudioUI() {
   const startSwipe = (t: { clientX: number; clientY: number } | undefined, from: EventTarget) => {
     // Sliders and scrubbed figures keep their own drags.
     if (!t || (from instanceof Element && from.closest("input[type=range], .scrub"))) return;
-    const grip = from instanceof Element && from.closest(".grabber") !== null;
+    // The whole head (grabber, counts line) is the handle: the grabber alone is too thin for a finger.
+    const grip = from instanceof Element && from.closest(".sheet-head") !== null;
     swipe.current = {
       x: t.clientX,
       y: t.clientY,
