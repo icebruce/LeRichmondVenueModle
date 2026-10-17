@@ -156,8 +156,14 @@ function LightToggle() {
       className="icon-btn"
       disabled={plan}
       onClick={() => editor.setStyle("lighting", lighting === "evening" ? "day" : "evening")}
-      aria-label={lighting === "evening" ? "Switch to daylight" : "Switch to evening light"}
-      title={plan ? "Plan view always uses daylight" : undefined}
+      aria-label={
+        plan
+          ? "Plan view is always in daylight"
+          : lighting === "evening"
+            ? "Switch to daylight"
+            : "Switch to evening light"
+      }
+      title={plan ? "Plan view is always in daylight" : undefined}
       data-testid="light-toggle"
     >
       <Icon name={lighting === "evening" && !plan ? "moon" : "sun"} />

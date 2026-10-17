@@ -484,9 +484,11 @@ export function StudioUI() {
   const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
   // Phone: the overview keeps the room clear of the control column on the right (44 pt + margins).
   const insetRight = phone ? 64 : 0;
+  // Desktop: the toolbar row (12 + 44 + 8 px) sits over the top of the room.
+  const insetTop = phone ? 0 : 64;
   useEffect(() => {
-    viewStore.setState({ insetLeft, insetRight });
-  }, [insetLeft, insetRight]);
+    viewStore.setState({ insetLeft, insetRight, insetTop });
+  }, [insetLeft, insetRight, insetTop]);
 
   // Phone: the camera centres the room above the sheet and the tab bar, measured again once the
   // sheet's height transition ends.
@@ -572,8 +574,6 @@ export function StudioUI() {
     ) : section === "add" ? (
       <AddPanel
         key={libraryKey}
-        // Added: on desktop its details open beside the room; on phones the sheet drops to its peek
-        // with the new piece selected, ready to drag.
         // Added and selected: phones drop the sheet to its peek to show it; desktop keeps the list.
         onAdded={() => phone && setSheet("peek")}
         yours={(head) => <InspirationPanel head={head} />}

@@ -44,8 +44,11 @@ function FollowCamera() {
 
 /**
  * How far to scale a pose's distance from its target so that every point lands inside the central
- * `fx` × `fy` share of the view (the free area, in normalised device units), with a small margin.
+ * `fx` × `fy` share of the view (the free area, in normalised device units).
  */
+/** Space kept between the framed room and whatever borders the free area (px, `--s-5`). */
+const FIT_MARGIN = 24;
+
 function fitScale(
   pose: Pose,
   fov: number,
@@ -63,7 +66,7 @@ function fitScale(
     cam.updateMatrixWorld();
     return points.every((q) => {
       p.copy(q).project(cam);
-      return Math.abs(p.z) < 1 && Math.abs(p.x) <= fx * 0.94 && Math.abs(p.y) <= fy * 0.94;
+      return Math.abs(p.z) < 1 && Math.abs(p.x) <= fx && Math.abs(p.y) <= fy;
     });
   };
   let [lo, hi] = [0.3, 6];
@@ -88,6 +91,7 @@ function MainCamera() {
   const insetLeft = useView((s) => s.insetLeft);
   const insetBottom = useView((s) => s.insetBottom);
   const insetRight = useView((s) => s.insetRight);
+  const insetTop = useView((s) => s.insetTop);
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
@@ -131,12 +135,12 @@ function MainCamera() {
     // Overview cameras pull back until the room fits the free area: beside the desktop panel, or
     // above a phone's sheet and clear of its control column. They never come closer than the preset.
     if (key === "dollhouse" || key === "plan") {
-      const flat = comparing;
-      const fullW = size.width + (flat ? 0 : insetLeft);
-      const fullH = size.height + (flat ? 0 : insetBottom);
-      const freeW = size.width - (flat ? 0 : insetLeft + 2 * insetRight);
-      const freeH = size.height - (flat ? 0 : insetBottom);
-      const k = fitScale(to, p.fov, fullW / Math.max(1, fullH), freeW / fullW, freeH / fullH, roomCorners);
+      // The canvas keeps the preset's field of view; the view offset centres it on the free area.
+      const w = Math.max(1, size.width);
+      const h = Math.max(1, size.height);
+      const freeW = comparing ? w : w - insetLeft - 2 * insetRight - 2 * FIT_MARGIN;
+      const freeH = comparing ? h : h - insetTop - insetBottom - 2 * FIT_MARGIN;
+      const k = fitScale(to, p.fov, w / h, freeW / w, freeH / h, roomCorners);
       to.position.sub(to.target).multiplyScalar(Math.max(1, k)).add(to.target);
     }
     tween.current = {
@@ -151,7 +155,7 @@ function MainCamera() {
   // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
   // unless the couple has moved the view since: their view is never thrown away.
   const pane = comparing ? `${size.width}x${size.height}` : "";
-  const band = comparing ? "" : `${insetBottom}:${insetRight}`;
+  const band = comparing ? "" : `${insetLeft}:${insetTop}:${insetBottom}:${insetRight}`;
   const userMoved = useRef(false);
   const framed = useRef({ mode, comparing });
   useEffect(() => {
@@ -225,7 +229,7 @@ function MainCamera() {
     const walk = mode === "walk";
     // Side by side, the halves already sit beside the interface and frame alike.
     const flat = walk || comparing;
-    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom };
+    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };

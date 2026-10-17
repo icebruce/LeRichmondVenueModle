@@ -23,6 +23,8 @@ export type ViewState = {
   view: string | null;
   /** Pixels on the left covered by the desktop rail and panel; the camera frames the room beside them. */
   insetLeft: number;
+  /** Desktop: pixels covered by the toolbar row; the overview frames the room below it. */
+  insetTop: number;
   /** Phone: pixels covered by the tab bar plus bottom sheet. */
   insetBottom: number;
   /** Phone: the width of the control column on the right; the overview keeps the room clear of it. */
@@ -57,6 +59,7 @@ export const viewStore = createStore<ViewState>(() => ({
   controlsEnabled: true,
   view: null,
   insetLeft: 0,
+  insetTop: 0,
   insetBottom: 0,
   insetRight: 0,
   anchor: null,
