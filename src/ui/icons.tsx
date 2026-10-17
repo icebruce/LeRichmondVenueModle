@@ -31,6 +31,14 @@ const paths: Record<string, string> = {
   compare: "M3 4h6v12H3zM11 4h6v12h-6z",
   photo: "M3 4h14v12H3zM3 13l4-4 3 3 2-2 5 5M12.5 7.5a1 1 0 1 1 0 .01",
   frame: "M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4M8 8h4v4H8z",
+  add: "M5 3h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM10 7v6M7 10h6",
+  plans: "M10 2 2 6l8 4 8-4-8-4ZM2 10l8 4 8-4M2 14l8 4 8-4",
+  sidebar: "M3 4h14v12H3zM8 4v12",
+  sliders: "M4 17v-5M4 8V3M10 17V9M10 5V3M16 17v-3M16 10V3M2 12h4M8 6h4M14 14h4",
+  seat: "M5 18v-8h10v8M5 14h10M7 10V3h6v7",
+  back: "M12 4l-6 6 6 6",
+  pencil: "M4 16l1-4 8-8 3 3-8 8zM11 6l3 3",
+  next: "M8 4l6 6-6 6",
   people:
     "M7 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 17c0-3 2.5-5 5-5s5 2 5 5M14 9a2.5 2.5 0 1 0 0-5M15 12c2 .5 3 2.3 3 5",
 };

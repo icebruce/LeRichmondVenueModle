@@ -173,8 +173,9 @@ The library is the single catalogue of everything placeable. Built-in items are 
 | ACC-01 | M | 2 | One shared password protects the app. Session lasts 30 days per device. | Wrong password is rate-limited. |
 | ACC-02 | M | 1 | Not indexed by search engines. | `noindex` header present. |
 | PLT-01 | M | 1 | Desktop Chrome, Safari, Edge (last 2 versions); iOS Safari 17+; Android Chrome. | — |
-| PLT-02 | M | 1 | Phone: everything works; the layout adapts (bottom tab bar, bottom sheet inspector). | Usable one-handed for viewing, presets, upload and dragging. |
+| PLT-02 | M | 1 | Phone: everything works; the layout adapts (bottom tab bar, bottom sheet, camera / light / reset and undo / redo stacked top right). The system back gesture closes the top layer and never leaves the app; the sheet swipes down a step at a time to closed; no pull-to-refresh (owner, 2026-10-17). | Usable one-handed for viewing, presets, upload and dragging. |
 | PLT-03 | M | 1 | Quality adapts to the device; phones load a lighter scene. | — |
+| PLT-04 | M | 4 | Desktop: a labelled rail (Room, Add, Style, Guests, Plans) beside a wide panel, resizable 360–520 px and collapsible; one toolbar row; a selection shows a toolbar beside it and its details open inside the current section (owner, 2026-10-17, `DESIGN_GUIDE.md` §3.1). | Choosing a section always shows it; Details has a way back. |
 
 ## 6. Non-goals
 

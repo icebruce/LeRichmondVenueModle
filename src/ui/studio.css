@@ -87,38 +87,47 @@ button:disabled {
 .topbar {
   position: absolute;
   top: var(--top);
-  left: calc(var(--rail) + var(--s-3));
-  right: var(--s-3);
+  left: calc(var(--inset-left, var(--rail)) + var(--s-4));
+  right: var(--s-4);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: var(--s-3);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2);
   pointer-events: none;
 }
 .topbar > * {
   pointer-events: auto;
 }
-.scenario {
+/* The plan's name, small: a way into Plans (DESIGN_GUIDE §3.1). */
+.plan-name {
   justify-self: start;
-  position: relative;
-  padding: var(--s-1) var(--s-3) var(--s-2);
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 340px;
-}
-.scenario-button {
   display: flex;
   align-items: center;
-  gap: var(--s-1);
+  gap: var(--s-2);
+  min-width: 0;
+  max-width: 100%;
+  height: var(--target);
+  padding: 0 var(--s-3);
+  overflow: hidden;
+}
+.plan-name-btn {
+  flex: 0 1 auto;
+  min-width: 0;
   border: 0;
   background: none;
   padding: 0;
   min-height: var(--target);
-  text-align: left;
+  font: var(--t-callout);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.scenario-name {
-  font: 600 16px/22px var(--font-display);
+.plan-name .save-state {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding-left: var(--s-2);
+  border-left: 1px solid var(--line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -229,10 +238,16 @@ button:disabled {
 .seg button:disabled {
   opacity: 0.55;
 }
-.camera-group {
-  display: flex;
+.camera-seg {
   align-items: center;
-  gap: var(--s-2);
+  height: var(--target);
+}
+.seg-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--s-1);
+  background: var(--line);
+  flex: none;
 }
 .icon-btn.glass {
   background: var(--surface-glass);
@@ -251,8 +266,12 @@ button:disabled {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: var(--s-1);
-  padding: 4px;
+  gap: 2px;
+  height: var(--target);
+  padding: 0 2px;
+}
+.actions .icon-btn {
+  height: 40px;
 }
 .icon-btn {
   display: grid;
@@ -288,12 +307,13 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s-2);
-  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) 0 var(--s-3);
+  gap: var(--s-1);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) 6px var(--s-3);
+  z-index: 12;
 }
 .rail button {
-  width: 60px;
-  min-height: 56px;
+  width: 64px;
+  min-height: 60px;
   border: 0;
   border-radius: var(--r-card);
   background: transparent;
@@ -319,17 +339,49 @@ button:disabled {
 /* ---------- panel / inspector ---------- */
 .panel {
   position: absolute;
-  top: calc(var(--top) + 64px);
-  right: var(--s-3);
-  bottom: var(--s-3);
-  width: 340px;
+  top: 0;
+  bottom: 0;
+  left: var(--rail);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sheet);
-  box-shadow: var(--shadow);
+  border-right: 1px solid var(--line);
   overflow: auto;
   overscroll-behavior: contain;
   animation: slide-in var(--m-base);
+  z-index: 11;
+}
+.panel-collapse {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-2);
+}
+.panel > .panel-body > .panel-head {
+  padding-right: var(--s-7);
+}
+/* Drag the panel's edge to widen it (360–520 px); the grip sits on the edge, mid-height. */
+.panel-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--inset-left) - 6px);
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 12;
+}
+.panel-resize::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 6px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 3px;
+  background: var(--line-2);
+}
+.panel-resize:hover::after,
+.panel-resize:focus-visible::after {
+  background: var(--ink-3);
 }
 .grabber {
   display: none;
@@ -614,30 +666,14 @@ button:disabled {
 .rotate-group .btn {
   padding: 0 var(--s-2);
 }
-.actions-row .icon-only {
-  justify-content: center;
-  width: var(--target);
-  padding: 0;
-  margin-left: auto;
-}
 .rotate-group {
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
-  padding-right: var(--s-2);
-  margin-right: var(--s-1);
-  border-right: 1px solid var(--line);
-  color: var(--ink-3);
-}
-.light-toggle {
-  display: none;
 }
 .history {
   display: flex;
   gap: var(--s-1);
-}
-.history-float {
-  display: none;
 }
 .counts-line {
   display: none;
@@ -799,13 +835,14 @@ button:disabled {
 /* ---------- counts ---------- */
 .counts {
   position: absolute;
-  left: calc(var(--rail) + var(--s-3));
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-3));
+  right: var(--s-4);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--s-1) var(--s-4);
   padding: var(--s-2) var(--s-3);
-  max-width: calc(100% - var(--rail) - 380px);
+  max-width: calc(100% - var(--inset-left, var(--rail)) - 2 * var(--s-4));
 }
 .count {
   display: flex;
@@ -899,10 +936,12 @@ button:disabled {
 }
 .toast {
   position: absolute;
-  left: 50%;
-  /* Desktop: above the counts strip, never over it. */
+  /* Centred in the room beside the panel, above the counts strip. */
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-6));
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - var(--inset-left, 0px) - 2 * var(--s-4));
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -919,7 +958,7 @@ button:disabled {
 .walk-hint {
   position: absolute;
   top: calc(var(--top) + 64px);
-  left: 50%;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
   transform: translateX(-50%);
   margin: 0;
   padding: var(--s-2) var(--s-3);
@@ -1030,8 +1069,196 @@ button:disabled {
 @keyframes slide-in {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(-12px);
   }
+}
+
+/* ---------- lists, pages, selection (DESIGN_GUIDE §4) ---------- */
+.list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+.list > * + * {
+  border-top: 1px solid var(--line);
+}
+.list > .row {
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+}
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  background: none;
+  text-align: left;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.nav-row:hover {
+  background: var(--sunk);
+}
+.nav-row.danger {
+  color: var(--blocked);
+}
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nav-sub {
+  display: block;
+  font: var(--t-footnote);
+  color: var(--ink-2);
+}
+.nav-value {
+  max-width: 58%;
+  font: var(--t-footnote);
+  color: var(--ink-2);
+  text-align: right;
+}
+.nav-chevron,
+.nav-icon {
+  flex: none;
+  color: var(--ink-3);
+}
+.nav-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  flex: none;
+  color: var(--accent);
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--target);
+  margin: calc(-1 * var(--s-2)) 0 calc(-1 * var(--s-2)) calc(-1 * var(--s-1));
+  padding: 0 var(--s-1) 0 0;
+  border: 0;
+  background: none;
+  font: var(--t-callout);
+  color: var(--accent);
+}
+.view-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.view-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-align: left;
+  font: var(--t-footnote);
+  font-weight: 500;
+}
+.view-tile:hover {
+  background: var(--sunk);
+}
+.view-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--accent);
+}
+.effect {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  font: var(--t-footnote);
+  color: var(--advisory-ink);
+}
+.effect .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--advisory);
+}
+.effect.ok {
+  color: var(--ink-2);
+}
+.effect.ok .dot {
+  background: var(--ok);
+}
+/* Desktop checks: a popover above the counts (DESIGN_GUIDE §3.1). */
+.checks-pop {
+  position: absolute;
+  right: var(--s-4);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-4) + 76px);
+  width: 380px;
+  max-height: calc(100% - 200px);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow);
+  animation: rise var(--m-base);
+  z-index: 30;
+}
+/* Desktop: the selection's toolbar, above it in the room. */
+.selection-bar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  transform: translate(-50%, calc(-100% - var(--s-2)));
+  white-space: nowrap;
+  z-index: 10;
+}
+.selection-title {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--s-2);
+  font: var(--t-footnote);
+  font-weight: 600;
+}
+.selection-title span {
+  font: var(--t-caption);
+  color: var(--ink-2);
+}
+.actions-bar {
+  display: flex;
+  gap: 2px;
+}
+.action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: var(--target);
+  height: var(--target);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  font: var(--t-footnote);
+  color: var(--ink);
+}
+.action:hover {
+  background: var(--sunk);
+}
+.action.danger {
+  color: var(--blocked);
+}
+.phone-controls {
+  display: none;
 }
 
 /* ---------- sign in, dialogs, banner ---------- */
@@ -1111,7 +1338,7 @@ button:disabled {
 }
 .banner {
   position: absolute;
-  left: 50%;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-5));
   transform: translateX(-50%);
   margin: 0;
@@ -1128,7 +1355,7 @@ button:disabled {
   .ui {
     --rail: 0px;
     --tabbar: calc(56px + env(safe-area-inset-bottom, 0px));
-    --peek: 164px;
+    --peek: 212px;
     --above-sheet: var(--tabbar);
   }
   .ui[data-sheet="peek"] {
@@ -1137,67 +1364,84 @@ button:disabled {
   .ui[data-sheet="half"] {
     --above-sheet: calc(var(--tabbar) + 48%);
   }
-  .ui[data-sheet="full"] .history-float {
-    display: none;
-  }
-  .history-float,
   .ui .toast {
+    left: 50%;
     bottom: calc(var(--above-sheet) + var(--s-2));
+    max-width: calc(100% - 2 * var(--s-4));
   }
-  .rail {
-    display: none;
+  /* In walk the toast rises above the pad. */
+  .ui.cam-walk .toast {
+    bottom: calc(var(--tabbar) + var(--s-5) + 120px + var(--s-2));
   }
-  .topbar {
-    left: var(--s-2);
-    right: var(--s-2);
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "scenario actions" "camera camera";
-    row-gap: var(--s-2);
+  /* Top right: the camera, the light and Reset view; undo and redo under them (DESIGN_GUIDE §3.2). */
+  .phone-controls {
+    position: absolute;
+    top: var(--top);
+    right: var(--s-3);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--s-2);
+    z-index: 14;
   }
-  .scenario {
-    grid-area: scenario;
-    max-width: 100%;
-    padding: 0 var(--s-3);
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: var(--target);
+    overflow: hidden;
   }
-  .actions {
-    grid-area: actions;
+  .stack .icon-btn {
+    border-radius: 0;
+    color: var(--ink);
   }
-  .actions .history,
-  .light-seg {
-    display: none;
+  .stack .icon-btn + .icon-btn {
+    border-top: 1px solid var(--line);
   }
-  .light-toggle {
-    display: grid;
+  .stack .icon-btn:disabled {
+    color: var(--ink-3);
   }
-  .camera-group {
-    grid-area: camera;
+  .camera-menu {
+    top: 0;
+    left: auto;
+    right: calc(var(--target) + var(--s-2));
+    width: 200px;
   }
-  .camera-group .seg {
-    flex: 1;
-  }
-  .camera-group .seg button {
-    flex: 1;
-  }
-  .actions {
-    padding: 0;
-  }
-  /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
-  .save-state:not(.error) {
-    display: none;
+  .menu-item[aria-checked="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
   }
   .seg-label {
     display: none;
   }
-  .topbar .seg.glass .seg-label {
-    display: inline;
+  .walk-hint {
+    left: 50%;
   }
-  .history-float {
-    display: flex;
-    position: absolute;
-    left: var(--s-2);
-    padding: var(--s-1);
-    z-index: 16;
-    transition: bottom var(--m-base);
+  /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
+  .sheet-head .save-state {
+    display: block;
+    padding: 0 var(--s-4) var(--s-2);
+  }
+  .sheet-head .save-state:not(.error, .offline) {
+    display: none;
+  }
+  /* The selection's sheet: its actions as tiles across the top (DESIGN_GUIDE §3.2). */
+  .panel .actions-bar {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .panel .action {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--s-1);
+    height: 60px;
+    padding: 0;
+    background: var(--sunk);
+    font: var(--t-caption);
+    font-weight: 500;
   }
   .counts-line {
     display: block;
@@ -1271,6 +1515,9 @@ button:disabled {
     left: 0;
     right: 0;
     width: auto;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: var(--shadow);
     bottom: var(--tabbar);
     border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     border-bottom: 0;
@@ -1286,7 +1533,13 @@ button:disabled {
     height: 48%;
   }
   .panel.detent-full {
-    height: calc(100% - var(--tabbar) - var(--top) - 104px);
+    height: calc(100% - var(--tabbar) - var(--top) - var(--s-4));
+  }
+  .sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
   }
   .grabber {
     display: block;
@@ -1294,9 +1547,7 @@ button:disabled {
     height: 22px;
     border: 0;
     background: none;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    touch-action: none;
   }
   .grabber::after {
     content: "";

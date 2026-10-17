@@ -1,33 +1,63 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useProgress } from "@react-three/drei";
 import { countLayout, tableLabels } from "../domain/layout/counts";
+import { shapeOf } from "../domain/layout/items";
+import { spotFor } from "../domain/layout/validate";
 import type { Scenario } from "../domain/scenario/schema";
-import { ROTATE_STEP } from "../state/editor";
+import type { StoreApi } from "zustand/vanilla";
+import { type EditorState, ROTATE_STEP } from "../state/editor";
 import { adviseScenario } from "../domain/layout/advisories";
 import { useEditor, useStudio, useView } from "../scene/context";
 import { viewStore, walkInput } from "../state/view";
 import { Icon, type IconName } from "./icons";
 import {
-  ComparePanel,
+  AddPanel,
+  ChecksList,
   DecorPanel,
   Inspector,
-  LayoutPanel,
+  LayoutRules,
+  PaintingsPage,
   PeoplePanel,
+  RoomPanel,
   type Section,
-  VenuePanel,
+  SelectionActions,
+  showYours,
 } from "./Panels";
-import { Actions, CameraSwitch, History, ScenarioMenu } from "./TopBar";
+import { PlansPanel, SaveState } from "./Plans";
+import { Actions, CameraSwitch, PhoneControls } from "./TopBar";
 import { ConflictDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
 import { InspirationPanel } from "./Inspiration";
 
+/** The five sections (DESIGN_GUIDE §3): a rail on desktop, a tab bar on phones, same order. */
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
-  { id: "venue", label: "Venue", icon: "venue" },
-  { id: "layout", label: "Layout", icon: "layout" },
-  { id: "people", label: "People", icon: "people" },
-  { id: "decor", label: "Décor", icon: "decor" },
-  { id: "inspiration", label: "Inspiration", icon: "photo" },
-  { id: "compare", label: "Compare", icon: "compare" },
+  { id: "room", label: "Room", icon: "venue" },
+  { id: "add", label: "Add", icon: "add" },
+  { id: "style", label: "Style", icon: "decor" },
+  { id: "guests", label: "Guests", icon: "people" },
+  { id: "plans", label: "Plans", icon: "plans" },
 ];
+
+/** Desktop rail width and the panel's width range (DESIGN_GUIDE §3.1). */
+const RAIL = 76;
+const PANEL = { min: 360, max: 520, initial: 400 };
+const WIDTH_KEY = "rs-panel-width";
+
+function storedWidth(): number {
+  try {
+    const w = Number(localStorage.getItem(WIDTH_KEY));
+    return w >= PANEL.min && w <= PANEL.max ? w : PANEL.initial;
+  } catch {
+    return PANEL.initial;
+  }
+}
+
+function saveWidth(w: number) {
+  try {
+    localStorage.setItem(WIDTH_KEY, String(w));
+  } catch {
+    // A remembered width is a convenience only.
+  }
+}
 
 function useSummary(id?: string) {
   const { catalog, venue } = useStudio();
@@ -51,7 +81,7 @@ export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () =>
   const advisories = (
     <>
       <b data-testid={id ? undefined : "count-advisories"}>{c.advisories}</b>
-      <span>{c.advisories === 1 ? "advisory" : "advisories"}</span>
+      <span>{c.advisories === 1 ? "check" : "checks"}</span>
     </>
   );
   return (
@@ -82,7 +112,13 @@ export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () =>
         <span>dance area</span>
       </div>
       {onAdvisories && c.advisories > 0 ? (
-        <button type="button" className="count warn count-btn" onClick={onAdvisories}>
+        <button
+          type="button"
+          className="count warn count-btn"
+          onClick={onAdvisories}
+          aria-haspopup="dialog"
+          data-testid="open-checks"
+        >
           {advisories}
         </button>
       ) : (
@@ -97,7 +133,8 @@ function CountsLine({ onAdvisories }: { onAdvisories: () => void }) {
   const c = useSummary();
   return (
     <p className="counts-line" aria-label="Counts">
-      <span>{c.tables} tables</span> · <span>{c.seats} seats</span> · <span>{c.guests} guests</span>
+      <span>{c.tables} tables</span> · <span>{c.seats} seats</span> · <span>{c.guests} guests</span> ·{" "}
+      <span>≈ {Math.round(c.danceFloorM2)} m² dance area</span>
       {c.withoutSeat > 0 && (
         <>
           {" "}
@@ -108,8 +145,8 @@ function CountsLine({ onAdvisories }: { onAdvisories: () => void }) {
         <>
           {" "}
           ·{" "}
-          <button type="button" className="warn link-btn" onClick={onAdvisories}>
-            {c.advisories} {c.advisories === 1 ? "advisory" : "advisories"}
+          <button type="button" className="warn link-btn" onClick={onAdvisories} data-testid="open-checks">
+            {c.advisories} {c.advisories === 1 ? "check" : "checks"}
           </button>
         </>
       )}
@@ -267,20 +304,102 @@ function useShortcuts() {
 }
 
 type Detent = "peek" | "half" | "full";
+type Sheet = Detent | "closed";
+
+/**
+ * Keeps the browser's history in step with the open layers (a sheet, a page, details, the checks):
+ * opening one adds an entry, so the system back gesture closes the top layer instead of leaving the
+ * app; closing one in the app takes its entry away again.
+ */
+function useBackLayers(depth: number, closeTop: () => void) {
+  const synced = useRef(0);
+  const skip = useRef(0);
+  const close = useRef(closeTop);
+  useEffect(() => {
+    close.current = closeTop;
+  });
+  useEffect(() => {
+    const onPop = () => {
+      if (skip.current) {
+        skip.current--;
+        return;
+      }
+      synced.current = Math.max(0, synced.current - 1);
+      close.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  useEffect(() => {
+    if (depth > synced.current) {
+      for (let i = synced.current; i < depth; i++) history.pushState({ rsLayer: i + 1 }, "");
+    } else if (depth < synced.current) {
+      skip.current++;
+      history.go(depth - synced.current);
+    }
+    synced.current = depth;
+  }, [depth]);
+}
+
+/** Desktop: the selection's toolbar, just above it in the room (DESIGN_GUIDE §5). */
+function SelectionBar({ onDetails }: { onDetails: () => void }) {
+  const { catalog, venue } = useStudio();
+  const anchor = useView((s) => s.anchor);
+  const selection = useEditor((s) => s.selection);
+  const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
+  const chosen = items.filter((i) => selection.includes(i.id));
+  const first = chosen[0];
+  if (!anchor || !first) return null;
+  const labels = tableLabels(items, catalog);
+  const shape = shapeOf(first, catalog);
+  const single = chosen.length === 1;
+  const seats = single && "seats" in shape ? shape.seats : 0;
+  const title = single
+    ? labels.get(first.id) && labels.get(first.id) !== "♥"
+      ? `Table ${labels.get(first.id)}`
+      : (catalog.get(first.libraryId)?.name ?? "Item")
+    : `${chosen.length} items`;
+  return (
+    <div
+      className="selection-bar glass"
+      style={{ left: anchor[0], top: anchor[1] }}
+      role="toolbar"
+      aria-label={title}
+      data-testid="selection-bar"
+    >
+      <span className="selection-title">
+        {title}
+        {seats > 0 && <span>{seats} seats</span>}
+      </span>
+      <SelectionActions
+        ids={chosen.map((i) => i.id)}
+        locked={single && !!spotFor(first, venue)}
+        sitHere={seats > 0 ? first.id : null}
+        onDetails={onDetails}
+      />
+    </div>
+  );
+}
 
 export function StudioUI() {
-  const { editor } = useStudio();
+  const { editor, catalog } = useStudio();
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
-  const [section, setSection] = useState<Section | null>("layout");
-  const [chosen, setDetent] = useState<Detent>("peek");
-  const drag = useRef<number | null>(null);
+  const [section, setSection] = useState<Section>("room");
+  const [page, setPage] = useState<"rules" | "paintings" | null>(null);
+  const [details, setDetails] = useState(false);
+  const [checks, setChecks] = useState(false);
+  const [sheet, setSheet] = useState<Sheet>("peek");
+  const [selView, setSelView] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [width, setWidth] = useState(storedWidth);
+  const [libraryKey, setLibraryKey] = useState(0);
   useShortcuts();
 
   const phone = useMedia(PHONE);
+  const hasSelection = selection.length > 0;
   // Sit here (CAM-04): leaving walk ends the seat; a selection change ends picking one.
   const seat = useView((s) => s.seat);
-  const { catalog } = useStudio();
   const activeItems = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
   const seated = seat ? `table ${tableLabels(activeItems, catalog).get(seat.table) ?? ""}`.trim() : "";
   const pickSeat = useView((s) => s.pickSeat);
@@ -291,31 +410,69 @@ export function StudioUI() {
     viewStore.setState({ pickSeat: null });
   }, [camera]);
   useEffect(() => {
-    if (selection.length) viewStore.setState({ pickSeat: null });
-  }, [selection]);
-  // "Request a custom model" in the inspector opens the form in Inspiration (REQ-01).
+    if (hasSelection) viewStore.setState({ pickSeat: null });
+  }, [hasSelection]);
+
+  // A new selection shows itself: on phones as the sheet at its peek (actions first); on desktop
+  // through the toolbar beside it, with details one tap away. Nothing selected, nothing to detail.
+  useEffect(
+    () =>
+      (editor.store as StoreApi<EditorState>).subscribe((s, prev) => {
+        if (s.selection.join(",") === prev.selection.join(",")) return;
+        if (!s.selection.length) {
+          setDetails(false);
+          return;
+        }
+        setSelView(true);
+        if (phone) setSheet("peek");
+      }),
+    [editor, phone],
+  );
+
+  // "Request a custom model" opens its form in Add › Yours (REQ-01).
   useEffect(
     () =>
       viewStore.subscribe((s, prev) => {
         if (!s.requestFor || s.requestFor === prev.requestFor) return;
-        setSection("inspiration");
-        setDetent((d) => (d === "peek" ? "half" : d));
+        showYours();
+        setLibraryKey((k) => k + 1);
+        setSection("add");
+        setPage(null);
+        setPanelOpen(true);
+        setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
       }),
     [],
   );
+
   const compare = useView((s) => s.compare);
   // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
-  const detent: Detent = phone && compare && chosen === "half" ? "peek" : chosen;
-  const hasSelection = selection.length > 0;
-  const showPanel = camera !== "walk" && (hasSelection || section !== null);
+  const detent: Sheet = phone && compare && sheet === "half" ? "peek" : sheet;
+  const panelShown = camera !== "walk" && (phone ? detent !== "closed" : panelOpen);
 
-  // Desktop: the camera frames the room beside the panel (340 px, its border and margin), not under it.
+  // The layers the back gesture closes, top first (DESIGN_GUIDE §3).
+  const phoneSelection = phone && hasSelection && selView;
+  const depth =
+    (checks ? 1 : 0) +
+    (!phone && details && hasSelection ? 1 : 0) +
+    (phoneSelection ? 1 : 0) +
+    (page ? 1 : 0) +
+    (phone && panelShown ? 1 : 0);
+  useBackLayers(depth, () => {
+    if (checks) setChecks(false);
+    else if (!phone && details && hasSelection) setDetails(false);
+    else if (phoneSelection) editor.select([]);
+    else if (page) setPage(null);
+    else if (phone && panelShown) setSheet("closed");
+  });
+
+  // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
+  const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
   useEffect(() => {
-    viewStore.setState({ insetRight: showPanel && !phone ? 354 : 0 });
-  }, [showPanel, phone]);
+    viewStore.setState({ insetLeft });
+  }, [insetLeft]);
 
-  // Phone: the camera centres the room between the top bar and the sheet (and the floating Undo
-  // above it), measured again once the sheet's height transition ends.
+  // Phone: the camera centres the room above the sheet and the tab bar, measured again once the
+  // sheet's height transition ends.
   const ui = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = ui.current;
@@ -325,12 +482,13 @@ export function StudioUI() {
     }
     const measure = () => {
       const h = root.clientHeight;
-      const top = root.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0;
-      const covers = [...root.querySelectorAll(".panel, .tabbar, .history-float")].map(
+      const covers = [...root.querySelectorAll(".panel, .tabbar")].map(
         (el) => el.getBoundingClientRect().top,
       );
-      const bottom = Math.min(h, ...covers);
-      viewStore.setState({ insetTop: Math.round(top), insetBottom: Math.round(h - bottom) });
+      viewStore.setState({
+        insetTop: 0,
+        insetBottom: Math.round(h - Math.min(h, ...covers)),
+      });
     };
     measure();
     root.addEventListener("transitionend", measure);
@@ -339,93 +497,246 @@ export function StudioUI() {
       root.removeEventListener("transitionend", measure);
       window.removeEventListener("resize", measure);
     };
-  }, [phone, camera, showPanel, detent, hasSelection]);
-  // Décor works on the selection, so it stays open while tables are selected.
-  const content =
-    section === "decor" ? (
+  }, [phone, camera, panelShown, detent, phoneSelection]);
+
+  const go = (id: Section) => {
+    setChecks(false);
+    setPage(null);
+    setDetails(false);
+    setSelView(false);
+    if (phone) {
+      setSection(id);
+      setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
+      return;
+    }
+    // The open section's rail button folds the panel away, and brings it back.
+    if (id === section && panelOpen && !details && !page) setPanelOpen(false);
+    else {
+      setSection(id);
+      setPanelOpen(true);
+    }
+  };
+  const openChecks = () => {
+    setChecks((c) => !c || phone);
+    if (phone) setSheet((d) => (d === "closed" || d === "peek" ? "half" : d));
+  };
+  const adjustRules = () => {
+    setChecks(false);
+    setDetails(false);
+    setSelView(false);
+    setSection("room");
+    setPage("rules");
+    setPanelOpen(true);
+    if (phone) setSheet("full");
+  };
+  const styleSelection = () => {
+    setSection("style");
+    setSelView(false);
+    setDetails(false);
+    setPanelOpen(true);
+    if (phone) setSheet("half");
+  };
+
+  const sectionContent =
+    section === "room" ? (
+      page === "rules" ? (
+        <LayoutRules onBack={() => setPage(null)} />
+      ) : page === "paintings" ? (
+        <PaintingsPage onBack={() => setPage(null)} />
+      ) : (
+        <RoomPanel open={setPage} />
+      )
+    ) : section === "add" ? (
+      <AddPanel
+        key={libraryKey}
+        // Added: on desktop its details open beside the room; on phones the sheet drops to its peek
+        // with the new piece selected, ready to drag.
+        onAdded={() => (phone ? setSheet("peek") : setDetails(true))}
+        yours={(head) => <InspirationPanel head={head} />}
+      />
+    ) : section === "style" ? (
       <DecorPanel key={selection.join(",")} />
-    ) : section === "compare" ? (
-      <ComparePanel />
-    ) : hasSelection ? (
-      <Inspector />
-    ) : section === "venue" ? (
-      <VenuePanel />
-    ) : section === "layout" ? (
-      <LayoutPanel />
-    ) : section === "people" ? (
+    ) : section === "guests" ? (
       <PeoplePanel />
-    ) : section === "inspiration" ? (
-      <InspirationPanel />
-    ) : null;
-
-  // The advisory count opens the list of checks (Layout, scrolled to them).
-  const showChecks = () => {
-    editor.select([]);
-    setSection("layout");
-    setDetent((d) => (d === "peek" ? "half" : d));
-    window.requestAnimationFrame(() =>
-      document.getElementById("checks")?.scrollIntoView({
-        block: "start",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      }),
+    ) : (
+      <PlansPanel />
     );
+  const label = SECTIONS.find((s) => s.id === section)?.label ?? "";
+  const content =
+    phone && checks ? (
+      <ChecksList onAdjust={adjustRules} />
+    ) : phoneSelection ? (
+      <Inspector phone onStyle={styleSelection} />
+    ) : !phone && details && hasSelection ? (
+      <Inspector phone={false} back={{ label, onBack: () => setDetails(false) }} onStyle={styleSelection} />
+    ) : (
+      sectionContent
+    );
+
+  // Phone sheet: drag its handle, or its content once scrolled to the top, to step it down to closed
+  // or up to full; a quick flick skips a step (DESIGN_GUIDE §3.2).
+  const panel = useRef<HTMLElement>(null);
+  const swipe = useRef<{ y: number; t: number; top: boolean } | null>(null);
+  const ORDER: Sheet[] = ["closed", "peek", "half", "full"];
+  const step = (dy: number, dt: number) => {
+    if (Math.abs(dy) < 48) return;
+    const by = Math.abs(dy) / Math.max(1, dt) > 0.9 ? 2 : 1;
+    setSheet((d) => {
+      const i = ORDER.indexOf(d);
+      return ORDER[Math.max(0, Math.min(ORDER.length - 1, i + (dy > 0 ? -by : by)))] ?? d;
+    });
+  };
+  const startSwipe = (y: number, fromHandle: boolean) => {
+    swipe.current = {
+      y,
+      t: performance.now(),
+      top: fromHandle || (panel.current?.scrollTop ?? 0) <= 0,
+    };
+  };
+  const endSwipe = (y: number) => {
+    const s = swipe.current;
+    swipe.current = null;
+    if (!s) return;
+    const dy = y - s.y;
+    // Content only pulls the sheet down from its very top, so a scroll never closes it.
+    if (dy > 0 && !s.top) return;
+    if (dy < 0 && detent === "full") return;
+    step(dy, performance.now() - s.t);
   };
 
-  const pick = (id: Section) => {
-    setSection((s) => (s === id && !phone ? null : id));
-    setDetent((d) => (d === "peek" ? "half" : d));
-  };
-
-  // Floating phone controls (Undo, toast) sit just above the sheet, whatever its height.
-  const sheet = !phone ? "none" : showPanel ? detent : "none";
-
+  const showCounts = !phone && !compare;
   return (
-    <div className={`ui cam-${camera}`} data-sheet={sheet} ref={ui}>
-      <header className="topbar">
-        <ScenarioMenu />
-        <CameraSwitch />
-        <Actions />
-      </header>
+    <div
+      className={`ui cam-${camera}`}
+      data-sheet={phone && panelShown ? detent : "none"}
+      ref={ui}
+      style={{ "--inset-left": `${insetLeft}px` } as CSSProperties}
+    >
+      {!phone && (
+        <>
+          <nav className="rail" aria-label="Sections">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={section === s.id && panelOpen ? "on" : ""}
+                aria-pressed={section === s.id && panelOpen}
+                onClick={() => go(s.id)}
+                data-testid={`section-${s.id}`}
+              >
+                <Icon name={s.icon} />
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </nav>
+          <header className="topbar">
+            <div className="plan-name glass">
+              <button
+                type="button"
+                className="plan-name-btn"
+                onClick={() => go("plans")}
+                title="Plans"
+                data-testid="plan-name"
+              >
+                {editor.active().name}
+              </button>
+              <SaveState />
+            </div>
+            <CameraSwitch />
+            <Actions />
+          </header>
+        </>
+      )}
+      {phone && <PhoneControls />}
 
-      <nav className="rail" aria-label="Sections">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={section === s.id ? "on" : ""}
-            aria-pressed={section === s.id}
-            onClick={() => pick(s.id)}
-            data-testid={`section-${s.id}`}
-          >
-            <Icon name={s.icon} />
-            <span>{s.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      {showPanel && (
-        <aside className={`panel detent-${detent}`} aria-label={hasSelection ? "Inspector" : "Panel"}>
-          <button
-            type="button"
-            className="grabber"
-            aria-label="Resize panel"
-            onClick={() => setDetent((d) => (d === "peek" ? "half" : d === "half" ? "full" : "peek"))}
-            onPointerDown={(e) => (drag.current = e.clientY)}
-            onPointerUp={(e) => {
-              if (drag.current === null) return;
-              const dy = e.clientY - drag.current;
-              drag.current = null;
-              if (dy < -40) setDetent((d) => (d === "peek" ? "half" : "full"));
-              if (dy > 40) setDetent((d) => (d === "full" ? "half" : "peek"));
-            }}
-          />
-          {phone && <CountsLine onAdvisories={showChecks} />}
+      {panelShown && (
+        <aside
+          ref={panel}
+          className={`panel detent-${detent}`}
+          aria-label={label}
+          style={phone ? undefined : { width }}
+          onTouchStart={(e) => startSwipe(e.touches[0]?.clientY ?? 0, false)}
+          onTouchEnd={(e) => endSwipe(e.changedTouches[0]?.clientY ?? 0)}
+        >
+          {phone && (
+            <div className="sheet-head">
+              <button
+                type="button"
+                className="grabber"
+                aria-label="Resize sheet"
+                onClick={() => setSheet((d) => (d === "peek" ? "half" : d === "half" ? "full" : "peek"))}
+                onPointerDown={(e) => e.pointerType === "mouse" && startSwipe(e.clientY, true)}
+                onPointerUp={(e) => e.pointerType === "mouse" && endSwipe(e.clientY)}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  startSwipe(e.touches[0]?.clientY ?? 0, true);
+                }}
+              />
+              <CountsLine onAdvisories={openChecks} />
+              <SaveState />
+            </div>
+          )}
           {content}
+          {!phone && (
+            <button
+              type="button"
+              className="icon-btn panel-collapse"
+              onClick={() => setPanelOpen(false)}
+              aria-label="Collapse panel"
+              title="Collapse panel"
+              data-testid="panel-collapse"
+            >
+              <Icon name="sidebar" />
+            </button>
+          )}
         </aside>
       )}
+      {!phone && panelShown && (
+        <div
+          className="panel-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Panel width"
+          aria-valuemin={PANEL.min}
+          aria-valuemax={PANEL.max}
+          aria-valuenow={width}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            const by = e.key === "ArrowLeft" ? -20 : e.key === "ArrowRight" ? 20 : 0;
+            if (!by) return;
+            const next = Math.min(PANEL.max, Math.max(PANEL.min, width + by));
+            setWidth(next);
+            saveWidth(next);
+          }}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            document.body.style.cursor = "col-resize";
+          }}
+          onPointerMove={(e) => {
+            if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            setWidth(Math.round(Math.min(PANEL.max, Math.max(PANEL.min, e.clientX - RAIL))));
+          }}
+          onPointerUp={() => {
+            document.body.style.cursor = "";
+            saveWidth(width);
+          }}
+        />
+      )}
 
-      {!phone && !compare && <Counts onAdvisories={showChecks} />}
-      {phone && camera !== "walk" && <History className="history-float glass" />}
+      {showCounts && <Counts onAdvisories={openChecks} />}
+      {!phone && checks && (
+        <div className="checks-pop" role="dialog" aria-label="Checks">
+          <ChecksList onAdjust={adjustRules} />
+        </div>
+      )}
+      {!phone && camera !== "walk" && !pickSeat && (
+        <SelectionBar
+          onDetails={() => {
+            setDetails(true);
+            setPanelOpen(true);
+          }}
+        />
+      )}
       {pickSeat && camera !== "walk" && (
         <div className="walk-hint glass seated" role="status" data-testid="picking">
           <span>Choose a seat · {picking}</span>
@@ -456,20 +767,23 @@ export function StudioUI() {
         </>
       )}
 
-      <nav className="tabbar" aria-label="Sections">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={section === s.id ? "on" : ""}
-            aria-pressed={section === s.id}
-            onClick={() => pick(s.id)}
-          >
-            <Icon name={s.icon} />
-            <span>{s.label}</span>
-          </button>
-        ))}
-      </nav>
+      {phone && (
+        <nav className="tabbar" aria-label="Sections">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={section === s.id && panelShown && !phoneSelection && !checks ? "on" : ""}
+              aria-pressed={section === s.id && panelShown}
+              onClick={() => go(s.id)}
+              data-testid={`section-${s.id}`}
+            >
+              <Icon name={s.icon} />
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       <Toast />
       <OfflineBanner />
       <ConflictDialog />

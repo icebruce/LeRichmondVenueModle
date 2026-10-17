@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { type Page, expect, test } from "@playwright/test";
 import { openStudio, screenOf, setCamera, state } from "./helpers";
 
 test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async ({ page }) => {
@@ -18,4 +18,56 @@ test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async (
   await expect(page.getByRole("button", { name: "Undo" }).first()).toBeVisible();
   await setCamera(page, "walk");
   await expect(page.locator(".joystick")).toBeVisible();
+});
+
+/** A finger drag on `selector` from y0 to y1 (React reads the touch points' clientY). */
+async function swipe(page: Page, selector: string, y0: number, y1: number) {
+  await page
+    .locator(selector)
+    .first()
+    .evaluate(
+      (el, [a, b]) => {
+        const touch = (y: number) => new Touch({ identifier: 1, target: el, clientX: 195, clientY: y });
+        el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [touch(a ?? 0)] }));
+        el.dispatchEvent(
+          new TouchEvent("touchend", { bubbles: true, touches: [], changedTouches: [touch(b ?? 0)] }),
+        );
+      },
+      [y0, y1],
+    );
+}
+
+test("[PLT-02] phone controls: camera menu and lighting top right, undo under them, no plan name", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await expect(page.getByTestId("plan-name")).toHaveCount(0);
+  const stack = await page.locator(".phone-controls .stack").first().boundingBox();
+  const history = await page.locator(".phone-controls .history").boundingBox();
+  expect(history?.y ?? 0).toBeGreaterThan((stack?.y ?? 0) + (stack?.height ?? 0));
+  expect((history?.x ?? 0) + (history?.width ?? 0)).toBeGreaterThan(330);
+  await setCamera(page, "plan");
+  expect((await state(page)).camera).toBe("plan");
+  await expect(page.getByTestId("camera-menu")).toHaveAccessibleName("Camera: Plan");
+});
+
+test("[PLT-02] phone sheet: swipes down a step at a time to closed; system back closes the top layer", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("section-add").click();
+  await expect(page.locator(".panel")).toHaveClass(/detent-half/);
+  await swipe(page, ".grabber", 400, 520);
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
+  await swipe(page, ".grabber", 600, 720);
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // Back: a page, then the sheet, close in turn; the app stays open.
+  await page.getByTestId("section-room").click();
+  await page.getByTestId("room-rules").click();
+  await expect(page.getByTestId("aisle")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId("venue-panel")).toBeVisible();
+  await page.goBack();
+  await expect(page.locator(".panel")).toHaveCount(0);
+  await expect(page.locator(".tabbar")).toBeVisible();
 });

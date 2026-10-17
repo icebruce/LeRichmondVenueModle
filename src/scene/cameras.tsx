@@ -52,7 +52,7 @@ function MainCamera() {
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useView((s) => s.controlsEnabled);
   const view = useView((s) => s.view);
-  const insetRight = useView((s) => s.insetRight);
+  const insetLeft = useView((s) => s.insetLeft);
   const insetTop = useView((s) => s.insetTop);
   const insetBottom = useView((s) => s.insetBottom);
   const comparing = useView((s) => s.compare !== null);
@@ -87,9 +87,9 @@ function MainCamera() {
           target: new THREE.Vector3(seat.look[0], seat.y + SEAT_EYE - 0.35, seat.look[1]),
         }
       : presetPose(p);
-    // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
+    // Narrow screens, or a panel covering the left side: pull overview cameras back so the room fits.
     const flat = mode === "walk" || comparing;
-    const visible = flat ? size.width : size.width - insetRight;
+    const visible = flat ? size.width : size.width - insetLeft;
     // Phone: fit the band between the top bar and the sheet, not the whole screen.
     const band = flat ? size.height : size.height - insetTop - insetBottom;
     const aspect = visible / Math.max(1, band);
@@ -175,20 +175,21 @@ function MainCamera() {
   );
 
   // Frame the room in the part of the screen the interface leaves free (DESIGN_GUIDE §3.1, §3.2):
-  // shift the principal point by half the covered width (desktop panel) and height (phone top bar
-  // and sheet), easing as they change. Zoom compensates so the room keeps its size on screen.
+  // shift the principal point by half the covered width (desktop rail and panel, on the left) and
+  // height (phone top bar and sheet), easing as they change. Zoom compensates so the room keeps its
+  // size on screen.
   const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
     const walk = mode === "walk";
     // Side by side, the halves already sit beside the interface and frame alike.
     const flat = walk || comparing;
-    const want = { x: flat ? 0 : insetRight, y: flat ? 0 : insetBottom - insetTop };
+    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };
     const w = size.width;
     const h = Math.max(1, size.height);
-    const fullW = w + next.x;
+    const fullW = w + Math.abs(next.x);
     const fullH = h + Math.abs(next.y);
     const aspect = fullW / fullH;
     const offset = next.x !== 0 || next.y !== 0;
@@ -197,7 +198,7 @@ function MainCamera() {
     inset.current = next;
     camera.aspect = aspect;
     camera.zoom = h / fullH;
-    if (offset) camera.setViewOffset(fullW, fullH, next.x, next.y > 0 ? next.y : 0, w, h);
+    if (offset) camera.setViewOffset(fullW, fullH, next.x > 0 ? next.x : 0, next.y > 0 ? next.y : 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
   });

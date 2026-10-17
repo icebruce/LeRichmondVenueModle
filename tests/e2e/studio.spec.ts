@@ -4,7 +4,9 @@ import {
   dragItem,
   importPhoto,
   item,
+  openSection,
   openStudio,
+  openYours,
   photoFile,
   screenOf,
   setCamera,
@@ -37,7 +39,8 @@ test("[LAY-02] [LAY-04] [LAY-06] drag a table, get refused on the bar, undo", as
   await dragItem(page, "t1", [2.8, 2.9]);
   const moved = await item(page, "t1");
   expect(moved.z).toBeCloseTo(2.9, 1);
-  await expect(page.getByTestId("inspector")).toContainText("Table 1");
+  // The selection's toolbar names it; its details are one click away.
+  await expect(page.getByTestId("selection-bar")).toContainText("Table 1");
 
   await dragItem(page, "t1", [7.7, 6.0]);
   expect((await item(page, "t1")).x).toBeCloseTo(moved.x, 1);
@@ -53,7 +56,10 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
   const t = await item(page, "t2");
   const [x, y] = await screenOf(page, t.x, 0.77, t.z);
   await page.mouse.click(x, y);
+  await expect(page.getByTestId("selection-bar")).toContainText("Table 2");
+  await page.getByTestId("details").click();
   await expect(page.getByTestId("inspector")).toContainText("Table 2");
+  await expect(page.getByTestId("back")).toHaveText("Room");
   await page.getByTestId("seats").getByRole("button", { name: /More/ }).click();
   expect((await item(page, "t2")).options.seats).toBe(Number(t.options.seats) + 1);
   const count = (await state(page)).active?.items.length ?? 0;
@@ -65,8 +71,9 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
 
 test("[LIB-01] [LIB-02] add a round table and a dance area from the library", async ({ page }) => {
   await openStudio(page, "fresh");
-  await page.getByRole("button", { name: /Option A/ }).click();
-  await page.getByRole("menuitem", { name: "New empty room" }).click();
+  await page.getByTestId("plan-name").click();
+  await page.getByTestId("plan-new-empty").click();
+  await openSection(page, "add");
   await page.getByTestId("add-table-round").click();
   await expect(page.getByTestId("inspector")).toContainText("Table 1");
   await page.getByRole("button", { name: "Done" }).click();
@@ -81,6 +88,7 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   page,
 }) => {
   await openStudio(page, "fresh");
+  await openSection(page, "add");
   await page.getByTestId("category-plant").click();
   await page.getByTestId("add-plant-olive").click();
   await page.getByRole("button", { name: "Done" }).click();
@@ -147,7 +155,7 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
       };
       return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
-  await page.getByTestId("section-decor").click();
+  await openSection(page, "style");
   // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from the library.
   await expect(page.getByTestId("florals-floral-low")).toBeVisible();
   await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
@@ -174,8 +182,9 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
 
 test("[LAY-05] dragging a table near another's centre line snaps into line with it", async ({ page }) => {
   await openStudio(page);
-  await page.getByRole("button", { name: /Option A/ }).click();
-  await page.getByRole("menuitem", { name: "New empty room" }).click();
+  await page.getByTestId("plan-name").click();
+  await page.getByTestId("plan-new-empty").click();
+  await openSection(page, "add");
   await page.getByTestId("add-table-round").click();
   await page.getByRole("button", { name: "Done" }).click();
   await page.getByTestId("add-table-round").click();
@@ -202,7 +211,7 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   await openStudio(page);
   const pose = () => page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
   const start = await pose();
-  await page.getByTestId("section-venue").click();
+  await openSection(page, "room");
   await page.getByRole("button", { name: /At the bar/ }).click();
   await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
   await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
@@ -303,7 +312,7 @@ test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills t
   page,
 }) => {
   await openStudio(page);
-  await page.getByTestId("section-people").click();
+  await openSection(page, "guests");
   await expect(page.getByTestId("people-seated")).toHaveText("72");
   await expect(page.getByTestId("people-standing")).toHaveText("3");
   await expect(page.getByRole("note")).toContainText("3 guests without a seat");
@@ -328,11 +337,15 @@ test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills t
 test("[LAY-08] advisory checks follow the couple's settings and never block", async ({ page }) => {
   await openStudio(page);
   await expect(page.getByTestId("count-advisories")).toHaveText("4");
+  await page.getByTestId("open-checks").click();
   await expect(page.getByTestId("checks")).toContainText("Aisle ≈ 0.4 m between table 5 and table 6");
+  // Adjust layout rules: Room › Layout rules, each rule with its live effect.
   await page.getByTestId("check-settings").click();
+  await expect(page.getByTestId("checks")).toHaveCount(0);
   await page.getByTestId("aisle").fill("0.6");
   // At 0.6 m the 0.8 m aisle passes; the 0.4 m one, the ≈ 0.6 m one (just under) and the DJ booth remain.
   await expect(page.getByTestId("count-advisories")).toHaveText("3");
+  await page.getByTestId("open-checks").click();
   await expect(page.getByTestId("checks")).not.toContainText("Aisle ≈ 0.8 m");
   await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
   expect((await state(page)).selection.sort()).toEqual(["t5", "t6"]);
@@ -340,8 +353,8 @@ test("[LAY-08] advisory checks follow the couple's settings and never block", as
 
 test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current view", async ({ page }) => {
   await openStudio(page);
+  await openSection(page, "plans");
   const download = async (id: string) => {
-    await page.getByTestId("scenario-menu").click();
     const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId(id).click()]);
     const path = await d.path();
     const { statSync, readFileSync } = await import("node:fs");
@@ -367,26 +380,26 @@ test("[SCN-06] compare two scenarios side by side from the same camera, with the
   page,
 }) => {
   await openStudio(page);
-  await page.getByTestId("scenario-menu").click();
-  await page.getByRole("menuitem", { name: "Duplicate" }).click();
-  await page.getByTestId("section-people").click();
+  await openSection(page, "plans");
+  await page.getByTestId("plan-duplicate").click();
+  await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
-  await page.getByTestId("section-compare").click();
+  await openSection(page, "plans");
   await page
     .getByRole("radiogroup", { name: "Compare with" })
     .getByRole("radio", { name: "Option A · Venue sample", exact: true })
     .click();
   await expect(page.getByTestId("compare-canvas")).toBeVisible();
-  // Each half is named, with its own counts; the side panel sits beside them, not over one.
+  // Each half is named, with its own counts; the panel sits beside them, not over one.
   const panes = page.getByTestId("pane-counts");
   await expect(panes).toHaveCount(2);
   await expect(panes.first()).toContainText("Option A · Venue sample copy");
   await expect(panes.first()).toContainText("4without a seat");
   await expect(panes.last()).toContainText("Option A · Venue sample");
   await expect(panes.last()).toContainText("3without a seat");
-  const right = await panes.last().boundingBox();
+  const left = await panes.first().boundingBox();
   const panel = await page.getByRole("complementary").boundingBox();
-  expect((right?.x ?? 0) + (right?.width ?? 0)).toBeLessThanOrEqual(panel?.x ?? 0);
+  expect(left?.x ?? 0).toBeGreaterThanOrEqual((panel?.x ?? 0) + (panel?.width ?? 0));
   const table = page.getByTestId("compare-table");
   await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("4");
   await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("3");
@@ -453,24 +466,24 @@ test("[CAM-01] [CAM-02] [CAM-03] switch between dollhouse, plan and walk", async
 
 test("[LGT-02] switch to daylight and back", async ({ page }) => {
   await openStudio(page);
-  await page.getByTestId("light-day").click();
-  expect((await state(page)).active).toBeTruthy();
-  await expect(page.getByTestId("light-day")).toHaveAttribute("aria-checked", "true");
-  await page.getByTestId("light-evening").click();
-  await expect(page.getByTestId("light-evening")).toHaveAttribute("aria-checked", "true");
+  const lighting = async () => (await state(page)).active?.style.lighting;
+  await page.getByTestId("light-toggle").click();
+  expect(await lighting()).toBe("day");
+  await expect(page.getByTestId("light-toggle")).toHaveAccessibleName("Switch to evening light");
+  await page.getByTestId("light-toggle").click();
+  expect(await lighting()).toBe("evening");
 });
 
 test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overwrites them", async ({
   page,
 }) => {
   await openStudio(page, "saved");
-  await page.getByRole("button", { name: /Option A/ }).click();
-  await page.getByRole("menuitem", { name: "Duplicate" }).click();
-  await page.getByRole("button", { name: /copy/ }).click();
-  await page.getByRole("menuitem", { name: "Rename" }).click();
+  await page.getByTestId("plan-name").click();
+  await page.getByTestId("plan-duplicate").click();
+  await page.getByTestId("plan-rename").click();
   await page.locator("#scenario-name").fill("Option B");
   await page.keyboard.press("Enter");
-  await page.getByTestId("section-people").click();
+  await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /More/ }).click();
   await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
   await page.goto("/");
@@ -482,7 +495,7 @@ test("[SCN-01] [SCN-09] scenarios survive a reload; a ?fresh session never overw
 
   // A throwaway ?fresh session edits its own copy; the saved scenarios are untouched afterwards.
   await openStudio(page, "fresh");
-  await page.getByTestId("section-people").click();
+  await openSection(page, "guests");
   await page.getByTestId("guests").getByRole("button", { name: /Fewer/ }).click();
   await expect(page.getByTestId("save-state")).toHaveText("Saved on this device");
   await page.goto("/?quality=low");
@@ -496,7 +509,7 @@ test("[IMP-01] [IMP-02] [IMP-03] [IMP-04] [IMP-05] [IMP-06] [IMP-07] a photo bec
   page,
 }) => {
   await openStudio(page);
-  await page.getByTestId("section-inspiration").click();
+  await openYours(page);
   await page.getByTestId("add-inspiration").click();
   await page.getByTestId("import-link").fill("https://shop.example.com/gold-candelabra");
   await page.getByTestId("photo-file").setInputFiles(await photoFile(page, "#c9a55e"));
@@ -538,7 +551,32 @@ test("[IMP-01] [IMP-02] [IMP-03] [IMP-04] [IMP-05] [IMP-06] [IMP-07] a photo bec
   // Both stay in the library after a reload.
   await page.reload();
   await openStudio(page);
-  await page.getByTestId("section-inspiration").click();
+  await openYours(page);
   await expect(page.getByTestId("inspiration-panel")).toContainText("Gold candelabra");
   await expect(page.getByTestId("inspiration-panel")).toContainText("Photo preview");
+});
+
+test("[PLT-04] desktop: labelled rail, a wide panel to resize or fold away, details inside the section", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await expect(page.locator(".rail button")).toHaveText(["Room", "Add", "Style", "Guests", "Plans"]);
+  const panel = page.getByRole("complementary");
+  expect((await panel.boundingBox())?.width).toBe(400);
+  await page.getByRole("separator", { name: "Panel width" }).press("ArrowRight");
+  expect((await panel.boundingBox())?.width).toBe(420);
+  await page.getByTestId("panel-collapse").click();
+  await expect(panel).toHaveCount(0);
+  await openSection(page, "add");
+  await expect(page.getByTestId("layout-panel")).toBeVisible();
+  // A selection: its toolbar in the room; Details opens inside Add with a way back; another tab shows that tab.
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
+  await page.getByTestId("details").click();
+  await expect(page.getByTestId("inspector")).toContainText("Table 2");
+  await page.getByTestId("back").click();
+  await expect(page.getByTestId("layout-panel")).toBeVisible();
+  await page.getByTestId("details").click();
+  await page.getByTestId("section-guests").click();
+  await expect(page.getByTestId("inspector")).toHaveCount(0);
+  await expect(page.getByTestId("guests")).toBeVisible();
 });
