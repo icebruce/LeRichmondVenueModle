@@ -79,7 +79,7 @@ export function Counts({ id, onAdvisories }: { id?: string; onAdvisories?: () =>
       </div>
       <div className="count">
         <b>≈ {Math.round(c.danceFloorM2)} m²</b>
-        <span>dance floor</span>
+        <span>dance area</span>
       </div>
       {onAdvisories && c.advisories > 0 ? (
         <button type="button" className="count warn count-btn" onClick={onAdvisories}>

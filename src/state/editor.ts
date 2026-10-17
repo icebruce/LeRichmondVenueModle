@@ -12,7 +12,6 @@ import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 enablePatches();
 
 export type CameraMode = "dollhouse" | "plan" | "walk";
-export type Refusal = { itemId: string; reason: string; at: number };
 export type Toast = { id: number; text: string; undo?: () => void };
 export type SaveState = "saved" | "saving" | "error" | "offline";
 /** The partner saved a newer version while this device was editing (SCN-03). */
@@ -25,7 +24,6 @@ export type EditorState = {
   selection: string[];
   camera: CameraMode;
   snapping: boolean;
-  refusal: Refusal | null;
   toast: Toast | null;
   saveState: SaveState;
   /** Bumped on every scenario change; persistence listens to it. */
@@ -64,7 +62,6 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     selection: [],
     camera: "dollhouse",
     snapping: true,
-    refusal: null,
     toast: null,
     saveState: "saved",
     version: 0,
@@ -127,8 +124,9 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     };
   }
 
-  function refuse(itemId: string, reason: string): false {
-    set({ refusal: { itemId, reason, at: Date.now() } });
+  /** A refused change leaves everything as it was and says why, wherever the couple is. */
+  function refuse(reason: string): false {
+    toast(`${reason}. Nothing was changed.`);
     return false;
   }
 
@@ -162,7 +160,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     active,
 
     select(ids: string[]) {
-      set({ selection: ids, refusal: null });
+      set({ selection: ids });
     },
 
     setCamera(camera: CameraMode) {
@@ -171,10 +169,6 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
 
     setSnapping(snapping: boolean) {
       set({ snapping });
-    },
-
-    clearRefusal() {
-      set({ refusal: null });
     },
 
     dismissToast() {
@@ -225,11 +219,10 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         };
       });
       const reason = validate(changed);
-      if (reason) return refuse(changed[0]?.id ?? "", reason);
+      if (reason) return refuse(reason);
       commit("Move", (d) => {
         for (const c of changed) Object.assign(d.items.find((i) => i.id === c.id) as Item, c);
       });
-      set({ refusal: null });
       return true;
     },
 
@@ -241,7 +234,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         .map((it) => ({ ...it, rotY: normalizeAngle(it.rotY + delta) }));
       if (!changed.length) return false;
       const reason = validate(changed);
-      if (reason) return refuse(changed[0]?.id ?? "", reason);
+      if (reason) return refuse(reason);
       commit("Rotate", (d) => {
         for (const c of changed) (d.items.find((i) => i.id === c.id) as Item).rotY = c.rotY;
       });
@@ -253,7 +246,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       if (!it) return false;
       const changed = withSpot({ ...it, options: { ...it.options, [key]: value } });
       const reason = validate([changed]);
-      if (reason) return refuse(id, reason);
+      if (reason) return refuse(reason);
       commit("Change", (d) => {
         Object.assign(d.items.find((i) => i.id === id) as Item, changed);
       });
@@ -345,14 +338,14 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       );
     },
 
-    setVenueToggle(key: "communalTable" | "barStools", value: boolean): boolean {
+    setVenueToggle(key: "barStools", value: boolean): boolean {
       if (value) {
         const toggles = { ...active().venueToggles, [key]: true };
         const blocked = active().items.find((it) => {
           const r = checkPlacement(it, active().items, venue, deps.catalog, toggledObstacles(venue, toggles));
           return !r.ok;
         });
-        if (blocked) return refuse(blocked.id, "Something is placed where that furniture stands");
+        if (blocked) return refuse("Something is placed where the bar stools go");
       }
       commit("Venue furniture", (d) => {
         d.venueToggles[key] = value;
@@ -408,7 +401,6 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         scenarios: { ...s.scenarios, [id]: restored },
         version: s.version + 1,
         selection: s.selection.filter((sid) => restored.items.some((i) => i.id === sid)),
-        refusal: null,
       }));
       syncHistoryFlags();
     },
@@ -422,7 +414,6 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       set((s) => ({
         scenarios: { ...s.scenarios, [id]: applyPatches(s.scenarios[id] as Scenario, step.redo) },
         version: s.version + 1,
-        refusal: null,
       }));
       syncHistoryFlags();
     },
@@ -431,7 +422,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
 
     switchScenario(id: string) {
       if (!get().scenarios[id]) return;
-      set({ activeId: id, selection: [], refusal: null });
+      set({ activeId: id, selection: [] });
       syncHistoryFlags();
     },
 

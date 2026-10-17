@@ -236,8 +236,8 @@ export function advise(
       kind: "dance",
       message:
         floor === 0
-          ? `No dance floor yet — about ${Math.round(need)} m² suits ${guests} guests`
-          : `Dance floor ≈ ${Math.round(floor)} m² — below the ≈ ${Math.round(need)} m² your settings suggest for ${guests} guests`,
+          ? `No dance area yet — about ${Math.round(need)} m² suits ${guests} guests`
+          : `Dance area ≈ ${Math.round(floor)} m² — below the ≈ ${Math.round(need)} m² your settings suggest for ${guests} guests`,
       area: null,
       label: null,
       items: [],

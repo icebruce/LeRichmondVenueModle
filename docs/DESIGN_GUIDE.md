@@ -117,7 +117,7 @@ Desktop layout with the inspector as an overlay sheet from the right.
 
 - **Hover** (desktop): soft accent outline. **Selection:** solid accent outline + footprint ring on the floor + rotate handle (a small brass circle 0.4 m off the item's edge).
 - **Dragging:** the item lifts 2 cm with a soft shadow; a ghost footprint shows where it lands; snapping guides are thin accent lines.
-- **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release.
+- **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release. Any refused change (move, turn, option, venue furniture) also shows a toast with the reason ("Overlaps the bar. Nothing was changed."), so it is seen wherever the couple is (2026-10-17).
 - **Advisory:** amber dashed overlay on the problem area (aisle, doorway), with a short label and a details row in the inspector. Never blocks the action.
 - **Dimensions** appear while dragging or resizing, in metres with one decimal, prefixed "≈".
 

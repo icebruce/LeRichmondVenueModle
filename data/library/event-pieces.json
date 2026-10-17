@@ -3,13 +3,13 @@
   "items": [
     {
       "id": "dance-floor",
-      "name": "Dance floor",
+      "name": "Dance area",
       "family": "eventPiece",
       "placement": "floor",
       "sizeM": {
         "w": 6.0,
         "d": 3.6,
-        "h": 0.03
+        "h": 0.01
       },
       "sizePresets": [
         {
@@ -66,30 +66,6 @@
           "step": 0.3,
           "default": 3.6,
           "unit": "m"
-        },
-        {
-          "type": "choice",
-          "key": "finish",
-          "label": "Finish",
-          "choices": [
-            {
-              "value": "wood",
-              "label": "Wood"
-            },
-            {
-              "value": "white",
-              "label": "White"
-            },
-            {
-              "value": "black",
-              "label": "Black"
-            },
-            {
-              "value": "led",
-              "label": "LED"
-            }
-          ],
-          "default": "wood"
         }
       ],
       "seats": false,

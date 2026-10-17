@@ -181,7 +181,7 @@ export function drawPlan(
       const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
       poly(fp, SOFT, ACCENT, 1.5);
       const [x, y] = P([it.x, it.z]);
-      text("Dance floor", x, y - 10, `600 18px ${UI}`, INK, "center");
+      text("Dance area", x, y - 10, `600 18px ${UI}`, INK, "center");
       text(
         `≈ ${shape.width.toFixed(1)} × ${shape.depth.toFixed(1)} m`,
         x,
@@ -290,7 +290,7 @@ export function drawPlan(
   ly += 50;
   const facts = [
     `Guests: ${c.guests}${c.withoutSeat ? ` (${c.withoutSeat} without a seat)` : ""}`,
-    `Dance floor ≈ ${Math.round(c.danceFloorM2)} m²`,
+    `Dance area ≈ ${Math.round(c.danceFloorM2)} m²`,
     ...djLine(scenario, venue, catalog),
     `Tablecloths: ${(catalog.get(scenario.style.linen)?.name ?? "").replace(" tablecloth", "").toLowerCase()}, ${scenario.style.linenLength === "lap" ? "lap length" : "to the floor"}`,
   ];

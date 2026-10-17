@@ -4,13 +4,14 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  /* No pull-to-refresh or rubber-banding: a downward swipe belongs to the room and the sheet. */
+  overscroll-behavior: none;
 }
 body {
   background: var(--bg);
   color: var(--ink);
   font: var(--t-body);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
 button,
@@ -327,6 +328,7 @@ button:disabled {
   border-radius: var(--r-sheet);
   box-shadow: var(--shadow);
   overflow: auto;
+  overscroll-behavior: contain;
   animation: slide-in var(--m-base);
 }
 .grabber {

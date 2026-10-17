@@ -314,16 +314,13 @@ export function withImported(builtIn: Catalog, imports: readonly Imported[]): Ma
 }
 
 /**
- * Where a custom request stands (REQ-02): "In library" once a catalogue entry carries its id in
- * `requestId` (Claude ships it in an update), otherwise what the couple set.
+ * Where a custom request stands (REQ-02): "Ready" once a catalogue entry carries its id in
+ * `requestId` (Claude ships it in an update), otherwise "Requested". Nobody sets it by hand.
  */
 export function requestStatus(
   r: CustomRequest,
   catalog: Catalog,
-): { status: "requested" | "in_progress" | "in_library"; label: string; entry?: LibraryEntry } {
+): { status: "requested" | "ready"; label: string; entry?: LibraryEntry } {
   const entry = [...catalog.values()].find((e) => e.requestId === r.id);
-  if (entry) return { status: "in_library", label: "In library", entry };
-  return r.status === "in_progress"
-    ? { status: "in_progress", label: "In progress" }
-    : { status: "requested", label: "Requested" };
+  return entry ? { status: "ready", label: "Ready", entry } : { status: "requested", label: "Requested" };
 }

@@ -35,7 +35,7 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
     style: { ...DEFAULT_STYLE },
     guests: { count: 75, seed: 1 },
     thresholds: { ...DEFAULT_THRESHOLDS },
-    venueToggles: { communalTable: false, barStools: false, paintings: {} },
+    venueToggles: { barStools: false, paintings: {} },
     notes: [],
     updatedAt: now,
   };
@@ -66,7 +66,7 @@ export function venueSampleItems(): Item[] {
       x: 5.6,
       z: 10.95,
       rotY: 0,
-      options: { width: 6.6, depth: 3.3, finish: "wood" },
+      options: { width: 6.6, depth: 3.3 },
     },
     { id: "dj", libraryId: "dj-booth", x: 1.25, z: 10.7, rotY: Math.PI / 2, options: { spot: "dj1" } },
   ];

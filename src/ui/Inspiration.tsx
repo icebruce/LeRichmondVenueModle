@@ -22,7 +22,7 @@ import { isTable } from "../domain/layout/items";
 import { libraryStore } from "../state/library";
 import { viewStore } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
-import { Chips, ResultBadge, Segmented, Thumb } from "./Panels";
+import { Chips, ResultBadge, Thumb } from "./Panels";
 import { type Crop, useServices } from "./services";
 import { Icon } from "./icons";
 
@@ -171,7 +171,6 @@ function newRequest(
     placement: e.placement === "material" ? "table" : e.placement,
     notes: "",
     imageIds: imp ? [imp.imageId] : [],
-    status: "requested",
     createdAt: now,
     updatedAt: now,
     createdBy: partner,
@@ -903,19 +902,7 @@ function RequestForm({
         >
           {styleKeyOf(built) ? "Use on all tables" : "Place in the room"} · {built.name}
         </button>
-      ) : (
-        !isNew && (
-          <Segmented
-            label="Progress"
-            value={r.status}
-            options={[
-              { value: "requested", label: "Requested" },
-              { value: "in_progress", label: "In progress" },
-            ]}
-            onChange={(status) => patch({ status })}
-          />
-        )
-      )}
+      ) : null}
       <label className="field">
         <span className="row-label">What is it?</span>
         <input

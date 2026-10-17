@@ -168,26 +168,7 @@ function TableBody({
       />
     );
   }
-  if (shape.kind === "danceFloor") {
-    const mat =
-      shape.finish === "led"
-        ? ledFloor(evening, shape.width, shape.depth)
-        : shape.finish === "white"
-          ? m.danceWhite
-          : shape.finish === "black"
-            ? m.danceBlack
-            : m.danceWood;
-    return (
-      <group>
-        <mesh position={[0, 0.0125, 0]} material={mat} receiveShadow>
-          <boxGeometry args={[shape.width, 0.025, shape.depth]} />
-        </mesh>
-        <mesh position={[0, 0.006, 0]} material={m.brass}>
-          <boxGeometry args={[shape.width + 0.05, 0.012, shape.depth + 0.05]} />
-        </mesh>
-      </group>
-    );
-  }
+  if (shape.kind === "danceFloor") return <DanceArea width={shape.width} depth={shape.depth} m={m} />;
   if (shape.kind === "backdrop") return <Backdrop shape={shape} m={m} />;
   if (shape.kind === "piece") return <PieceBody shape={shape} evening={evening} />;
   return (
@@ -215,7 +196,7 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
     case "cocktail":
       return { poly: circle(shape.diameter / 2, 24), y: shape.height + 0.01 };
     case "danceFloor":
-      return { poly: centredRect(shape.width + 0.05, shape.depth + 0.05), y: 0.035 };
+      return { poly: centredRect(shape.width, shape.depth), y: 0.02 };
     case "djBooth":
       return { poly: centredRect(shape.width, shape.depth), y: 1.06 };
     case "backdrop":
@@ -225,7 +206,38 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
   }
 }
 
-/** LED dance floor (LIB-10): a grid of lit 60 cm tiles, glowing in the evening. Shared per size. */
+/** The dance area (LIB-01): a thin line and a faint tint on the floor; no floor is laid. */
+function DanceArea({ width, depth, m }: { width: number; depth: number; m: Materials }) {
+  const frame = useMemo(() => {
+    const [w, d, line] = [width / 2, depth / 2, 0.05];
+    const outline = new THREE.Shape([
+      new THREE.Vector2(-w, -d),
+      new THREE.Vector2(w, -d),
+      new THREE.Vector2(w, d),
+      new THREE.Vector2(-w, d),
+    ]);
+    outline.holes.push(
+      new THREE.Path([
+        new THREE.Vector2(-w + line, -d + line),
+        new THREE.Vector2(-w + line, d - line),
+        new THREE.Vector2(w - line, d - line),
+        new THREE.Vector2(w - line, -d + line),
+      ]),
+    );
+    return new THREE.ShapeGeometry(outline).rotateX(-Math.PI / 2);
+  }, [width, depth]);
+  useEffect(() => () => frame.dispose(), [frame]);
+  return (
+    <group>
+      <mesh position={[0, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.danceTint}>
+        <planeGeometry args={[width, depth]} />
+      </mesh>
+      <mesh position={[0, 0.006, 0]} geometry={frame} material={m.danceLine} />
+    </group>
+  );
+}
+
+/** LED tiles (LIB-10, DJ booth front): a grid of lit 60 cm squares, glowing in the evening. Shared per size. */
 const led = new Map<string, THREE.MeshStandardMaterial>();
 function ledFloor(evening: boolean, width: number, depth: number): THREE.MeshStandardMaterial {
   const key = `${evening}|${width}|${depth}`;

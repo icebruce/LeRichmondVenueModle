@@ -51,7 +51,7 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) is the authoritative p
 | Stair to mezzanine: starts at the landing where the entrance corridor enters the room (SE), climbs to the right (east) up to the wall, then to the mezzanine; LED-lit treads, wrought-iron scroll balustrade, timber handrail | C · O: R01 R09 U01 U02 UV02 | M start / L run and turn | R01/R02/U01/U03 shot from its top. Turn at the wall inferred from R09 landing. |
 | Entrance: street door on the east side, SE corner, into a corridor under the mezzanine that opens into the room at the stair landing | C | M | EXIT sign visible near it (UV02). Corridor itself is out of scope. |
 | South wall: kitchen behind it (out of scope); kitchen pass = opening in that wall. Sweetheart table goes against this wall. | C · O: UV02 · F01 | M | F01 "CUISINE" box is the kitchen beyond the wall. |
-| Communal high table with stools (tile zone, west of bar); bar stools | O: R01 R02 U01 U05 · C | H | Both removed for the wedding (C). Hidden by default in wedding scenarios. |
+| Communal high table with stools (tile zone, west of bar); bar stools | O: R01 R02 U01 U05 · C | H | Both removed for the wedding (C). The communal table is no longer modelled (C, 2026-10-17); bar stools stay as a toggle, hidden by default: 5 at the front, 6 on each side (C, 2026-10-17). |
 
 ## 3. Image ledger
 

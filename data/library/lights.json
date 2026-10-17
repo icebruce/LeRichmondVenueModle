@@ -43,7 +43,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.2,
-          "max": 3.5,
+          "max": 6.0,
           "step": 0.1,
           "default": 2.8,
           "unit": "m"
@@ -104,7 +104,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.2,
-          "max": 3.5,
+          "max": 6.0,
           "step": 0.1,
           "default": 2.8,
           "unit": "m"
@@ -224,7 +224,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.4,
-          "max": 4.5,
+          "max": 6.0,
           "step": 0.1,
           "default": 3.2,
           "unit": "m"
@@ -275,7 +275,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.2,
-          "max": 3.5,
+          "max": 5.5,
           "step": 0.1,
           "default": 2.8,
           "unit": "m"
@@ -326,7 +326,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.2,
-          "max": 3.5,
+          "max": 5.5,
           "step": 0.1,
           "default": 3.0,
           "unit": "m"

@@ -147,7 +147,7 @@ describe("scenario files", () => {
       style: { linen: "linen-white", linenLength: "lap", chair: "chair-oval", lighting: "day" },
       guests: { count: 70, seed: 1 },
       thresholds: { aisleM: 1, clearanceM: 1.2, m2PerDancer: 0.45, dancingShare: 0.35 },
-      venueToggles: { communalTable: false, barStools: false },
+      venueToggles: { barStools: false },
       notes: [],
       updatedAt: "2026-10-15T00:00:00.000Z",
     };

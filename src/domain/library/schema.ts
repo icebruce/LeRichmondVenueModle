@@ -159,7 +159,7 @@ export type Imported = z.infer<typeof importedSchema>;
 
 /**
  * A custom model request (REQ-01, REQ-02): kept privately in the app, never in Git (REQ-04).
- * "In library" is not stored: it shows once a library entry carries this request's id.
+ * Its status is not stored: it shows "Ready" once a library entry carries this request's id.
  */
 export const customRequestSchema = z.object({
   id: z.string().regex(/^req-[a-z0-9]{6,16}$/),
@@ -174,7 +174,6 @@ export const customRequestSchema = z.object({
   placement: z.enum(["floor", "table", "wall", "ceiling", "hanging"]),
   notes: z.string().max(1000),
   imageIds: z.array(imageIdSchema).max(6),
-  status: z.enum(["requested", "in_progress"]),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
   createdBy: z.enum(["A", "B"]).nullable(),

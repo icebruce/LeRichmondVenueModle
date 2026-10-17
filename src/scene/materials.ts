@@ -134,9 +134,20 @@ export function useMaterials() {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
-      danceWood: std({ map: tex.timberDiff, color: "#c49a6c", roughness: 0.35 }),
-      danceWhite: std({ color: "#f4f2ee", roughness: 0.25 }),
-      danceBlack: std({ color: "#141414", roughness: 0.2, metalness: 0.1 }),
+      // The dance area is marked, not built: an ivory line and a faint tint, unlit so it reads in
+      // evening and daylight alike.
+      danceLine: new THREE.MeshBasicMaterial({
+        color: "#efe3c9",
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+      }),
+      danceTint: new THREE.MeshBasicMaterial({
+        color: "#efe3c9",
+        transparent: true,
+        opacity: 0.07,
+        depthWrite: false,
+      }),
       djFacade: std({ color: "#15161a", roughness: 0.4, metalness: 0.3 }),
     };
   }, [tex]);

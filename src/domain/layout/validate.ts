@@ -5,19 +5,11 @@ import { type Item, blocksFloor, footprint, isTable, shapeOf } from "./items";
 
 export type Placement = { ok: true; level: Level } | { ok: false; reason: string };
 
-export type VenueToggles = { communalTable: boolean; barStools: boolean };
+export type VenueToggles = { barStools: boolean };
 
 /** Fixed venue furniture that the couple may keep or remove per scenario. */
 export function toggledObstacles(venue: VenueModel, toggles: VenueToggles): Obstacle[] {
   const out: Obstacle[] = [];
-  if (toggles.communalTable) {
-    const [x0, z0, x1, z1] = venue.data.fixtures.venueFurniture.communalTable.rect;
-    out.push({
-      id: "communal-table",
-      label: "the communal high table",
-      polygon: rect(x0 - 0.45, z0, x1 + 0.45, z1),
-    });
-  }
   if (toggles.barStools) {
     const [x0, z0, x1, z1] = venue.data.bar.outer.value;
     out.push({ id: "bar-stools-south", label: "the bar stools", polygon: rect(x0, z1, x1, z1 + 0.6) });

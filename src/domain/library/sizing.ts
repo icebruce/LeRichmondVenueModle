@@ -1,7 +1,8 @@
-// Table sizes from seat counts. Assumptions (not venue-confirmed): 0.75 m of table edge per guest,
-// rectangle width 0.9 m (1.0 m from 12 seats), round diameters follow common rental sizes.
+// Table sizes from seat counts. Assumptions (not venue-confirmed): 0.70 m of table edge per guest
+// (owner, 2026-10-17), rectangle width 0.9 m (1.0 m from 12 seats), round diameters follow common
+// rental sizes.
 
-export const SEAT_PITCH = 0.75;
+export const SEAT_PITCH = 0.7;
 /** How far a chair zone extends beyond a table edge, for collision footprints. */
 export const CHAIR_ZONE = 0.55;
 

@@ -282,7 +282,7 @@ function WalkControls() {
   const input = useStore(walkInput);
 
   const free = useMemo(
-    () => walkArea(venue, items, catalog, toggles ?? { communalTable: false, barStools: false }),
+    () => walkArea(venue, items, catalog, toggles ?? { barStools: false }),
     [items, venue, catalog, toggles],
   );
 
