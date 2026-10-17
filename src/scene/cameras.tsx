@@ -98,14 +98,16 @@ function MainCamera() {
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
-  // The room to frame: its floor and walls up to the mezzanine's height (the cut-away view).
-  const roomCorners = useMemo(
-    () =>
-      [0, venue.width].flatMap((x) =>
-        [0, venue.depth].flatMap((z) => [0, venue.mezzanineHeight].map((y) => new THREE.Vector3(x, y, z))),
+  // The room to frame, walls included: the back (north and west) walls rise to the ceiling in the
+  // cut-away view, the others are cut at the mezzanine's height.
+  const roomCorners = useMemo(() => {
+    const t = 0.35;
+    return [-t, venue.width + t].flatMap((x) =>
+      [-t, venue.depth + t].flatMap((z) =>
+        [0, x < 0 || z < 0 ? venue.ceiling : venue.mezzanineHeight].map((y) => new THREE.Vector3(x, y, z)),
       ),
-    [venue],
-  );
+    );
+  }, [venue]);
 
   const poses = useMemo(() => {
     const get = (k: string) => {
