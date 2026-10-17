@@ -64,6 +64,13 @@
   --target: 44px;
   /* Desktop section rail width (DESIGN_GUIDE §3.1). */
   --rail-w: 76px;
+  /* Library pictures (DESIGN_GUIDE §4 Library grid): tile size, phone size, a corner badge, and the
+     grounds the thumbnails are rendered on (light, and dark for lit pieces). */
+  --thumb-tile: 84px;
+  --thumb-tile-sm: 64px;
+  --badge: 28px;
+  --thumb-ground: #f6f7f5;
+  --thumb-dark: #1d1f1c;
 }
 
 @media (prefers-reduced-motion: reduce) {

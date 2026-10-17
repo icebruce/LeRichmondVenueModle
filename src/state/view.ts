@@ -35,6 +35,8 @@ export type ViewState = {
   compare: string | null;
   /** Desktop: screen point (px) just above the selection, where its toolbar sits; null when hidden. */
   anchor: [number, number] | null;
+  /** Desktop: a library piece being dragged from Add, and the floor point under the pointer (LAY-01). */
+  dropping: { id: string; at: [number, number] | null } | null;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
   /** Library item to start a custom model request from (REQ-01), opened in Inspiration. */
@@ -63,6 +65,7 @@ export const viewStore = createStore<ViewState>(() => ({
   insetBottom: 0,
   insetRight: 0,
   anchor: null,
+  dropping: null,
   focus: [8, 7],
   showPeople: true,
   compare: null,

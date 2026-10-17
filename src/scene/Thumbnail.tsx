@@ -3,6 +3,7 @@ import { Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { type Item, shapeOf } from "../domain/layout/items";
+import { litThumbnail } from "../domain/library/catalog";
 import type { TableStyle } from "../domain/scenario/schema";
 import { createEditor } from "../state/editor";
 import { newScenario } from "../domain/scenario/scenario";
@@ -107,9 +108,7 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
         <Suspense fallback={null}>
           {/* Lights are shown lit, so their glow and beams read in the catalogue; the dance area, a
               mark on the floor, on the dark of the venue's tile. */}
-          <ThumbScene
-            evening={base.catalog.get(id)?.family === "light" || id === "sign-neon" || id === "dance-floor"}
-          />
+          <ThumbScene evening={litThumbnail({ id, family: base.catalog.get(id)?.family ?? "table" })} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

@@ -602,8 +602,11 @@ test("[LIB-13] [LAY-01] one library: search every category, dressing on the tabl
   // A search finds pieces in any category, and table dressing to use on every table.
   await page.getByTestId("library-search").fill("olive");
   await expect(page.getByTestId("add-plant-olive")).toBeVisible();
-  await page.getByTestId("library-search").fill("candle");
-  await expect(page.locator('[data-testid^="use-candle-"]').first()).toBeVisible();
+  // Plurals and US spellings find the same things.
+  await page.getByTestId("library-search").fill("candles");
+  await expect(page.getByTestId("use-candle-tapers")).toBeVisible();
+  await page.getByTestId("library-search").fill("centerpiece");
+  await expect(page.locator('[data-testid^="use-floral-"]').first()).toBeVisible();
   await page.getByTestId("library-search").fill("taper");
   await page.getByTestId("use-candle-tapers").click();
   expect((await state(page)).active?.style.candles).toBe("candle-tapers");

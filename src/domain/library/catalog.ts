@@ -53,3 +53,8 @@ export function placeholderEntry(id: string, name = "Imported item"): LibraryEnt
     imported: { result: "photo", imageId: "" },
   };
 }
+
+/** Lit pieces get their thumbnail on a dark ground, so glows and light-coloured words read (LIB-11). */
+export function litThumbnail(e: Pick<LibraryEntry, "id" | "family">): boolean {
+  return e.family === "light" || e.id === "sign-neon" || e.id === "dance-floor";
+}

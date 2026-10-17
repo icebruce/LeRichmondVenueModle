@@ -7,7 +7,7 @@ import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
-import type { Catalog } from "../domain/library/catalog";
+import { type Catalog, litThumbnail } from "../domain/library/catalog";
 import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
@@ -312,8 +312,8 @@ export function Thumb({ entry, size = 44 }: { entry: LibraryEntry; size?: number
     ? entry.thumbnail
     : `${import.meta.env.BASE_URL}assets/${entry.thumbnail}`;
   return (
-    <span className={`library-icon ${size > 44 ? "large" : ""}`}>
-      <img src={src} alt="" width={size} height={size} loading="lazy" />
+    <span className={`library-icon ${size > 44 ? "large" : ""} ${litThumbnail(entry) ? "dark" : ""}`}>
+      <img src={src} alt="" width={size} height={size} />
     </span>
   );
 }
@@ -555,12 +555,45 @@ const LIBRARY_CATEGORIES: { id: Family | "yours"; name: string }[] = [
   { id: "yours", name: "Yours" },
 ];
 
-/** What a search matches: the name, the caption and the category, every word somewhere. */
+/** Spellings a search treats as one (Canadian and US). */
+const SAME_WORD: Record<string, string> = { center: "centre", color: "colour", gray: "grey" };
+/** A search word in its plain form: lower case, its spelling unified, a plural "s" dropped. */
+const stem = (w: string) => {
+  const word = w.toLowerCase();
+  const one = SAME_WORD[word] ?? word;
+  return one.length > 3 && one.endsWith("s") ? one.slice(0, -1) : one;
+};
+
+/**
+ * What a search matches: every word starts a word of the name, the caption or the category
+ * ("candles" finds the candle family, "centerpiece" the centrepieces).
+ */
 function matches(e: LibraryEntry, words: string[], catalog: Catalog): boolean {
   const family = LIBRARY_CATEGORIES.find((c) => c.id === e.family)?.name ?? e.family;
-  const text = `${e.name} ${caption(e, catalog)} ${family}`.toLowerCase();
-  return words.every((w) => text.includes(w));
+  const key = styleKeyOf(e);
+  const text = `${e.name} ${caption(e, catalog)} ${family} ${e.family} ${key ? DRESSING[key] : ""}`
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .map(stem);
+  return words.every((w) => text.some((t) => t.startsWith(w) || w.startsWith(t)));
 }
+
+/** What a piece of table dressing is, on its row under "For the tables". */
+const DRESSING: Record<string, string> = {
+  linen: "Tablecloth",
+  runner: "Runner",
+  napkin: "Napkins",
+  chair: "Chairs",
+  candles: "Candles",
+  florals: "Centrepiece",
+};
+
+/** Sizes read as one unit and never break across lines ("≈ 2.8 m", "0.9 × 0.9 m"). */
+const keepUnits = (s: string) =>
+  s
+    .replace(/≈ /g, "≈\u00a0")
+    .replace(/ × /g, "\u00a0×\u00a0")
+    .replace(/ (m|cm|m²)\b/g, "\u00a0$1");
 
 /**
  * Add (LAY-01, LIB-01..13): the one library. Pieces to place, by category or by search, as a grid
@@ -577,6 +610,7 @@ export function AddPanel({
 }) {
   const { catalog, editor } = useStudio();
   const requests = useStore(libraryStore, (s) => s.requests);
+  const style = useEditor((s) => s.scenarios[s.activeId]?.style);
   const live = useMemo(() => [...catalog.values()].filter((e) => !e.imported?.archived), [catalog]);
   const placeable = useMemo(
     () =>
@@ -593,7 +627,8 @@ export function AddPanel({
   );
   const [category, setCategory] = useState(lastCategory);
   const [query, setQuery] = useState("");
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const input = useRef<HTMLInputElement>(null);
+  const words = query.split(/\s+/).filter(Boolean).map(stem);
   // A custom model that is ready marks the Yours chip.
   const ready = requests.some((r) => requestStatus(r, catalog).status === "ready");
   const pick = (id: string) => {
@@ -602,18 +637,35 @@ export function AddPanel({
   };
   const head = (
     <>
-      <PageHead title="Add" />
-      <label className="search">
-        <Icon name="search" size={18} />
-        <span className="sr-only">Search the library</span>
-        <input
-          type="search"
-          value={query}
-          placeholder="Search tables, lights, florals…"
-          onChange={(e) => setQuery(e.currentTarget.value)}
-          data-testid="library-search"
-        />
-      </label>
+      {/* Title and search stay in view while the pictures scroll under them. */}
+      <div className="page-head">
+        <PageHead title="Add" />
+        <label className="search">
+          <Icon name="search" size={18} />
+          <span className="sr-only">Search the library</span>
+          <input
+            ref={input}
+            type="search"
+            value={query}
+            placeholder="Search tables, lights, florals…"
+            onChange={(e) => setQuery(e.currentTarget.value)}
+            data-testid="library-search"
+          />
+          {query && (
+            <button
+              type="button"
+              className="icon-btn search-clear"
+              onClick={() => {
+                setQuery("");
+                input.current?.focus();
+              }}
+              aria-label="Clear search"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </label>
+      </div>
       <Chips
         label="Library"
         options={LIBRARY_CATEGORIES.filter(
@@ -633,13 +685,15 @@ export function AddPanel({
     ? placeable.filter((e) => matches(e, words, catalog))
     : placeable.filter((e) => e.family === category);
   const dressing = words.length ? live.filter((e) => styleKeyOf(e) && matches(e, words, catalog)) : [];
-  const use = (e: LibraryEntry) => {
-    editor.useOrPlace(e.id, viewStore.getState().focus);
-    editor.notify(`${e.name} on every table`);
+  // Already the room-wide choice (DEC-01): nothing to do but say so.
+  const onTables = (e: LibraryEntry) => {
+    const key = styleKeyOf(e);
+    return !!key && !!style && style[key] === e.id;
   };
   return (
     <div className="panel-body" data-testid="layout-panel">
       {head}
+      {shown.length > 0 && dressing.length > 0 && <h3 className="group-title">To place</h3>}
       {shown.length > 0 && (
         <ul className="tiles" aria-label="Library">
           {shown.map((e) => (
@@ -651,16 +705,21 @@ export function AddPanel({
                 onDragStart={(ev) => {
                   ev.dataTransfer.setData(LIBRARY_DRAG, e.id);
                   ev.dataTransfer.effectAllowed = "copy";
+                  // Only the picture follows the pointer; the room shows where it will land.
+                  const img = ev.currentTarget.querySelector("img");
+                  if (img) ev.dataTransfer.setDragImage(img, img.width / 2, img.height / 2);
+                  viewStore.setState({ dropping: { id: e.id, at: null } });
                 }}
+                onDragEnd={() => viewStore.setState({ dropping: null })}
                 onClick={() => {
                   if (editor.addItem(e.id, viewStore.getState().focus)) onAdded();
                 }}
                 data-testid={`add-${e.id}`}
               >
                 <Thumb entry={e} />
-                <span className="tile-name">{e.name}</span>
+                <span className="tile-name">{e.name.replace(/-/g, "\u2011")}</span>
                 <span className="tile-caption">
-                  {e.imported && <ResultBadge entry={e} />} {caption(e, catalog)}
+                  {e.imported && <ResultBadge entry={e} />} {keepUnits(caption(e, catalog))}
                 </span>
                 <span className="tile-add" aria-hidden="true">
                   <Icon name="plus" size={16} />
@@ -674,23 +733,34 @@ export function AddPanel({
         <>
           <h3 className="group-title">For the tables</h3>
           <div className="list">
-            {dressing.map((e) => (
-              <div key={e.id} className="row">
-                <Thumb entry={e} />
-                <span className="nav-label">
-                  {e.name}
-                  <span className="nav-sub">{caption(e, catalog)}</span>
-                </span>
-                <button
-                  type="button"
-                  className="btn small"
-                  onClick={() => use(e)}
-                  data-testid={`use-${e.id}`}
-                >
-                  Use on tables
-                </button>
-              </div>
-            ))}
+            {dressing.map((e) => {
+              const key = styleKeyOf(e);
+              const on = onTables(e);
+              return (
+                <div key={e.id} className="row">
+                  <Thumb entry={e} />
+                  <span className="nav-label">
+                    {e.name}
+                    <span className="nav-sub">{key ? DRESSING[key] : ""}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn small"
+                    disabled={on}
+                    onClick={() => editor.useOrPlace(e.id, viewStore.getState().focus)}
+                    data-testid={`use-${e.id}`}
+                  >
+                    {on ? (
+                      <>
+                        <Icon name="check" size={16} /> On tables
+                      </>
+                    ) : (
+                      "Use on tables"
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

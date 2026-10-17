@@ -39,7 +39,7 @@ const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer:
 const LAP_DROP = 0.3;
 
 /** Colours come from the design tokens (tokens.css), so the 3D outline matches the interface. */
-function token(name: string, fallback: string): string {
+export function token(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }

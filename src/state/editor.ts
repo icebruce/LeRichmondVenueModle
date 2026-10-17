@@ -199,7 +199,9 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       const base: Item = { id: newId(), libraryId, x: preferred[0], z: preferred[1], rotY: 0, options };
       const spot = findFreeSpot(base, preferred, active().items, venue, deps.catalog, obstacles());
       if (!spot) {
-        toast("No free space for that here. Move or remove something first.");
+        toast(
+          `No room for the ${(deps.catalog.get(libraryId)?.name ?? "piece").toLowerCase()} anywhere on the floor. Move or remove something first.`,
+        );
         return null;
       }
       const item = { ...base, x: snap(spot.x, GRID), z: snap(spot.z, GRID), rotY: spot.rotY };
@@ -414,8 +416,9 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     useOrPlace(libraryId: string, focus: [number, number]): "used" | "placed" | null {
       const e = deps.catalog.get(libraryId);
       const patch = e ? stylePatch(e) : null;
-      if (patch) {
+      if (patch && e) {
         api.applyStyle("all", patch);
+        toast(`${e.name} on every table`, undoLast());
         return "used";
       }
       return api.addItem(libraryId, focus) ? "placed" : null;

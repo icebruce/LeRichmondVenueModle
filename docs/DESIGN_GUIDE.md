@@ -55,6 +55,8 @@ System UI font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, san
 | `--t-caption` | 12/16 | 500 | Badges, counts captions (minimum size anywhere) |
 | `--t-figure` | 28/32 | 500, tabular figures | Big counts |
 
+On phones, text fields use 16 px so iOS Safari does not zoom into them when tapped (2026-10-17).
+
 ### 2.3 Space, shape, depth
 
 - Spacing scale (pt): 4, 8, 12, 16, 24, 32, 48. Nothing off-scale.

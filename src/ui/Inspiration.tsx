@@ -36,7 +36,7 @@ type Mode =
  * Inspiration (IMP-01..07, REQ-01..02): photos become library items, honestly labelled, and any
  * item can become a request for a custom model that Claude builds.
  */
-export function InspirationPanel({ head }: { head: ReactNode }) {
+export function InspirationPanel({ head, onAdded }: { head: ReactNode; onAdded: () => void }) {
   const { catalog, editor } = useStudio();
   const { library, cloud } = useServices();
   const imports = useStore(libraryStore, (s) => s.imports);
@@ -77,8 +77,7 @@ export function InspirationPanel({ head }: { head: ReactNode }) {
   const ready = status.filter((x): x is typeof x & { entry: LibraryEntry } => !!x.entry);
   const waiting = status.filter((x) => !x.entry);
   const use = (e: LibraryEntry) => {
-    if (editor.useOrPlace(e.id, viewStore.getState().focus) === "used")
-      editor.notify(`${e.name} on every table`);
+    if (editor.useOrPlace(e.id, viewStore.getState().focus) === "placed") onAdded();
   };
   return (
     <div className="panel-body" data-testid="inspiration-panel">
@@ -101,7 +100,9 @@ export function InspirationPanel({ head }: { head: ReactNode }) {
                   <Thumb entry={entry} />
                   <span className="nav-label">
                     {entry.name}
-                    <span className="nav-sub">Your custom model · ready</span>
+                    <span className="nav-sub">
+                      Your custom model · <span className="ok-text">ready</span>
+                    </span>
                   </span>
                   <button
                     type="button"
@@ -329,9 +330,8 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
           onSave={async (item, blob, then) => {
             await library.addImport(item, blob);
             const e = catalog.get(item.id);
-            if (!then) editor.notify(`“${item.name}” is in your library`);
-            else if (e && editor.useOrPlace(e.id, viewStore.getState().focus) === "used")
-              editor.notify(`“${item.name}” is in your library and on every table`);
+            if (!then || !e) editor.notify(`“${item.name}” is in your library`);
+            else editor.useOrPlace(e.id, viewStore.getState().focus);
             onDone(item.id);
           }}
           newId={library.newId}
@@ -818,7 +818,6 @@ function ItemDetail({
           disabled={!tables || onAll}
           onClick={() => {
             editor.useOrPlace(e.id, viewStore.getState().focus);
-            editor.notify(`“${e.name}” is on every table`);
           }}
           data-testid="use-on-tables"
         >
@@ -967,8 +966,8 @@ function RequestForm({
               type="number"
               inputMode="numeric"
               min={1}
-              placeholder={k === "d" ? "optional" : undefined}
-              value={r.sizeCm[k] ?? ""}
+              placeholder={k === "d" ? "optional" : "cm"}
+              value={r.sizeCm[k] || ""}
               onChange={(e) => {
                 const v = e.currentTarget.value;
                 const sizeCm = { ...r.sizeCm, [k]: num(v) };

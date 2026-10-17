@@ -591,7 +591,7 @@ export function StudioUI() {
         key={libraryKey}
         // Added and selected: phones drop the sheet to its peek to show it; desktop keeps the list.
         onAdded={() => phone && setSheet("peek")}
-        yours={(head) => <InspirationPanel head={head} />}
+        yours={(head) => <InspirationPanel head={head} onAdded={() => phone && setSheet("peek")} />}
       />
     ) : section === "style" ? (
       <DecorPanel key={selection.join(",")} />
