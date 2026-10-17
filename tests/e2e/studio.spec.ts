@@ -228,10 +228,6 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   const pose = () => page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
   const start = await pose();
   await openSection(page, "room");
-  await page.getByRole("button", { name: /At the bar/ }).click();
-  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForTimeout(400);
   const preset = await page.evaluate(
     () =>
       (
@@ -240,12 +236,22 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
         }
       ).__studio.venue.data.cameraPresets.R03?.position,
   );
+  // Wait for where the camera ends up, not for its move to be seen starting (a short move can
+  // start and finish between two checks on a busy machine).
+  const settled = () =>
+    page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  const off = async (to: number[] | undefined) => {
+    const at = await pose();
+    return Math.max(...[0, 1, 2].map((i) => Math.abs((at[i] ?? 0) - (to?.[i] ?? NaN))));
+  };
+  await page.getByRole("button", { name: /At the bar/ }).click();
+  await expect.poll(() => off(preset), { timeout: 30_000 }).toBeLessThan(0.05);
+  await settled();
   const at = await pose();
   for (let i = 0; i < 3; i++) expect(at[i]).toBeCloseTo(preset?.[i] ?? NaN, 1);
   await page.getByRole("button", { name: "Reset view" }).click();
-  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForTimeout(400);
+  await expect.poll(() => off(start), { timeout: 30_000 }).toBeLessThan(0.5);
+  await settled();
   const back = await pose();
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
