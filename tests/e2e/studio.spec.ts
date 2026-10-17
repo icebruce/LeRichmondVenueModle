@@ -26,8 +26,8 @@ test("[VEN-01] [LAY-07] [LAY-09] opens on the venue sample in the dollhouse view
   expect(s.camera).toBe("dollhouse");
   expect(s.active?.name).toBe("Option A · Venue sample");
   await expect(page.getByTestId("count-tables")).toHaveText("8");
-  await expect(page.getByTestId("count-seats")).toHaveText("60");
-  await expect(page.getByTestId("count-without")).toHaveText("15");
+  await expect(page.getByTestId("count-seats")).toHaveText("72");
+  await expect(page.getByTestId("count-without")).toHaveText("3");
 });
 
 test("[LAY-02] [LAY-04] [LAY-06] drag a table, get refused on the bar, undo", async ({ page }) => {
@@ -55,7 +55,7 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
   await page.mouse.click(x, y);
   await expect(page.getByTestId("inspector")).toContainText("Table 2");
   await page.getByTestId("seats").getByRole("button", { name: /More/ }).click();
-  expect((await item(page, "t2")).options.seats).toBe(9);
+  expect((await item(page, "t2")).options.seats).toBe(Number(t.options.seats) + 1);
   const count = (await state(page)).active?.items.length ?? 0;
   await page.getByTestId("delete").click();
   expect((await state(page)).active?.items.length).toBe(count - 1);
@@ -304,9 +304,9 @@ test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills t
 }) => {
   await openStudio(page);
   await page.getByTestId("section-people").click();
-  await expect(page.getByTestId("people-seated")).toHaveText("60");
-  await expect(page.getByTestId("people-standing")).toHaveText("15");
-  await expect(page.getByRole("note")).toContainText("15 guests without a seat");
+  await expect(page.getByTestId("people-seated")).toHaveText("72");
+  await expect(page.getByTestId("people-standing")).toHaveText("3");
+  await expect(page.getByRole("note")).toContainText("3 guests without a seat");
   await page.getByRole("radio", { name: "Party" }).click();
   expect(
     await page.evaluate(() => {
@@ -327,12 +327,12 @@ test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills t
 
 test("[LAY-08] advisory checks follow the couple's settings and never block", async ({ page }) => {
   await openStudio(page);
-  await expect(page.getByTestId("count-advisories")).toHaveText("6");
+  await expect(page.getByTestId("count-advisories")).toHaveText("4");
   await expect(page.getByTestId("checks")).toContainText("Aisle ≈ 0.4 m between table 5 and table 6");
   await page.getByTestId("check-settings").click();
   await page.getByTestId("aisle").fill("0.6");
-  // At 0.6 m the 0.7–0.8 m aisles pass; the 0.4 m one and the exit door remain.
-  await expect(page.getByTestId("count-advisories")).not.toHaveText("6");
+  // At 0.6 m the 0.8 m aisle passes; the 0.4 m one, the ≈ 0.6 m one (just under) and the DJ booth remain.
+  await expect(page.getByTestId("count-advisories")).toHaveText("3");
   await expect(page.getByTestId("checks")).not.toContainText("Aisle ≈ 0.8 m");
   await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
   expect((await state(page)).selection.sort()).toEqual(["t5", "t6"]);
@@ -381,15 +381,15 @@ test("[SCN-06] compare two scenarios side by side from the same camera, with the
   const panes = page.getByTestId("pane-counts");
   await expect(panes).toHaveCount(2);
   await expect(panes.first()).toContainText("Option A · Venue sample copy");
-  await expect(panes.first()).toContainText("16without a seat");
+  await expect(panes.first()).toContainText("4without a seat");
   await expect(panes.last()).toContainText("Option A · Venue sample");
-  await expect(panes.last()).toContainText("15without a seat");
+  await expect(panes.last()).toContainText("3without a seat");
   const right = await panes.last().boundingBox();
   const panel = await page.getByRole("complementary").boundingBox();
   expect((right?.x ?? 0) + (right?.width ?? 0)).toBeLessThanOrEqual(panel?.x ?? 0);
   const table = page.getByTestId("compare-table");
-  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("16");
-  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("15");
+  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("4");
+  await expect(table.getByRole("row", { name: /Without a seat/ })).toContainText("3");
   await page.getByRole("radiogroup", { name: "Compare with" }).getByRole("radio", { name: "Off" }).click();
   await expect(page.getByTestId("compare-canvas")).toHaveCount(0);
 });

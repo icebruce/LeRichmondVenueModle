@@ -5,7 +5,7 @@ import { alongWall } from "../venue/model";
 import type { VenueModel } from "../venue/model";
 import { tableLabels } from "./counts";
 import { type Item, blocksFloor, footprint, seatsOf, shapeOf } from "./items";
-import { type VenueToggles, itemName, toggledObstacles } from "./validate";
+import { type VenueToggles, checkPlacement, itemName, toggledObstacles } from "./validate";
 
 export type Thresholds = Scenario["thresholds"];
 
@@ -15,7 +15,7 @@ export type Thresholds = Scenario["thresholds"];
  */
 export type Advisory = {
   id: string;
-  kind: "aisle" | "clearance" | "dance";
+  kind: "overlap" | "aisle" | "clearance" | "dance";
   message: string;
   area: Polygon | null;
   label: { text: string; at: Vec2 } | null;
@@ -72,7 +72,7 @@ type Zone = { name: string; area: Polygon; from: Polygon };
 
 /**
  * Floor areas to keep clear (`depth` m from the opening, the `from` line): entrance and stair
- * landing, kitchen pass, glazed doors, exit door.
+ * landing, kitchen pass, glazed doors, and an exit door where the venue data has one.
  */
 export function clearanceZones(venue: VenueModel, depth: number): Zone[] {
   const zones: Zone[] = [];
@@ -136,6 +136,22 @@ export function advise(
     .map((it) => ({ it, shape: shapeOf(it, catalog) }))
     .filter(({ shape }) => seatsOf(shape) > 0)
     .map(({ it }) => ({ it, fp: footprint(it, catalog) }));
+
+  // A saved piece the room no longer fits (the venue model was revised, 2026-10-17) keeps its place
+  // and shows here first, so the couple can move it.
+  for (const it of items) {
+    const placed = checkPlacement(it, [], venue, catalog, furniture);
+    if (placed.ok) continue;
+    const name = itemName(it, labels, catalog);
+    out.push({
+      id: `overlap:${it.id}`,
+      kind: "overlap",
+      message: `${name.charAt(0).toUpperCase()}${name.slice(1)}: ${placed.reason.toLowerCase()} — move it`,
+      area: footprint(it, catalog),
+      label: { text: placed.reason, at: [it.x, it.z] },
+      items: [it.id],
+    });
+  }
 
   // Aisles: clear floor between the chair zones of neighbouring tables.
   for (let i = 0; i < seated.length; i++) {

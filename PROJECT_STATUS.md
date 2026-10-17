@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a and 3b merged (PR #1–#4, #6). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4A merged (PR #1–#4, #6, #8). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -12,8 +12,8 @@
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
-| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | In progress |
-| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | Planned |
+| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
+| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
 | 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, LAY-08, SCN-01..06 | UX review | Planned |
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
@@ -61,7 +61,7 @@
   - Hanging and ceiling lights hang from 2.2 m to just under the ceiling; a 3D handle raises and lowers them (4F).
   - Custom request status is automatic (Requested → Ready).
   - Refused changes always show a toast with the reason.
-  - Venue: bar ≈ 3.6 m front × ≈ 5.5 m long, its front moves south so bar front to kitchen wall is ≈ 6.3–6.5 m; west wall = two garage doors ≈ 6.3 m each with a 0.6 m divider, starting at the north end, a small wall at the south end; no green panel or exit door on the west wall; the platform runs up to the stair with no gap and its only entrance is beside the bar; the stair's first flight starts ≈ 2 m right of the entrance, runs east to the street wall and turns 90° right up to the mezzanine; railings stay metal.
+  - Venue: bar ≈ 3.6 m front × ≈ 5.5 m long (modelled ≈ 3.4 × 5.7 m so the 12-seat tables keep ≈ 1.2 m to the doors and ≈ 1 m to the bar), its front moves south so bar front to kitchen wall is ≈ 6.3–6.5 m; west wall = two garage doors ≈ 6.3 m each with a 0.6 m divider, starting at the north end, a small wall at the south end; no green panel or exit door on the west wall; the platform runs up to the stair with no gap and its only entrance is beside the bar; the stair's first flight starts ≈ 2 m right of the entrance, runs east to the street wall and turns 90° right up to the mezzanine; railings stay metal.
   - Sample plan: 12-seat tables (6 per side) beside the garage doors, perpendicular to them, with ≈ 1 m walkways.
   - Navigation (desktop option 1): a labelled rail on the left (Room · Add · Style · Guests · Plans) with a 400 px panel (360–520 px, collapsible); Compare becomes Plans (switch, new, duplicate, rename, history, compare, notes, export, files, delete); the plan name stays small in the desktop toolbar and is off the phone screen.
   - Phone: camera menu, lighting and reset in a top-right stack with an undo/redo stack under it; the sheet steps down by swipe to closed; system back steps out of menus; no pull-to-refresh; Style pickers work at half height; adding drops the sheet to peek with the piece selected.
@@ -104,12 +104,15 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 ## Open items
 
-- Raised floor height and step positions; stair run and turn (evidence matrix §6).
-- Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
+- Raised floor height; stair tread count. The fidelity review (2026-10-17) reads R04 and owner photo 1 as an EXIT door and tufted banquettes at the west end of the green south wall: not modelled until the owner confirms (it would sit near the sweetheart table and DJ option 1).
+- The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
+- Fidelity (2026-10-17, look only, not yet done): the mezzanine fascia may project ≈ 0.6 m into the room (a dark recess over the entrance, R09, owner photo 3); the LED treads glow lime-yellow across the whole tread top; the kitchen pass reads too bright in UV02.
+- Sample plan (4B): DJ option 1 moved to z 11.5 to clear table 3; the dance area is 4.8 × 3.0 m (≈ 14 m²) to stay clear of the entrance. Confirm at the visual review.
+- Camera presets are approximate; R01, R03 and R09 were re-aimed in 4B (R01 now from the stair turn). Re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
-- Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
+- Advisory checks on the venue sample plan (estimates, 2026-10-17): the garage-door tables pass; the raised-floor tables have aisles of 0.4–0.8 m (setting 1.0 m), and the DJ at option 1 stands within 1.2 m of the glass doors. Worth confirming spacing with the venue.
 - Venue: table sizes for 8–14 seats.
 - Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).

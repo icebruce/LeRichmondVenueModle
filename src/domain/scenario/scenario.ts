@@ -41,7 +41,11 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
   };
 }
 
-/** The venue's sample plan F01 (LAY-09): 3×8, 1×10, 3×8, sweetheart, dance floor, DJ option 1. */
+/**
+ * The venue's sample plan F01 (LAY-09), re-fitted to the owner's corrections (2026-10-17): three tables
+ * of 12 by the garage doors (6 a side, across the room, ≈ 1.2 m from the doors and ≈ 1 m from the bar),
+ * 1×10 and 3×8 on the raised floor, sweetheart, dance area (clear of the entrance), DJ option 1.
+ */
 export function venueSampleItems(): Item[] {
   const t = (id: string, x: number, z: number, seats: number): Item => ({
     id,
@@ -52,9 +56,9 @@ export function venueSampleItems(): Item[] {
     options: { seats, ends: false },
   });
   return [
-    t("t1", 2.8, 2.3, 8),
-    t("t2", 2.8, 5.0, 8),
-    t("t3", 2.8, 7.65, 8),
+    t("t1", 3.32, 2.65, 12),
+    t("t2", 3.32, 5.75, 12),
+    t("t3", 3.32, 8.85, 12),
     t("t4", 13.6, 1.65, 10),
     t("t5", 13.6, 4.2, 8),
     t("t6", 13.6, 6.6, 8),
@@ -63,12 +67,12 @@ export function venueSampleItems(): Item[] {
     {
       id: "dance",
       libraryId: "dance-floor",
-      x: 5.6,
-      z: 10.95,
+      x: 6.2,
+      z: 11.6,
       rotY: 0,
-      options: { width: 6.6, depth: 3.3 },
+      options: { width: 4.8, depth: 3.0 },
     },
-    { id: "dj", libraryId: "dj-booth", x: 1.25, z: 10.7, rotY: Math.PI / 2, options: { spot: "dj1" } },
+    { id: "dj", libraryId: "dj-booth", x: 1.25, z: 11.5, rotY: Math.PI / 2, options: { spot: "dj1" } },
   ];
 }
 

@@ -120,16 +120,15 @@ export function drawPlan(
   for (const o of toggledObstacles(venue, scenario.venueToggles)) poly(o.polygon, SOLID, INK_2, 1, [4, 4]);
   const [bx0, bz0, bx1, bz1] = venue.data.bar.outer.value;
   text("Bar", ...P([(bx0 + bx1) / 2, (bz0 + bz1) / 2]), `600 18px ${UI}`, INK_2, "center");
-  const [lx0, lz0, lx1, lz1] = venue.data.stair.landing;
-  text("Entrance", ...P([(lx0 + lx1) / 2, (lz0 + lz1) / 2]), `600 17px ${UI}`, INK_2, "center");
-  const [sx0] = venue.data.stair.upperLanding;
-  text(
-    "Stair",
-    ...P([(lx1 + sx0) / 2, venue.data.stair.flight.to[1] - 0.6]),
-    `500 17px ${UI}`,
-    INK_2,
-    "center",
-  );
+  // The entrance label sits where the corridor opens into the room.
+  const south = venue.data.walls.find((w) => w.openings.some((o) => o.id === "corridor"));
+  const corridor = south?.openings.find((o) => o.id === "corridor");
+  if (south && corridor) {
+    const [ex, ez] = alongWall(south, (corridor.start + corridor.end) / 2, 0.6);
+    text("Entrance", ...P([ex, ez]), `600 17px ${UI}`, INK_2, "center");
+  }
+  const { from, to } = venue.data.stair.flight;
+  text("Stair", ...P([(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]), `500 17px ${UI}`, INK_2, "center");
 
   // Walls with their openings.
   for (const w of venue.data.walls) {
@@ -151,8 +150,9 @@ export function drawPlan(
       g.beginPath();
       g.moveTo(...P(out(o.start, -0.12)));
       g.lineTo(...P(out(o.end, -0.12)));
-      g.strokeStyle = o.kind === "opening" || o.kind === "pass" ? PAPER : GLASS;
-      g.lineWidth = o.kind === "opening" || o.kind === "pass" ? 0.24 * scale : 0.08 * scale;
+      const open = o.kind === "opening" || o.kind === "pass" || o.kind === "stairway";
+      g.strokeStyle = open ? PAPER : GLASS;
+      g.lineWidth = open ? 0.24 * scale : 0.08 * scale;
       g.stroke();
       s0 = o.end;
     }

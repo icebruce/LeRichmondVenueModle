@@ -17,6 +17,17 @@ const t = (id: string, x: number, z: number): Item => ({
 });
 
 describe("advisories", () => {
+  test("[LAY-08] a saved table the revised room no longer fits keeps its place and shows first as a check", () => {
+    // Saved before the bar grew (2026-10-17): its centre now sits on the bar.
+    const a = advise([t("old", 7.5, 6)], 8, DEFAULT_THRESHOLDS, venue, catalog, NONE);
+    expect(a[0]?.kind).toBe("overlap");
+    expect(a[0]?.message).toBe("Table 1: overlaps the bar — move it");
+    expect(a[0]?.items).toEqual(["old"]);
+    // The sample plan fits the room: no overlap checks.
+    const sample = advise(venueSampleItems(), 75, DEFAULT_THRESHOLDS, venue, catalog, NONE);
+    expect(sample.some((x) => x.kind === "overlap")).toBe(false);
+  });
+
   test("[LAY-08] a narrow aisle between chair backs is named, with its width and the setting", () => {
     // Rect 8: 2.8 × 0.9 m with 0.55 m chair zones → 2.0 m deep; 2.8 m apart leaves ≈ 0.8 m.
     const a = advise([t("a", 4, 4), t("b", 4, 6.8)], 16, DEFAULT_THRESHOLDS, venue, catalog, NONE);
@@ -61,24 +72,22 @@ describe("advisories", () => {
 
   test("[LAY-08] dance area size is compared with 35% of guests at 0.45 m² each", () => {
     const items = venueSampleItems();
-    // Sample floor 6.6 × 3.3 ≈ 21.8 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
+    // Sample dance area 4.8 × 3.0 ≈ 14.4 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².
     expect(advise(items, 75, DEFAULT_THRESHOLDS, venue, catalog, NONE).some((x) => x.kind === "dance")).toBe(
       false,
     );
     expect(
       advise(items, 150, DEFAULT_THRESHOLDS, venue, catalog, NONE).find((x) => x.kind === "dance")?.message,
-    ).toBe("Dance area ≈ 22 m² — below the ≈ 24 m² your settings suggest for 150 guests");
+    ).toBe("Dance area ≈ 14 m² — below the ≈ 24 m² your settings suggest for 150 guests");
   });
 
-  test("[LAY-08] the venue sample plan: tightest aisles first, and the DJ near the exit door", () => {
+  test("[LAY-08] the venue sample plan: tightest aisles first; the garage-door tables pass", () => {
     const a = advise(venueSampleItems(), 75, DEFAULT_THRESHOLDS, venue, catalog, NONE);
     expect(a.map((x) => x.message)).toEqual([
       "Aisle ≈ 0.4 m between table 5 and table 6 — below your 1.0 m setting",
       "Aisle ≈ 0.6 m between table 4 and table 5 — below your 1.0 m setting",
-      "Aisle ≈ 0.7 m between table 2 and table 3 — below your 1.0 m setting",
-      "Aisle ≈ 0.7 m between table 1 and table 2 — below your 1.0 m setting",
       "Aisle ≈ 0.8 m between table 6 and table 7 — below your 1.0 m setting",
-      "Clearance ≈ 0.4 m at the exit door (the DJ booth) — below your 1.2 m setting",
+      "Clearance ≈ 0.4 m at the glass doors (the DJ booth) — below your 1.2 m setting",
     ]);
   });
 

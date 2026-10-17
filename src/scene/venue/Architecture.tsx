@@ -88,28 +88,13 @@ export function Railing({ venue, m }: Pick<Props, "venue" | "m">) {
   const { iron, rail, steps } = useMemo(() => {
     const d = venue.data;
     const h = venue.raised.height;
-    const top = h + 0.95;
     const gaps = d.levels.raised.steps.value;
     const ironGeos: THREE.BufferGeometry[] = [];
     const railGeos: THREE.BufferGeometry[] = [];
     for (const [a, b] of venue.railing) {
-      const rl = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
-      const n = Math.max(1, Math.round(rl / 0.12));
-      for (let k = 0; k <= n; k++) {
-        const x = a[0] + ((b[0] - a[0]) * k) / n;
-        const z = a[1] + ((b[1] - a[1]) * k) / n;
-        const thick = k % 8 === 0 ? 0.035 : 0.014;
-        ironGeos.push(boxGeo(x - thick, h, z - thick, x + thick, top - 0.05, z + thick));
-      }
-      const r = new THREE.BoxGeometry(rl, 0.06, 0.08);
-      r.rotateY(ang);
-      r.translate((a[0] + b[0]) / 2, top, (a[1] + b[1]) / 2);
-      railGeos.push(r);
-      const bottom = new THREE.BoxGeometry(rl, 0.03, 0.03);
-      bottom.rotateY(ang);
-      bottom.translate((a[0] + b[0]) / 2, h + 0.1, (a[1] + b[1]) / 2);
-      ironGeos.push(bottom);
+      const g = guard(a, b, h);
+      ironGeos.push(...g.steel);
+      railGeos.push(g.rail);
     }
     const stepGeos = gaps.map((g) => {
       const cx = (g.from[0] + g.to[0]) / 2;
@@ -160,14 +145,20 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     const stoolGeos: THREE.BufferGeometry[] = [];
     const seatGeos: THREE.BufferGeometry[] = [];
     if (stools) {
-      const spots: Vec2[] = [];
-      for (let z = z0 + 0.5; z < z1; z += 0.62) spots.push([x0 - 0.45, z]);
-      for (let x = x0 + 0.35; x < x1 - 0.2; x += 0.62) spots.push([x, z1 + 0.45]);
-      for (const [x, z] of spots) {
-        const post = new THREE.CylinderGeometry(0.025, 0.04, 0.72, 8);
-        post.translate(x, 0.36, z);
+      // Evenly along the front and both sides (owner, 2026-10-17); the east side stands on the raised
+      // floor, so its stools are shorter and every seat sits at the same height under the counter.
+      const { front: nf, side: ns } = venue.data.fixtures.venueFurniture.barStools;
+      const spots: [number, number, number][] = [];
+      for (let i = 0; i < nf; i++) spots.push([x0 + ((i + 0.5) * (x1 - x0)) / nf, z1 + 0.45, 0]);
+      for (let i = 0; i < ns; i++) {
+        const z = z0 + ((i + 0.5) * (z1 - z0)) / ns;
+        spots.push([x0 - 0.45, z, 0], [x1 + 0.45, z, venue.raised.height]);
+      }
+      for (const [x, z, floor] of spots) {
+        const post = new THREE.CylinderGeometry(0.025, 0.04, 0.72 - floor, 8);
+        post.translate(x, (0.72 + floor) / 2, z);
         const foot = new THREE.CylinderGeometry(0.2, 0.22, 0.03, 12);
-        foot.translate(x, 0.015, z);
+        foot.translate(x, floor + 0.015, z);
         stoolGeos.push(post, foot);
         const seat = new THREE.CylinderGeometry(0.19, 0.18, 0.07, 16);
         seat.translate(x, 0.76, z);
@@ -280,20 +271,19 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
     const fascia = boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, z.xTo, H, z0 + 0.25);
     const floor = boxGeo(z.xFrom, H - 0.02, z0, z.xTo, H, z1, TILE.floor);
     const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
-    const bal: THREE.BufferGeometry[] = [];
-    // Open where the stair's head landing joins the mezzanine.
-    const [gx0, , gx1] = venue.data.stair.topLanding;
-    for (let x = z.xFrom + 0.06; x < z.xTo; x += 0.13)
-      if (x < gx0 || x > gx1) bal.push(boxGeo(x - 0.012, H, z0 + 0.05, x + 0.012, H + 0.98, z0 + 0.075));
-    const spans: [number, number][] = [
-      [z.xFrom, gx0],
-      [gx1, z.xTo],
-    ];
-    for (const [a, b] of spans) bal.push(boxGeo(a, H + 0.1, z0 + 0.045, b, H + 0.13, z0 + 0.08));
-    const rail = merge(spans.map(([a, b]) => boxGeo(a, H + 0.98, z0 + 0.02, b, H + 1.04, z0 + 0.11)));
+    // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
+    const edge = guard([z.xFrom, z0 + 0.06], [z.xTo, z0 + 0.06], H);
+    const well = guard([z.xTo - 0.06, z0 + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
     // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
-    const below = boxGeo(0, 0, z0 + 0.36, venue.width, H - z.fasciaDepth, z1);
-    return { fascia, floor, back, bal: merge(bal), rail, below };
+    const below = boxGeo(0, 0, z0 + 0.36, z.xTo, H - z.fasciaDepth, z1);
+    return {
+      fascia,
+      floor,
+      back,
+      bal: merge([...edge.steel, ...well.steel]),
+      rail: merge([edge.rail, well.rail]),
+      below,
+    };
   }, [venue]);
   return (
     <group name="mezzanine">
@@ -307,88 +297,130 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
   );
 }
 
-/** Stair from the entrance landing up to the east wall, then into the mezzanine; LED-lit treads (R09). */
 /**
- * One straight flight along x (either direction) from height y0 to y1, LED-lit treads, and a
- * stringer, wrought-iron balusters and timber handrail on its `railZ` edge.
+ * A level balustrade from `a` to `b` on a floor at height y: iron balusters (every eighth a post)
+ * and a bottom bar under a timber handrail at 0.95 m.
  */
-function flightGeo(from: Vec2, to: Vec2, y0: number, y1: number, treads: number, railZ: number) {
-  const [x0, z0] = from;
-  const [x1, z1] = to;
-  const za = Math.min(z0, z1);
-  const zb = Math.max(z0, z1);
-  const run = (x1 - x0) / treads;
-  const step = (y1 - y0) / treads;
-  const wood: THREE.BufferGeometry[] = [];
-  const led: THREE.BufferGeometry[] = [];
-  const steel: THREE.BufferGeometry[] = [];
-  for (let i = 0; i < treads; i++) {
-    const a = x0 + run * i;
-    const y = y0 + step * (i + 1);
-    const [lo, hi] = run > 0 ? [a, a + run + 0.03] : [a + run - 0.03, a];
-    wood.push(boxGeo(lo, y - 0.05, za, hi, y, zb, TILE.floor));
-    led.push(boxGeo(a - 0.01, y - 0.075, za + 0.02, a + 0.01, y - 0.05, zb - 0.02));
+function guard(a: Vec2, b: Vec2, y: number) {
+  const top = y + 0.95;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+  const along = (g: THREE.BufferGeometry, at: number) =>
+    g.rotateY(ang).translate((a[0] + b[0]) / 2, at, (a[1] + b[1]) / 2);
+  const steel: THREE.BufferGeometry[] = [along(new THREE.BoxGeometry(len, 0.03, 0.03), y + 0.1)];
+  const n = Math.max(1, Math.round(len / 0.12));
+  for (let k = 0; k <= n; k++) {
+    const x = a[0] + ((b[0] - a[0]) * k) / n;
+    const z = a[1] + ((b[1] - a[1]) * k) / n;
+    const thick = k % 8 === 0 ? 0.035 : 0.014;
+    steel.push(boxGeo(x - thick, y, z - thick, x + thick, top - 0.05, z + thick));
   }
-  const dx = x1 - x0;
-  const len = Math.hypot(dx, y1 - y0);
-  const ang = Math.atan2(y1 - y0, dx);
-  const mid = (x0 + x1) / 2;
-  const stringer = new THREE.BoxGeometry(len + 0.3, 0.28, 0.06);
-  stringer.rotateZ(ang);
-  stringer.translate(mid, (y0 + y1) / 2 - 0.12, railZ);
-  steel.push(stringer);
-  const rail = new THREE.BoxGeometry(len + 0.2, 0.06, 0.08);
-  rail.rotateZ(ang);
-  rail.translate(mid, (y0 + y1) / 2 + 0.95, railZ);
-  for (let i = 0; i <= treads * 2; i++) {
-    const x = x0 + (run / 2) * i;
-    const y = y0 + Math.min(y1 - y0, step * Math.ceil(i / 2));
-    steel.push(boxGeo(x - 0.01, y, railZ - 0.01, x + 0.01, y + 0.9, railZ + 0.01));
-  }
-  return { wood, led, steel, rail };
+  return { steel, rail: along(new THREE.BoxGeometry(len, 0.06, 0.08), top) };
 }
 
 /**
- * Two-flight stair (owner-confirmed 2026-10-16): from the entrance landing east to a turn landing
- * at the east wall, then back west up to a head landing on the mezzanine edge.
+ * One straight flight from height y0 to y1, climbing along its longer side from `from` toward `to`:
+ * LED-lit treads (R09), and along each open edge in `rails` (a z for a flight along x, an x for one
+ * along z) a stringer, iron balusters and a timber handrail. `solid` closes the flight down to the
+ * floor (owner photo 4); `stopAt` builds it only up to that coordinate along the climb.
  */
-export function Stair({ venue, m }: Pick<Props, "venue" | "m">) {
+function flightGeo(
+  from: Vec2,
+  to: Vec2,
+  y0: number,
+  y1: number,
+  treads: number,
+  rails: number[],
+  { solid = false, stopAt }: { solid?: boolean; stopAt?: number } = {},
+) {
+  const alongX = Math.abs(to[0] - from[0]) >= Math.abs(to[1] - from[1]);
+  // u runs up the flight, v across it; `box` maps them back to x and z.
+  const [ua, ub] = alongX ? [from[0], to[0]] : [from[1], to[1]];
+  const [v0, v1] = alongX ? [from[1], to[1]] : [from[0], to[0]];
+  const [va, vb] = [Math.min(v0, v1), Math.max(v0, v1)];
+  const box = (u0: number, ya: number, w0: number, u1: number, yb: number, w1: number, tile?: number) =>
+    alongX ? boxGeo(u0, ya, w0, u1, yb, w1, tile) : boxGeo(w0, ya, u0, w1, yb, u1, tile);
+  const run = (ub - ua) / treads;
+  const step = (y1 - y0) / treads;
+  const shown = stopAt === undefined ? treads : Math.max(0, Math.min(treads, Math.ceil((stopAt - ua) / run)));
+  const wood: THREE.BufferGeometry[] = [];
+  const led: THREE.BufferGeometry[] = [];
+  const base: THREE.BufferGeometry[] = [];
+  const steel: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < shown; i++) {
+    const a = ua + run * i;
+    const y = y0 + step * (i + 1);
+    const [lo, hi] = run > 0 ? [a, a + run + 0.03] : [a + run - 0.03, a];
+    wood.push(box(lo, y - 0.05, va, hi, y, vb, TILE.floor));
+    led.push(box(a - 0.01, y - 0.075, va + 0.02, a + 0.01, y - 0.05, vb - 0.02));
+    if (solid) base.push(box(lo, 0, va, hi, y - 0.05, vb));
+  }
+  const du = run * shown;
+  const top = y0 + step * shown;
+  const len = Math.hypot(du, top - y0);
+  const ang = Math.atan2(top - y0, du);
+  const mid = ua + du / 2;
+  // Built along x, then turned to run along z when the flight does.
+  const sloped = (g: THREE.BufferGeometry, y: number, rail: number) => {
+    g.rotateZ(ang);
+    if (!alongX) g.rotateY(-Math.PI / 2);
+    return alongX ? g.translate(mid, y, rail) : g.translate(rail, y, mid);
+  };
+  const handrails: THREE.BufferGeometry[] = [];
+  for (const rail of shown ? rails : []) {
+    steel.push(sloped(new THREE.BoxGeometry(len + 0.3, 0.28, 0.06), (y0 + top) / 2 - 0.12, rail));
+    handrails.push(sloped(new THREE.BoxGeometry(len + 0.2, 0.06, 0.08), (y0 + top) / 2 + 0.95, rail));
+    for (let i = 0; i <= shown * 2; i++) {
+      const u = ua + (run / 2) * i;
+      const y = y0 + Math.min(top - y0, step * Math.ceil(i / 2));
+      steel.push(box(u - 0.01, y, rail - 0.01, u + 0.01, y + 0.9, rail + 0.01));
+    }
+  }
+  return { wood, led, base, steel, rail: handrails };
+}
+
+/**
+ * Two-flight stair (owner, 2026-10-17): from the entrance east along the raised floor to a turn landing
+ * at the street wall, then right, south along that wall and up through a stairwell into the mezzanine
+ * (R09). Handrails on both sides of the first flight, along the landing's open side and the second
+ * flight's room side; the landing and the second flight are closed down to the floor (owner photo 4).
+ * `inRoom`: when the south wall is cut away, only the part inside the room is built.
+ */
+export function Stair({ venue, m, inRoom }: Pick<Props, "venue" | "m"> & { inRoom: boolean }) {
   const g = useMemo(() => {
     const s = venue.data.stair;
     const H = venue.mezzanineHeight;
     const { rise } = s.flight;
-    const lower = flightGeo(s.flight.from, s.flight.to, 0, rise, s.flight.treads, s.flight.from[1] - 0.03);
+    const f1 = s.flight;
+    const lower = flightGeo(f1.from, f1.to, 0, rise, f1.treads, [
+      Math.min(f1.from[1], f1.to[1]) + 0.03,
+      Math.max(f1.from[1], f1.to[1]) - 0.03,
+    ]);
     const f2 = s.upperFlight;
-    const upper = flightGeo(f2.from, f2.to, rise, H, f2.treads, Math.min(f2.from[1], f2.to[1]) - 0.03);
+    const upper = flightGeo(f2.from, f2.to, rise, H, f2.treads, [Math.min(f2.from[0], f2.to[0]) + 0.03], {
+      solid: true,
+      stopAt: inRoom ? venue.depth : undefined,
+    });
     const [ux0, uz0, ux1, uz1] = s.upperLanding;
     const [tx0, tz0, tx1, tz1] = s.topLanding;
-    const wood = [
-      ...lower.wood,
-      ...upper.wood,
-      boxGeo(ux0, rise - 0.05, uz0, ux1, rise, uz1, TILE.floor),
-      boxGeo(tx0, H - 0.05, tz0, tx1, H, tz1, TILE.floor),
-    ];
-    // Head landing: dark fascia under its edge and a balustrade on its two open sides.
-    const steel = [...lower.steel, ...upper.steel];
-    steel.push(boxGeo(tx0, H - 0.45, tz0 - 0.02, tx1, H - 0.05, tz0 + 0.02));
-    for (let x = tx0 + 0.06; x < tx1; x += 0.13)
-      steel.push(boxGeo(x - 0.01, H, tz0, x + 0.01, H + 0.95, tz0 + 0.02));
-    for (let z = tz0 + 0.06; z < tz1; z += 0.13)
-      steel.push(boxGeo(tx0, H, z - 0.01, tx0 + 0.02, H + 0.95, z + 0.01));
-    const headRail = [
-      boxGeo(tx0, H + 0.95, tz0 - 0.03, tx1, H + 1.01, tz0 + 0.05),
-      boxGeo(tx0 - 0.03, H + 0.95, tz0, tx0 + 0.05, H + 1.01, tz1),
-    ];
+    const landing = guard([ux0 + 0.03, uz0 + 0.03], [ux1 - 0.03, uz0 + 0.03], rise);
     return {
-      wood: merge(wood),
+      wood: merge([
+        ...lower.wood,
+        ...upper.wood,
+        boxGeo(ux0, rise - 0.05, uz0, ux1, rise, uz1, TILE.floor),
+        ...(inRoom ? [] : [boxGeo(tx0, H - 0.05, tz0, tx1, H, tz1, TILE.floor)]),
+      ]),
+      base: merge([...upper.base, boxGeo(ux0, 0, uz0, ux1, rise - 0.05, uz1)]),
       led: merge([...lower.led, ...upper.led]),
-      steel: merge(steel),
-      rail: merge([lower.rail, upper.rail, ...headRail]),
+      steel: merge([...lower.steel, ...upper.steel, ...landing.steel]),
+      rail: merge([...lower.rail, ...upper.rail, landing.rail]),
     };
-  }, [venue]);
+  }, [venue, inRoom]);
   return (
     <group name="stair">
-      <mesh geometry={g.wood} material={m.backBarWood} castShadow receiveShadow />
+      <mesh geometry={g.wood} material={m.timber} castShadow receiveShadow />
+      <mesh geometry={g.base} material={m.stairWall} receiveShadow />
       <mesh geometry={g.led} material={m.led} />
       <mesh geometry={g.steel} material={m.blackMetal} castShadow />
       <mesh geometry={g.rail} material={m.timber} />

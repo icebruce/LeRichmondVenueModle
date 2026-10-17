@@ -27,7 +27,7 @@ Rendering in CI uses software WebGL (SwiftShader), verified to work in this envi
 
 1. Load → default dollhouse evening view → counts visible. (`VEN-01`, `CAM-01`, `LGT-01`, `LAY-07`)
 2. Add a 12-seat table, drag, rotate 90°, duplicate, try to drop on the bar (refused), undo ×3. (`LAY-01..06`)
-3. Load F01 sample → set guests 75 → "15 without a seat" shown. (`LAY-09`, `PPL-01`)
+3. Load F01 sample → set guests 75 → "3 without a seat" shown. (`LAY-09`, `PPL-01`)
 4. Apply champagne linen to all, votives, low florals → placements unchanged. (`DEC-01..03`)
 5. Create scenario B from A, change it, reload → both intact; export/import JSON round trip. (`SCN-01`, `SCN-08`, `SCN-09`)
 6. Two browser contexts edit the same scenario → second save gets the conflict choice. (`SCN-03`)
@@ -37,7 +37,7 @@ Rendering in CI uses software WebGL (SwiftShader), verified to work in this envi
 
 ## 4. What not to test
 
-Library behaviour (three.js, React, zod), CSS values already guarded by tokens, exact numbers of estimated venue dimensions (they change by design; test the builders' invariants instead: closed outlines, non-overlapping fixtures, levels inside the room).
+Library behaviour (three.js, React, zod), CSS values already guarded by tokens, exact numbers of estimated venue dimensions (they change by design; test the builders' invariants instead: closed outlines, non-overlapping fixtures, levels inside the room). Exception: a dimension or relationship the owner stated (e.g. garage doors ≈ 6.3 m with a 0.6 m divider, bar front ≈ 6.3–6.5 m from the kitchen wall, stair ≈ 2 m east of the entrance; 2026-10-17) is tested within the owner's stated tolerance, so a later edit cannot drift from it silently.
 
 ## 5. Before every commit and push
 

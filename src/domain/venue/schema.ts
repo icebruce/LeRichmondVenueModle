@@ -14,7 +14,8 @@ const rect4 = z.tuple([z.number(), z.number(), z.number(), z.number()]);
 
 const opening = z.object({
   id: z.string(),
-  kind: z.enum(["garageDoor", "tallWindow", "door", "opening", "pass"]),
+  /** `stairway`: a plain gap where the stair passes through the wall (no frame, sign or void). */
+  kind: z.enum(["garageDoor", "tallWindow", "door", "opening", "pass", "stairway"]),
   start: z.number(),
   end: z.number(),
   sill: z.number(),
@@ -93,15 +94,18 @@ export const venueSchema = z.object({
     confidence,
     sources: z.array(z.string()),
   }),
+  // Flights are rectangles from `from` to `to` corners; they climb along their longer side, from
+  // `from` toward `to` (owner, 2026-10-17: east along the platform, then a right turn south).
   stair: z.object({
+    /** Entrance floor at the stair's foot, kept clear of furniture. */
     landing: rect4,
-    /** Lower flight from the entrance landing east to the east-wall landing, rising `rise`. */
+    /** First flight from the entrance east to the turn landing at the street wall, rising `rise`. */
     flight: z.object({ from: vec2, to: vec2, rise: z.number(), treads: z.number().int().positive() }),
-    /** Turn landing against the east wall, at the lower flight's top. */
+    /** Turn landing against the street wall, at the first flight's top. */
     upperLanding: rect4,
-    /** Second flight back west from the turn landing up to the mezzanine floor. */
+    /** Second flight, turning right along the street wall up into the mezzanine. */
     upperFlight: z.object({ from: vec2, to: vec2, treads: z.number().int().positive() }),
-    /** Head of the second flight at mezzanine height, joining the mezzanine edge. */
+    /** Head of the second flight at mezzanine height, behind the mezzanine edge. */
     topLanding: rect4,
     confidence,
     sources: z.array(z.string()),
@@ -172,7 +176,8 @@ export const venueSchema = z.object({
     ducts: z.object({ positions: z.array(z.number()), radius: z.number(), drop: z.number() }),
     skylight: z.object({ x: z.number(), z: z.number(), size: z.number() }),
     venueFurniture: z.object({
-      barStools: z.object({ count: z.number().int() }),
+      /** Stools along the bar's front and along each side (owner, 2026-10-17). */
+      barStools: z.object({ front: z.number().int().positive(), side: z.number().int().positive() }),
     }),
   }),
   cameraPresets: z.record(z.string(), camera),
