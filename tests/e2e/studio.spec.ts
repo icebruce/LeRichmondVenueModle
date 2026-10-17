@@ -593,11 +593,12 @@ test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on
   page,
 }) => {
   await openStudio(page);
-  await page.evaluate(() =>
-    (
-      window as unknown as { __studio: { editor: { createScenario: (k: string) => string } } }
-    ).__studio.editor.createScenario("blank"),
-  );
+  const blank = () =>
+    page.evaluate(() =>
+      (
+        window as unknown as { __studio: { editor: { createScenario: (k: string) => string } } }
+      ).__studio.editor.createScenario("blank"),
+    );
   await openSection(page, "add");
   // A search finds pieces in any category, and table dressing to use on every table.
   await page.getByTestId("library-search").fill("olive");
@@ -624,6 +625,11 @@ test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on
   await page.getByTestId("request-save").click();
   await expect(page.getByTestId("request-form")).toContainText("Give it a name and a size");
   await page.getByTestId("request-back").click();
+  // In an empty room there is no table to dress.
+  await blank();
+  await page.getByTestId("library-search").fill("taper");
+  await expect(page.getByTestId("use-candle-tapers")).toBeDisabled();
+  await page.getByTestId("library-search").fill("");
   // Desktop: drag a piece from the library onto the floor; it lands there.
   await page.getByTestId("category-table").click();
   const canvas = page.locator("canvas").first();
