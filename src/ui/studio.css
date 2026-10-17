@@ -324,6 +324,7 @@ button:disabled {
 /* ---------- panel / inspector ---------- */
 .panel {
   position: absolute;
+  box-sizing: border-box;
   top: 0;
   bottom: 0;
   left: var(--rail);

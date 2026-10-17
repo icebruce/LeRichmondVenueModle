@@ -20,21 +20,26 @@ test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async (
   await expect(page.locator(".joystick")).toBeVisible();
 });
 
-/** A finger drag on `selector` from y0 to y1 (React reads the touch points' clientY). */
+/** A steady finger drag on `selector` from y0 to y1 over 400 ms (slower than a flick). */
 async function swipe(page: Page, selector: string, y0: number, y1: number) {
-  await page
-    .locator(selector)
-    .first()
-    .evaluate(
-      (el, [a, b]) => {
-        const touch = (y: number) => new Touch({ identifier: 1, target: el, clientX: 195, clientY: y });
-        el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [touch(a ?? 0)] }));
-        el.dispatchEvent(
-          new TouchEvent("touchend", { bubbles: true, touches: [], changedTouches: [touch(b ?? 0)] }),
+  const el = page.locator(selector).first();
+  const fire = (end: boolean, y: number) =>
+    el.evaluate(
+      (node, [isEnd, at]) => {
+        const touch = new Touch({ identifier: 1, target: node, clientX: 195, clientY: Number(at) });
+        node.dispatchEvent(
+          new TouchEvent(isEnd ? "touchend" : "touchstart", {
+            bubbles: true,
+            touches: isEnd ? [] : [touch],
+            changedTouches: [touch],
+          }),
         );
       },
-      [y0, y1],
+      [end, y] as const,
     );
+  await fire(false, y0);
+  await page.waitForTimeout(400);
+  await fire(true, y1);
 }
 
 test("[PLT-02] phone controls: camera menu and lighting top right, undo under them, no plan name", async ({
@@ -79,11 +84,17 @@ test("[PLT-02] phone: adding a piece drops the sheet to its peek with the piece 
   page,
 }) => {
   await openStudio(page);
+  // An empty room, so the new table always finds a place.
+  await page.evaluate(() =>
+    (
+      window as unknown as { __studio: { editor: { createScenario: (k: string) => string } } }
+    ).__studio.editor.createScenario("blank"),
+  );
   await page.getByTestId("section-add").click();
   await expect(page.locator(".panel")).toHaveClass(/detent-half/);
   await page.getByTestId("add-table-round").click();
+  await expect.poll(async () => (await state(page)).selection.length).toBe(1);
   await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
   await expect(page.getByTestId("inspector")).toBeVisible();
   await expect(page.getByTestId("rotate-90")).toBeInViewport();
-  expect((await state(page)).selection).toHaveLength(1);
 });
