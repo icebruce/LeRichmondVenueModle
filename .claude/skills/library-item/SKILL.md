@@ -14,7 +14,7 @@ Spec: `docs/PRODUCT_SPEC.md` §5.7 (LIB), §5.9 (REQ). Structure: `docs/ARCHITEC
 - Record: what it is, real size (ask only if missing), placement (table / floor / wall / ceiling / hanging), colours, must-match details, which scenario it is for.
 - The token is read-only. Status is never set by hand: a request shows "Requested" until your entry carries `"requestId": "<request id>"`, then "Ready" by itself.
 - Request photos: `GET /api/uploads/<image id>` with the same token.
-- Skip requests already delivered: any whose id appears as `requestId` in `data/library/*.json` (the server never stores "In library").
+- Skip requests already delivered: any whose id appears as `requestId` in `data/library/*.json` (the server never stores a status).
 - Save reference photos only to a gitignored folder (`references/private_media/requests/`). Never commit them.
 
 ## 2. Choose the approach (cheapest that meets the request)

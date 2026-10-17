@@ -38,6 +38,9 @@ function prep(t: THREE.Texture, color: boolean) {
 
 export type Materials = ReturnType<typeof useMaterials>;
 
+/** The dance area's line and tint (LIB-01): a warm sand that reads on dark tile and light thumbnails. */
+const DANCE_LINE = "#d8bf93";
+
 export function useMaterials() {
   const tex = useTexture(TEXTURE_URLS);
   return useMemo(() => {
@@ -137,13 +140,13 @@ export function useMaterials() {
       // The dance area is marked, not built: a sand-coloured line and a faint tint, unlit so it reads in
       // evening and daylight alike.
       danceLine: new THREE.MeshBasicMaterial({
-        color: "#d8bf93",
+        color: DANCE_LINE,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,
       }),
       danceTint: new THREE.MeshBasicMaterial({
-        color: "#d8bf93",
+        color: DANCE_LINE,
         transparent: true,
         opacity: 0.07,
         depthWrite: false,

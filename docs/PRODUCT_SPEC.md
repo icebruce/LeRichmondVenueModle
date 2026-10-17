@@ -9,7 +9,7 @@
 
 A private web app for one couple to plan their wedding reception at **Restaurant Le Richmond, 377 Rue Richmond, Montreal** on **2026-11-21**, for about **75 guests** (the number may change). Both partners use it, on laptop and phone, from one shared link.
 
-The job: decide **where things go** (tables, dance floor, DJ, stations), **how full it feels**, and **how it looks** (linens, candles, florals, chairs), then save alternatives, compare them and hand a clear plan to the venue.
+The job: decide **where things go** (tables, dance area, DJ, stations), **how full it feels**, and **how it looks** (linens, candles, florals, chairs), then save alternatives, compare them and hand a clear plan to the venue.
 
 Useful window: now until about 2026-11-10. Anything that does not help a decision before then is out.
 
@@ -58,7 +58,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 |---|---|---|---|---|
 | CAM-01 | M | 1 | **Dollhouse**: orbiting 3/4 view, ceiling hidden, walls facing the camera cut low automatically, far walls full height. Default angle matches photo R01 (from south-east looking north-west). | Orbiting a full turn always shows the interior; no wall blocks the view. |
 | CAM-02 | M | 1 | **Top-down**: orthographic plan for placing. | Tables keep their true proportions; labels readable. |
-| CAM-03 | M | 1 | **Walk**: eye height 1.65 m; keyboard + mouse on desktop, touch joystick + drag-to-look on phone; cannot pass through walls, bar or tables. | Walking from the entrance to the dance floor and around the bar works without clipping. |
+| CAM-03 | M | 1 | **Walk**: eye height 1.65 m; keyboard + mouse on desktop, touch joystick + drag-to-look on phone; cannot pass through walls, bar or tables. | Walking from the entrance to the dance area and around the bar works without clipping. |
 | CAM-04 | S | 3 | **Sit here**: select a table, choose "Sit here", then tap one of its chairs to see the room from that seat. | View is at seated eye height (1.2 m) facing the table centre. |
 | CAM-05 | M | 1 | Camera changes animate smoothly (≤ 600 ms); a Reset view control always exists. | No jump cuts; reset returns to the default angle. |
 
@@ -80,8 +80,8 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | LAY-04 | M | 1 | Items cannot overlap fixed architecture or each other; the move is refused with a visible cue, not silently clamped. | Dragging a table into the bar shows a red outline and returns it on release. |
 | LAY-05 | M | 1 | Snapping to a 10 cm grid and to alignment with nearby tables; can be turned off. | — |
 | LAY-06 | M | 1 | Undo / redo for every change (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, toolbar buttons). | 50 steps deep at minimum. |
-| LAY-07 | M | 1 | Live counts: tables, seats, guests, guests without a seat, dance floor area. | Counts update on every change. |
-| LAY-08 | M | 2 | Advisory checks with editable thresholds: aisle width between chair backs (default 1.0 m), clearance at entrance, stair, kitchen pass and glazed doors (default 1.2 m), dance floor size vs guest count (default 0.45 m² per dancer, 35% dancing). Wording always says "advisory". | Narrowing an aisle below the threshold highlights it and names the issue. |
+| LAY-07 | M | 1 | Live counts: tables, seats, guests, guests without a seat, dance area area. | Counts update on every change. |
+| LAY-08 | M | 2 | Advisory checks with editable thresholds: aisle width between chair backs (default 1.0 m), clearance at entrance, stair, kitchen pass and glazed doors (default 1.2 m), dance area size vs guest count (default 0.45 m² per dancer, 35% dancing). Wording always says "advisory". | Narrowing an aisle below the threshold highlights it and names the issue. |
 | LAY-09 | M | 1 | The venue sample plan (F01) is available as a starting scenario. | Loads 3×8, 1×10, 3×8, sweetheart table against the south (kitchen) wall, dance area, DJ option 1; bar stools hidden. |
 | LAY-10 | M | 1 | Tables are numbered automatically; numbers can be edited. | Numbers show in top-down view and in the export. |
 | LAY-11 | M | 1 | DJ can be placed at three named spots, including the mezzanine front edge (option 3), or freely on the floor. | DJ option 3 sits on the mezzanine edge and is not walkable. |
@@ -91,7 +91,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
-| PPL-01 | M | 2 | Guest count control (0–200, default 75). Guests fill seats first; the rest stand in open areas, never on the dance floor during dinner phase. | 75 guests with 60 seats shows 60 seated + 15 standing and "15 without a seat". |
+| PPL-01 | M | 2 | Guest count control (0–200, default 75). Guests fill seats first; the rest stand in open areas, never on the dance area during dinner phase. | 75 guests with 60 seats shows 60 seated + 15 standing and "15 without a seat". |
 | PPL-02 | M | 2 | Placement is reproducible for the same layout and count. | Reloading shows the same people in the same places. |
 | PPL-03 | M | 2 | 150 people + 15 tables stays smooth on a 2022+ laptop and phone (`ARCHITECTURE.md` §7 budgets). | — |
 
@@ -142,7 +142,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 |---|---|---|---|---|
 | REQ-01 | M | 3 | "Request a custom model" from any imported item or library item: photos, real size, placement, notes. Stored privately in the app. | Request visible to both partners. |
 | REQ-02 | M | 3 | Request status is automatic: Requested → Ready (once the built item is in the library), with a button to place or use it. Nobody sets it by hand (owner, 2026-10-17). | — |
-| REQ-03 | M | 3 | Claude can read open requests with a read-only token (`LIBRARY_REQUESTS_TOKEN`, never in Git) or from photos attached in chat, build the item per the `library-item` skill, and deliver it through a pull request with a preview link. | A test request goes from Requested to In library through one pull request. |
+| REQ-03 | M | 3 | Claude can read open requests with a read-only token (`LIBRARY_REQUESTS_TOKEN`, never in Git) or from photos attached in chat, build the item per the `library-item` skill, and deliver it through a pull request with a preview link. | A test request goes from Requested to Ready through one pull request. |
 | REQ-04 | M | 3 | Reference photos in requests are never committed; only the models Claude builds are. | — |
 
 ### 5.10 Scenarios and collaboration — SCN

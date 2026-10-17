@@ -100,7 +100,7 @@ describe("placement", () => {
 });
 
 describe("tables and chairs", () => {
-  test("[LAY-03] rectangle length follows seats; 12 seats = 6 + 6, or 5 + 5 + 2 ends", () => {
+  test("[LAY-03] [LIB-01] rectangle length follows seats (0.70 m a guest); 12 = 6 + 6, or 5 + 5 + 2 ends", () => {
     expect(rectTable(12, false)).toMatchObject({ perSide: 6, length: 4.2, width: 1.0 });
     expect(rectTable(12, true)).toMatchObject({ perSide: 5, length: 3.5 });
     const s = shapeOf(table({ options: { seats: 12, ends: true } }), catalog);
@@ -216,35 +216,6 @@ describe("walking", () => {
     expect(free([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])).toBe(false);
     for (const s of venue.data.levels.raised.steps.value) {
       expect(free([(s.from[0] + s.to[0]) / 2, (s.from[1] + s.to[1]) / 2])).toBe(true);
-    }
-  });
-});
-
-describe("library pieces", () => {
-  test("[LIB-01] the dance area is an outline: sized freely, no floor finish, its area counted", () => {
-    const entry = catalog.get("dance-floor");
-    expect(entry?.name).toBe("Dance area");
-    expect(entry?.options.map((o) => o.key)).toEqual(["width", "depth"]);
-    const area: Item = {
-      id: "d",
-      libraryId: "dance-floor",
-      x: 6,
-      z: 11,
-      rotY: 0,
-      options: { width: 5, depth: 4 },
-    };
-    expect(countLayout([area], 75, catalog).danceFloorM2).toBeCloseTo(20);
-  });
-
-  test("[LIB-08] hanging and ceiling lights reach from 2.2 m to just under the ceiling", () => {
-    const ceiling = venue.data.room.ceiling.value;
-    const lights = [...catalog.values()].filter(
-      (e) => e.family === "light" && (e.placement === "hanging" || e.placement === "ceiling"),
-    );
-    expect(lights.length).toBeGreaterThan(0);
-    for (const e of lights) {
-      const hang = e.options.find((o) => o.key === "hang");
-      expect(hang?.type === "number" && hang.min <= 2.4 && hang.max >= 5.5 && hang.max < ceiling).toBe(true);
     }
   });
 });

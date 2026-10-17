@@ -137,7 +137,7 @@ describe("décor", () => {
 });
 
 describe("scenario files", () => {
-  test("[SCN-08] a version 1 scenario file opens, upgraded to the current version", () => {
+  test("[SCN-08] [LAY-12] a version 1 scenario file opens, upgraded to the current version", () => {
     const v1 = {
       schemaVersion: 1,
       id: "old",
@@ -147,7 +147,7 @@ describe("scenario files", () => {
       style: { linen: "linen-white", linenLength: "lap", chair: "chair-oval", lighting: "day" },
       guests: { count: 70, seed: 1 },
       thresholds: { aisleM: 1, clearanceM: 1.2, m2PerDancer: 0.45, dancingShare: 0.35 },
-      venueToggles: { barStools: false },
+      venueToggles: { communalTable: true, barStools: false },
       notes: [],
       updatedAt: "2026-10-15T00:00:00.000Z",
     };
@@ -155,7 +155,8 @@ describe("scenario files", () => {
     expect(s.schemaVersion).toBe(3);
     expect(s.style).toMatchObject({ runner: "none", napkin: "none", menus: false, tableNumbers: false });
     expect(s.style).toMatchObject({ linen: "linen-white", linenLength: "lap", candles: "candle-votives" });
-    expect(s.venueToggles.paintings).toEqual({});
+    // The communal table is no longer modelled (LAY-12): an old file opens without it.
+    expect(s.venueToggles).toEqual({ barStools: false, paintings: {} });
   });
 });
 

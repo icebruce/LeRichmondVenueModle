@@ -103,7 +103,7 @@ Desktop layout with the inspector as an overlay sheet from the right.
 | Segmented control | 2–4 options, equal widths, sliding selection indicator. |
 | Swatch | 32 pt circle in a 44 pt target; selected = 2 pt accent ring with 3 pt offset; name below on hover/long-press. |
 | Stepper + figure | For counts (seats, guests): large tabular figure, −/+ buttons, drag on the figure to scrub. |
-| Slider | Only for continuous values (dance floor size, thresholds); always shows the value and unit. |
+| Slider | Only for continuous values (dance area size, thresholds); always shows the value and unit. |
 | Toast | Bottom-centre, 4 s, one at a time; always carries Undo after a destructive action. |
 | Badge | Fidelity labels and "approx." markers: caption size, hairline outline, never colour-only. |
 | Empty state | One sentence, one primary action, no illustration clutter. |

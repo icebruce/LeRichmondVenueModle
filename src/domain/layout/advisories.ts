@@ -189,7 +189,7 @@ export function advise(
 
   // Clearances in front of the entrance, stair, kitchen pass and glazed doors.
   for (const zone of clearanceZones(venue, thresholds.clearanceM)) {
-    // Placed items (not the dance floor, which is meant to be walked on) and shown furniture.
+    // Placed items (not the dance area, which is meant to be walked on) and shown furniture.
     const inside = [
       ...items
         .filter((it) => {
@@ -225,7 +225,7 @@ export function advise(
     });
   }
 
-  // Dance floor size for the share of guests dancing.
+  // Dance area size for the share of guests dancing.
   const floor = items
     .map((it) => shapeOf(it, catalog))
     .reduce((sum, s) => sum + (s.kind === "danceFloor" ? s.width * s.depth : 0), 0);

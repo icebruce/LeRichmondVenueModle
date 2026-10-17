@@ -223,7 +223,7 @@
           "type": "number",
           "key": "hang",
           "label": "Hangs at",
-          "min": 2.4,
+          "min": 2.2,
           "max": 6.0,
           "step": 0.1,
           "default": 3.2,
@@ -258,7 +258,8 @@
         "kind": "parametric",
         "generator": "light",
         "params": {
-          "kind": "chandelier"
+          "kind": "chandelier",
+          "anchor": 6.2
         }
       },
       "lowModel": {
@@ -266,7 +267,8 @@
         "generator": "light",
         "params": {
           "kind": "chandelier",
-          "quality": "low"
+          "quality": "low",
+          "anchor": 6.2
         }
       },
       "options": [
@@ -275,7 +277,7 @@
           "key": "hang",
           "label": "Hangs at",
           "min": 2.2,
-          "max": 5.5,
+          "max": 5.0,
           "step": 0.1,
           "default": 2.8,
           "unit": "m"
@@ -309,7 +311,8 @@
         "kind": "parametric",
         "generator": "light",
         "params": {
-          "kind": "disco"
+          "kind": "disco",
+          "anchor": 6.2
         }
       },
       "lowModel": {
@@ -317,7 +320,8 @@
         "generator": "light",
         "params": {
           "kind": "disco",
-          "quality": "low"
+          "quality": "low",
+          "anchor": 6.2
         }
       },
       "options": [

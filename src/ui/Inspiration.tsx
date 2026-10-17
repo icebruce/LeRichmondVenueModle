@@ -890,7 +890,7 @@ function RequestForm({
           </span>
         </div>
       )}
-      {built ? (
+      {built && (
         <button
           type="button"
           className="btn primary"
@@ -902,7 +902,7 @@ function RequestForm({
         >
           {styleKeyOf(built) ? "Use on all tables" : "Place in the room"} · {built.name}
         </button>
-      ) : null}
+      )}
       <label className="field">
         <span className="row-label">What is it?</span>
         <input

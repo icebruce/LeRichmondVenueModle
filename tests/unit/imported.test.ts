@@ -13,7 +13,12 @@ import {
   withImported,
 } from "../../src/domain/library/imported";
 import { entry } from "../../src/domain/library/catalog";
-import { type CustomRequest, type Imported, importedSchema } from "../../src/domain/library/schema";
+import {
+  type CustomRequest,
+  type Imported,
+  customRequestSchema,
+  importedSchema,
+} from "../../src/domain/library/schema";
 import { makePiece } from "../../src/domain/layout/pieces";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import { tableDecor, heightOf } from "../../src/domain/layout/decor";
@@ -299,6 +304,8 @@ describe("custom requests and honest results", () => {
   test("[REQ-02] a request shows Ready, with its item, once a library entry carries its id", () => {
     const r = request();
     expect(requestStatus(r, catalog)).toMatchObject({ status: "requested", label: "Requested" });
+    // A request stored with the old hand-set status still opens; the status is simply dropped.
+    expect(customRequestSchema.parse({ ...r, status: "in_progress" })).not.toHaveProperty("status");
     const built = { ...entry(catalog, "candelabra-5"), id: "candelabra-gold", requestId: r.id };
     const withBuilt = new Map([...catalog, [built.id, built]]);
     expect(requestStatus(r, withBuilt)).toMatchObject({

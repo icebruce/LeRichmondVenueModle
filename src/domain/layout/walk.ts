@@ -11,7 +11,7 @@ export const WALK_RADIUS = 0.28;
  * Where a guest at eye level may stand: inside the room (the entrance landing included), clear of
  * the bar, stair flights, fixtures, the
  * venue furniture that is switched on, the raised-floor railing (steps stay open) and every placed
- * item except the dance floor, which is walked on.
+ * item except the dance area, which is walked on.
  */
 export function walkArea(
   venue: VenueModel,

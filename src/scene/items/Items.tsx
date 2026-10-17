@@ -239,7 +239,7 @@ function DanceArea({ width, depth, m }: { width: number; depth: number; m: Mater
 
 /** LED tiles (LIB-10, DJ booth front): a grid of lit 60 cm squares, glowing in the evening. Shared per size. */
 const led = new Map<string, THREE.MeshStandardMaterial>();
-function ledFloor(evening: boolean, width: number, depth: number): THREE.MeshStandardMaterial {
+function ledTiles(evening: boolean, width: number, depth: number): THREE.MeshStandardMaterial {
   const key = `${evening}|${width}|${depth}`;
   let mat = led.get(key);
   if (!mat) {
@@ -278,7 +278,7 @@ function ledFloor(evening: boolean, width: number, depth: number): THREE.MeshSta
 const fronts = new Map<string, THREE.Material>();
 function djFront(front: string, m: Materials, evening: boolean, width: number): THREE.Material {
   if (front === "black") return m.djFacade;
-  if (front === "led") return ledFloor(evening, width, 1);
+  if (front === "led") return ledTiles(evening, width, 1);
   let mat = fronts.get(front);
   if (!mat) {
     mat =

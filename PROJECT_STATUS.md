@@ -12,7 +12,7 @@
 | 2 | Shared login + cloud scenarios, conflicts, notes, compare; people; décor presets; advisories; layout export | ACC-01, SCN-02..07, PPL-01..03, DEC-01..05, LAY-08, LAY-12, VEN-05, EXP-01..02, LIB-02..06 (step-2 parts) | Both partners use it on laptop and phone | Done (merged 2026-10-16) |
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
-| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-12, REQ-02, LAY-04 | Checks and reviews pass | In progress |
+| 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | In progress |
 | 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | Planned |
 | 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, LAY-08, SCN-01..06 | UX review | Planned |
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, IMP-06, REQ-01..02 | UX review | Planned |
@@ -79,7 +79,7 @@ Where things stand:
 
 To do, in order:
 
-1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "In library" (REQ-03 acceptance).
+1. First real custom request (req-f6462824, "Candles") read with the token and built: `candle-sand-trio`, three glass cylinders of candle sand (20 / 25 / 30 cm, owner's sizes) on a eucalyptus ring with baby's breath. Owner: review the PR preview and merge; the request then shows "Ready" (REQ-03 acceptance).
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. Step 4 (owner feedback of 2026-10-17): PRs 4A–4F in the order of the steps table, each merged once checks and reviews pass (owner-approved, 2026-10-17). Freeze around 2026-11-10.
