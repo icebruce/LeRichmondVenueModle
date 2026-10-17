@@ -134,16 +134,16 @@ export function useMaterials() {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
-      // The dance area is marked, not built: an ivory line and a faint tint, unlit so it reads in
+      // The dance area is marked, not built: a sand-coloured line and a faint tint, unlit so it reads in
       // evening and daylight alike.
       danceLine: new THREE.MeshBasicMaterial({
-        color: "#efe3c9",
+        color: "#d8bf93",
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.9,
         depthWrite: false,
       }),
       danceTint: new THREE.MeshBasicMaterial({
-        color: "#efe3c9",
+        color: "#d8bf93",
         transparent: true,
         opacity: 0.07,
         depthWrite: false,
