@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { useTexture } from "@react-three/drei";
 import { useMemo } from "react";
 import { adjustedTexture, glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
 const base = `${import.meta.env.BASE_URL}assets/textures/`;
 
@@ -37,9 +38,6 @@ function prep(t: THREE.Texture, color: boolean) {
 }
 
 export type Materials = ReturnType<typeof useMaterials>;
-
-/** The dance area's line and tint (LIB-01): a warm sand that reads on dark tile and light thumbnails. */
-const DANCE_LINE = "#d8bf93";
 
 export function useMaterials() {
   const tex = useTexture(TEXTURE_URLS);
@@ -137,18 +135,14 @@ export function useMaterials() {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
-      // The dance area is marked, not built: a sand-coloured line and a faint tint, unlit so it reads in
-      // evening and daylight alike.
-      danceLine: new THREE.MeshBasicMaterial({
-        color: DANCE_LINE,
+      // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and
+      // daylight, and a faint lit tint that darkens with the room instead of glowing.
+      danceLine: new THREE.MeshBasicMaterial({ color: DANCE_AREA_COLOUR, depthWrite: false }),
+      danceTint: new THREE.MeshStandardMaterial({
+        color: DANCE_AREA_COLOUR,
+        roughness: 1,
         transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-      }),
-      danceTint: new THREE.MeshBasicMaterial({
-        color: DANCE_LINE,
-        transparent: true,
-        opacity: 0.07,
+        opacity: 0.1,
         depthWrite: false,
       }),
       djFacade: std({ color: "#15161a", roughness: 0.4, metalness: 0.3 }),

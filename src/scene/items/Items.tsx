@@ -209,7 +209,7 @@ function topOf(shape: Shape): { poly: Polygon; y: number } {
 /** The dance area (LIB-01): a thin line and a faint tint on the floor; no floor is laid. */
 function DanceArea({ width, depth, m }: { width: number; depth: number; m: Materials }) {
   const frame = useMemo(() => {
-    const [w, d, line] = [width / 2, depth / 2, 0.05];
+    const [w, d, line] = [width / 2, depth / 2, 0.08];
     const outline = new THREE.Shape([
       new THREE.Vector2(-w, -d),
       new THREE.Vector2(w, -d),
@@ -888,6 +888,12 @@ export function Items({
               {showLabels && labels.get(p.item.id) && (
                 <Html center position={[0, 1.0, 0]} zIndexRange={[10, 0]} className="table-label">
                   {labels.get(p.item.id)}
+                </Html>
+              )}
+              {/* The dance area is only a mark on the floor; in plan it says what it is. */}
+              {showLabels && p.shape.kind === "danceFloor" && (
+                <Html center position={[0, 0.1, 0]} zIndexRange={[10, 0]} className="table-label">
+                  Dance area
                 </Html>
               )}
             </group>

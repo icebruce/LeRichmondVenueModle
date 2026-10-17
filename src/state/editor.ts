@@ -3,7 +3,13 @@ import { type Patch, applyPatches, enablePatches, produceWithPatches } from "imm
 import type { Catalog } from "../domain/library/catalog";
 import type { VenueModel } from "../domain/venue/model";
 import type { Item, ItemOptions } from "../domain/layout/items";
-import { checkPlacement, findFreeSpot, spotFor, toggledObstacles } from "../domain/layout/validate";
+import {
+  checkPlacement,
+  findFreeSpot,
+  itemTitle,
+  spotFor,
+  toggledObstacles,
+} from "../domain/layout/validate";
 import { tableLabels } from "../domain/layout/counts";
 import { normalizeAngle, snap } from "../domain/geometry";
 import type { Scenario, TableStyle } from "../domain/scenario/schema";
@@ -124,9 +130,12 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     };
   }
 
-  /** A refused change leaves everything as it was and says why, wherever the couple is. */
+  /**
+   * A refused change leaves everything as it was and says why, wherever the couple is; a showing
+   * Undo offer is never pushed aside by it (DESIGN_GUIDE §4 Toast).
+   */
   function refuse(reason: string): false {
-    toast(`${reason}. Nothing was changed.`);
+    if (!get().toast?.undo) toast(`${reason}. Nothing was changed.`);
     return false;
   }
 
@@ -345,7 +354,10 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
           const r = checkPlacement(it, active().items, venue, deps.catalog, toggledObstacles(venue, toggles));
           return !r.ok;
         });
-        if (blocked) return refuse("Something is placed where the bar stools go");
+        if (blocked) {
+          const name = itemTitle(blocked, tableLabels(active().items, deps.catalog), deps.catalog);
+          return refuse(`${name} is where the bar stools go`);
+        }
       }
       commit("Venue furniture", (d) => {
         d.venueToggles[key] = value;

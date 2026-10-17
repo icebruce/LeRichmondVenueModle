@@ -80,7 +80,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | LAY-04 | M | 1 | Items cannot overlap fixed architecture or each other; the move is refused with a visible cue, not silently clamped. | Dragging a table into the bar shows a red outline and returns it on release. |
 | LAY-05 | M | 1 | Snapping to a 10 cm grid and to alignment with nearby tables; can be turned off. | — |
 | LAY-06 | M | 1 | Undo / redo for every change (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, toolbar buttons). | 50 steps deep at minimum. |
-| LAY-07 | M | 1 | Live counts: tables, seats, guests, guests without a seat, dance area area. | Counts update on every change. |
+| LAY-07 | M | 1 | Live counts: tables, seats, guests, guests without a seat, dance area size (m²). | Counts update on every change. |
 | LAY-08 | M | 2 | Advisory checks with editable thresholds: aisle width between chair backs (default 1.0 m), clearance at entrance, stair, kitchen pass and glazed doors (default 1.2 m), dance area size vs guest count (default 0.45 m² per dancer, 35% dancing). Wording always says "advisory". | Narrowing an aisle below the threshold highlights it and names the issue. |
 | LAY-09 | M | 1 | The venue sample plan (F01) is available as a starting scenario. | Loads 3×8, 1×10, 3×8, sweetheart table against the south (kitchen) wall, dance area, DJ option 1; bar stools hidden. |
 | LAY-10 | M | 1 | Tables are numbered automatically; numbers can be edited. | Numbers show in top-down view and in the export. |

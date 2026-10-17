@@ -42,7 +42,7 @@ describe("editing", () => {
     expect(editor.setVenueToggle("barStools", true)).toBe(false);
     expect(editor.active().venueToggles.barStools).toBe(false);
     expect(editor.store.getState().toast?.text).toBe(
-      "Something is placed where the bar stools go. Nothing was changed.",
+      "Table 8 is where the bar stools go. Nothing was changed.",
     );
   });
 
