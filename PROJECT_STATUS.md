@@ -18,6 +18,7 @@
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | Merged (PR #11) |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | Merged (PR #12) |
 | 4F | Light height handle in 3D | LIB-08 | UX review | Merged (PR #13) |
+| 4G | Owner feedback, round 2: phone sheet scrolls at half; venue revision (platform, stair, south wall, garage doors); candle settings per kind and per group | PLT-02, VEN-01, VEN-04, LAY-11, DEC-02, LIB-05 | UX and fidelity review; owner approves the candle mock-up | In progress: sheet done |
 
 ## Decisions
 
@@ -68,6 +69,10 @@
   - Add vs Style: Add places objects; Style dresses tables. One search in Add; table dressing found there offers "Use on tables".
   - Add: "Can't find it?" opens Yours, where a custom model can be requested from scratch (no item behind it); on desktop a picture can be dragged into the room and lands exactly where it is dropped, or is refused with the reason.
   - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
+- Owner feedback, round 2 (2026-10-17):
+  - Phone sheet: at half height its content scrolls; only the grabber opens it full. From peek, a swipe up on the content still opens half.
+  - Candles: settings for each kind in cm (pillars: count, width, a height each; candelabra: one entry with an arms setting; tapers, votives, floating candles, hurricanes and lanterns: their sizes); group settings for a table's candles: mixed order and the group's rotation; they follow Apply to. Mock-up before building.
+  - Venue: the raised floor's straight railing after its step ≈ 35 % shorter, the stair moving north with it; the south (kitchen) wall moves north so the entrance landing is half as deep; both garage doors shorten to keep the small wall at the south end; the south wall's contents and the sample plan move with it.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)

@@ -80,6 +80,22 @@ test("[PLT-02] phone sheet: swipes down a step at a time to closed; system back 
   expect((await state(page)).active).toBeTruthy();
 });
 
+test("[PLT-02] phone sheet: content scrolls at half; only the grabber opens it full", async ({ page }) => {
+  await openStudio(page);
+  await page.getByTestId("section-add").click();
+  await expect(page.locator(".panel")).toHaveClass(/detent-half/);
+  await swipe(page, ".panel-scroll", 700, 520);
+  await expect(page.locator(".panel")).toHaveClass(/detent-half/);
+  await swipe(page, ".grabber", 400, 250);
+  await expect(page.locator(".panel")).toHaveClass(/detent-full/);
+  // From its peek the content still raises the sheet, one step to half.
+  await swipe(page, ".grabber", 100, 220);
+  await swipe(page, ".grabber", 400, 520);
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
+  await swipe(page, ".panel-scroll", 760, 600);
+  await expect(page.locator(".panel")).toHaveClass(/detent-half/);
+});
+
 test("[PLT-02] phone: adding a piece drops the sheet to its peek with the piece selected", async ({
   page,
 }) => {

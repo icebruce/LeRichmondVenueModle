@@ -98,7 +98,7 @@ Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Op
 
 - Full-screen viewport. Bottom tab bar with the same five sections. No plan name on screen (it lives in Plans).
 - **Top right:** a stack with the camera (opens a menu of Dollhouse / Plan / Walk), the light and Reset view; Undo / Redo in a second stack under it.
-- **Bottom sheet** with three detents (peek 164 pt: one counts line, title and the key actions — owner-approved 2026-10-16; the phone counts line leaves the dance area to Room › Layout rules so it stays on one line; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two; swipe up steps it up. Content pulls the sheet down only from its very top.
+- **Bottom sheet** with three detents (peek 164 pt: one counts line, title and the key actions — owner-approved 2026-10-16; the phone counts line leaves the dance area to Room › Layout rules so it stays on one line; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two. Content pulls the sheet down only from its very top; swiping up on the content raises it only from peek to half, and at half it scrolls: only the grabber opens it full (owner, 2026-10-17).
 - **Back:** the system back gesture closes the top layer (checks, a page, the selection, the sheet) and never leaves the app. No pull-to-refresh.
 - Adding a piece drops the sheet to its peek with the piece selected; a selection shows its actions first.
 - Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item.
