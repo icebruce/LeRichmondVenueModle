@@ -331,8 +331,8 @@ test("[LAY-08] advisory checks follow the couple's settings and never block", as
   await expect(page.getByTestId("checks")).toContainText("Aisle ≈ 0.4 m between table 5 and table 6");
   await page.getByTestId("check-settings").click();
   await page.getByTestId("aisle").fill("0.6");
-  // At 0.6 m the 0.6 and 0.8 m aisles pass; the 0.4 m one and the DJ booth by the doors remain.
-  await expect(page.getByTestId("count-advisories")).toHaveText("2");
+  // At 0.6 m the 0.8 m aisle passes; the 0.4 m one, the ≈ 0.6 m one (just under) and the DJ booth remain.
+  await expect(page.getByTestId("count-advisories")).toHaveText("3");
   await expect(page.getByTestId("checks")).not.toContainText("Aisle ≈ 0.8 m");
   await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
   expect((await state(page)).selection.sort()).toEqual(["t5", "t6"]);

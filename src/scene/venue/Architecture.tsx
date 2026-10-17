@@ -88,28 +88,13 @@ export function Railing({ venue, m }: Pick<Props, "venue" | "m">) {
   const { iron, rail, steps } = useMemo(() => {
     const d = venue.data;
     const h = venue.raised.height;
-    const top = h + 0.95;
     const gaps = d.levels.raised.steps.value;
     const ironGeos: THREE.BufferGeometry[] = [];
     const railGeos: THREE.BufferGeometry[] = [];
     for (const [a, b] of venue.railing) {
-      const rl = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
-      const n = Math.max(1, Math.round(rl / 0.12));
-      for (let k = 0; k <= n; k++) {
-        const x = a[0] + ((b[0] - a[0]) * k) / n;
-        const z = a[1] + ((b[1] - a[1]) * k) / n;
-        const thick = k % 8 === 0 ? 0.035 : 0.014;
-        ironGeos.push(boxGeo(x - thick, h, z - thick, x + thick, top - 0.05, z + thick));
-      }
-      const r = new THREE.BoxGeometry(rl, 0.06, 0.08);
-      r.rotateY(ang);
-      r.translate((a[0] + b[0]) / 2, top, (a[1] + b[1]) / 2);
-      railGeos.push(r);
-      const bottom = new THREE.BoxGeometry(rl, 0.03, 0.03);
-      bottom.rotateY(ang);
-      bottom.translate((a[0] + b[0]) / 2, h + 0.1, (a[1] + b[1]) / 2);
-      ironGeos.push(bottom);
+      const g = guard(a, b, h);
+      ironGeos.push(...g.steel);
+      railGeos.push(g.rail);
     }
     const stepGeos = gaps.map((g) => {
       const cx = (g.from[0] + g.to[0]) / 2;
@@ -312,19 +297,25 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
   );
 }
 
-/** A level balustrade from `a` to `b` on a floor at height y: iron balusters under a timber handrail. */
+/**
+ * A level balustrade from `a` to `b` on a floor at height y: iron balusters (every eighth a post)
+ * and a bottom bar under a timber handrail at 0.95 m.
+ */
 function guard(a: Vec2, b: Vec2, y: number) {
-  const steel: THREE.BufferGeometry[] = [];
-  const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.13));
-  for (let i = 0; i <= n; i++) {
-    const x = a[0] + ((b[0] - a[0]) * i) / n;
-    const z = a[1] + ((b[1] - a[1]) * i) / n;
-    steel.push(boxGeo(x - 0.012, y, z - 0.012, x + 0.012, y + 0.98, z + 0.012));
+  const top = y + 0.95;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+  const along = (g: THREE.BufferGeometry, at: number) =>
+    g.rotateY(ang).translate((a[0] + b[0]) / 2, at, (a[1] + b[1]) / 2);
+  const steel: THREE.BufferGeometry[] = [along(new THREE.BoxGeometry(len, 0.03, 0.03), y + 0.1)];
+  const n = Math.max(1, Math.round(len / 0.12));
+  for (let k = 0; k <= n; k++) {
+    const x = a[0] + ((b[0] - a[0]) * k) / n;
+    const z = a[1] + ((b[1] - a[1]) * k) / n;
+    const thick = k % 8 === 0 ? 0.035 : 0.014;
+    steel.push(boxGeo(x - thick, y, z - thick, x + thick, top - 0.05, z + thick));
   }
-  const [x0, x1] = [Math.min(a[0], b[0]) - 0.045, Math.max(a[0], b[0]) + 0.045];
-  const [z0, z1] = [Math.min(a[1], b[1]) - 0.045, Math.max(a[1], b[1]) + 0.045];
-  steel.push(boxGeo(x0 + 0.03, y + 0.1, z0 + 0.03, x1 - 0.03, y + 0.13, z1 - 0.03));
-  return { steel, rail: boxGeo(x0, y + 0.98, z0, x1, y + 1.04, z1) };
+  return { steel, rail: along(new THREE.BoxGeometry(len, 0.06, 0.08), top) };
 }
 
 /**

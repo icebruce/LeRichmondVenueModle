@@ -17,6 +17,17 @@ const t = (id: string, x: number, z: number): Item => ({
 });
 
 describe("advisories", () => {
+  test("[LAY-08] a saved table the revised room no longer fits keeps its place and shows first as a check", () => {
+    // Saved before the bar grew (2026-10-17): its centre now sits on the bar.
+    const a = advise([t("old", 7.5, 6)], 8, DEFAULT_THRESHOLDS, venue, catalog, NONE);
+    expect(a[0]?.kind).toBe("overlap");
+    expect(a[0]?.message).toBe("Table 1: overlaps the bar — move it");
+    expect(a[0]?.items).toEqual(["old"]);
+    // The sample plan fits the room: no overlap checks.
+    const sample = advise(venueSampleItems(), 75, DEFAULT_THRESHOLDS, venue, catalog, NONE);
+    expect(sample.some((x) => x.kind === "overlap")).toBe(false);
+  });
+
   test("[LAY-08] a narrow aisle between chair backs is named, with its width and the setting", () => {
     // Rect 8: 2.8 × 0.9 m with 0.55 m chair zones → 2.0 m deep; 2.8 m apart leaves ≈ 0.8 m.
     const a = advise([t("a", 4, 4), t("b", 4, 6.8)], 16, DEFAULT_THRESHOLDS, venue, catalog, NONE);

@@ -23,9 +23,17 @@ describe("venue model", () => {
   test("[VEN-01] the venue data parses and builds a closed room with the bar inside it", () => {
     expect(venue.width).toBeGreaterThan(10);
     expect(area(venue.room)).toBeCloseTo(venue.width * venue.depth);
-    // The stair's landing and flights meet the south wall; touching it counts as inside.
-    for (const o of venue.obstacles)
-      expect(polygonInside(o.polygon, venue.room) || o.id.startsWith("stair"), o.id).toBe(true);
+    // The stair's landing and flights end on the south wall, which the inside test counts as outside;
+    // they must still stay within the room's bounds.
+    for (const o of venue.obstacles) {
+      if (!o.id.startsWith("stair")) expect(polygonInside(o.polygon, venue.room), o.id).toBe(true);
+      for (const [x, z] of o.polygon) {
+        expect(x, o.id).toBeGreaterThanOrEqual(0);
+        expect(x, o.id).toBeLessThanOrEqual(venue.width);
+        expect(z, o.id).toBeGreaterThanOrEqual(0);
+        expect(z, o.id).toBeLessThanOrEqual(venue.depth);
+      }
+    }
   });
 
   test("[VEN-01] the west wall is two garage doors of ≈ 6.3 m and a 0.6 m divider, then a small wall", () => {
@@ -51,7 +59,7 @@ describe("venue model", () => {
     expect((x1 - x0) / 5).toBeGreaterThanOrEqual(0.6);
   });
 
-  test("[VEN-04] the raised floor runs up to the stair with no gap; its one step is beside the bar", () => {
+  test("[VEN-04] [VEN-01] the raised floor runs up to the stair with no gap; its one step is beside the bar", () => {
     const { flight, upperFlight, upperLanding } = venue.data.stair;
     const southEdge = Math.max(...venue.raised.outline.map((p) => p[1]));
     expect(Math.min(flight.from[1], flight.to[1])).toBeCloseTo(southEdge);
@@ -61,7 +69,7 @@ describe("venue model", () => {
     expect(Math.hypot((step?.from[0] ?? 0) - bx1, (step?.from[1] ?? 0) - bz1)).toBeLessThan(0.5);
     // No railing along the stair: the stair's own balustrade bounds that edge.
     const alongStair = venue.railing.some(
-      ([a, b]) => a[1] === southEdge && b[1] === southEdge && a[0] > 12.5,
+      ([a, b]) => a[1] === southEdge && b[1] === southEdge && a[0] > flight.from[0],
     );
     expect(alongStair).toBe(false);
     // First flight east to the street wall, then a right turn: south along that wall, up and behind the edge.
@@ -75,7 +83,7 @@ describe("venue model", () => {
 });
 
 describe("entrance and stairwell", () => {
-  test("[VEN-04] the entrance opens ≈ 1.5–2 m west of the stair foot; the second flight rises through a stairwell", () => {
+  test("[VEN-01] the entrance opens ≈ 1.5–2 m west of the stair foot; the second flight rises through a stairwell", () => {
     const south = venue.data.walls.find((w) => w.id === "south");
     const corridor = south?.openings.find((o) => o.id === "corridor");
     if (!south || !corridor) throw new Error("no corridor");
@@ -91,7 +99,7 @@ describe("entrance and stairwell", () => {
     expect(well?.head).toBeGreaterThanOrEqual(south.height ?? venue.ceiling);
   });
 
-  test("[VEN-04] the entrance and the stair foot are kept clear", () => {
+  test("[VEN-01] [LAY-08] the entrance and the stair foot are kept clear", () => {
     const [lx0, lz0, , lz1] = venue.data.stair.landing;
     const south = venue.data.walls.find((w) => w.id === "south");
     const corridor = south?.openings.find((o) => o.id === "corridor");
@@ -151,6 +159,11 @@ describe("placement", () => {
       ok: false,
       reason: "Overlaps the bar stools",
     });
+    // The east side's stools stand on the raised floor, along the bar.
+    const z0 = venue.data.bar.outer.value[1];
+    const side = table({ libraryId: "table-cocktail", x: x1 + 0.5, z: (z0 + z1) / 2, options: {} });
+    expect(checkPlacement(side, [], venue, catalog).ok).toBe(true);
+    expect(checkPlacement(side, [], venue, catalog, shown).ok).toBe(false);
   });
 
   test("[LAY-01] free-spot search finds a valid place (turning the table if needed)", () => {

@@ -134,7 +134,7 @@ export function useMaterials() {
       }),
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       // The closed side under the second flight and the turn landing (owner photo 4).
-      stairWall: std({ color: "#55585a", roughness: 0.9 }),
+      stairWall: std({ color: "#262b28", roughness: 0.9 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
       // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and

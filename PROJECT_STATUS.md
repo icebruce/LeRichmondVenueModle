@@ -61,7 +61,7 @@
   - Hanging and ceiling lights hang from 2.2 m to just under the ceiling; a 3D handle raises and lowers them (4F).
   - Custom request status is automatic (Requested → Ready).
   - Refused changes always show a toast with the reason.
-  - Venue: bar ≈ 3.6 m front × ≈ 5.5 m long, its front moves south so bar front to kitchen wall is ≈ 6.3–6.5 m; west wall = two garage doors ≈ 6.3 m each with a 0.6 m divider, starting at the north end, a small wall at the south end; no green panel or exit door on the west wall; the platform runs up to the stair with no gap and its only entrance is beside the bar; the stair's first flight starts ≈ 2 m right of the entrance, runs east to the street wall and turns 90° right up to the mezzanine; railings stay metal.
+  - Venue: bar ≈ 3.6 m front × ≈ 5.5 m long (modelled ≈ 3.4 × 5.7 m so the 12-seat tables keep ≈ 1.2 m to the doors and ≈ 1 m to the bar), its front moves south so bar front to kitchen wall is ≈ 6.3–6.5 m; west wall = two garage doors ≈ 6.3 m each with a 0.6 m divider, starting at the north end, a small wall at the south end; no green panel or exit door on the west wall; the platform runs up to the stair with no gap and its only entrance is beside the bar; the stair's first flight starts ≈ 2 m right of the entrance, runs east to the street wall and turns 90° right up to the mezzanine; railings stay metal.
   - Sample plan: 12-seat tables (6 per side) beside the garage doors, perpendicular to them, with ≈ 1 m walkways.
   - Navigation (desktop option 1): a labelled rail on the left (Room · Add · Style · Guests · Plans) with a 400 px panel (360–520 px, collapsible); Compare becomes Plans (switch, new, duplicate, rename, history, compare, notes, export, files, delete); the plan name stays small in the desktop toolbar and is off the phone screen.
   - Phone: camera menu, lighting and reset in a top-right stack with an undo/redo stack under it; the sheet steps down by swipe to closed; system back steps out of menus; no pull-to-refresh; Style pickers work at half height; adding drops the sheet to peek with the piece selected.
@@ -106,6 +106,8 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 - Raised floor height; stair tread count. The fidelity review (2026-10-17) reads R04 and owner photo 1 as an EXIT door and tufted banquettes at the west end of the green south wall: not modelled until the owner confirms (it would sit near the sweetheart table and DJ option 1).
 - The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
+- Fidelity (2026-10-17, look only, not yet done): the mezzanine fascia may project ≈ 0.6 m into the room (a dark recess over the entrance, R09, owner photo 3); the LED treads glow lime-yellow across the whole tread top; the kitchen pass reads too bright in UV02.
+- Sample plan (4B): DJ option 1 moved to z 11.5 to clear table 3; the dance area is 4.8 × 3.0 m (≈ 14 m²) to stay clear of the entrance. Confirm at the visual review.
 - Camera presets are approximate; R01, R03 and R09 were re-aimed in 4B (R01 now from the stair turn). Re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
