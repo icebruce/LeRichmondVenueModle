@@ -663,6 +663,39 @@ button:disabled {
   color: var(--accent);
   box-shadow: var(--shadow-control);
 }
+.tiles.g3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.tiles.g3 .library-icon {
+  height: 64px;
+}
+.tile.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tile:disabled {
+  opacity: 0.45;
+}
+.tile-check {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+/* "None": an empty swatch with a diagonal line. */
+.none-icon {
+  background: linear-gradient(135deg, transparent 47%, var(--line-2) 47% 53%, transparent 53%), var(--sunk);
+}
+.layer .stepper output {
+  min-width: 28px;
+}
 .more {
   display: flex;
   align-items: center;

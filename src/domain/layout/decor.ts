@@ -1,7 +1,7 @@
 import { seededRandom } from "../random";
 import type { Catalog } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
-import type { TableStyle } from "../scenario/schema";
+import type { CandleMix, TableStyle } from "../scenario/schema";
 import type { Chair, Shape } from "./items";
 
 /** Which table style an item fills when used on every table, if any (DEC-01). */
@@ -12,12 +12,6 @@ export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
   if (e.family === "candle") return "candles";
   if (e.family === "floral" && e.placement === "table") return "florals";
   return null;
-}
-
-/** The style change that puts an item on every table (DEC-01), or null if it is not table dressing. */
-export function stylePatch(e: LibraryEntry): Partial<TableStyle> | null {
-  const key = styleKeyOf(e);
-  return key ? { [key]: e.id } : null;
 }
 
 /**
@@ -461,6 +455,98 @@ function numberHolder(x: number, z: number): Part[] {
 }
 
 /**
+ * One candle of a kind, the `i`th on the table: a votive, a pillar (three heights in turn), a taper
+ * in its holder, a floating candle (two vase heights). Kinds that are one piece already (candelabra,
+ * hurricane, lantern, a set in glass) are their own unit.
+ */
+const candleUnits: Record<string, (i: number) => Part[]> = {
+  votives: () => candle(0, 0, 0, 0.03, 0.06),
+  pillars: (i) => candle(0, 0, 0, 0.04, [0.16, 0.22, 0.1][i % 3] ?? 0.16),
+  tapers: () => [
+    cyl("brass", 0, 0, 0, 0.045, 0.012),
+    cyl("brass", 0, 0.012, 0, 0.012, 0.16),
+    cyl("brass", 0, 0.172, 0, 0.022, 0.015),
+    ...candle(0, 0.187, 0, 0.011, 0.28),
+  ],
+  floatingGlass: (i) => {
+    const h = i % 2 ? 0.28 : 0.38;
+    return [
+      cyl("glass", 0, 0, 0, 0.06, h),
+      cyl("water", 0, 0.005, 0, 0.055, h * 0.8),
+      ...candle(0, h * 0.8, 0, 0.035, 0.02),
+    ];
+  },
+};
+
+/** How many of a kind a table gets when it is first chosen: a small group of small candles, one of a big piece. */
+export function defaultCandleCount(g: string): number {
+  return g === "votives" || g === "pillars" ? 3 : g === "tapers" || g === "floatingGlass" ? 2 : 1;
+}
+
+/** The style change that puts an item on every table (DEC-01), or null if it is not table dressing. */
+export function stylePatch(e: LibraryEntry): Partial<TableStyle> | null {
+  const key = styleKeyOf(e);
+  if (!key) return null;
+  const g = e.model.kind === "parametric" ? e.model.generator : "";
+  return key === "candles" ? { candles: [{ id: e.id, n: defaultCandleCount(g) }] } : { [key]: e.id };
+}
+
+/**
+ * The candle mix arranged for the table (owner, 2026-10-17): the kinds in turn, tallest in the
+ * middle, along the centre line of a long table (beside the centrepieces, both sides in turn, when
+ * there are some), in a ring on a round one, a small group on a cocktail table.
+ */
+function candleParts(
+  shape: Shape & { kind: "rectTable" | "roundTable" | "cocktail" },
+  mix: CandleMix,
+  florals: boolean,
+  catalog: Catalog,
+  ctx: Ctx,
+): Part[] {
+  const units: Part[][] = [];
+  const kinds = mix.flatMap(({ id, n }) => {
+    const e = catalog.get(id);
+    if (!e || e.model.kind !== "parametric") return [];
+    const g = e.model.generator;
+    const own = ownLook(e.model.params, ctx);
+    const make = (i: number) =>
+      scaled(
+        candleUnits[g]?.(i) ??
+          centrepieces[g]?.(e.model.kind === "parametric" ? e.model.params : {}, own.ctx) ??
+          [],
+        own.scale,
+      );
+    return [{ n, make }];
+  });
+  // Round-robin across kinds, so a mix reads as one arrangement.
+  for (let i = 0; units.length < kinds.reduce((t, k) => t + k.n, 0); i++)
+    for (const k of kinds) if (i < k.n) units.push(k.make(i));
+  // Tallest in the middle, falling away to both ends.
+  const sorted = [...units].sort((a, b) => heightOf(b) - heightOf(a));
+  const order: Part[][] = [];
+  sorted.forEach((u, i) => (i % 2 ? order.push(u) : order.unshift(u)));
+  const n = order.length;
+  const at: [number, number][] =
+    shape.kind === "rectTable"
+      ? order.map((_, i) => {
+          const span = Math.min(shape.length - 0.6, n * 0.24);
+          const x = n === 1 ? 0 : -span / 2 + (span / (n - 1)) * i;
+          return [x, florals ? (i % 2 ? 0.16 : -0.16) : 0];
+        })
+      : order.map((_, i) => {
+          const r =
+            shape.kind === "cocktail" ? (n === 1 ? 0 : 0.07) : florals ? 0.26 : n === 1 ? 0 : 0.1 + 0.02 * n;
+          const a = (i / n) * Math.PI * 2;
+          return [Math.cos(a) * r, Math.sin(a) * r];
+        });
+  const s = shape.kind === "cocktail" ? 0.6 : 1;
+  return order.flatMap((u, i) => {
+    const [x, z] = at[i] ?? [0, 0];
+    return scaled(u, s).map((p) => ({ ...p, x: p.x + x, z: p.z + z }));
+  });
+}
+
+/**
  * All décor for one table, in its local frame: centrepieces (candles, florals) and, when on, a place
  * setting per seat. `seed` keeps the flower mix stable for the same table (PPL-02 spirit).
  */
@@ -480,7 +566,7 @@ export function tableDecor(
     flower: FLOWER_TYPES[style.flowerType] ?? (FLOWER_TYPES.rose as Ctx["flower"]),
   };
   const parts: Part[] = [];
-  const pieces = [style.runner, style.florals, style.candles];
+  const pieces = [style.runner, style.florals];
   // How far past the table edge the cloth hangs, so a runner's ends drop outside it (Items.tsx).
   const cloth = catalog.get(style.linen)?.model;
   const bare =
@@ -508,15 +594,14 @@ export function tableDecor(
     }
     const gen = centrepieces[g];
     if (!gen) continue;
-    // Florals take the centre spots; candles sit beside them when both are chosen.
-    const shift = id === style.candles && style.florals !== "none" ? 0.22 : 0;
     const places = shape.kind === "cocktail" ? [[0, 0] as [number, number]] : at;
     const own = ownLook(e.model.params, ctx);
     for (const [sx, sz] of places) {
       for (const p of scaled(gen(e.model.params, own.ctx), own.scale))
-        parts.push({ ...p, x: p.x + sx + shift, z: p.z + sz });
+        parts.push({ ...p, x: p.x + sx, z: p.z + sz });
     }
   }
+  parts.push(...candleParts(shape, style.candles, style.florals !== "none", catalog, ctx));
   if (extras.settings && shape.kind !== "cocktail") {
     const edge = shape.kind === "rectTable" ? 0.32 + 0.2 : 0.3 + 0.22;
     const n = catalog.get(style.napkin)?.model;

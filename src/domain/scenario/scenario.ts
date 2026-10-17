@@ -5,7 +5,7 @@ export const DEFAULT_STYLE: Scenario["style"] = {
   linen: "linen-ivory",
   linenLength: "floor",
   chair: "chair-oval",
-  candles: "candle-votives",
+  candles: [{ id: "candle-votives", n: 3 }],
   florals: "none",
   floralColour: "white",
   charger: "gold",
@@ -109,6 +109,30 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
       ...(raw.style as object),
     },
   }),
+  // v4 (step 4E): candles become a mix of up to three kinds with a count each (owner, 2026-10-17).
+  3: (raw) => {
+    const mix = (v: unknown) =>
+      typeof v !== "string" ? v : v === "none" ? [] : [{ id: v, n: LEGACY_CANDLE_COUNTS[v] ?? 1 }];
+    const style = raw.style as Record<string, unknown> | undefined;
+    const items = Array.isArray(raw.items) ? (raw.items as Record<string, unknown>[]) : [];
+    return {
+      ...raw,
+      schemaVersion: 4,
+      style: style && { ...style, candles: mix(style.candles) },
+      items: items.map((i) => {
+        const s = i.style as Record<string, unknown> | undefined;
+        return s && "candles" in s ? { ...i, style: { ...s, candles: mix(s.candles) } } : i;
+      }),
+    };
+  },
+};
+
+/** How many candles the single-choice candle sets of v3 showed, so an old plan keeps its look. */
+const LEGACY_CANDLE_COUNTS: Record<string, number> = {
+  "candle-votives": 3,
+  "candle-pillars": 3,
+  "candle-tapers": 2,
+  "candle-floating": 2,
 };
 
 /** A table's décor: its own override over the scenario style (DEC-05). */

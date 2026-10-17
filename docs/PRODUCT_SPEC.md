@@ -100,7 +100,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
 | DEC-01 | M | 2 | Linens: white, ivory, champagne, black, navy, bare wood. Apply to one table, selected tables or all. | One tap applies to all; placements unchanged. |
-| DEC-02 | M | 2 | Candles: none, votives, mixed pillars, tall tapers, floating candles in tall glass. Lit by default in evening mode. | Candles glow in evening and are visible but unlit-looking in daylight. |
+| DEC-02 | M | 2 | Candles: none, or a mix of up to three kinds with a count each (1–8 per table), arranged for the table: along the centre of long tables, in a ring on round ones (owner, 2026-10-17). Lit by default in evening mode. | Candles glow in evening and are visible but unlit-looking in daylight; "1 pillar + 3 tapers" shows four candles. |
 | DEC-03 | M | 2 | Florals: none, low cluster, bud vases, tall arrangement, greenery runner. | Heights are realistic (low ≤ 30 cm, tall 80–120 cm). |
 | DEC-04 | M | 2 | Chairs: any chair in the library (default: venue oval-back). | Swap per table or all. |
 | DEC-05 | S | 2 | Per-table override and "apply this table's style to all". | — |

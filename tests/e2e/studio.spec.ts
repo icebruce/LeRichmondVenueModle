@@ -145,7 +145,7 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   expect(neon.options.text).toBe("Ana & Ben");
 });
 
-test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the selected one", async ({
+test("[LIB-03] [LIB-05] [DEC-01] [DEC-04] [DEC-05] style for all tables or just the selected one; a candle mix", async ({
   page,
 }) => {
   await openStudio(page);
@@ -153,25 +153,38 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
     page.evaluate(() => {
       const st = (window as unknown as W).__studio.editor.store.getState();
       const sc = st.scenarios[st.activeId] as unknown as {
-        style: Record<string, string>;
-        items: { id: string; style?: Record<string, string> }[];
+        style: Record<string, unknown>;
+        items: { id: string; style?: Record<string, unknown> }[];
       };
       return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
   await openSection(page, "style");
-  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from the library.
-  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
-  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
   await page.getByTestId("linen-linen-white").click();
   await page.getByTestId("linen-length-lap").click();
+  // Each part of the dressing has a summary row that opens its pictures.
+  await page.getByTestId("style-row-centrepiece").click();
+  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from Add.
+  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
+  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
+  await page.getByTestId("back").click();
+  await page.getByTestId("style-row-candles").click();
+  // Votives are on by default; add tapers, then one more taper.
   await page.getByTestId("candles-candle-tapers").click();
+  await page.getByRole("button", { name: /More: Tall tapers/ }).click();
+  await page.getByTestId("back").click();
+  await page.getByTestId("style-row-chairs").click();
   await page.getByTestId("chair-chair-chiavari-gold").click();
+  await page.getByTestId("back").click();
   expect((await style()).style).toMatchObject({
     linen: "linen-white",
     linenLength: "lap",
-    candles: "candle-tapers",
+    candles: [
+      { id: "candle-votives", n: 3 },
+      { id: "candle-tapers", n: 3 },
+    ],
     chair: "chair-chiavari-gold",
   });
+  await expect(page.getByTestId("style-row-candles")).toContainText("3 × Votives · 3 × Tall tapers");
   // One table: select it, dress it navy, then make its style everyone's.
   await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
   await expect(page.getByRole("radio", { name: "Table 2" })).toHaveAttribute("aria-checked", "true");
@@ -237,7 +250,7 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
+test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
   page,
 }) => {
   for (const [quality, calls, triangles] of [
@@ -254,18 +267,23 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room an
         createScenario: (kind: "blank" | "sample") => string;
         addItem: (id: string, at: [number, number], o?: Record<string, number>) => string | null;
         setGuests: (n: number) => void;
-        applyStyle: (target: "all", patch: Record<string, string>) => void;
+        applyStyle: (target: "all", patch: Record<string, unknown>) => void;
         setStyle: (key: string, value: boolean) => void;
         active: () => { items: { libraryId: string }[] };
       };
       // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing; the
-      // heaviest décor: tall arrangements, 5-arm candelabra, runners and full place settings.
+      // heaviest décor: tall arrangements, the fullest candle mix (two 5-arm candelabra, eight
+      // tapers, eight votives a table), runners and full place settings.
       ed.createScenario("blank");
       for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
       ed.setGuests(150);
       ed.applyStyle("all", {
         florals: "floral-tall",
-        candles: "candelabra-5",
+        candles: [
+          { id: "candelabra-5", n: 2 },
+          { id: "candle-tapers", n: 8 },
+          { id: "candle-votives", n: 8 },
+        ],
         runner: "runner-chiffon-ivory",
         napkin: "napkin-sage",
         charger: "gold",

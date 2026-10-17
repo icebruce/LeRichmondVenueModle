@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { type Item, shapeOf } from "../domain/layout/items";
 import { litThumbnail } from "../domain/library/catalog";
+import { defaultCandleCount } from "../domain/layout/decor";
 import type { TableStyle } from "../domain/scenario/schema";
 import { createEditor } from "../state/editor";
 import { newScenario } from "../domain/scenario/scenario";
@@ -25,7 +26,7 @@ function thumbItem(
   const at = { x: 8, z: 7, rotY: 0.5 };
   const round = (style: Partial<TableStyle>) => ({
     item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
-    style: { candles: "none", ...style },
+    style: { candles: [], ...style },
   });
   if (family === "linen" && generator === "runner") return round({ runner: id });
   if (family === "linen") return round({ linen: id });
@@ -34,7 +35,7 @@ function thumbItem(
       ...round({ napkin: generator === "napkin" ? id : "none" }),
       extras: { settings: true, menus: generator === "menuCard", tableNumbers: generator === "tableNumber" },
     };
-  if (family === "candle") return round({ candles: id });
+  if (family === "candle") return round({ candles: [{ id, n: defaultCandleCount(generator ?? "") }] });
   // Library pieces (floral installations, plants, lights, signs) stand on their own.
   // A short strand, so its bulbs are big enough to read in a thumbnail.
   if (generator && PIECE_GENERATORS.includes(generator))
@@ -43,13 +44,13 @@ function thumbItem(
     return id === "floral-runner"
       ? {
           item: { id: "t", libraryId: "table-rect", ...at, options: { seats: 8 } },
-          style: { florals: id, candles: "none" },
+          style: { florals: id, candles: [] },
         }
       : round({ florals: id });
   if (family === "chair")
     return {
       item: { id: "t", libraryId: "table-sweetheart", ...at, options: {} },
-      style: { chair: id, candles: "none" },
+      style: { chair: id, candles: [] },
     };
   return { item: { id: "t", libraryId: id, ...at, options: {} } };
 }

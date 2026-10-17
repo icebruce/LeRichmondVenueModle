@@ -1,12 +1,24 @@
 import { z } from "zod";
 
-export const SCHEMA_VERSION = 3;
+export const MAX_CANDLE_KINDS = 3;
+export const MAX_CANDLES_PER_KIND = 8;
 
-/** Table décor (DEC-01..04, LIB-04..06): library ids, or "none" for candles, florals and chargers. */
+export const SCHEMA_VERSION = 4;
+
+/**
+ * Candles on each table (LIB-05, owner 2026-10-17): up to three kinds, each with how many per table;
+ * empty for none. They are arranged for the table, not placed one by one.
+ */
+export const candleMixSchema = z
+  .array(z.object({ id: z.string().min(1), n: z.number().int().min(1).max(MAX_CANDLES_PER_KIND) }))
+  .max(MAX_CANDLE_KINDS);
+export type CandleMix = z.infer<typeof candleMixSchema>;
+
+/** Table décor (DEC-01..04, LIB-04..06): library ids, or "none" for florals and chargers. */
 const tableStyleSchema = z.object({
   linen: z.string(),
   chair: z.string(),
-  candles: z.string(),
+  candles: candleMixSchema,
   florals: z.string(),
   /** Flower colour palette for the arrangement (LIB-06). */
   floralColour: z.string(),
