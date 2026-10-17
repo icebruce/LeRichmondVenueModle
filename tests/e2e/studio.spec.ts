@@ -564,9 +564,10 @@ test("[IMP-01] [IMP-02] [IMP-03] [IMP-04] [IMP-05] [IMP-06] [IMP-07] a photo bec
   await page.getByTestId("import-save").click();
   await expect(page.getByTestId("imported-detail")).toContainText("shop.example.com");
   await page.getByTestId("use-on-tables").click();
-  const s = await state(page);
-  const id = (s.active?.style as Record<string, string>).candles ?? "";
-  expect(id).toMatch(/^imp-/);
+  // The import becomes the whole candle mix on every table.
+  const mix = (await state(page)).active?.style.candles as unknown as { id: string; n: number }[];
+  expect(mix).toHaveLength(1);
+  expect(mix[0]?.id).toMatch(/^imp-/);
   // Something with no fitting model is a photo preview, never called 3D; it can be placed.
   await page.getByTestId("detail-back").click();
   await importPhoto(page, { colour: "#5d7690", type: "other", w: 60, h: 120 });
