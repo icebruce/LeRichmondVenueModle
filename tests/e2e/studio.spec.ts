@@ -667,3 +667,33 @@ test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on
   const placed = (await state(page)).active?.items.find((i) => i.libraryId === "table-round");
   expect(Math.hypot((placed?.x ?? 0) - 8, (placed?.z ?? 0) - 10)).toBeLessThan(0.6);
 });
+
+test("[LIB-08] a hanging light shows its height to the floor and drags up or down in the room", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const id = await page.evaluate(() => {
+    const ed = (window as unknown as W).__studio.editor as unknown as {
+      createScenario: (k: string) => string;
+      addItem: (id: string, at: [number, number]) => string | null;
+      select: (ids: string[]) => void;
+    };
+    ed.createScenario("blank");
+    const added = ed.addItem("light-chandelier", [8, 7]) ?? "";
+    ed.select([added]);
+    return added;
+  });
+  const before = await item(page, id);
+  const hang = Number(before.options.hang);
+  await expect(page.getByTestId("height-readout")).toContainText(`≈ ${hang.toFixed(1)} m`);
+  const [x, y] = await screenOf(page, before.x, hang, before.z);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y - 30, { steps: 4 });
+  await page.mouse.move(x, y - 60, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(async () => Number((await item(page, id)).options.hang)).toBeGreaterThan(hang);
+  // One change, one undo.
+  await page.getByTestId("undo").click();
+  expect(Number((await item(page, id)).options.hang)).toBeCloseTo(hang, 2);
+});

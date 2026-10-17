@@ -914,6 +914,9 @@ export function Items({
           onDown={(e) => beginDrag("rotate", [single.item.id], e, single.y, [single.item.x, single.item.z])}
         />
       )}
+      {single && camera !== "walk" && !drag && (
+        <HeightHandle placed={single} dark={evening} grab={!coarse} setControls={setControls} />
+      )}
       {drag && (
         <Guides drag={drag} y={placed.find((p) => p.item.id === drag.ids[0])?.y ?? 0} dark={evening} />
       )}
@@ -973,6 +976,114 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
           </button>
         </Html>
       ))}
+    </group>
+  );
+}
+
+/**
+ * A hanging or ceiling light's height (LIB-08, owner 2026-10-17): a line drops from it to the floor
+ * with its height, and on desktop a handle on the light drags it up or down between its limits,
+ * committed as one change on release (one undo step).
+ */
+function HeightHandle({
+  placed,
+  dark,
+  grab,
+  setControls,
+}: {
+  placed: Placed;
+  dark: boolean;
+  grab: boolean;
+  setControls: (enabled: boolean) => void;
+}) {
+  const { catalog, editor } = useStudio();
+  const get = useThree((s) => s.get);
+  const [preview, setPreview] = useState<number | null>(null);
+  const colour = dark ? token("--accent-on-dark", "#e7c9a5") : token("--accent", "#98775b");
+  const option = catalog.get(placed.item.libraryId)?.options.find((o) => o.key === "hang");
+  if (option?.type !== "number") return null;
+  const saved = Number(placed.item.options.hang ?? option.default);
+  const h = preview ?? saved;
+  const { x, z } = placed.item;
+  const onDown = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    setControls(false);
+    const { camera, gl } = get();
+    // A vertical plane through the light, facing the camera: the pointer's height on it is the light's.
+    const facing = new THREE.Vector3()
+      .subVectors(camera.position, new THREE.Vector3(x, 0, z))
+      .setY(0)
+      .normalize();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(facing, new THREE.Vector3(x, 0, z));
+    const ray = new THREE.Raycaster();
+    const hit = new THREE.Vector3();
+    let last = saved;
+    const move = (ev: PointerEvent) => {
+      const r = gl.domElement.getBoundingClientRect();
+      ray.setFromCamera(
+        new THREE.Vector2(
+          ((ev.clientX - r.left) / r.width) * 2 - 1,
+          -((ev.clientY - r.top) / r.height) * 2 + 1,
+        ),
+        camera,
+      );
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      last = Math.min(option.max, Math.max(option.min, snap(hit.y - placed.y, 0.1)));
+      setPreview(last);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      setControls(true);
+      setPreview(null);
+      if (Math.abs(last - saved) > 1e-3) editor.setOption(placed.item.id, "hang", last);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+  return (
+    <group name="height-handle">
+      <Line
+        points={[
+          [x, placed.y + 0.01, z],
+          [x, placed.y + h, z],
+        ]}
+        color={colour}
+        lineWidth={1.5}
+        dashed
+        dashSize={0.12}
+        gapSize={0.08}
+        depthTest={false}
+        renderOrder={12}
+      />
+      <mesh position={[x, placed.y + 0.006, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={12}>
+        <ringGeometry args={[0.06, 0.1, 24]} />
+        <meshBasicMaterial color={colour} depthTest={false} transparent />
+      </mesh>
+      {grab && (
+        <mesh
+          position={[x, placed.y + h, z]}
+          onPointerDown={onDown}
+          onPointerOver={() => (document.body.style.cursor = "ns-resize")}
+          onPointerOut={() => (document.body.style.cursor = "")}
+          name="height-grip"
+          renderOrder={13}
+        >
+          <sphereGeometry args={[0.11, 16, 12]} />
+          <meshBasicMaterial color={colour} depthTest={false} transparent opacity={0.95} />
+        </mesh>
+      )}
+      <Html
+        position={[x, placed.y + h / 2, z]}
+        center
+        className="drag-readout"
+        zIndexRange={[20, 10]}
+        data-testid="height-readout"
+      >
+        ≈ {h.toFixed(1)} m
+      </Html>
     </group>
   );
 }

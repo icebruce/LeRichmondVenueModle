@@ -133,6 +133,7 @@ Desktop layout at 768–1023 px too: the panel folds away (its section button or
 ## 5. 3D interaction
 
 - **Hover** (desktop): soft accent outline. **Selection:** solid accent outline + footprint ring on the floor + rotate handle (a small brass circle 0.4 m off the item's edge).
+- **Light height** (a selected hanging or ceiling light, step 4F): a dashed accent line drops from the light to a small ring on the floor, with "≈ 2.6 m" beside it; on desktop a brass ball on the light drags it up or down in 0.1 m steps between its limits, one undo step on release (phones use the inspector's slider).
 - **Dragging:** the item lifts 2 cm with a soft shadow; a ghost footprint shows where it lands; snapping guides are thin accent lines.
 - **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release. Any refused change (move, turn, option, venue furniture) also shows a toast with the reason ("Overlaps the bar. Nothing was changed."), so it is seen wherever the couple is (2026-10-17).
 - **Advisory:** amber dashed overlay on the problem area (aisle, doorway), with a short label and a details row in the inspector. Never blocks the action.
