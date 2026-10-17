@@ -87,10 +87,10 @@ describe("adding from the library", () => {
     const { editor } = setup();
     const before = editor.active().style.candles;
     expect(editor.placeOrUse("candle-tapers", [8, 7])).toBe("used");
-    expect(editor.active().style.candles).toBe("candle-tapers");
+    expect(editor.active().style.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
     expect(editor.store.getState().toast?.text).toBe("Tall tapers on every table");
     editor.undo();
-    expect(editor.active().style.candles).toBe(before);
+    expect(editor.active().style.candles).toEqual(before);
     // The full sample has no free spot left for a round table.
     expect(editor.placeOrUse("table-round", [8, 7])).toBeNull();
     expect(editor.store.getState().toast?.text).toMatch(/^No room for the round table anywhere/);

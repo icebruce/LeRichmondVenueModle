@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
-import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS, styleKeyOf } from "../domain/layout/decor";
+import {
+  FLORAL_PALETTES,
+  FLOWER_TYPES,
+  FLOWER_TYPE_GENERATORS,
+  candleLayout,
+  styleKeyOf,
+  isRoomChoice,
+} from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
@@ -10,7 +17,13 @@ import { itemTitle, spotFor } from "../domain/layout/validate";
 import { type Catalog, litThumbnail } from "../domain/library/catalog";
 import { matchesSearch, searchWords } from "../domain/library/search";
 import type { Family, ItemOption, LibraryEntry } from "../domain/library/schema";
-import type { Scenario, TableStyle } from "../domain/scenario/schema";
+import {
+  type CandleMix,
+  MAX_CANDLES_PER_KIND,
+  MAX_CANDLE_KINDS,
+  type Scenario,
+  type TableStyle,
+} from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
 import { libraryStore } from "../state/library";
@@ -361,17 +374,21 @@ export function NavRow({
   label,
   sub,
   value,
+  lead,
   onClick,
   testId,
 }: {
   label: string;
   sub?: string;
   value?: string;
+  /** A picture or icon before the label (Style's summary rows). */
+  lead?: React.ReactNode;
   onClick: () => void;
   testId?: string;
 }) {
   return (
     <button type="button" className="nav-row" onClick={onClick} data-testid={testId}>
+      {lead}
       <span className="nav-label">
         {label}
         {sub && <span className="nav-sub">{sub}</span>}
@@ -686,10 +703,7 @@ export function AddPanel({
     : placeable.filter((e) => e.family === category);
   const dressing = words.length ? live.filter((e) => styleKeyOf(e) && matches(e, words, catalog)) : [];
   // Already the room-wide choice (DEC-01): nothing to do but say so.
-  const onTables = (e: LibraryEntry) => {
-    const key = styleKeyOf(e);
-    return !!key && !!style && style[key] === e.id;
-  };
+  const onTables = (e: LibraryEntry) => !!style && isRoomChoice(style, e);
   return (
     <div className="panel-body" data-testid="layout-panel">
       {head}
@@ -891,11 +905,100 @@ export function Chips({
   );
 }
 
+/** The Style section's own pages, opened from its summary rows (DESIGN_GUIDE §4 Style). */
+export type StylePage = "runner" | "candles" | "centrepiece" | "chairs" | "settings";
+
+const CHARGERS = [
+  { id: "gold", name: "Gold" },
+  { id: "silver", name: "Silver" },
+  { id: "glass", name: "Glass" },
+  { id: "none", name: "None" },
+];
+
+const STYLE_PAGES: Record<StylePage, string> = {
+  runner: "Runner",
+  candles: "Candles",
+  centrepiece: "Centrepiece",
+  chairs: "Chairs",
+  settings: "Place settings",
+};
+
 /**
- * Décor (DEC-01..05): linens, candles, florals, chairs and place settings, applied to all tables or
- * to the selected ones. Placements never move.
+ * A grid of pictures to choose from, "None" first when offered. A chosen picture carries a check,
+ * or its `count` (the candle mix), so a tap is answered where the finger is.
  */
-export function DecorPanel() {
+function PickGrid({
+  label,
+  options,
+  isOn,
+  onPick,
+  testId,
+  none,
+  count,
+  nameOf = (e) => e.name,
+}: {
+  label: string;
+  options: LibraryEntry[];
+  isOn: (id: string) => boolean;
+  onPick: (id: string) => void;
+  testId: string;
+  none?: boolean;
+  count?: (id: string) => number | undefined;
+  nameOf?: (e: LibraryEntry) => string;
+}) {
+  return (
+    <ul className="tiles g3" aria-label={label}>
+      {none && (
+        <li>
+          <button
+            type="button"
+            className={`tile ${isOn("none") ? "on" : ""}`}
+            aria-pressed={isOn("none")}
+            onClick={() => onPick("none")}
+            data-testid={`${testId}-none`}
+          >
+            <span className="library-icon none-icon" aria-hidden="true" />
+            <span className="tile-name">None</span>
+          </button>
+        </li>
+      )}
+      {options.map((e) => {
+        const on = isOn(e.id);
+        return (
+          <li key={e.id}>
+            <button
+              type="button"
+              className={`tile ${on ? "on" : ""}`}
+              aria-pressed={on}
+              onClick={() => onPick(e.id)}
+              data-testid={`${testId}-${e.id}`}
+            >
+              <Thumb entry={e} />
+              <span className="tile-name">{nameOf(e)}</span>
+              {e.imported && (
+                <span className="tile-caption">
+                  <ResultBadge entry={e} />
+                </span>
+              )}
+              {on && (
+                <span className="tile-check" aria-hidden="true">
+                  {count?.(e.id) !== undefined ? `×${count(e.id)}` : <Icon name="check" size={14} />}
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * Style (DEC-01..05, LIB-03..06): the linen, then one summary row per part of the table dressing
+ * (runner, candles, centrepiece, chairs, place settings) opening its picture grid; applied to every
+ * table, or to the selected ones. Placements never move.
+ */
+export function StylePanel({ page, open }: { page: StylePage | null; open: (p: StylePage | null) => void }) {
   const { editor, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const selection = useEditor((s) => s.selection);
@@ -904,115 +1007,169 @@ export function DecorPanel() {
   const target = scope === "selected" && tables.length ? tables.map((t) => t.id) : "all";
   const shown = target !== "all" && tables[0] ? styleOf(tables[0], scenario.style) : scenario.style;
   const apply = (patch: Partial<TableStyle>) => editor.applyStyle(target, patch);
+  const used = (id: string) =>
+    [shown.linen, shown.runner, shown.florals, shown.chair, shown.napkin].includes(id) ||
+    shown.candles.some((m) => m.id === id);
   // Imported items join these lists with their label (IMP-06); removed ones only stay where used.
   const family = (f: string, generator?: string) =>
-    [...catalog.values()]
-      .filter(
-        (e) =>
-          e.family === f &&
-          (!e.imported?.archived || Object.values(shown).includes(e.id)) &&
-          (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
-      )
-      .map((e) => (e.imported ? { ...e, name: `${e.name} · ${RESULT_LABELS[e.imported.result]}` } : e));
+    [...catalog.values()].filter(
+      (e) =>
+        e.family === f &&
+        (!e.imported?.archived || used(e.id)) &&
+        (!generator || (e.model.kind === "parametric" && e.model.generator === generator)),
+    );
   const colourOf = (id: string) => {
     const model = catalog.get(id)?.model;
     return model?.kind === "parametric" ? String(model.params.colour ?? "var(--sunk)") : "var(--sunk)";
   };
-  const none = { id: "none", name: "None" };
-  const [flowersOpen, setFlowersOpen] = useState(false);
-  // Flower types shape mounded arrangements; bud vases and the garland take only colours.
-  const floral = catalog.get(shown.florals)?.model;
-  const typed = floral?.kind === "parametric" && FLOWER_TYPE_GENERATORS.includes(floral.generator);
+  // Imported items keep their fidelity label wherever their name shows (DESIGN_GUIDE §1.6).
+  const nameOf = (id: string) => {
+    if (id === "none") return "None";
+    const e = catalog.get(id);
+    return e?.imported ? `${e.name} · ${RESULT_LABELS[e.imported.result]}` : (e?.name ?? id);
+  };
   const labels = tableLabels(scenario.items, catalog);
-  return (
-    <div className="panel-body" data-testid="decor-panel">
-      <h2 className="panel-title">Style</h2>
-      {tables.length > 0 ? (
-        <Segmented
-          label="Apply to"
-          value={scope}
-          options={[
-            {
-              value: "selected",
-              label:
-                tables[0] && tables.length === 1
-                  ? itemTitle(tables[0], labels, catalog)
-                  : `${tables.length} tables`,
-            },
-            { value: "all", label: "All tables" },
-          ]}
-          onChange={setScope}
-        />
-      ) : (
-        <p className="hint">Applies to all tables. Select tables first to dress just those.</p>
-      )}
-      <Swatches
-        label="Linen"
-        options={family("linen", "linen").map((e) => ({
-          id: e.id,
-          name: e.name.replace(" tablecloth", ""),
-          colour: colourOf(e.id),
-        }))}
-        value={shown.linen}
-        onPick={(id) => apply({ linen: id })}
-        testId="linen"
-      />
-      <Chips
-        label="Runner"
+  const floral = catalog.get(shown.florals)?.model;
+  // Flower types shape mounded arrangements; bud vases and the garland take only colours.
+  const typed = floral?.kind === "parametric" && FLOWER_TYPE_GENERATORS.includes(floral.generator);
+
+  const scopeControl =
+    tables.length > 0 ? (
+      <Segmented
+        label="Apply to"
+        value={scope}
         options={[
-          none,
-          ...family("linen", "runner").map((e) => ({ id: e.id, name: e.name.replace(" runner", "") })),
+          {
+            value: "selected",
+            label:
+              tables[0] && tables.length === 1
+                ? itemTitle(tables[0], labels, catalog)
+                : `${tables.length} tables`,
+          },
+          { value: "all", label: "All tables" },
         ]}
-        value={shown.runner}
-        onPick={(id) => apply({ runner: id })}
-        testId="runner"
+        onChange={setScope}
       />
-      <Chips
-        label="Candles"
-        options={[none, ...family("candle").map((e) => ({ id: e.id, name: e.name }))]}
-        value={shown.candles}
-        onPick={(id) => apply({ candles: id })}
-        testId="candles"
-      />
-      <Chips
-        label="Florals"
-        options={[
-          none,
-          ...family("floral")
-            .filter((e) => e.placement === "table")
-            .map((e) => ({ id: e.id, name: e.name })),
-        ]}
-        value={shown.florals}
-        onPick={(id) => apply({ florals: id })}
-        testId="florals"
-      />
-      {shown.florals !== "none" && (
-        <>
-          <button
-            type="button"
-            className="disclosure"
-            aria-expanded={flowersOpen}
-            onClick={() => setFlowersOpen((o) => !o)}
-            data-testid="flowers"
-          >
-            <span className="row-label">Flowers</span>
-            <span className="row-value">
-              {typed ? `${FLOWER_TYPES[shown.flowerType]?.label} · ` : ""}
-              {FLORAL_PALETTES[shown.floralColour]?.label}
-            </span>
-            <Icon name="chevron" size={16} />
-          </button>
-          {flowersOpen && (
-            <>
-              {typed && (
-                <Chips
-                  label="Flower type"
-                  options={Object.entries(FLOWER_TYPES).map(([id, f]) => ({ id, name: f.label }))}
-                  value={shown.flowerType}
-                  onPick={(id) => apply({ flowerType: id })}
-                  testId="flower-type"
-                />
-              )}
+    ) : (
+      <p className="hint">Applies to every table. Select tables in the room to style just those.</p>
+    );
+
+  if (page) {
+    const mix = shown.candles;
+    const setMix = (next: CandleMix) => apply({ candles: next });
+    // Tables too small or too full for the whole mix show what fits (DEC-02): say on how many of
+    // the tables being styled.
+    const short =
+      page === "candles"
+        ? (target === "all" ? scenario.items.filter((i) => isTable(i, catalog)) : tables).filter((t) => {
+            const fit = candleLayout(
+              shapeOf(t, catalog),
+              styleOf(t, scenario.style),
+              catalog,
+              scenario.style,
+            );
+            return fit.placed < fit.wanted;
+          }).length
+        : 0;
+    return (
+      <div className="panel-body" data-testid={`style-${page}`}>
+        <PageHead title={STYLE_PAGES[page]} back="Style" onBack={() => open(null)} />
+        {tables.length > 0 && scopeControl}
+        {page === "runner" && (
+          <PickGrid
+            label="Runner"
+            none
+            options={family("linen", "runner")}
+            nameOf={(e) => e.name.replace(/ runner$/i, "")}
+            isOn={(id) => shown.runner === id}
+            onPick={(id) => apply({ runner: id })}
+            testId="runner"
+          />
+        )}
+        {page === "candles" && (
+          <>
+            <p className="hint">Up to {MAX_CANDLE_KINDS} kinds per table, arranged for you.</p>
+            {short > 0 && (
+              <p className="hint advisory" data-testid="candles-short">
+                {short === 1 ? "One table has" : `${short} tables have`} room for fewer; they show the candles
+                that fit.
+              </p>
+            )}
+            {mix.length > 0 && (
+              <div className="list" aria-label="On each table">
+                {mix.map((m, i) => {
+                  const e = catalog.get(m.id);
+                  const set = (n: number) => setMix(mix.map((x, j) => (j === i ? { ...x, n } : x)));
+                  return (
+                    <div key={m.id} className="row layer" data-testid={`candle-layer-${m.id}`}>
+                      {e && <Thumb entry={e} />}
+                      <span className="nav-label">
+                        {nameOf(m.id)}
+                        <span className="nav-sub">per table</span>
+                      </span>
+                      <div className="stepper">
+                        <RepeatButton
+                          label={`Fewer: ${nameOf(m.id)}`}
+                          icon="minus"
+                          disabled={m.n <= 1}
+                          onStep={() => set(Math.max(1, m.n - 1))}
+                        />
+                        <output aria-label={`${nameOf(m.id)} per table`}>{m.n}</output>
+                        <RepeatButton
+                          label={`More: ${nameOf(m.id)}`}
+                          icon="plus"
+                          disabled={m.n >= MAX_CANDLES_PER_KIND}
+                          onStep={() => set(Math.min(MAX_CANDLES_PER_KIND, m.n + 1))}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <h3 className="group-title">
+              {mix.length >= MAX_CANDLE_KINDS
+                ? `Kinds · ${MAX_CANDLE_KINDS} of ${MAX_CANDLE_KINDS}, remove one to add another`
+                : `Kinds · choose up to ${MAX_CANDLE_KINDS}`}
+            </h3>
+            <PickGrid
+              label="Candle kinds"
+              options={family("candle")}
+              isOn={(id) => mix.some((m) => m.id === id)}
+              count={(id) => mix.find((m) => m.id === id)?.n}
+              onPick={(id) => {
+                if (mix.some((m) => m.id === id)) return setMix(mix.filter((m) => m.id !== id));
+                if (mix.length >= MAX_CANDLE_KINDS)
+                  return editor.notify(`Up to ${MAX_CANDLE_KINDS} kinds per table. Remove one first.`);
+                const e = catalog.get(id);
+                setMix([...mix, { id, n: e?.defaultCount ?? 1 }]);
+              }}
+              testId="candles"
+            />
+            <p className="hint">Lit in evening light.</p>
+          </>
+        )}
+        {page === "centrepiece" && (
+          <>
+            <PickGrid
+              label="Centrepiece"
+              none
+              options={family("floral").filter((e) => e.placement === "table")}
+              isOn={(id) => shown.florals === id}
+              onPick={(id) => apply({ florals: id })}
+              testId="florals"
+            />
+            {shown.florals !== "none" && typed && (
+              <Chips
+                label={`Flowers · ${FLOWER_TYPES[shown.flowerType]?.label ?? ""}`}
+                options={Object.entries(FLOWER_TYPES).map(([id, f]) => ({ id, name: f.label }))}
+                value={shown.flowerType}
+                onPick={(id) => apply({ flowerType: id })}
+                testId="flower-type"
+                wrap
+              />
+            )}
+            {shown.florals !== "none" && (
               <Swatches
                 label="Flower colours"
                 options={Object.entries(FLORAL_PALETTES).map(([id, p]) => ({
@@ -1024,67 +1181,135 @@ export function DecorPanel() {
                 onPick={(id) => apply({ floralColour: id })}
                 testId="floral-colour"
               />
-            </>
-          )}
-        </>
-      )}
-      <Chips
-        label="Chairs"
-        options={family("chair", "chair").map((e) => ({ id: e.id, name: e.name.replace(" chair", "") }))}
-        value={shown.chair}
-        onPick={(id) => apply({ chair: id })}
-        testId="chair"
-      />
-      <section className="group" aria-label="Place settings">
-        <Toggle
-          label="Place settings"
-          checked={scenario.style.settings}
-          onChange={(v) => editor.setStyle("settings", v)}
-          testId="settings"
-        />
-        {scenario.style.settings && (
-          <>
-            <Chips
-              label="Chargers"
-              options={[
-                { id: "gold", name: "Gold" },
-                { id: "silver", name: "Silver" },
-                { id: "glass", name: "Glass" },
-                none,
-              ]}
-              value={shown.charger}
-              onPick={(id) => apply({ charger: id })}
-              testId="charger"
-            />
-            <Swatches
-              label="Napkins"
-              options={[
-                { id: "none", name: "None", colour: NONE_SWATCH },
-                ...family("tableware", "napkin").map((e) => ({
-                  id: e.id,
-                  name: e.name.replace(" napkins", ""),
-                  colour: colourOf(e.id),
-                })),
-              ]}
-              value={shown.napkin}
-              onPick={(id) => apply({ napkin: id })}
-              testId="napkin"
-            />
-            <Toggle
-              label="Menu cards"
-              checked={scenario.style.menus}
-              onChange={(v) => editor.setStyle("menus", v)}
-              testId="menus"
-            />
+            )}
           </>
         )}
-      </section>
-      <section className="group" aria-label="Every table">
-        <h3 className="group-title">Every table</h3>
-        <p className="hint">These always apply to all tables.</p>
-        <div className="field">
-          <span className="row-label">Tablecloth length</span>
-          <div className="seg seg-fill" role="radiogroup" aria-label="Tablecloth length">
+        {page === "chairs" && (
+          <PickGrid
+            label="Chairs"
+            options={family("chair", "chair")}
+            nameOf={(e) => e.name.replace(/ chairs?$/i, "")}
+            isOn={(id) => shown.chair === id}
+            onPick={(id) => apply({ chair: id })}
+            testId="chair"
+          />
+        )}
+        {page === "settings" && (
+          <>
+            {scenario.style.settings && (
+              <>
+                <Chips
+                  label="Chargers"
+                  options={CHARGERS}
+                  value={shown.charger}
+                  onPick={(id) => apply({ charger: id })}
+                  testId="charger"
+                />
+                <Swatches
+                  label="Napkins"
+                  options={[
+                    { id: "none", name: "None", colour: NONE_SWATCH },
+                    ...family("tableware", "napkin").map((e) => ({
+                      id: e.id,
+                      name: e.name.replace(" napkins", ""),
+                      colour: colourOf(e.id),
+                    })),
+                  ]}
+                  value={shown.napkin}
+                  onPick={(id) => apply({ napkin: id })}
+                  testId="napkin"
+                />
+              </>
+            )}
+            {/* The switches cover every table, whatever is selected: below, as on the Style page. */}
+            <h3 className="group-title">Every table</h3>
+            <div className="list">
+              <Toggle
+                label="Place settings"
+                checked={scenario.style.settings}
+                onChange={(v) => editor.setStyle("settings", v)}
+                testId="settings"
+              />
+              <Toggle
+                label="Menu cards"
+                checked={scenario.style.menus}
+                onChange={(v) => editor.setStyle("menus", v)}
+                testId="menus"
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // One kind by name; a mix as a count, so the row stays one line.
+  const candleSummary =
+    shown.candles.length === 0
+      ? "None"
+      : shown.candles.length === 1
+        ? `${nameOf(shown.candles[0]?.id ?? "")} · ${shown.candles[0]?.n ?? 0}`
+        : `${shown.candles.reduce((a, m) => a + m.n, 0)} candles · ${shown.candles.length} kinds`;
+  const first = (id: string) => catalog.get(id);
+  const row = (key: StylePage, value: string, thumb?: LibraryEntry, icon?: IconName) => (
+    <NavRow
+      label={STYLE_PAGES[key]}
+      value={value}
+      lead={
+        thumb ? (
+          <Thumb entry={thumb} />
+        ) : icon ? (
+          <span className="library-icon" aria-hidden="true">
+            <Icon name={icon} />
+          </span>
+        ) : (
+          <span className="library-icon none-icon" aria-hidden="true" />
+        )
+      }
+      onClick={() => open(key)}
+      testId={`style-row-${key}`}
+    />
+  );
+  return (
+    <div className="panel-body" data-testid="style-panel">
+      <PageHead title="Style" />
+      {scopeControl}
+      <Swatches
+        label="Linen"
+        options={family("linen", "linen").map((e) => ({
+          id: e.id,
+          name: e.name.replace(" tablecloth", ""),
+          colour: colourOf(e.id),
+        }))}
+        value={shown.linen}
+        onPick={(id) => apply({ linen: id })}
+        testId="linen"
+      />
+      <div className="list">
+        {row("runner", nameOf(shown.runner), first(shown.runner))}
+        {row("candles", candleSummary, shown.candles[0] && first(shown.candles[0].id))}
+        {row(
+          "centrepiece",
+          shown.florals === "none"
+            ? "None"
+            : `${nameOf(shown.florals)} · ${FLORAL_PALETTES[shown.floralColour]?.label ?? ""}`,
+          first(shown.florals),
+        )}
+        {row("chairs", nameOf(shown.chair), first(shown.chair))}
+        {row(
+          "settings",
+          scenario.style.settings
+            ? `${shown.charger === "none" ? "No" : (CHARGERS.find((c) => c.id === shown.charger)?.name ?? "")} chargers · ${shown.napkin === "none" ? "no napkins" : nameOf(shown.napkin).toLowerCase()}`
+            : "Off",
+          scenario.style.settings ? first(shown.napkin) : undefined,
+          scenario.style.settings ? "decor" : undefined,
+        )}
+      </div>
+      <h3 className="group-title">Every table</h3>
+      <div className="list">
+        <div className="row">
+          <span className="row-label">Tablecloth</span>
+          <div className="seg" role="radiogroup" aria-label="Tablecloth length">
             {(
               [
                 ["floor", "To the floor"],
@@ -1111,7 +1336,7 @@ export function DecorPanel() {
           onChange={(v) => editor.setStyle("tableNumbers", v)}
           testId="table-numbers"
         />
-      </section>
+      </div>
       {tables.length === 1 && tables[0]?.style && (
         <button
           type="button"

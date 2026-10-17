@@ -77,6 +77,8 @@ export const libraryEntrySchema = z.object({
   options: z.array(optionSchema),
   /** Seats only for tables; DJ booths etc. are 0. */
   seats: z.boolean(),
+  /** Candles: how many a table gets when the kind is first chosen (DEC-02); one when absent. */
+  defaultCount: z.number().int().min(1).max(8).optional(),
   thumbnail: z.string(),
   /** A lit piece (a glow, light-coloured words) whose thumbnail is drawn on a dark ground (LIB-11). */
   thumbnailGround: z.literal("dark").optional(),

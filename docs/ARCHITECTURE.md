@@ -69,7 +69,7 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 
 ```ts
 type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
-  schemaVersion: 3;
+  schemaVersion: 4;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
   items: Item[];                        // tables, dance area, DJ; décor and imports from step 2
@@ -84,12 +84,13 @@ type Scenario = {                       // src/domain/scenario/schema.ts (zod) i
 type Item = { id: string; libraryId: string; x: number; z: number; rotY: number;
               options: Record<string, number | string | boolean>; label?: string;
               style?: Partial<TableStyle> };   // per-table décor override (DEC-05)
-type TableStyle = { linen: string; chair: string; candles: string; florals: string;   // library ids or "none"
+type TableStyle = { linen: string; chair: string; florals: string;                    // library ids or "none"
+                    candles: { id: string; n: number }[];            // up to 3 kinds, 1–8 each (DEC-02)
                     runner: string; napkin: string;                                  // library ids or "none"
                     floralColour: string; flowerType: string; charger: string };
 ```
 
-The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Older files (versions 1–2) are upgraded by the migrations in `domain/scenario/scenario.ts` (tested).
+The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Older files (versions 1–3) are upgraded by the migrations in `domain/scenario/scenario.ts` (tested).
 
 Schema changes bump `schemaVersion` and add a migration in `domain/scenario/scenario.ts` with a test.
 
@@ -110,6 +111,9 @@ src/domain/layout/items.ts       Shape generators keyed by model.generator (rect
                                 cocktail, danceFloor, djBooth, backdrop, and every piece generator):
                                 sizes from sizeM/params/options, never ids
 src/domain/layout/decor.ts       Table décor as unit-primitive parts (candles, florals, runners, settings)
+                                The candle mix is laid out per table: each candle (a candle entry's
+                                budget is for one) takes the free spot nearest its ideal one, clear of
+                                the settings and flowers; candles with no room are left off
 src/domain/layout/pieces.ts      Step-3 pieces (plant, light, floralPiece, sign, eventPiece) as the same
                                 parts plus size, whether they block the floor, and optional words
 src/scene/items/                 Meshes per shape kind; chairs instanced; table décor and pieces drawn

@@ -113,7 +113,7 @@ describe("inspiration import", () => {
     const round: Item = { id: "r", libraryId: "table-round", x: 4, z: 11, rotY: 0, options: { seats: 8 } };
     const parts = tableDecor(
       shapeOf(round, cat),
-      { ...styleOf(round, DEFAULT_STYLE), candles: "none", florals: item.id },
+      { ...styleOf(round, DEFAULT_STYLE), candles: [], florals: item.id },
       cat,
       { settings: false, menus: false, tableNumbers: false, linenLength: "floor" },
       1,

@@ -145,7 +145,7 @@ test("[LIB-07] [LIB-08] [LIB-09] [LIB-10] step-3 pieces: by category, string lig
   expect(neon.options.text).toBe("Ana & Ben");
 });
 
-test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the selected one", async ({
+test("[LIB-03] [LIB-05] [DEC-01] [DEC-04] [DEC-05] style for all tables or just the selected one; a candle mix", async ({
   page,
 }) => {
   await openStudio(page);
@@ -153,25 +153,38 @@ test("[LIB-03] [DEC-01] [DEC-04] [DEC-05] décor for all tables or just the sele
     page.evaluate(() => {
       const st = (window as unknown as W).__studio.editor.store.getState();
       const sc = st.scenarios[st.activeId] as unknown as {
-        style: Record<string, string>;
-        items: { id: string; style?: Record<string, string> }[];
+        style: Record<string, unknown>;
+        items: { id: string; style?: Record<string, unknown> }[];
       };
       return { style: sc.style, t2: sc.items.find((i) => i.id === "t2")?.style };
     });
   await openSection(page, "style");
-  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from the library.
-  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
-  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
   await page.getByTestId("linen-linen-white").click();
   await page.getByTestId("linen-length-lap").click();
+  // Each part of the dressing has a summary row that opens its pictures.
+  await page.getByTestId("style-row-centrepiece").click();
+  // Only table arrangements are centrepieces; arches, walls and hanging pieces are placed from Add.
+  await expect(page.getByTestId("florals-floral-low")).toBeVisible();
+  await expect(page.getByTestId("florals-floral-hanging")).toHaveCount(0);
+  await page.getByTestId("back").click();
+  await page.getByTestId("style-row-candles").click();
+  // Votives are on by default; add tapers, then one more taper.
   await page.getByTestId("candles-candle-tapers").click();
+  await page.getByRole("button", { name: /More: Tall tapers/ }).click();
+  await page.getByTestId("back").click();
+  await page.getByTestId("style-row-chairs").click();
   await page.getByTestId("chair-chair-chiavari-gold").click();
+  await page.getByTestId("back").click();
   expect((await style()).style).toMatchObject({
     linen: "linen-white",
     linenLength: "lap",
-    candles: "candle-tapers",
+    candles: [
+      { id: "candle-votives", n: 3 },
+      { id: "candle-tapers", n: 3 },
+    ],
     chair: "chair-chiavari-gold",
   });
+  await expect(page.getByTestId("style-row-candles")).toContainText("6 candles · 2 kinds");
   // One table: select it, dress it navy, then make its style everyone's.
   await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
   await expect(page.getByRole("radio", { name: "Table 2" })).toHaveAttribute("aria-checked", "true");
@@ -215,10 +228,6 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   const pose = () => page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
   const start = await pose();
   await openSection(page, "room");
-  await page.getByRole("button", { name: /At the bar/ }).click();
-  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForTimeout(400);
   const preset = await page.evaluate(
     () =>
       (
@@ -227,17 +236,27 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
         }
       ).__studio.venue.data.cameraPresets.R03?.position,
   );
+  // Wait for where the camera ends up, not for its move to be seen starting (a short move can
+  // start and finish between two checks on a busy machine).
+  const settled = () =>
+    page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
+  const off = async (to: number[] | undefined) => {
+    const at = await pose();
+    return Math.max(...[0, 1, 2].map((i) => Math.abs((at[i] ?? 0) - (to?.[i] ?? NaN))));
+  };
+  await page.getByRole("button", { name: /At the bar/ }).click();
+  await expect.poll(() => off(preset), { timeout: 30_000 }).toBeLessThan(0.05);
+  await settled();
   const at = await pose();
   for (let i = 0; i < 3; i++) expect(at[i]).toBeCloseTo(preset?.[i] ?? NaN, 1);
   await page.getByRole("button", { name: "Reset view" }).click();
-  await page.waitForFunction(() => (window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForFunction(() => !(window as unknown as { __rig: { tweening: boolean } }).__rig.tweening);
-  await page.waitForTimeout(400);
+  await expect.poll(() => off(start), { timeout: 30_000 }).toBeLessThan(0.5);
+  await settled();
   const back = await pose();
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
+test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
   page,
 }) => {
   for (const [quality, calls, triangles] of [
@@ -254,18 +273,24 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-08] 15 fully set tables, a dressed room an
         createScenario: (kind: "blank" | "sample") => string;
         addItem: (id: string, at: [number, number], o?: Record<string, number>) => string | null;
         setGuests: (n: number) => void;
-        applyStyle: (target: "all", patch: Record<string, string>) => void;
+        applyStyle: (target: "all", patch: Record<string, unknown>) => void;
         setStyle: (key: string, value: boolean) => void;
         active: () => { items: { libraryId: string }[] };
       };
       // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing; the
-      // heaviest décor: tall arrangements, 5-arm candelabra, runners and full place settings.
+      // heaviest table dressing the layout allows (DEC-02 leaves off candles with no room): eight
+      // each of 5-arm candelabra, candle sand trios and tapers, no flowers, so the most candles
+      // fit (heavier than tall arrangements with a candle mix), runners and full place settings.
       ed.createScenario("blank");
       for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
       ed.setGuests(150);
       ed.applyStyle("all", {
-        florals: "floral-tall",
-        candles: "candelabra-5",
+        florals: "none",
+        candles: [
+          { id: "candelabra-5", n: 8 },
+          { id: "candle-sand-trio", n: 8 },
+          { id: "candle-tapers", n: 8 },
+        ],
         runner: "runner-chiffon-ivory",
         napkin: "napkin-sage",
         charger: "gold",
@@ -545,9 +570,10 @@ test("[IMP-01] [IMP-02] [IMP-03] [IMP-04] [IMP-05] [IMP-06] [IMP-07] a photo bec
   await page.getByTestId("import-save").click();
   await expect(page.getByTestId("imported-detail")).toContainText("shop.example.com");
   await page.getByTestId("use-on-tables").click();
-  const s = await state(page);
-  const id = (s.active?.style as Record<string, string>).candles ?? "";
-  expect(id).toMatch(/^imp-/);
+  // The import becomes the whole candle mix on every table.
+  const mix = (await state(page)).active?.style.candles as unknown as { id: string; n: number }[];
+  expect(mix).toHaveLength(1);
+  expect(mix[0]?.id).toMatch(/^imp-/);
   // Something with no fitting model is a photo preview, never called 3D; it can be placed.
   await page.getByTestId("detail-back").click();
   await importPhoto(page, { colour: "#5d7690", type: "other", w: 60, h: 120 });
@@ -615,7 +641,7 @@ test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on
   await expect(page.locator('[data-testid^="use-floral-"]').first()).toBeVisible();
   await page.getByTestId("library-search").fill("taper");
   await page.getByTestId("use-candle-tapers").click();
-  expect((await state(page)).active?.style.candles).toBe("candle-tapers");
+  expect((await state(page)).active?.style.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
   await page.getByTestId("library-search").fill("");
   await page.getByTestId("cant-find").click();
   await expect(page.getByTestId("add-inspiration")).toBeVisible();

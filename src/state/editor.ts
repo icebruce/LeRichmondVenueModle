@@ -426,7 +426,10 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       // An override equal to the scenario style is no override; an empty one is removed.
       const settle = (it: Item, own: Partial<TableStyle>, base: TableStyle) => {
         const kept = Object.fromEntries(
-          Object.entries(own).filter(([k, v]) => v !== base[k as keyof TableStyle]),
+          // Compared by value: a candle mix is a list (DEC-02).
+          Object.entries(own).filter(
+            ([k, v]) => JSON.stringify(v) !== JSON.stringify(base[k as keyof TableStyle]),
+          ),
         );
         if (Object.keys(kept).length) it.style = kept;
         else delete it.style;

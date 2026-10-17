@@ -622,8 +622,10 @@ button:disabled {
     border-color var(--m-fast),
     background var(--m-fast);
 }
-.tile:hover {
-  border-color: var(--line-2);
+@media (hover: hover) {
+  .tile:hover {
+    border-color: var(--line-2);
+  }
 }
 .tile:active {
   transform: scale(0.97);
@@ -662,6 +664,43 @@ button:disabled {
   background: var(--surface);
   color: var(--accent);
   box-shadow: var(--shadow-control);
+}
+.tiles.g3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.tiles.g3 .library-icon {
+  height: var(--thumb-tile-sm);
+}
+.tiles.g3 .library-icon img {
+  width: var(--thumb-tile-sm);
+  height: var(--thumb-tile-sm);
+}
+.tile.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.tile-check {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  display: grid;
+  place-items: center;
+  min-width: var(--check);
+  height: var(--check);
+  padding: 0 var(--s-1);
+  border-radius: var(--check);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: var(--t-caption);
+}
+/* "None": an empty swatch with a diagonal line (in a picture tile too). */
+.none-icon,
+.tile .library-icon.none-icon {
+  background: linear-gradient(135deg, transparent 47%, var(--line-2) 47% 53%, transparent 53%), var(--sunk);
+}
+.layer .stepper output {
+  min-width: var(--badge);
 }
 .more {
   display: flex;
@@ -717,30 +756,6 @@ button:disabled {
 }
 .chips-scroll .chip {
   flex: none;
-}
-.disclosure {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  min-height: var(--target);
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-}
-.disclosure .row-value {
-  flex: 1;
-  color: var(--ink);
-}
-.disclosure[aria-expanded="true"] svg {
-  transform: rotate(180deg);
-}
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--line);
 }
 .advisory-go {
   flex: none;
@@ -1232,8 +1247,10 @@ button:disabled {
   font: var(--t-body);
   color: var(--ink);
 }
-.nav-row:hover {
-  background: var(--sunk);
+@media (hover: hover) {
+  .nav-row:hover {
+    background: var(--sunk);
+  }
 }
 .nav-row.danger {
   color: var(--blocked);
@@ -1251,9 +1268,12 @@ button:disabled {
 }
 .nav-value {
   max-width: 58%;
+  overflow: hidden;
   font: var(--t-footnote);
   color: var(--ink-2);
   text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .nav-chevron,
 .nav-icon {
@@ -1305,6 +1325,10 @@ button:disabled {
   place-items: center;
   flex: none;
   color: var(--accent);
+}
+/* A hint that something is left out (advisory, never blocking). */
+.hint.advisory {
+  color: var(--advisory-ink);
 }
 .effect {
   display: flex;
@@ -1583,6 +1607,10 @@ button:disabled {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  /* Pickers have no caption, so a name may take three lines. */
+  .tiles.g3 .tile-name {
+    -webkit-line-clamp: 3;
   }
   .tile-caption {
     display: -webkit-box;

@@ -51,15 +51,21 @@ export function differences(mine: Scenario, theirs: Scenario, catalog: Catalog):
     return t && JSON.stringify(t.options) !== JSON.stringify(i.options);
   }).length;
   if (changed) out.push(`${changed} ${changed === 1 ? "item" : "items"} resized or reseated differently`);
-  // Every style setting, by its label: library ids read as names, switches as on/off.
-  const name = (v: unknown) =>
-    typeof v === "boolean"
-      ? v
-        ? "on"
-        : "off"
-      : v === "none"
-        ? "none"
-        : (catalog.get(String(v))?.name ?? String(v));
+  // Every style setting, by its label: library ids read as names, switches as on/off, a candle mix
+  // as its kinds with their counts.
+  const one = (id: string) => catalog.get(id)?.name ?? id;
+  const name = (v: unknown): string =>
+    Array.isArray(v)
+      ? v.length
+        ? (v as { id: string; n: number }[]).map((m) => `${m.n} × ${one(m.id)}`).join(" + ")
+        : "none"
+      : typeof v === "boolean"
+        ? v
+          ? "on"
+          : "off"
+        : v === "none"
+          ? "none"
+          : one(String(v));
   const keys = [
     ...new Set([...Object.keys(mine.style), ...Object.keys(theirs.style)]),
   ] as (keyof Scenario["style"])[];

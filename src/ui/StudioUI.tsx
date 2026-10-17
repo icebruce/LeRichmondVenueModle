@@ -13,7 +13,8 @@ import { Icon, type IconName } from "./icons";
 import {
   AddPanel,
   ChecksList,
-  DecorPanel,
+  StylePanel,
+  type StylePage,
   Inspector,
   LayoutRules,
   PaintingsPage,
@@ -419,7 +420,7 @@ export function StudioUI() {
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section>("room");
-  const [page, setPage] = useState<"rules" | "paintings" | null>(null);
+  const [page, setPage] = useState<"rules" | "paintings" | StylePage | null>(null);
   const [details, setDetails] = useState(false);
   const [checks, setChecks] = useState(false);
   const [sheet, setSheet] = useState<Sheet>("peek");
@@ -600,7 +601,11 @@ export function StudioUI() {
         yours={(head) => <InspirationPanel head={head} onAdded={() => phone && setSheet("peek")} />}
       />
     ) : section === "style" ? (
-      <DecorPanel key={selection.join(",")} />
+      <StylePanel
+        key={selection.join(",")}
+        page={page === "rules" || page === "paintings" ? null : page}
+        open={setPage}
+      />
     ) : section === "guests" ? (
       <PeoplePanel />
     ) : (

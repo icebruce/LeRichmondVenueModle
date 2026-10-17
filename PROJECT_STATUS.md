@@ -1,6 +1,6 @@
 # Richmond Studio — Project Status
 
-**Current stage:** Steps 1, 2, 3a, 3b and 4A–4C merged (PR #1–#4, #6, #8–#10). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
+**Current stage:** Steps 1, 2, 3a, 3b and 4A–4D merged (PR #1–#4, #6, #8–#11). Step 4 (polish from the owner's test on laptop and phone, 2026-10-17) in progress as PRs 4A–4F. See **Next steps** below. Site: `richmondatudio.vercel.app` (Vercel project name as created).
 **Wedding:** 2026-11-21 · ~75 guests (may change) · **Target:** steps 1–2 usable by ~2026-11-01, freeze ~2026-11-10.
 
 ## Steps
@@ -13,10 +13,10 @@
 | 3a | Library completion: cake, gift and station tables; plants; lights; floral installations; signs; event pieces; lounge armchair and loveseat; Sit here view | LIB-01, LIB-02, LIB-06 (step-3 parts), LIB-07, LIB-08, LIB-09 (all but the owner's print), LIB-10, LIB-11, LIB-12, CAM-04 | Owner approves the pieces and Sit here on the preview | Done (merged 2026-10-16) |
 | 3b | Inspiration import; custom model requests; framed print from the owner's photo | IMP-01..07, REQ-01..04, LIB-09 (print) | Owner imports a real centrepiece; one custom request delivered | Merged 2026-10-16; gate open |
 | 4A | Behaviour fixes: 0.70 m per guest, dance area outline, lights up to the ceiling, communal table toggle removed, automatic request status, refusals as toasts, no pull-to-refresh | LIB-01, LIB-08, LAY-04, LAY-09, LAY-12, REQ-02 | Checks and reviews pass | Merged (PR #8) |
-| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | In review |
+| 4B | Venue revision: bar, garage doors, west wall, platform and stair, sample plan re-fit | VEN-01, VEN-04, LAY-09, LAY-11, LAY-12 | Fidelity review; owner recognizes the room | Merged (PR #9) |
 | 4C | Navigation: desktop rail + wide panel (option 1), Room and Plans sections, checks popover, selection toolbar; phone controls, sheet gestures, back | PLT-02, PLT-04, LAY-08, SCN-01..06 | UX review | Merged (PR #10) |
-| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | In review |
-| 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts) | DEC-01..05, LIB-05 | UX review; phone budget | Planned |
+| 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | Merged (PR #11) |
+| 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | In review |
 | 4F | Light height handle in 3D | LIB-08, LAY-02 | UX review | Planned |
 
 ## Decisions

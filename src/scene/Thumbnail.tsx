@@ -17,6 +17,7 @@ function thumbItem(
   id: string,
   family: string | undefined,
   generator: string | undefined,
+  count = 1,
 ): {
   item: Item;
   style?: Partial<TableStyle>;
@@ -25,7 +26,7 @@ function thumbItem(
   const at = { x: 8, z: 7, rotY: 0.5 };
   const round = (style: Partial<TableStyle>) => ({
     item: { id: "t", libraryId: "table-round", ...at, options: { seats: 4 } },
-    style: { candles: "none", ...style },
+    style: { candles: [], ...style },
   });
   if (family === "linen" && generator === "runner") return round({ runner: id });
   if (family === "linen") return round({ linen: id });
@@ -34,7 +35,12 @@ function thumbItem(
       ...round({ napkin: generator === "napkin" ? id : "none" }),
       extras: { settings: true, menus: generator === "menuCard", tableNumbers: generator === "tableNumber" },
     };
-  if (family === "candle") return round({ candles: id });
+  // Candles on a cocktail table, which has no chairs to hide them.
+  if (family === "candle")
+    return {
+      item: { id: "t", libraryId: "table-cocktail", ...at, options: {} },
+      style: { candles: [{ id, n: count }] },
+    };
   // Library pieces (floral installations, plants, lights, signs) stand on their own.
   // A short strand, so its bulbs are big enough to read in a thumbnail.
   if (generator && PIECE_GENERATORS.includes(generator))
@@ -43,13 +49,13 @@ function thumbItem(
     return id === "floral-runner"
       ? {
           item: { id: "t", libraryId: "table-rect", ...at, options: { seats: 8 } },
-          style: { florals: id, candles: "none" },
+          style: { florals: id, candles: [] },
         }
       : round({ florals: id });
   if (family === "chair")
     return {
       item: { id: "t", libraryId: "table-sweetheart", ...at, options: {} },
-      style: { chair: id, candles: "none" },
+      style: { chair: id, candles: [] },
     };
   return { item: { id: "t", libraryId: id, ...at, options: {} } };
 }
@@ -75,14 +81,17 @@ export function Thumbnail({ base, id }: { base: Studio; id: string }) {
   const studio = useMemo(() => {
     const own = base.catalog.get(id);
     const generator = own?.model.kind === "parametric" ? own.model.generator : undefined;
-    const { item, style, extras } = thumbItem(id, own?.family, generator);
+    const { item, style, extras } = thumbItem(id, own?.family, generator, own?.defaultCount);
     const s = newScenario("thumb", "thumb", new Date(0).toISOString(), [item]);
     s.style = { ...s.style, ...style, settings: false, ...extras, lighting: "day" };
     const editor = createEditor({ ...base, now: () => s.updatedAt, newId: () => "x" }, [s]);
-    // Table-top pieces are framed close up on the table top; everything else whole.
+    // Table-top pieces are framed close up on the table top (over its cloth); everything else whole.
     if (own && own.placement === "table" && id !== "floral-runner") {
       const h = own.sizeM.h;
-      return { studio: { ...base, editor }, d: Math.max(0.55, h * 1.6) + 0.25, target: 0.765 + h / 2 };
+      const top = (base.catalog.get(item.libraryId)?.sizeM.h ?? 0.75) + 0.015;
+      // Candles stand on the small cocktail table at 0.6 scale: closer still, so they fill the frame.
+      const d = own.family === "candle" ? Math.max(0.3, h) + 0.15 : Math.max(0.55, h * 1.6) + 0.25;
+      return { studio: { ...base, editor }, d, target: top + (own.family === "candle" ? h * 0.3 : h / 2) };
     }
     const entry = base.catalog.get(item.libraryId);
     // Standing pieces are framed whole; hanging ones on the piece itself, up where it hangs.
