@@ -283,7 +283,10 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
       // each of 5-arm candelabra, candle sand trios and tapers, no flowers, so the most candles
       // fit (heavier than tall arrangements with a candle mix), runners and full place settings.
       ed.createScenario("blank");
-      for (let i = 0; i < 15; i++) ed.addItem("table-round", [8, 10], { seats: 8 });
+      // Seeded across the room on a 2.8 m grid: from one point the free-spot search packs only 13.
+      for (let z = 1.45; z < 12.9; z += 2.8)
+        for (let x = 1.45; x < 16; x += 2.8)
+          if (ed.active().items.length < 15) ed.addItem("table-round", [x, z], { seats: 8 });
       ed.setGuests(150);
       ed.applyStyle("all", {
         florals: "none",
