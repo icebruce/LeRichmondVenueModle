@@ -1,11 +1,19 @@
 import type { Item } from "../layout/items";
-import { SCHEMA_VERSION, type Scenario, type TableStyle, scenarioSchema } from "./schema";
+import {
+  MAX_CANDLES_PER_KIND,
+  SCHEMA_VERSION,
+  type Scenario,
+  type TableStyle,
+  scenarioSchema,
+} from "./schema";
 
 export const DEFAULT_STYLE: Scenario["style"] = {
   linen: "linen-ivory",
   linenLength: "floor",
   chair: "chair-oval",
   candles: [{ id: "candle-votives", n: 3 }],
+  candleOrder: 0,
+  candleTurn: 0,
   florals: "none",
   floralColour: "white",
   charger: "gold",
@@ -126,7 +134,36 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
       }),
     };
   },
+  // v5 (step 4G): candle sizes, order and turn; the 3- and 5-arm candelabra become one with arms.
+  4: (raw) => {
+    const mix = (v: unknown) => {
+      if (!Array.isArray(v)) return v;
+      const out: Record<string, unknown>[] = [];
+      for (const m of v as Record<string, unknown>[]) {
+        const arms = CANDELABRA_ARMS[String(m.id)];
+        const kind = arms ? { ...m, id: "candelabra", arms } : m;
+        const same = out.find((o) => o.id === kind.id);
+        if (same) same.n = Math.min(MAX_CANDLES_PER_KIND, Number(same.n) + Number(kind.n));
+        else out.push(kind);
+      }
+      return out;
+    };
+    const style = raw.style as Record<string, unknown> | undefined;
+    const items = Array.isArray(raw.items) ? (raw.items as Record<string, unknown>[]) : [];
+    return {
+      ...raw,
+      schemaVersion: 5,
+      style: style && { candleOrder: 0, candleTurn: 0, ...style, candles: mix(style.candles) },
+      items: items.map((i) => {
+        const s = i.style as Record<string, unknown> | undefined;
+        return s && "candles" in s ? { ...i, style: { ...s, candles: mix(s.candles) } } : i;
+      }),
+    };
+  },
 };
+
+/** The two candelabra of v4 and their arms. */
+const CANDELABRA_ARMS: Record<string, number> = { "candelabra-3": 3, "candelabra-5": 5 };
 
 /**
  * How many candles each single-choice candle set of v3 showed per centre spot. A long table had one
@@ -141,8 +178,22 @@ const LEGACY_CANDLE_COUNTS: Record<string, number> = {
 
 /** A table's décor: its own override over the scenario style (DEC-05). */
 export function styleOf(item: Item, style: Scenario["style"]): TableStyle {
-  const { linen, chair, candles, florals, floralColour, charger, runner, napkin, flowerType } = style;
-  return { linen, chair, candles, florals, floralColour, charger, runner, napkin, flowerType, ...item.style };
+  const { linen, chair, candles, candleOrder, candleTurn, florals, floralColour } = style;
+  const { charger, runner, napkin, flowerType } = style;
+  return {
+    linen,
+    chair,
+    candles,
+    candleOrder,
+    candleTurn,
+    florals,
+    floralColour,
+    charger,
+    runner,
+    napkin,
+    flowerType,
+    ...item.style,
+  };
 }
 
 export function parseScenario(raw: unknown): Scenario {

@@ -96,6 +96,20 @@ test("[PLT-02] phone sheet: content scrolls at half; only the grabber opens it f
   await expect(page.locator(".panel")).toHaveClass(/detent-half/);
 });
 
+test("[PLT-02] [DEC-02] phone: back steps from a candle kind's sizes to Candles, then to Style", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.getByTestId("section-style").click();
+  await page.getByTestId("style-row-candles").click();
+  await page.getByTestId("candle-open-candle-votives").click();
+  await expect(page.getByTestId("style-candle-kind")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId("style-candles")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByTestId("style-panel")).toBeVisible();
+});
+
 test("[PLT-02] phone: adding a piece drops the sheet to its peek with the piece selected", async ({
   page,
 }) => {

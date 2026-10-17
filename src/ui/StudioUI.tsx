@@ -15,6 +15,7 @@ import {
   ChecksList,
   StylePanel,
   type StylePage,
+  parentPage,
   Inspector,
   LayoutRules,
   PaintingsPage,
@@ -421,6 +422,7 @@ export function StudioUI() {
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section>("room");
   const [page, setPage] = useState<"rules" | "paintings" | StylePage | null>(null);
+  const stylePage = page === "rules" || page === "paintings" ? null : page;
   const [details, setDetails] = useState(false);
   const [checks, setChecks] = useState(false);
   const [sheet, setSheet] = useState<Sheet>("peek");
@@ -489,14 +491,17 @@ export function StudioUI() {
   // Phones only: on desktop the browser's Back keeps its usual meaning.
   const phoneSelection = phone && hasSelection && selView;
   const depth = phone
-    ? (checks ? 1 : 0) + (phoneSelection ? 1 : 0) + (page && panelShown ? 1 : 0) + (panelShown ? 1 : 0)
+    ? (checks ? 1 : 0) +
+      (phoneSelection ? 1 : 0) +
+      (page && panelShown ? (stylePage && parentPage(stylePage) ? 2 : 1) : 0) +
+      (panelShown ? 1 : 0)
     : 0;
   useBackLayers(
     depth,
     () => {
       if (checks) setChecks(false);
       else if (phoneSelection) editor.select([]);
-      else if (page && panelShown) setPage(null);
+      else if (page && panelShown) setPage(stylePage && parentPage(stylePage));
       else if (panelShown) setSheet("closed");
     },
     phone,
@@ -601,11 +606,7 @@ export function StudioUI() {
         yours={(head) => <InspirationPanel head={head} onAdded={() => phone && setSheet("peek")} />}
       />
     ) : section === "style" ? (
-      <StylePanel
-        key={selection.join(",")}
-        page={page === "rules" || page === "paintings" ? null : page}
-        open={setPage}
-      />
+      <StylePanel key={selection.join(",")} page={stylePage} open={setPage} />
     ) : section === "guests" ? (
       <PeoplePanel />
     ) : (

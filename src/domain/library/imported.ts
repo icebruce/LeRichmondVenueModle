@@ -187,7 +187,7 @@ export function suggest(
     return Math.abs(Math.log(aspect / base)) + tall + colour * 1.5;
   };
   return [...catalog.values()]
-    .filter((e) => !e.imported && kind.fits(e))
+    .filter((e) => !e.imported && !e.retired && kind.fits(e))
     .map((e) => ({ e, s: score(e) }))
     .sort((a, b) => a.s - b.s)
     .map((x) => x.e);

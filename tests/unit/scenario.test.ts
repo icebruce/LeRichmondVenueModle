@@ -91,7 +91,7 @@ describe("library", () => {
 });
 
 describe("conflict summary", () => {
-  test("[SCN-03] the conflict dialog names what differs: moved tables, counts and linen", () => {
+  test("[SCN-03] [DEC-02] the conflict dialog names what differs: moved tables, counts, linen, candle sizes", () => {
     const mine = venueSampleScenario("a", "2026-10-15T00:00:00.000Z");
     const theirs = structuredClone(mine);
     const [t1, t2] = theirs.items;
@@ -121,6 +121,21 @@ describe("conflict summary", () => {
     ]);
     const bare = { ...structuredClone(mine), style: { ...mine.style, candles: [] } };
     expect(differences(mine, bare, catalog)).toEqual(["Candles: 3 × Votives here, none in theirs"]);
+    // Sizes, order and rotation count too.
+    const sized = {
+      ...structuredClone(mine),
+      style: {
+        ...mine.style,
+        candles: [{ id: "candle-votives", n: 3, w: 8 }],
+        candleOrder: 7,
+        candleTurn: 45,
+      },
+    };
+    expect(differences(mine, sized, catalog)).toEqual([
+      "Candle order: tallest in the middle here, shuffled in theirs",
+      "Candle rotation: 0° here, 45° in theirs",
+      "Candle sizes differ",
+    ]);
     const art = structuredClone(mine);
     art.venueToggles.paintings = { horseman: "hidden" };
     expect(differences(mine, art, catalog)).toEqual(["Venue furniture or paintings differ"]);

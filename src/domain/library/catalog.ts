@@ -24,6 +24,9 @@ export function entry(catalog: Catalog, id: string): LibraryEntry {
   throw new Error(`Unknown library item ${id}`);
 }
 
+/** Whether the library lists an entry: not retired (DEC-02), not an import the couple removed. */
+export const listed = (e: LibraryEntry) => !e.retired && !e.imported?.archived;
+
 /** The item's own option values over the entry's defaults. */
 export function resolveOptions(e: LibraryEntry, own: Record<string, unknown>): Record<string, unknown> {
   const defaults = Object.fromEntries(e.options.map((o) => [o.key, o.default]));

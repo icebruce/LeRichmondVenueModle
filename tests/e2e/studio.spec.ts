@@ -197,6 +197,43 @@ test("[LIB-03] [LIB-05] [DEC-01] [DEC-04] [DEC-05] style for all tables or just 
   expect((await style()).t2).toBeUndefined();
 });
 
+test("[DEC-02] [LIB-05] a candle kind's sizes open from Candles; two or more candles shuffle and turn", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await openSection(page, "style");
+  await page.getByTestId("style-row-candles").click();
+  // One candelabra, with its arms, in place of the 3- and 5-arm pieces.
+  await expect(page.getByTestId("candles-candelabra")).toBeVisible();
+  await expect(page.getByTestId("candles-candelabra-5")).toHaveCount(0);
+  await page.getByTestId("candles-candle-pillars").click();
+  await expect(page.getByTestId("candle-layer-candle-pillars")).toContainText("8 cm wide · 10–22.5 cm");
+  await page.getByTestId("candle-open-candle-pillars").click();
+  await expect(page.getByTestId("style-candle-kind")).toBeVisible();
+  await page.getByRole("button", { name: "More: Pillar 1" }).click();
+  await expect(page.getByTestId("candle-height-0")).toHaveText("17.5 cm");
+  // An added pillar takes the next default height.
+  await page.getByRole("button", { name: "More: Per table" }).click();
+  await expect(page.getByTestId("candle-height-3")).toHaveText("15 cm");
+  await page.getByTestId("back").click();
+  await page.getByTestId("candles-candelabra").click();
+  await page.getByTestId("candle-open-candelabra").click();
+  await page.getByRole("radio", { name: "5", exact: true }).click();
+  await page.getByTestId("back").click();
+  await expect(page.getByTestId("candle-layer-candelabra")).toContainText("5 arms · 65 cm");
+  await page.getByTestId("candle-shuffle").click();
+  await page.getByRole("button", { name: "More: Rotation" }).click();
+  await expect(page.getByTestId("candle-turn")).toHaveText("15°");
+  const style = (await state(page)).active?.style;
+  expect(style?.candles).toEqual([
+    { id: "candle-votives", n: 3 },
+    { id: "candle-pillars", n: 4, h: [17.5, 22.5, 10] },
+    { id: "candelabra", n: 1, arms: 5 },
+  ]);
+  expect(style?.candleOrder).toBeGreaterThan(0);
+  expect(style?.candleTurn).toBe(15);
+});
+
 test("[LAY-05] dragging a table near another's centre line snaps into line with it", async ({ page }) => {
   await openStudio(page);
   await page.getByTestId("plan-name").click();
@@ -291,7 +328,7 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
       ed.applyStyle("all", {
         florals: "none",
         candles: [
-          { id: "candelabra-5", n: 8 },
+          { id: "candelabra", n: 8, arms: 5 },
           { id: "candle-sand-trio", n: 8 },
           { id: "candle-tapers", n: 8 },
         ],

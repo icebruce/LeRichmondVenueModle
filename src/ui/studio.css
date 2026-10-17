@@ -2049,3 +2049,20 @@ textarea.text-input {
   width: 100%;
   text-align: left;
 }
+/* A candle kind's row on Candles: its picture and sizes open the kind's settings (DEC-02). */
+.layer-open {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.layer-next {
+  cursor: pointer;
+}

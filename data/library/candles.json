@@ -90,7 +90,23 @@
       "requestId": "req-f6462824"
     },
     {
+      "id": "candelabra",
+      "name": "Candelabra",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.3, "d": 0.1, "h": 0.65 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "candelabra", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "candelabra", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candelabra.webp",
+      "source": { "type": "built", "origin": "Richmond Studio generator: candelabra", "licence": "Project" },
+      "budget": { "triangles": 2000, "phoneTriangles": 500, "drawCalls": 3 }
+    },
+    {
       "id": "candelabra-3",
+      "retired": true,
       "name": "Candelabra, 3 arms",
       "family": "candle",
       "placement": "table",
@@ -110,6 +126,7 @@
     },
     {
       "id": "candelabra-5",
+      "retired": true,
       "name": "Candelabra, 5 arms",
       "family": "candle",
       "placement": "table",

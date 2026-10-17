@@ -18,7 +18,7 @@
 | 4D | One library: search, thumbnails, Yours, drag into the room | LAY-01, LIB-13, IMP-06, REQ-01..02 | UX review | Merged (PR #11) |
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | Merged (PR #12) |
 | 4F | Light height handle in 3D | LIB-08 | UX review | Merged (PR #13) |
-| 4G | Owner feedback, round 2: phone sheet scrolls at half; venue revision (platform, stair, south wall, garage doors); candle settings per kind and per group | PLT-02, VEN-01, VEN-04, LAY-11, DEC-02, LIB-05 | UX and fidelity review; owner approves the candle mock-up | In progress: sheet and venue done |
+| 4G | Owner feedback, round 2: phone sheet scrolls at half; venue revision (platform, stair, south wall, garage doors); candle settings per kind and per group | PLT-02, VEN-01, VEN-04, LAY-11, DEC-02, LIB-05 | UX and fidelity review; owner approves the candle mock-up | In progress: sheet, venue and candles built; reviews and owner visual check to come |
 
 ## Decisions
 
@@ -71,7 +71,7 @@
   - Candle mix: up to 3 kinds per table, each with a count, arranged automatically.
 - Owner feedback, round 2 (2026-10-17):
   - Phone sheet: at half height its content scrolls; only the grabber opens it full. From peek, a swipe up on the content still opens half.
-  - Candles: settings for each kind in cm (pillars: count, width, a height each; candelabra: one entry with an arms setting; tapers, votives, floating candles, hurricanes and lanterns: their sizes); group settings for a table's candles: mixed order and the group's rotation; they follow Apply to. Mock-up before building.
+  - Candles: sizes for each kind in cm (pillars and floating vases a height each, a width; tapers and their holder; votives, hurricanes and lanterns; one Candelabra with 1, 3 or 5 arms in place of the 3- and 5-arm pieces, which stay only so older plans and imports still show); with two or more candles, Shuffle (or tallest in the middle) and a rotation of the group in 15° steps; they follow Apply to. The count stays on the Candles page. Mock-up `docs/mockups/candles.html` approved; in-app hints kept to one short line (owner).
   - Venue (supersedes "bar front to kitchen wall ≈ 6.3–6.5 m" and "garage doors ≈ 6.3 m"): the raised floor's straight railing after its step 1.7 → 1.1 m, so the platform and the stair move 0.6 m north; the south (kitchen) wall moves 1.4 m north (bar front to kitchen wall ≈ 5.05 m, room ≈ 16 × 12.9 m, entrance landing ≈ 1.0 m); both garage doors ≈ 5.6 m, keeping the 0.9 m small wall at the south end; the mezzanine edge, DJ option 3, the cameras and the sample plan move with the wall.
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
