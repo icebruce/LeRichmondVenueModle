@@ -69,6 +69,10 @@ button:disabled {
   pointer-events: none;
   --rail: var(--rail-w);
   --top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
+  /* The desktop counts strip (one row of figures) and the phone walk pad. */
+  --counts-h: 58px;
+  --pad-size: 120px;
+  --above-counts: calc(env(safe-area-inset-bottom, 0px) + var(--s-4) + var(--counts-h) + var(--s-3));
 }
 .ui > * {
   pointer-events: auto;
@@ -87,45 +91,71 @@ button:disabled {
 .topbar {
   position: absolute;
   top: var(--top);
-  left: calc(var(--rail) + var(--s-3));
-  right: var(--s-3);
+  left: calc(var(--inset-left, var(--rail)) + var(--s-4));
+  right: var(--s-4);
+  /* The row spans the free area, so the middle column centres the cameras over the room. */
+  container: toolbar / inline-size;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: var(--s-3);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2);
   pointer-events: none;
 }
 .topbar > * {
   pointer-events: auto;
 }
-.scenario {
+/* The plan's name, small: a way into Plans (DESIGN_GUIDE §3.1). */
+.plan-name {
   justify-self: start;
-  position: relative;
-  padding: var(--s-1) var(--s-3) var(--s-2);
+  box-sizing: border-box;
+  max-width: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
   min-width: 0;
-  max-width: 340px;
+  height: var(--target);
+  padding: 0 var(--s-3);
+  overflow: hidden;
 }
-.scenario-button {
+.plan-name-btn {
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: var(--s-1);
+  min-width: 0;
   border: 0;
   background: none;
   padding: 0;
   min-height: var(--target);
-  text-align: left;
+  font: var(--t-callout);
+  font-weight: 600;
 }
-.scenario-name {
-  font: 600 16px/22px var(--font-display);
+.plan-name-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-name .save-state {
+  flex: none;
+  padding-left: var(--s-2);
+  border-left: 1px solid var(--line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .save-state {
   font: var(--t-caption);
-  color: var(--ink-3);
+  color: var(--ink-2);
+}
+.save-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
 }
 .save-state.error {
   color: var(--blocked);
@@ -158,11 +188,6 @@ button:disabled {
   z-index: 30;
   animation: rise var(--m-base);
 }
-.menu-group + .menu-group {
-  border-top: 1px solid var(--line);
-  margin-top: var(--s-1);
-  padding-top: var(--s-1);
-}
 .menu-item {
   display: flex;
   align-items: center;
@@ -178,16 +203,6 @@ button:disabled {
 }
 .menu-item:hover {
   background: var(--sunk);
-}
-.menu-item .check {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  flex: none;
-  color: var(--ink-2);
-}
-.menu-item[aria-checked="true"] .check {
-  color: var(--accent);
 }
 
 .seg {
@@ -229,10 +244,25 @@ button:disabled {
 .seg button:disabled {
   opacity: 0.55;
 }
-.camera-group {
-  display: flex;
+/* Every toolbar control is a full 44 pt target (DESIGN_GUIDE §2.5); the pill is the control's height. */
+.seg.glass.camera-seg {
+  box-sizing: border-box;
   align-items: center;
-  gap: var(--s-2);
+  height: var(--target);
+  padding: 0 var(--s-1);
+}
+/* A narrow room area keeps the camera icons and drops their words. */
+@container toolbar (max-width: 720px) {
+  .camera-seg .seg-label {
+    display: none;
+  }
+}
+.seg-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--s-1);
+  background: var(--line);
+  flex: none;
 }
 .icon-btn.glass {
   background: var(--surface-glass);
@@ -251,9 +281,11 @@ button:disabled {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: var(--s-1);
-  padding: 4px;
+  gap: 2px;
+  height: var(--target);
+  padding: 0 2px;
 }
+
 .icon-btn {
   display: grid;
   place-items: center;
@@ -288,16 +320,18 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s-2);
-  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) 0 var(--s-3);
+  gap: var(--s-1);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--s-3)) var(--s-1) var(--s-3);
+  box-sizing: border-box;
+  z-index: 12;
 }
 .rail button {
-  width: 60px;
-  min-height: 56px;
+  width: 64px;
+  min-height: 60px;
   border: 0;
   border-radius: var(--r-card);
   background: transparent;
-  color: var(--ink-3);
+  color: var(--ink-2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -319,17 +353,72 @@ button:disabled {
 /* ---------- panel / inspector ---------- */
 .panel {
   position: absolute;
-  top: calc(var(--top) + 64px);
-  right: var(--s-3);
-  bottom: var(--s-3);
-  width: 340px;
+  box-sizing: border-box;
+  top: 0;
+  bottom: 0;
+  left: var(--rail);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sheet);
-  box-shadow: var(--shadow);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slide-in var(--m-base);
+  z-index: 11;
+}
+/* The panel's content scrolls under its fixed head (the phone sheet's grabber and counts). */
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  animation: slide-in var(--m-base);
+}
+/* A deeper page keeps its way back and its title in view while it scrolls (DESIGN_GUIDE §3). */
+.page-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-4)) 0;
+  padding: var(--s-4) var(--s-4) var(--s-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.panel-collapse {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-2);
+}
+.panel-scroll > .panel-body > .panel-head,
+.panel-scroll > .panel-body > .page-head > .back-btn {
+  margin-right: var(--s-7);
+}
+/* Drag the panel's edge to widen it (360–520 px); the grip sits on the edge, mid-height. */
+.panel-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--inset-left) - 6px);
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 12;
+}
+.panel-resize::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 6px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 3px;
+  background: var(--line-2);
+}
+.panel-resize:hover::after,
+.panel-resize:focus-visible::after {
+  background: var(--ink-3);
 }
 .grabber {
   display: none;
@@ -345,6 +434,10 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: var(--s-2);
+}
+.title-sub {
+  font-weight: 400;
+  color: var(--ink-2);
 }
 .panel-title {
   font: var(--t-title);
@@ -561,7 +654,6 @@ button:disabled {
   flex: none;
   margin-left: auto;
   color: var(--ink-2);
-  transform: rotate(-90deg);
 }
 .chip {
   display: inline-flex;
@@ -614,34 +706,16 @@ button:disabled {
 .rotate-group .btn {
   padding: 0 var(--s-2);
 }
-.actions-row .icon-only {
-  justify-content: center;
-  width: var(--target);
-  padding: 0;
-  margin-left: auto;
-}
 .rotate-group {
   display: inline-flex;
   align-items: center;
   gap: var(--s-1);
-  padding-right: var(--s-2);
-  margin-right: var(--s-1);
-  border-right: 1px solid var(--line);
-  color: var(--ink-3);
-}
-.light-toggle {
-  display: none;
 }
 .history {
   display: flex;
   gap: var(--s-1);
 }
-.history-float {
-  display: none;
-}
-.counts-line {
-  display: none;
-}
+
 .swatches {
   display: flex;
   flex-wrap: wrap;
@@ -799,13 +873,14 @@ button:disabled {
 /* ---------- counts ---------- */
 .counts {
   position: absolute;
-  left: calc(var(--rail) + var(--s-3));
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-3));
+  right: var(--s-4);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--s-1) var(--s-4);
   padding: var(--s-2) var(--s-3);
-  max-width: calc(100% - var(--rail) - 380px);
+  max-width: calc(100% - var(--inset-left, var(--rail)) - 2 * var(--s-4));
 }
 .count {
   display: flex;
@@ -861,11 +936,6 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (min-width: 768px) {
-  .viewport.split {
-    left: var(--rail-w);
-  }
-}
 /* Narrower desktops: each half's strip keeps to one line of counts. */
 @media (max-width: 1300px) {
   .pane-counts .count:nth-child(4) {
@@ -899,10 +969,12 @@ button:disabled {
 }
 .toast {
   position: absolute;
-  left: 50%;
-  /* Desktop: above the counts strip, never over it. */
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-6));
+  /* Centred in the room beside the panel, above the counts strip. */
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
+  bottom: var(--above-counts);
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - var(--inset-left, 0px) - 2 * var(--s-4));
   display: flex;
   align-items: center;
   gap: var(--s-3);
@@ -919,7 +991,7 @@ button:disabled {
 .walk-hint {
   position: absolute;
   top: calc(var(--top) + 64px);
-  left: 50%;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
   transform: translateX(-50%);
   margin: 0;
   padding: var(--s-2) var(--s-3);
@@ -1030,8 +1102,219 @@ button:disabled {
 @keyframes slide-in {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(-12px);
   }
+}
+
+/* ---------- lists, pages, selection (DESIGN_GUIDE §4) ---------- */
+.list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+.list > * + * {
+  border-top: 1px solid var(--line);
+}
+.list > .row {
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+}
+/* Every row in a grouped list reads alike, toggles and pages (DESIGN_GUIDE §4 Grouped list). */
+.list > .row > .row-label {
+  font: var(--t-body);
+  color: var(--ink);
+}
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  background: none;
+  text-align: left;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.nav-row:hover {
+  background: var(--sunk);
+}
+.nav-row.danger {
+  color: var(--blocked);
+}
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nav-sub {
+  display: block;
+  font: var(--t-footnote);
+  color: var(--ink-2);
+}
+.nav-value {
+  max-width: 58%;
+  font: var(--t-footnote);
+  color: var(--ink-2);
+  text-align: right;
+}
+.nav-chevron,
+.nav-icon {
+  flex: none;
+  color: var(--ink-3);
+}
+.nav-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  flex: none;
+  color: var(--accent);
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--target);
+  margin: calc(-1 * var(--s-2)) 0 calc(-1 * var(--s-2)) calc(-1 * var(--s-1));
+  padding: 0 var(--s-1) 0 0;
+  border: 0;
+  background: none;
+  font: var(--t-callout);
+  color: var(--accent);
+}
+.view-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.view-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-align: left;
+  font: var(--t-footnote);
+  font-weight: 500;
+}
+.view-tile:hover {
+  background: var(--sunk);
+}
+.view-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--accent);
+}
+.effect {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  font: var(--t-footnote);
+  color: var(--advisory-ink);
+}
+.effect .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--advisory);
+}
+.effect.ok {
+  color: var(--ink-2);
+}
+.effect.ok .dot {
+  background: var(--ok);
+}
+/* Desktop checks: a popover above the counts (DESIGN_GUIDE §3.1). */
+.pop-title {
+  margin: 0;
+  font: var(--t-headline);
+}
+.checks-pop {
+  position: absolute;
+  right: var(--s-4);
+  bottom: var(--above-counts);
+  width: 380px;
+  max-height: calc(100% - var(--above-counts) - var(--top) - var(--target) - var(--s-4));
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow);
+  animation: rise var(--m-base);
+  z-index: 30;
+}
+/* Desktop: the selection's toolbar, above it in the room. */
+.selection-bar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  transform: translate(-50%, calc(-100% - var(--s-2)));
+  white-space: nowrap;
+  z-index: 10;
+}
+/* The caret points at the selection. */
+.selection-bar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  background: var(--surface-glass);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.selection-title {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--s-2);
+  font: var(--t-footnote);
+  font-weight: 600;
+}
+.selection-title span {
+  font: var(--t-caption);
+  color: var(--ink-2);
+}
+.actions-bar {
+  display: flex;
+  gap: 2px;
+}
+.action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: var(--target);
+  height: var(--target);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  font: var(--t-footnote);
+  color: var(--ink);
+}
+.action:hover {
+  background: var(--sunk);
+}
+.action.danger {
+  color: var(--blocked);
+}
+.phone-controls {
+  display: none;
 }
 
 /* ---------- sign in, dialogs, banner ---------- */
@@ -1111,7 +1394,7 @@ button:disabled {
 }
 .banner {
   position: absolute;
-  left: 50%;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
   bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-7) + var(--s-5));
   transform: translateX(-50%);
   margin: 0;
@@ -1137,67 +1420,84 @@ button:disabled {
   .ui[data-sheet="half"] {
     --above-sheet: calc(var(--tabbar) + 48%);
   }
-  .ui[data-sheet="full"] .history-float {
-    display: none;
-  }
-  .history-float,
   .ui .toast {
+    left: 50%;
     bottom: calc(var(--above-sheet) + var(--s-2));
+    max-width: calc(100% - 2 * var(--s-4));
   }
-  .rail {
-    display: none;
+  /* In walk the toast rises above the pad. */
+  .ui.cam-walk .toast {
+    bottom: calc(var(--tabbar) + var(--s-5) + var(--pad-size) + var(--s-2));
   }
-  .topbar {
-    left: var(--s-2);
-    right: var(--s-2);
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "scenario actions" "camera camera";
-    row-gap: var(--s-2);
+  /* Top right: the camera, the light and Reset view; undo and redo under them (DESIGN_GUIDE §3.2). */
+  .phone-controls {
+    position: absolute;
+    top: var(--top);
+    right: var(--s-3);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--s-2);
+    z-index: 14;
   }
-  .scenario {
-    grid-area: scenario;
-    max-width: 100%;
-    padding: 0 var(--s-3);
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: var(--target);
+    overflow: hidden;
   }
-  .actions {
-    grid-area: actions;
+  .stack .icon-btn {
+    border-radius: 0;
+    color: var(--ink);
   }
-  .actions .history,
-  .light-seg {
-    display: none;
+  .stack .icon-btn + .icon-btn {
+    border-top: 1px solid var(--line);
   }
-  .light-toggle {
-    display: grid;
+  .stack .icon-btn:disabled {
+    color: var(--ink-3);
   }
-  .camera-group {
-    grid-area: camera;
+  .camera-menu {
+    top: 0;
+    left: auto;
+    right: calc(var(--target) + var(--s-2));
+    width: 200px;
   }
-  .camera-group .seg {
-    flex: 1;
-  }
-  .camera-group .seg button {
-    flex: 1;
-  }
-  .actions {
-    padding: 0;
-  }
-  /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
-  .save-state:not(.error) {
-    display: none;
+  .menu-item[aria-checked="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
   }
   .seg-label {
     display: none;
   }
-  .topbar .seg.glass .seg-label {
-    display: inline;
+  .walk-hint {
+    left: 50%;
   }
-  .history-float {
-    display: flex;
-    position: absolute;
-    left: var(--s-2);
-    padding: var(--s-1);
-    z-index: 16;
-    transition: bottom var(--m-base);
+  /* "Saved" is implied on phone; a problem saving must still show (DESIGN_GUIDE §7). */
+  .sheet-head .save-state {
+    display: block;
+    padding: 0 var(--s-4) var(--s-2);
+  }
+  .sheet-head .save-state:not(.error, .offline) {
+    display: none;
+  }
+  /* The selection's sheet: its actions as tiles across the top (DESIGN_GUIDE §3.2). */
+  .panel .actions-bar {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .panel .action {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--s-1);
+    height: 60px;
+    padding: 0;
+    background: var(--sunk);
+    font: var(--t-caption);
+    font-weight: 500;
   }
   .counts-line {
     display: block;
@@ -1271,6 +1571,9 @@ button:disabled {
     left: 0;
     right: 0;
     width: auto;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    box-shadow: var(--shadow);
     bottom: var(--tabbar);
     border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     border-bottom: 0;
@@ -1278,25 +1581,33 @@ button:disabled {
     animation: none;
     z-index: 15;
   }
+  .panel.detent-peek .panel-scroll {
+    overflow: hidden;
+  }
   .panel.detent-peek {
     height: var(--peek);
-    overflow: hidden;
   }
   .panel.detent-half {
     height: 48%;
   }
   .panel.detent-full {
-    height: calc(100% - var(--tabbar) - var(--top) - 104px);
+    height: calc(100% - var(--tabbar) - var(--top) - var(--s-4));
+  }
+  .sheet-head {
+    flex: none;
+    background: var(--surface);
+  }
+  .panel-scroll > .panel-body > .page-head {
+    margin-top: 0;
+    padding: var(--s-2) var(--s-4);
   }
   .grabber {
     display: block;
     width: 100%;
-    height: 22px;
+    height: 16px;
     border: 0;
     background: none;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    touch-action: none;
   }
   .grabber::after {
     content: "";
@@ -1304,11 +1615,16 @@ button:disabled {
     width: 36px;
     height: 5px;
     border-radius: 3px;
-    margin: 8px auto 0;
+    margin: 6px auto 0;
     background: var(--line-2);
   }
   .panel-body {
     padding-top: 0;
+    gap: var(--s-2);
+  }
+  /* A full sheet covers the room; its controls step aside. */
+  .ui[data-sheet="full"] .phone-controls {
+    visibility: hidden;
   }
   .desktop-only {
     display: none;
@@ -1332,8 +1648,8 @@ button:disabled {
     position: absolute;
     left: var(--s-5);
     bottom: calc(var(--tabbar) + var(--s-5));
-    width: 120px;
-    height: 120px;
+    width: var(--pad-size);
+    height: var(--pad-size);
     border-radius: 50%;
     background: var(--pad-bg);
     border: 1px solid var(--pad-line);
@@ -1570,9 +1886,6 @@ textarea.text-input {
 .rot-left {
   transform: rotate(-90deg);
 }
-.rot-right {
-  transform: rotate(90deg);
-}
 .source-link {
   color: var(--accent);
 }
@@ -1580,7 +1893,7 @@ textarea.text-input {
 .inspector-foot {
   align-self: flex-start;
   border-top: 1px solid var(--line);
-  padding-top: var(--s-2);
+  padding: var(--s-2) 0 0;
   width: 100%;
   text-align: left;
 }

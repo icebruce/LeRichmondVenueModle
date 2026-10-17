@@ -20,7 +20,7 @@ export function Advisories() {
   // In a small view (a phone's compare half, or the band above a half-height sheet) labels would
   // cover the room; outlines stay.
   const height = useThree((s) => s.size.height);
-  const covered = useView((s) => s.insetTop + s.insetBottom);
+  const covered = useView((s) => s.insetBottom);
   const labelled = height - covered >= LABEL_MIN_BAND;
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // While dragging, re-check only when the move changes by ~10 cm or ~5°, not on every pointer move.

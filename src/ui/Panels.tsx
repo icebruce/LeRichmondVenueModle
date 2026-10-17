@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
 import { FLORAL_PALETTES, FLOWER_TYPES, FLOWER_TYPE_GENERATORS } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
-import { adviseScenario } from "../domain/layout/advisories";
 import { ARTWORKS } from "../domain/venue/art";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
@@ -13,11 +12,11 @@ import type { Scenario, TableStyle } from "../domain/scenario/schema";
 import { ROTATE_STEP } from "../state/editor";
 import { requestCamera, viewStore } from "../state/view";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
-import { useServices } from "./services";
-import { Icon } from "./icons";
+import { Icon, type IconName } from "./icons";
 import { RESULT_LABELS } from "../domain/library/imported";
 
-export type Section = "venue" | "layout" | "people" | "decor" | "inspiration" | "compare";
+/** The five sections, in rail and tab-bar order (DESIGN_GUIDE §3). */
+export type Section = "room" | "add" | "style" | "guests" | "plans";
 
 const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
@@ -184,18 +183,23 @@ function Slider({
 
 function Toggle({
   label,
+  sub,
   checked,
   onChange,
   testId,
 }: {
   label: string;
+  sub?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   testId?: string;
 }) {
   return (
     <label className="row toggle">
-      <span className="row-label">{label}</span>
+      <span className="row-label">
+        {label}
+        {sub && <span className="nav-sub">{sub}</span>}
+      </span>
       <input
         type="checkbox"
         role="switch"
@@ -312,32 +316,105 @@ export function Thumb({ entry, size = 44 }: { entry: LibraryEntry; size?: number
   );
 }
 
-/** Advisory checks and their settings (LAY-08). Rows select the tables involved. */
-function Checks() {
+/** A page's title, with a way back to where it was opened from (DESIGN_GUIDE §3, one level deep). */
+export function PageHead({
+  title,
+  back,
+  onBack,
+  action,
+}: {
+  title: React.ReactNode;
+  back?: string;
+  onBack?: () => void;
+  action?: React.ReactNode;
+}) {
+  const head = (
+    <div className="panel-head">
+      <h2 className="panel-title">{title}</h2>
+      {action}
+    </div>
+  );
+  if (!back) return head;
+  return (
+    <div className="page-head">
+      <button type="button" className="back-btn" onClick={onBack} data-testid="back">
+        <Icon name="back" size={18} />
+        {back}
+      </button>
+      {head}
+    </div>
+  );
+}
+
+/** A row that opens a page: its name, an optional line under it, its current value and a chevron. */
+export function NavRow({
+  label,
+  sub,
+  value,
+  onClick,
+  testId,
+}: {
+  label: string;
+  sub?: string;
+  value?: string;
+  onClick: () => void;
+  testId?: string;
+}) {
+  return (
+    <button type="button" className="nav-row" onClick={onClick} data-testid={testId}>
+      <span className="nav-label">
+        {label}
+        {sub && <span className="nav-sub">{sub}</span>}
+      </span>
+      {value && <span className="nav-value">{value}</span>}
+      <Icon name="next" size={16} className="nav-chevron" />
+    </button>
+  );
+}
+
+/** The checks (LAY-08), tightest first; a row selects the items involved. Advice only, never a block. */
+export function ChecksList({
+  onAdjust,
+  onClose,
+  phone,
+}: {
+  onAdjust: () => void;
+  onClose: () => void;
+  phone: boolean;
+}) {
   const { editor } = useStudio();
   const list = useAdvisories();
-  const thresholds = useEditor((s) => s.scenarios[s.activeId]?.thresholds);
-  const [open, setOpen] = useState(false);
   const [all, setAll] = useState(false);
-  if (!thresholds) return null;
   // The tightest come first; three are enough to act on, the rest on request.
   const shown = all ? list : list.slice(0, 3);
   return (
-    <div className="field" data-testid="checks" id="checks">
-      <h3 className="group-title">
-        {list.length ? `${list.length} ${list.length === 1 ? "advisory" : "advisories"}` : "Checks"}
-      </h3>
+    <div className="panel-body" data-testid="checks" id="checks">
+      <div className="panel-head">
+        <h2 className={phone ? "panel-title" : "pop-title"}>
+          {list.length ? `${list.length} ${list.length === 1 ? "check" : "checks"}` : "Checks"}
+        </h2>
+        {phone ? (
+          <button type="button" className="plain-btn" onClick={onClose}>
+            Done
+          </button>
+        ) : (
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close checks">
+            <Icon name="close" />
+          </button>
+        )}
+      </div>
+      <p className="hint">Places tighter than your layout rules. Advice only: nothing is blocked.</p>
       {list.length === 0 ? (
-        <p className="hint">No advisories with your settings.</p>
+        <p className="hint">Nothing is tighter than your rules.</p>
       ) : (
-        <ul className="advisories" aria-label="Advisories">
+        <ul className="advisories" aria-label="Checks">
           {shown.map((a) => (
             <li key={a.id}>
               {a.items.length ? (
                 <button type="button" className="advisory-row" onClick={() => editor.select(a.items)}>
                   <span className="dot" aria-hidden="true" />
                   <span>{a.message}</span>
-                  <Icon name="chevron" size={16} className="advisory-go" />
+                  <Icon name="next" size={16} className="advisory-go" />
                 </button>
               ) : (
                 <span className="advisory-row">
@@ -359,66 +436,113 @@ function Checks() {
           {all ? "Show fewer" : `Show all ${list.length}`}
         </button>
       )}
-      <button
-        type="button"
-        className="plain-btn"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        data-testid="check-settings"
-      >
-        {open ? "Hide check settings" : "Check settings"}
-      </button>
-      {open && (
-        <>
-          <Slider
-            label="Aisle between chair backs"
-            value={thresholds.aisleM}
-            min={0.6}
-            max={2}
-            step={0.1}
-            format={metres}
-            onChange={(v) => editor.setThreshold("aisleM", v)}
-            testId="aisle"
-          />
-          <Slider
-            label="Clear in front of doors"
-            value={thresholds.clearanceM}
-            min={0.6}
-            max={2.5}
-            step={0.1}
-            format={metres}
-            onChange={(v) => editor.setThreshold("clearanceM", v)}
-          />
-          <Slider
-            label="Space per dancer"
-            value={thresholds.m2PerDancer}
-            min={0.3}
-            max={1}
-            step={0.05}
-            format={(v) => `${v.toFixed(2)} m²`}
-            onChange={(v) => editor.setThreshold("m2PerDancer", v)}
-          />
-          <Slider
-            label="Guests dancing at once"
-            value={Math.round(thresholds.dancingShare * 100)}
-            min={10}
-            max={80}
-            step={5}
-            format={(v) => `${v}%`}
-            onChange={(v) => editor.setThreshold("dancingShare", v / 100)}
-          />
-        </>
-      )}
+      <div className="list">
+        <NavRow label="Adjust layout rules" onClick={onAdjust} testId="check-settings" />
+      </div>
+    </div>
+  );
+}
+
+/** One line under a rule: what it changes right now, so a slider visibly does something. */
+function Effect({ n, one, many }: { n: number; one: string; many: string }) {
+  return (
+    <p className={`effect ${n ? "" : "ok"}`} data-testid="rule-effect">
+      <span className="dot" aria-hidden="true" />
+      {n ? `${n} ${n === 1 ? one : many} tighter than this` : "Nothing is tighter than this"}
+    </p>
+  );
+}
+
+/** Room › Layout rules (LAY-08): the thresholds the checks use, each with its live effect. */
+export function LayoutRules({ onBack }: { onBack: () => void }) {
+  const { editor, catalog } = useStudio();
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const list = useAdvisories();
+  const t = scenario.thresholds;
+  const c = countLayout(scenario.items, scenario.guests.count, catalog);
+  const tighter = (kind: string) => list.filter((a) => a.kind === kind).length;
+  const canDance = Math.floor(c.danceFloorM2 / t.m2PerDancer);
+  const expected = Math.round(c.guests * t.dancingShare);
+  return (
+    <div className="panel-body" data-testid="layout-rules">
+      <PageHead title="Layout rules" back="Room" onBack={onBack} />
+      <p className="hint">Rules decide when a check appears. They never move anything in the room.</p>
+      <h3 className="group-title">Walking room</h3>
+      <Slider
+        label="Aisle between chair backs"
+        value={t.aisleM}
+        min={0.6}
+        max={2}
+        step={0.1}
+        format={metres}
+        onChange={(v) => editor.setThreshold("aisleM", v)}
+        testId="aisle"
+      />
+      <Effect n={tighter("aisle")} one="aisle is" many="aisles are" />
+      <Slider
+        label="Clear in front of doors"
+        value={t.clearanceM}
+        min={0.6}
+        max={2.5}
+        step={0.1}
+        format={metres}
+        onChange={(v) => editor.setThreshold("clearanceM", v)}
+      />
+      <Effect n={tighter("clearance")} one="doorway is" many="doorways are" />
+      <h3 className="group-title">Dance area</h3>
+      <div className="figures" aria-label="Dance area">
+        <div className="figure">
+          <b>≈ {Math.round(c.danceFloorM2)} m²</b>
+          <span>placed</span>
+        </div>
+        <div className="figure">
+          <b data-testid="can-dance">≈ {canDance}</b>
+          <span>can dance</span>
+        </div>
+        <div className="figure">
+          <b>≈ {expected}</b>
+          <span>expected</span>
+        </div>
+      </div>
+      <Slider
+        label="Space per dancer"
+        value={t.m2PerDancer}
+        min={0.3}
+        max={1}
+        step={0.05}
+        format={(v) => `${v.toFixed(2)} m²`}
+        onChange={(v) => editor.setThreshold("m2PerDancer", v)}
+      />
+      <Slider
+        label="Guests dancing at once"
+        value={Math.round(t.dancingShare * 100)}
+        min={10}
+        max={80}
+        step={5}
+        format={(v) => `${v}%`}
+        onChange={(v) => editor.setThreshold("dancingShare", v / 100)}
+      />
+      <p className={`effect ${canDance >= expected ? "ok" : ""}`}>
+        <span className="dot" aria-hidden="true" />
+        {canDance >= expected
+          ? "The dance area fits, with room to spare"
+          : `Room for ≈ ${canDance} of the ≈ ${expected} expected dancers`}
+      </p>
       <p className="hint">Checks are approximate aids, not code or capacity compliance.</p>
     </div>
   );
 }
 
 /** The library section last chosen, kept while the app is open (the panel remounts often). */
-let lastCategory: Family = "table";
+let lastCategory: Family | "yours" = "table";
 
-/** Library sections, in the order a couple plans a room. */
-const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
+/** Opens the library at "Yours" next time it shows (a custom model request starts there). */
+export function showYours() {
+  lastCategory = "yours";
+}
+
+/** Library sections, in the order a couple plans a room; "Yours" holds imports and requests. */
+const LIBRARY_CATEGORIES: { id: Family | "yours"; name: string }[] = [
   { id: "table", name: "Tables" },
   { id: "eventPiece", name: "Event" },
   { id: "floral", name: "Florals" },
@@ -426,16 +550,26 @@ const LIBRARY_CATEGORIES: { id: Family; name: string }[] = [
   { id: "light", name: "Lights" },
   { id: "sign", name: "Signs" },
   { id: "chair", name: "Lounge" },
+  { id: "yours", name: "Yours" },
 ];
 
-export function LayoutPanel() {
+/**
+ * Add (LAY-01): the one library of placeable things, by category; "Yours" shows the couple's own
+ * imports and requests, drawn by `yours` under the same title and categories.
+ */
+export function AddPanel({
+  onAdded,
+  yours,
+}: {
+  onAdded: () => void;
+  yours: (head: React.ReactNode) => React.ReactNode;
+}) {
   const { catalog, editor } = useStudio();
-  const snapping = useEditor((s) => s.snapping);
   const placeable = useMemo(
     () =>
       [...catalog.values()].filter(
         // Table chairs are a décor choice; lounge seating is placed like any piece.
-        // Photo templates need a photo (Inspiration); removed imports stay out of the lists.
+        // Photo templates need a photo (Yours); removed imports stay out of the lists.
         (e) =>
           e.placement !== "table" &&
           e.placement !== "material" &&
@@ -445,43 +579,51 @@ export function LayoutPanel() {
       ),
     [catalog],
   );
-  const [category, setCategory] = useState<Family>(lastCategory);
-  const shown = placeable.filter((e) => e.family === category);
-  return (
-    <div className="panel-body" data-testid="layout-panel">
-      <h2 className="panel-title">Layout</h2>
-      <Checks />
-      <h3 className="group-title">Add to the room</h3>
+  const [category, setCategory] = useState(lastCategory);
+  const head = (
+    <>
+      <PageHead title="Add" />
       <Chips
         label="Library"
-        options={LIBRARY_CATEGORIES.filter((c) => placeable.some((e) => e.family === c.id))}
+        options={LIBRARY_CATEGORIES.filter(
+          (c) => c.id === "yours" || placeable.some((e) => e.family === c.id),
+        )}
         value={category}
-        onPick={(id) => setCategory((lastCategory = id as Family))}
+        onPick={(id) => setCategory((lastCategory = id as Family | "yours"))}
         testId="category"
         wrap
       />
+    </>
+  );
+  if (category === "yours") return yours(head);
+  return (
+    <div className="panel-body" data-testid="layout-panel">
+      {head}
       <ul className="library" aria-label="Library">
-        {shown.map((e) => (
-          <li key={e.id}>
-            <button
-              type="button"
-              className="library-item"
-              onClick={() => editor.addItem(e.id, viewStore.getState().focus)}
-              data-testid={`add-${e.id}`}
-            >
-              <Thumb entry={e} />
-              <span className="library-text">
-                <span className="library-name">{e.name}</span>
-                <span className="library-caption">
-                  {e.imported && <ResultBadge entry={e} />} {caption(e, catalog)}
+        {placeable
+          .filter((e) => e.family === category)
+          .map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                className="library-item"
+                onClick={() => {
+                  if (editor.addItem(e.id, viewStore.getState().focus)) onAdded();
+                }}
+                data-testid={`add-${e.id}`}
+              >
+                <Thumb entry={e} />
+                <span className="library-text">
+                  <span className="library-name">{e.name}</span>
+                  <span className="library-caption">
+                    {e.imported && <ResultBadge entry={e} />} {caption(e, catalog)}
+                  </span>
                 </span>
-              </span>
-              <Icon name="plus" size={16} className="library-add" />
-            </button>
-          </li>
-        ))}
+                <Icon name="plus" size={16} className="library-add" />
+              </button>
+            </li>
+          ))}
       </ul>
-      <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
       <p className="hint">
         {touch ? "Press and hold an item, then drag it." : "Drag an item to move it."} Sizes are approximate.
       </p>
@@ -618,7 +760,7 @@ export function DecorPanel() {
   const labels = tableLabels(scenario.items, catalog);
   return (
     <div className="panel-body" data-testid="decor-panel">
-      <h2 className="panel-title">Décor</h2>
+      <h2 className="panel-title">Style</h2>
       {tables.length > 0 ? (
         <Segmented
           label="Apply to"
@@ -887,181 +1029,6 @@ export function PeoplePanel() {
   );
 }
 
-/** Notes on the active scenario, signed Partner A or B (SCN-05): how the couple discusses a plan. */
-function Notes() {
-  const { editor } = useStudio();
-  const { cloud } = useServices();
-  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
-  const [draft, setDraft] = useState("");
-  const author = cloud.partner;
-  const send = () => {
-    if (!author) return;
-    editor.addNote(draft, author);
-    setDraft("");
-  };
-  return (
-    <div className="field" data-testid="notes">
-      <h3 className="group-title">Notes on {scenario.name}</h3>
-      {scenario.notes.length === 0 ? (
-        <p className="hint">No notes yet. Leave one for your partner.</p>
-      ) : (
-        <ul className="notes">
-          {scenario.notes.map((n) => (
-            <li key={n.id} className="note">
-              <span className="avatar" aria-hidden="true">
-                {n.author}
-              </span>
-              <div>
-                <b>Partner {n.author}</b>{" "}
-                <span className="note-time">
-                  {new Date(n.at).toLocaleString("en-CA", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
-                <p>{n.text}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      {author ? (
-        <p className="hint">
-          Signed as Partner {author} ·{" "}
-          <button
-            type="button"
-            className="link-btn"
-            onClick={() => cloud.choosePartner(author === "A" ? "B" : "A")}
-          >
-            I’m Partner {author === "A" ? "B" : "A"}
-          </button>
-        </p>
-      ) : (
-        <div className="actions-row" aria-label="Sign notes as">
-          {(["A", "B"] as const).map((p) => (
-            <button key={p} type="button" className="btn" onClick={() => cloud.choosePartner(p)}>
-              I’m Partner {p}
-            </button>
-          ))}
-        </div>
-      )}
-      <form
-        className="note-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-      >
-        <label className="sr-only" htmlFor="note-input">
-          Add a note
-        </label>
-        <input
-          id="note-input"
-          className="text-input wide"
-          placeholder={author ? `Write a note as Partner ${author}` : "Choose who you are first"}
-          disabled={!author}
-          value={draft}
-          maxLength={2000}
-          onChange={(e) => setDraft(e.currentTarget.value)}
-          data-testid="note-input"
-        />
-        <button type="submit" className="btn" disabled={!draft.trim()}>
-          Add
-        </button>
-      </form>
-    </div>
-  );
-}
-
-/** Pick a second scenario to see beside this one, from the same camera, with both sets of counts (SCN-06). */
-function CompareControls() {
-  const { catalog, venue, editor } = useStudio();
-  const order = useEditor((s) => s.order);
-  const activeId = useEditor((s) => s.activeId);
-  const scenarios = useEditor((s) => s.scenarios);
-  const st = { order, activeId, scenarios };
-  const compare = useView((s) => s.compare);
-  const others = st.order.filter((id) => id !== st.activeId);
-  const pair = [st.scenarios[st.activeId], compare ? st.scenarios[compare] : undefined].filter(
-    (s): s is Scenario => !!s,
-  );
-  const rows = pair.map((s) => {
-    const c = countLayout(s.items, s.guests.count, catalog);
-    const notes = adviseScenario(s, venue, catalog).length;
-    return [c.tables, c.seats, c.withoutSeat, `≈ ${Math.round(c.danceFloorM2)} m²`, notes] as const;
-  });
-  const labels = ["Tables", "Seats", "Without a seat", "Dance area", "Advisories"];
-  if (others.length === 0)
-    return (
-      <div className="field">
-        <p className="hint">Compare needs a second scenario: start one from a copy of this one.</p>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => {
-            const from = st.activeId;
-            editor.duplicateScenario(from);
-            viewStore.setState({ compare: from });
-          }}
-          data-testid="compare-duplicate"
-        >
-          Duplicate this scenario
-        </button>
-      </div>
-    );
-  return (
-    <div className="field">
-      <Chips
-        label="Compare with"
-        options={[
-          { id: "none", name: "Off" },
-          ...others.map((id) => ({ id, name: st.scenarios[id]?.name ?? id })),
-        ]}
-        value={compare ?? "none"}
-        onPick={(id) => viewStore.setState({ compare: id === "none" ? null : id })}
-        testId="compare"
-      />
-      {pair.length === 2 && (
-        <table className="compare-table" data-testid="compare-table">
-          <thead>
-            <tr>
-              <th />
-              <th scope="col">This one</th>
-              <th scope="col">Other</th>
-            </tr>
-          </thead>
-          <tbody>
-            {labels.map((l, i) => {
-              const differs = rows[0]?.[i] !== rows[1]?.[i];
-              return (
-                <tr key={l} className={differs ? "differs" : ""}>
-                  <th scope="row">{l}</th>
-                  {rows.map((r, j) => (
-                    <td key={j}>{r[i]}</td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-/** Compare (SCN-06) and notes (SCN-05). */
-export function ComparePanel() {
-  return (
-    <div className="panel-body" data-testid="compare-panel">
-      <h2 className="panel-title">Compare and discuss</h2>
-      <CompareControls />
-      <Notes />
-    </div>
-  );
-}
-
 /** "None" and "Hidden" swatches: a diagonal stroke, never a colour that could pass for white. */
 const NONE_SWATCH = "linear-gradient(135deg, transparent 46%, var(--line-2) 46% 54%, transparent 54%)";
 
@@ -1076,43 +1043,79 @@ const VIEWS: { key: string; label: string; detail: string }[] = [
   { key: "UV02", label: "Toward the kitchen", detail: "Dance area side and the stair" },
 ];
 
-export function VenuePanel() {
+/** Room (VEN-05, LAY-05, LAY-08, LAY-12): views, the restaurant's own furniture and art, the layout rules. */
+export function RoomPanel({ open }: { open: (page: "rules" | "paintings") => void }) {
   const { editor, venue } = useStudio();
-  const toggles = useEditor((s) => s.scenarios[s.activeId]?.venueToggles);
+  const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
+  const snapping = useEditor((s) => s.snapping);
+  const { front, side } = venue.data.fixtures.venueFurniture.barStools;
+  const changed = Object.keys(scenario.venueToggles.paintings).length;
+  const t = scenario.thresholds;
   return (
     <div className="panel-body" data-testid="venue-panel">
-      <h2 className="panel-title">Venue</h2>
+      <PageHead title="Room" />
       <h3 className="group-title">Views</h3>
-      <ul className="library" aria-label="Views">
+      <div className="view-grid" aria-label="Views">
         {VIEWS.map((v) => (
-          <li key={v.key}>
-            <button
-              type="button"
-              className="library-item"
-              onClick={() => {
-                editor.setCamera("dollhouse");
-                requestAnimationFrame(() => requestCamera(v.key));
-              }}
-            >
-              <span className="library-icon">
-                <Icon name="camera" />
-              </span>
-              <span className="library-text">
-                <span className="library-name">{v.label}</span>
-                <span className="library-caption">{v.detail}</span>
-              </span>
-            </button>
-          </li>
+          <button
+            key={v.key}
+            type="button"
+            className="view-tile"
+            title={v.detail}
+            onClick={() => {
+              editor.setCamera("dollhouse");
+              requestAnimationFrame(() => requestCamera(v.key));
+            }}
+          >
+            <span className="view-icon">
+              <Icon name="camera" size={18} />
+            </span>
+            {v.label}
+          </button>
         ))}
-      </ul>
-      <h3 className="group-title">Restaurant furniture</h3>
-      <Toggle
-        label="Bar stools"
-        checked={toggles?.barStools ?? false}
-        onChange={(v) => editor.setVenueToggle("barStools", v)}
-        testId="toggle-stools"
-      />
-      <h3 className="group-title">Paintings</h3>
+      </div>
+      <h3 className="group-title">Restaurant</h3>
+      <div className="list">
+        <Toggle
+          label="Bar stools"
+          sub={`${front} at the front · ${side} on each side`}
+          checked={scenario.venueToggles.barStools}
+          onChange={(v) => editor.setVenueToggle("barStools", v)}
+          testId="toggle-stools"
+        />
+        <NavRow
+          label="Paintings"
+          value={changed ? `${changed} changed` : "Current art"}
+          onClick={() => open("paintings")}
+          testId="room-paintings"
+        />
+      </div>
+      <h3 className="group-title">Layout</h3>
+      <div className="list">
+        <NavRow
+          label="Layout rules"
+          sub="When a check appears"
+          value={`Aisle ${metres(t.aisleM)} · doors ${metres(t.clearanceM)}`}
+          onClick={() => open("rules")}
+          testId="room-rules"
+        />
+        <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
+      </div>
+      <p className="hint">
+        Main restaurant floor only. Room ≈ {venue.width} × {venue.depth} m, estimated from photos; every size
+        is approximate.
+      </p>
+    </div>
+  );
+}
+
+/** Room › Paintings (VEN-05): keep, swap or hide each painting. */
+export function PaintingsPage({ onBack }: { onBack: () => void }) {
+  const { editor, venue } = useStudio();
+  const choices = useEditor((s) => s.scenarios[s.activeId]?.venueToggles.paintings ?? {});
+  return (
+    <div className="panel-body" data-testid="paintings">
+      <PageHead title="Paintings" back="Room" onBack={onBack} />
       {venue.data.fixtures.paintings.map((p) => (
         <Swatches
           key={p.id}
@@ -1120,21 +1123,13 @@ export function VenuePanel() {
           options={[
             { id: "current", name: "Current", colour: palette(p.palette) },
             ...ARTWORKS.map((a) => ({ id: a.id, name: a.name, colour: palette(a.palette) })),
-            {
-              id: "hidden",
-              name: "Hidden",
-              colour: NONE_SWATCH,
-            },
+            { id: "hidden", name: "Hidden", colour: NONE_SWATCH },
           ]}
-          value={toggles?.paintings[p.id] ?? "current"}
+          value={choices[p.id] ?? "current"}
           onPick={(id) => editor.setPainting(p.id, id === "current" ? null : id)}
           testId={`painting-${p.id}`}
         />
       ))}
-      <p className="hint">
-        Main restaurant floor only. Room ≈ {venue.width} × {venue.depth} m, estimated from photos; every size
-        is approximate.
-      </p>
     </div>
   );
 }
@@ -1268,7 +1263,67 @@ function sizeOf(shape: Shape): string | null {
   }
 }
 
-export function Inspector() {
+/**
+ * What to do with the selection (LAY-02, CAM-04), one tap each: a toolbar beside it on desktop, a row
+ * of large buttons at the top of the phone sheet (DESIGN_GUIDE §4).
+ */
+export function SelectionActions({
+  ids,
+  locked,
+  sitHere,
+  onStyle,
+  onDetails,
+}: {
+  ids: string[];
+  locked: boolean;
+  /** The table to choose a seat at, when the selection is one seated table. */
+  sitHere: string | null;
+  onStyle?: (() => void) | null;
+  onDetails?: () => void;
+}) {
+  const { editor } = useStudio();
+  const action = (icon: IconName, label: string, run: () => void, testId: string, danger = false) => (
+    <button type="button" className={`action ${danger ? "danger" : ""}`} onClick={run} data-testid={testId}>
+      <Icon name={icon} size={18} />
+      <span>{label}</span>
+    </button>
+  );
+  return (
+    <div className="actions-bar" role="group" aria-label="Actions">
+      {!locked && action("rotateRight", "Rotate", () => editor.rotateItems(ids, -Math.PI / 2), "rotate-90")}
+      {!locked && action("copy", "Duplicate", () => editor.duplicateSelection(), "duplicate")}
+      {sitHere &&
+        action(
+          "seat",
+          "Sit here",
+          () => {
+            // The selection clears, so every chair of the table is free to choose.
+            editor.select([]);
+            viewStore.setState({ pickSeat: sitHere });
+          },
+          "sit-here",
+        )}
+      {onStyle && action("decor", "Style", onStyle, "style-selection")}
+      {onDetails && action("sliders", "Details", onDetails, "details")}
+      {action("trash", "Delete", () => editor.deleteSelection(), "delete", true)}
+    </div>
+  );
+}
+
+/**
+ * The selection's details (LAY-02, LAY-03, CAM-04, REQ-01). Desktop: a page inside the current
+ * section, opened from the selection toolbar, with a way back (DESIGN_GUIDE §3.1). Phone: the sheet
+ * for the selection, its actions first so the peek height shows them (§3.2).
+ */
+export function Inspector({
+  back,
+  phone,
+  onStyle,
+}: {
+  back?: { label: string; onBack: () => void };
+  phone: boolean;
+  onStyle: () => void;
+}) {
   const { editor, catalog, venue } = useStudio();
   const selection = useEditor((s) => s.selection);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
@@ -1323,77 +1378,54 @@ export function Inspector() {
 
   const mine = advisories.filter((a) => a.items.some((id) => ids.includes(id)));
 
-  // Key actions sit right under the title so the phone sheet's peek height shows them (DESIGN_GUIDE §3.2).
+  const title =
+    items.length === 2 && items[0] && items[1]
+      ? `${itemTitle(items[0], labels, catalog)} and ${itemTitle(items[1], labels, catalog).replace(/^Table /, "table ")}`
+      : many
+        ? `${items.length} items`
+        : itemTitle(item, labels, catalog);
+  const seated = !many && "seats" in shape && shape.seats > 0;
   return (
     <div className="panel-body" data-testid="inspector">
-      <div className="panel-head">
-        <h2 className="panel-title">
-          {items.length === 2 && items[0] && items[1]
-            ? `${itemTitle(items[0], labels, catalog)} and ${itemTitle(items[1], labels, catalog).replace(/^Table /, "table ")}`
-            : many
-              ? `${items.length} items`
-              : itemTitle(item, labels, catalog)}{" "}
-          {!many && entry && <ResultBadge entry={entry} />}
-        </h2>
-        <button type="button" className="plain-btn" onClick={() => editor.select([])}>
-          Done
-        </button>
-      </div>
-      <div className="actions-row" role="group" aria-label="Actions">
-        {!locked && (
+      <PageHead
+        title={
           <>
-            <span className="rotate-group" role="group" aria-label="Rotate (clockwise is +)">
-              <button type="button" className="btn" onClick={() => editor.rotateItems(ids, ROTATE_STEP)}>
-                −15°
-              </button>
-              <button type="button" className="btn" onClick={() => editor.rotateItems(ids, -ROTATE_STEP)}>
-                +15°
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => editor.rotateItems(ids, -Math.PI / 2)}
-                data-testid="rotate-90"
-              >
-                90°
-              </button>
-            </span>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => editor.duplicateSelection()}
-              title="Duplicate (⌘D)"
-              data-testid="duplicate"
-            >
-              Duplicate
-            </button>
+            {title}
+            {phone && seated && (
+              <span className="title-sub"> · {"seats" in shape ? shape.seats : 0} seats</span>
+            )}{" "}
+            {!many && entry && <ResultBadge entry={entry} />}
           </>
-        )}
-        {!many && "seats" in shape && shape.seats > 0 && (
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              // The inspector closes, so every chair of the table is free to choose.
-              editor.select([]);
-              viewStore.setState({ pickSeat: item.id });
-            }}
-            data-testid="sit-here"
-          >
-            Sit here
+        }
+        back={back?.label}
+        onBack={back?.onBack}
+        action={
+          <button type="button" className="plain-btn" onClick={() => editor.select([])}>
+            Done
           </button>
-        )}
-        <button
-          type="button"
-          className="btn icon-only"
-          onClick={() => editor.deleteSelection()}
-          title="Delete (⌫)"
-          aria-label="Delete"
-          data-testid="delete"
-        >
-          <Icon name="trash" size={18} />
-        </button>
-      </div>
+        }
+      />
+      {phone && (
+        <SelectionActions
+          ids={ids}
+          locked={locked}
+          sitHere={seated ? item.id : null}
+          onStyle={isTable(item, catalog) ? onStyle : null}
+        />
+      )}
+      {!locked && (
+        <div className="row">
+          <span className="row-label">Turn</span>
+          <span className="rotate-group" role="group" aria-label="Turn (clockwise is +)">
+            <button type="button" className="btn" onClick={() => editor.rotateItems(ids, ROTATE_STEP)}>
+              −15°
+            </button>
+            <button type="button" className="btn" onClick={() => editor.rotateItems(ids, -ROTATE_STEP)}>
+              +15°
+            </button>
+          </span>
+        </div>
+      )}
       {mine.map((a) => (
         <p key={a.id} className="advice" data-testid="item-advisory">
           {a.message} (advisory)
@@ -1411,12 +1443,17 @@ export function Inspector() {
           {touch ? "" : " Arrow keys nudge 10 cm."}
         </p>
       )}
+      {!phone && isTable(item, catalog) && (
+        <div className="list">
+          <NavRow label="Style this table" onClick={onStyle} testId="style-table" />
+        </div>
+      )}
       {!many && entry && (
         <button
           type="button"
           className="plain-btn inspector-foot"
           onClick={() => {
-            // The form opens in Inspiration, where requests are listed (REQ-01).
+            // The form opens in Add › Yours, where requests are listed (REQ-01).
             editor.select([]);
             viewStore.setState({ requestFor: entry.id });
           }}

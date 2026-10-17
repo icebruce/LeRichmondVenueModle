@@ -63,7 +63,7 @@
 
   --target: 44px;
   /* Desktop section rail width (DESIGN_GUIDE §3.1). */
-  --rail-w: 72px;
+  --rail-w: 76px;
 }
 
 @media (prefers-reduced-motion: reduce) {

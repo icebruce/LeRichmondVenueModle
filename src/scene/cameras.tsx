@@ -42,6 +42,42 @@ function FollowCamera() {
   return null;
 }
 
+/** Space kept between the framed room and whatever borders the free area (px, `--s-5`). */
+const FIT_MARGIN = 24;
+
+/**
+ * How far to scale a pose's distance from its target so that every point lands inside the central
+ * `fx` × `fy` share of the view (the free area, in normalised device units).
+ */
+function fitScale(
+  pose: Pose,
+  fov: number,
+  aspect: number,
+  fx: number,
+  fy: number,
+  points: readonly THREE.Vector3[],
+): number {
+  const cam = new THREE.PerspectiveCamera(fov, aspect, 0.1, 500);
+  const dir = pose.position.clone().sub(pose.target);
+  const p = new THREE.Vector3();
+  const fits = (k: number) => {
+    cam.position.copy(dir).multiplyScalar(k).add(pose.target);
+    cam.lookAt(pose.target);
+    cam.updateMatrixWorld();
+    return points.every((q) => {
+      p.copy(q).project(cam);
+      return Math.abs(p.z) < 1 && Math.abs(p.x) <= fx && Math.abs(p.y) <= fy;
+    });
+  };
+  let [lo, hi] = [0.3, 6];
+  for (let i = 0; i < 24; i++) {
+    const k = (lo + hi) / 2;
+    if (fits(k)) hi = k;
+    else lo = k;
+  }
+  return hi;
+}
+
 export function CameraRig({ follow = false }: { follow?: boolean }) {
   if (follow) return <FollowCamera />;
   return <MainCamera />;
@@ -52,15 +88,26 @@ function MainCamera() {
   const mode = useEditor((s) => s.camera);
   const controlsEnabled = useView((s) => s.controlsEnabled);
   const view = useView((s) => s.view);
+  const insetLeft = useView((s) => s.insetLeft);
+  const insetBottom = useView((s) => s.insetBottom);
   const insetRight = useView((s) => s.insetRight);
   const insetTop = useView((s) => s.insetTop);
-  const insetBottom = useView((s) => s.insetBottom);
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
   const controls = useRef<OrbitImpl>(null);
   const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
   const presets = venue.data.cameraPresets;
+  // The room to frame, walls included: the back (north and west) walls rise to the ceiling in the
+  // cut-away view, the others are cut at the mezzanine's height.
+  const roomCorners = useMemo(() => {
+    const t = 0.35;
+    return [-t, venue.width + t].flatMap((x) =>
+      [-t, venue.depth + t].flatMap((z) =>
+        [0, x < 0 || z < 0 ? venue.ceiling : venue.mezzanineHeight].map((y) => new THREE.Vector3(x, y, z)),
+      ),
+    );
+  }, [venue]);
 
   const poses = useMemo(() => {
     const get = (k: string) => {
@@ -87,15 +134,16 @@ function MainCamera() {
           target: new THREE.Vector3(seat.look[0], seat.y + SEAT_EYE - 0.35, seat.look[1]),
         }
       : presetPose(p);
-    // Narrow screens, or a panel covering the right side: pull overview cameras back so the room fits.
-    const flat = mode === "walk" || comparing;
-    const visible = flat ? size.width : size.width - insetRight;
-    // Phone: fit the band between the top bar and the sheet, not the whole screen.
-    const band = flat ? size.height : size.height - insetTop - insetBottom;
-    const aspect = visible / Math.max(1, band);
-    if ((key === "dollhouse" || key === "plan") && aspect < 1.3) {
-      const k = Math.pow(1.3 / aspect, aspect < 0.8 ? 1 : 0.85);
-      to.position.sub(to.target).multiplyScalar(k).add(to.target);
+    // Overview cameras pull back until the room fits the free area: beside the desktop panel, or
+    // above a phone's sheet and clear of its control column. They never come closer than the preset.
+    if (key === "dollhouse" || key === "plan") {
+      // The canvas keeps the preset's field of view; the view offset centres it on the free area.
+      const w = Math.max(1, size.width);
+      const h = Math.max(1, size.height);
+      const freeW = comparing ? w : w - insetLeft - 2 * insetRight - 2 * FIT_MARGIN;
+      const freeH = comparing ? h : h - insetTop - insetBottom - 2 * FIT_MARGIN;
+      const k = fitScale(to, p.fov, w / h, freeW / w, freeH / h, roomCorners);
+      to.position.sub(to.target).multiplyScalar(Math.max(1, k)).add(to.target);
     }
     tween.current = {
       from: { position: camera.position.clone(), target: target.clone() },
@@ -109,7 +157,7 @@ function MainCamera() {
   // change of the free area (a compare half settling, a phone sheet height) re-fits the room too,
   // unless the couple has moved the view since: their view is never thrown away.
   const pane = comparing ? `${size.width}x${size.height}` : "";
-  const band = comparing ? "" : `${insetTop}:${insetBottom}`;
+  const band = comparing ? "" : `${insetLeft}:${insetTop}:${insetBottom}:${insetRight}`;
   const userMoved = useRef(false);
   const framed = useRef({ mode, comparing });
   useEffect(() => {
@@ -175,20 +223,21 @@ function MainCamera() {
   );
 
   // Frame the room in the part of the screen the interface leaves free (DESIGN_GUIDE §3.1, §3.2):
-  // shift the principal point by half the covered width (desktop panel) and height (phone top bar
-  // and sheet), easing as they change. Zoom compensates so the room keeps its size on screen.
+  // shift the principal point by half the covered width (desktop rail and panel, on the left) and
+  // height (phone top bar and sheet), easing as they change. Zoom compensates so the room keeps its
+  // size on screen.
   const inset = useRef({ x: 0, y: 0 });
   useFrame((_, dt) => {
     const walk = mode === "walk";
     // Side by side, the halves already sit beside the interface and frame alike.
     const flat = walk || comparing;
-    const want = { x: flat ? 0 : insetRight, y: flat ? 0 : insetBottom - insetTop };
+    const want = { x: flat ? 0 : -insetLeft, y: flat ? 0 : insetBottom - insetTop };
     const ease = (from: number, to: number) =>
       Math.abs(to - from) < 0.5 ? to : from + (to - from) * Math.min(1, dt * 10);
     const next = { x: ease(inset.current.x, want.x), y: ease(inset.current.y, want.y) };
     const w = size.width;
     const h = Math.max(1, size.height);
-    const fullW = w + next.x;
+    const fullW = w + Math.abs(next.x);
     const fullH = h + Math.abs(next.y);
     const aspect = fullW / fullH;
     const offset = next.x !== 0 || next.y !== 0;
@@ -197,7 +246,7 @@ function MainCamera() {
     inset.current = next;
     camera.aspect = aspect;
     camera.zoom = h / fullH;
-    if (offset) camera.setViewOffset(fullW, fullH, next.x, next.y > 0 ? next.y : 0, w, h);
+    if (offset) camera.setViewOffset(fullW, fullH, next.x > 0 ? next.x : 0, next.y > 0 ? next.y : 0, w, h);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
   });

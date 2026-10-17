@@ -1,5 +1,5 @@
 import { type Browser, type Page, expect, test } from "@playwright/test";
-import { importPhoto, settle } from "./helpers";
+import { importPhoto, openSection, openYours, settle } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -30,7 +30,9 @@ async function signIn(browser: Browser, partner: "A" | "B") {
   });
   await expect(page.locator(".loading")).toHaveCount(0, { timeout: 120_000 });
   await settle(page);
-  await expect(page.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
+  await expect(page.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved · shared", {
+    timeout: 20_000,
+  });
   return page;
 }
 
@@ -57,11 +59,13 @@ test("[SCN-02] [SCN-05] a change and a note on the laptop appear on the phone af
       ).__studio.editor.setGuests(n),
     88,
   );
-  await a.getByTestId("section-compare").click();
+  await openSection(a, "plans");
   await a.getByTestId("note-input").fill("Long tables feel fuller.");
-  await a.getByRole("button", { name: "Add" }).click();
+  await a.getByTestId("notes").getByRole("button", { name: "Add" }).click();
   await expect(a.getByTestId("notes")).toContainText("Partner A");
-  await expect(a.getByTestId("save-state")).toHaveText("Saved · shared", { timeout: 20_000 });
+  await expect(a.getByTestId("save-state")).toHaveAttribute("aria-label", "Saved · shared", {
+    timeout: 20_000,
+  });
   await a.waitForTimeout(2500);
   await a.context().close();
   const b = await signIn(browser, "B");
@@ -115,7 +119,7 @@ test("[SCN-04] version history lists earlier saves and restores one", async ({ b
     ).__studio.editor.renameScenario("Round tables"),
   );
   await a.waitForTimeout(3000);
-  await a.getByTestId("scenario-menu").click();
+  await openSection(a, "plans");
   await a.getByTestId("history").click();
   await expect(a.getByTestId("versions").locator("li").first()).toBeVisible();
   await a.getByTestId("versions").getByRole("button", { name: "Restore" }).first().click();
@@ -137,7 +141,7 @@ test("[IMP-06] [REQ-01] an imported item and a custom model request on the lapto
   await a.waitForTimeout(2500);
   await a.context().close();
   const b = await signIn(browser, "B");
-  await b.getByTestId("section-inspiration").click();
+  await openYours(b);
   const panel = b.getByTestId("inspiration-panel");
   await expect(panel).toContainText("Ceremony sign", { timeout: 20_000 });
   await expect(panel).toContainText("Photo preview");

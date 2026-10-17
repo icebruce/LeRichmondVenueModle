@@ -80,20 +80,28 @@ One icon set (Lucide, 1.75 px stroke, 20 px in controls). Every interactive targ
 
 ### 3.1 Desktop (≥ 1024 px)
 
-- **Left rail (72 px):** Venue, Layout, People, Décor, Inspiration, Compare. Icon + label. Active section in accent.
-- **Viewport:** fills the rest. Floating glass controls on top: camera switch (Dollhouse / Plan / Walk) top-centre; scenario name + save state top-left; Undo / Redo / Evening–Day top-right; counts strip bottom-left.
-- **Inspector (340 px, right):** appears only with a selection or when a rail section needs controls; slides in over the viewport edge (`--m-base`).
+Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Opt1-Rail`).
+
+- **Left rail (76 px):** Room, Add, Style, Guests, Plans. Icon + label; the open section in accent. Clicking the open section folds the panel away; any section brings it back.
+- **Panel (left, beside the rail):** 400 px by default, resizable 360–520 px by its edge grip (arrow keys too; remembered on the device), collapsible from its header. A section shows its own page; deeper pages (Room › Layout rules, Room › Paintings, a selection's Details) open inside it with a "‹ Section" back link. Choosing another section always shows that section.
+- **Toolbar (one row over the room):** the plan's name, small, with its save state (opens Plans); Dollhouse / Plan / Walk and Reset view centred over the room; Undo, Redo and the light (moon / sun) on the right. Every control 44 pt.
+- **Counts:** bottom-right strip; "N checks" opens the checks popover above it, with "Adjust layout rules".
+- **Selection:** a floating glass toolbar just above the item (name, seats; Rotate, Duplicate, Sit here, Details, Delete). Details opens the inspector in the panel. Adding a piece selects it and keeps the library open for the next one. Hidden while comparing.
+- The camera frames the room in the space right of the panel and below the toolbar; toasts, banners and hints centre in that space. When that space is narrow the cameras show icons only.
+- The browser's Back keeps its usual meaning on desktop; in-app layers close with their own controls or Escape.
 
 ### 3.2 Phone (< 768 px)
 
-- Full-screen viewport. Bottom tab bar with the same six sections (icons + short labels).
-- **Bottom sheet** replaces the inspector: three detents (peek 164 pt: counts line, title and the key actions; half; full — owner-approved 2026-10-16). Swipe down to dismiss.
-- Camera switch as a segmented control at the top; Undo floating bottom-left above the tab bar.
+- Full-screen viewport. Bottom tab bar with the same five sections. No plan name on screen (it lives in Plans).
+- **Top right:** a stack with the camera (opens a menu of Dollhouse / Plan / Walk), the light and Reset view; Undo / Redo in a second stack under it.
+- **Bottom sheet** with three detents (peek 164 pt: one counts line, title and the key actions — owner-approved 2026-10-16; the phone counts line leaves the dance area to Room › Layout rules so it stays on one line; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two; swipe up steps it up. Content pulls the sheet down only from its very top.
+- **Back:** the system back gesture closes the top layer (checks, a page, the selection, the sheet) and never leaves the app. No pull-to-refresh.
+- Adding a piece drops the sheet to its peek with the piece selected; a selection shows its actions first.
 - Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item.
 
 ### 3.3 Tablet (768–1023 px)
 
-Desktop layout with the inspector as an overlay sheet from the right.
+Desktop layout at 768–1023 px too: the panel folds away (its section button or its header) to give the room the full width, and the cameras show icons only.
 
 ## 4. Components
 
@@ -104,8 +112,11 @@ Desktop layout with the inspector as an overlay sheet from the right.
 | Swatch | 32 pt circle in a 44 pt target; selected = 2 pt accent ring with 3 pt offset; name below on hover/long-press. |
 | Stepper + figure | For counts (seats, guests): large tabular figure, −/+ buttons, drag on the figure to scrub. |
 | Slider | Only for continuous values (dance area size, thresholds); always shows the value and unit. |
-| Toast | Bottom-centre, 4 s, one at a time; always carries Undo after a destructive action. |
+| Toast | Bottom-centre of the free room area (above the counts on desktop, above the sheet or the walk pad on phones), clear of every floating control; as wide as its text up to the screen less 16 pt a side. 4 s, one at a time; always carries Undo after a destructive action. |
 | Badge | Fidelity labels and "approx." markers: caption size, hairline outline, never colour-only. |
+| Grouped list | Rows of 52 pt in a hairline-bordered card: a label (with an optional line under it), its value and a chevron for rows that open a page; toggles sit in the same lists. Owner-approved 2026-10-17. |
+| Selection toolbar | Desktop: glass bar over the selected item, kept in the free area, with its name and icon + label actions (Rotate, Duplicate, Sit here, Details, Delete); Delete in `--blocked`. Phone: the actions as 60 pt tiles at the top of the sheet, with Style in place of Details (the sheet is the details). Owner-approved 2026-10-17. |
+| Checks popover | Desktop: a card above the counts listing the tightest three checks (Show all), each selecting its items, and "Adjust layout rules ›". Phone: the same list in the sheet. Owner-approved 2026-10-17. |
 | Empty state | One sentence, one primary action, no illustration clutter. |
 | Dialog | Only for choices with consequences that undo cannot cover (version conflict, `SCN-03`). |
 | Category chips | Library families above the item grid (Tables, Event, Florals, Plants, Lights, Signs, Lounge); one selected, remembered for the session. They wrap, so no category is ever hidden. Step 3a, owner-approved 2026-10-16. |

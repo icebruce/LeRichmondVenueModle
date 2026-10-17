@@ -21,15 +21,20 @@ export type ViewState = {
   controlsEnabled: boolean;
   /** Eye-level reference view being shown (VEN-01): full walls and ceiling, no cutaway. */
   view: string | null;
-  /** Pixels on the right covered by the desktop panel; the camera frames the room beside it. */
-  insetRight: number;
-  /** Phone: pixels covered by the top bar and by the tab bar plus bottom sheet. */
+  /** Pixels on the left covered by the desktop rail and panel; the camera frames the room beside them. */
+  insetLeft: number;
+  /** Desktop: pixels covered by the toolbar row; the overview frames the room below it. */
   insetTop: number;
+  /** Phone: pixels covered by the tab bar plus bottom sheet. */
   insetBottom: number;
+  /** Phone: the width of the control column on the right; the overview keeps the room clear of it. */
+  insetRight: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
   /** Scenario shown side by side with the active one, from the same camera (SCN-06). */
   compare: string | null;
+  /** Desktop: screen point (px) just above the selection, where its toolbar sits; null when hidden. */
+  anchor: [number, number] | null;
   /** Floor point at the centre of the current view, where new items are added. */
   focus: [number, number];
   /** Library item to start a custom model request from (REQ-01), opened in Inspiration. */
@@ -53,9 +58,11 @@ export const viewStore = createStore<ViewState>(() => ({
   hover: null,
   controlsEnabled: true,
   view: null,
-  insetRight: 0,
+  insetLeft: 0,
   insetTop: 0,
   insetBottom: 0,
+  insetRight: 0,
+  anchor: null,
   focus: [8, 7],
   showPeople: true,
   compare: null,

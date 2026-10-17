@@ -127,8 +127,7 @@ export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
   );
   const compare = useCompare(studio);
   // Side by side, the halves share the area the interface leaves free (DESIGN_GUIDE §3).
-  const insetRight = useView((s) => s.insetRight);
-  const insetTop = useView((s) => s.insetTop);
+  const insetLeft = useView((s) => s.insetLeft);
   const insetBottom = useView((s) => s.insetBottom);
   const activeId = useSyncExternalStore(
     studio.editor.store.subscribe,
@@ -147,11 +146,7 @@ export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
         <div className="studio">
           <div
             className={`viewport ${compare ? "split" : ""}`}
-            style={
-              compare
-                ? { top: insetTop, right: insetRight && insetRight + 12, bottom: insetBottom }
-                : undefined
-            }
+            style={compare ? { left: insetLeft, bottom: insetBottom } : undefined}
           >
             <div className="pane">
               <Studio3D studio={studio} />

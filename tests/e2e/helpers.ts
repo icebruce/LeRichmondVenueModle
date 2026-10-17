@@ -53,7 +53,22 @@ export async function openStudio(page: Page, query = "fresh") {
   await settle(page);
 }
 
+/** Opens a section (Room, Add, Style, Guests, Plans); its rail button closes it when already open. */
+export async function openSection(page: Page, id: "room" | "add" | "style" | "guests" | "plans") {
+  const tab = page.getByTestId(`section-${id}`);
+  if ((await tab.getAttribute("aria-pressed")) !== "true") await tab.click();
+}
+
+/** Add › Yours: imports, ready models and requests. */
+export async function openYours(page: Page) {
+  await openSection(page, "add");
+  await page.getByTestId("category-yours").click();
+}
+
 export async function setCamera(page: Page, mode: "dollhouse" | "plan" | "walk") {
+  // Phones pick the camera from a menu in the top-right stack.
+  const menu = page.getByTestId("camera-menu");
+  if (await menu.isVisible()) await menu.click();
   await page.getByTestId(`camera-${mode}`).click();
   await page
     .waitForFunction(() => (window as unknown as { __rig?: { tweening: boolean } }).__rig?.tweening, null, {
@@ -121,9 +136,7 @@ export async function importPhoto(
   page: Page,
   { colour, type, w, h, link }: { colour: string; type: string; w: number; h: number; link?: string },
 ) {
-  // The rail button closes an open panel, so open Inspiration only if it is not showing.
-  if (!(await page.getByTestId("add-inspiration").isVisible()))
-    await page.getByTestId("section-inspiration").click();
+  if (!(await page.getByTestId("add-inspiration").isVisible())) await openYours(page);
   await page.getByTestId("add-inspiration").click();
   if (link) await page.getByTestId("import-link").fill(link);
   await page.getByTestId("photo-file").setInputFiles(await photoFile(page, colour));

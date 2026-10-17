@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
   IMPORT_TYPES,
@@ -46,7 +46,7 @@ type Mode =
  * Inspiration (IMP-01..07, REQ-01..02): photos become library items, honestly labelled, and any
  * item can become a request for a custom model that Claude builds.
  */
-export function InspirationPanel() {
+export function InspirationPanel({ head }: { head: ReactNode }) {
   const { catalog } = useStudio();
   const { library, cloud } = useServices();
   const imports = useStore(libraryStore, (s) => s.imports);
@@ -85,14 +85,14 @@ export function InspirationPanel() {
   const shown = imports.filter((i) => !i.archived);
   return (
     <div className="panel-body" data-testid="inspiration-panel">
-      <h2 className="panel-title">Inspiration</h2>
+      {head}
       <button
         type="button"
         className="btn primary"
         onClick={() => setMode({ k: "add" })}
         data-testid="add-inspiration"
       >
-        <Icon name="plus" size={16} /> Add inspiration
+        <Icon name="camera" size={16} /> Add from a photo
       </button>
       <h3 className="group-title">Your items</h3>
       {shown.length ? (
@@ -240,7 +240,7 @@ function AddInspiration({ onDone }: { onDone: (id: string | null) => void }) {
     <div className="panel-body" data-testid="add-inspiration-panel">
       <div className="panel-head sticky-head">
         <button type="button" className="plain-btn" onClick={back} data-testid="import-back">
-          <Icon name="chevron" size={16} className="rot-right" /> {step === 1 ? "Cancel" : "Back"}
+          <Icon name="back" size={16} /> {step === 1 ? "Cancel" : "Back"}
         </button>
         <span className="hint">Step {step} of 4</span>
       </div>
@@ -736,7 +736,7 @@ function ItemDetail({
     <div className="panel-body" data-testid="imported-detail">
       <div className="panel-head">
         <button type="button" className="plain-btn" onClick={onBack} data-testid="detail-back">
-          <Icon name="chevron" size={16} className="rot-right" /> Inspiration
+          <Icon name="back" size={18} /> Yours
         </button>
       </div>
       <h2 className="panel-title">
@@ -875,7 +875,7 @@ function RequestForm({
     <div className="panel-body" data-testid="request-form">
       <div className="panel-head">
         <button type="button" className="plain-btn" onClick={onDone}>
-          <Icon name="chevron" size={16} className="rot-right" /> Inspiration
+          <Icon name="back" size={18} /> Yours
         </button>
       </div>
       <h2 className="panel-title">{isNew ? "Request a custom model" : r.name}</h2>

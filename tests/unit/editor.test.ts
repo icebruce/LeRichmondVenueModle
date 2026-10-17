@@ -26,6 +26,7 @@ describe("editing", () => {
     editor.deleteSelection();
     expect(editor.active().items.length).toBe(before - 1);
     expect(editor.store.getState().toast?.undo).toBeTypeOf("function");
+    expect(editor.store.getState().toast?.text).toBe("Table 1 deleted");
   });
 
   test("[LAY-04] a refused move leaves the layout unchanged and explains why", () => {
