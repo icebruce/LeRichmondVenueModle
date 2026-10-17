@@ -104,6 +104,7 @@ button:disabled {
 /* The plan's name, small: a way into Plans (DESIGN_GUIDE §3.1). */
 .plan-name {
   flex: 0 1 auto;
+  box-sizing: border-box;
   max-width: calc(50% - 190px);
   display: flex;
   align-items: center;
