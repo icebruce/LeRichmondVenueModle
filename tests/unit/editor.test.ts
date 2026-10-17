@@ -31,14 +31,14 @@ describe("editing", () => {
   test("[LAY-04] a refused move leaves the layout unchanged and explains why", () => {
     const { editor, item } = setup();
     expect(editor.moveItems([{ id: "t1", x: 7.7, z: 6 }])).toBe(false);
-    expect(item("t1").x).toBeCloseTo(2.8);
+    expect(item("t1").x).toBeCloseTo(3.32);
     expect(editor.store.getState().toast?.text).toBe("Overlaps the bar. Nothing was changed.");
   });
 
   test("[LAY-12] showing the bar stools where a table stands is refused, with a toast", () => {
     const { editor } = setup();
     const [x0, , x1, z1] = venue.data.bar.outer.value;
-    editor.addItem("table-rect", [(x0 + x1) / 2, z1 + 1.4], { seats: 4 });
+    editor.addItem("table-rect", [(x0 + x1) / 2, z1 + 1.1], { seats: 4 });
     expect(editor.setVenueToggle("barStools", true)).toBe(false);
     expect(editor.active().venueToggles.barStools).toBe(false);
     expect(editor.store.getState().toast?.text).toBe(
@@ -60,7 +60,7 @@ describe("editing", () => {
     const { editor, item } = setup();
     for (let i = 0; i < 60; i++) editor.moveItems([{ id: "t1", x: 2.8, z: i % 2 ? 2.3 : 2.4 }]);
     for (let i = 0; i < 60; i++) editor.undo();
-    expect(item("t1").z).toBeCloseTo(2.3);
+    expect(item("t1").z).toBeCloseTo(2.65);
     expect(editor.store.getState().canUndo).toBe(false);
     editor.redo();
     expect(item("t1").z).toBeCloseTo(2.4);

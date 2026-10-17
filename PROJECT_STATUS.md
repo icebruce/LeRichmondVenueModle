@@ -104,12 +104,12 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 ## Open items
 
-- Raised floor height and step positions; stair run and turn (evidence matrix §6).
+- Raised floor height; stair tread count and the second flight's run under the mezzanine; where the R04 green wall and EXIT are (evidence matrix §6).
 - Camera presets R01/UV01 are approximate; re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).
 - Upstash scripting (`EVAL` with `cjson`) is used for atomic saves; verify on the first real preview save after setup.
 - Main chandelier position (z) still unconfirmed.
-- Advisory checks on the venue sample plan (estimates): aisles between chair backs of 0.4–0.8 m in both rows at 8 per table (setting 1.0 m), and the DJ at option 1 within 1.2 m of the west exit door. Worth confirming spacing and the exit door position with the venue.
+- Advisory checks on the venue sample plan (estimates, 2026-10-17): the garage-door tables pass; the raised-floor tables have aisles of 0.4–0.8 m (setting 1.0 m), and the DJ at option 1 stands within 1.2 m of the glass doors. Worth confirming spacing with the venue.
 - Venue: table sizes for 8–14 seats.
 - Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).

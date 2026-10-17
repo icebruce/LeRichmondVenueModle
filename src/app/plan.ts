@@ -122,14 +122,8 @@ export function drawPlan(
   text("Bar", ...P([(bx0 + bx1) / 2, (bz0 + bz1) / 2]), `600 18px ${UI}`, INK_2, "center");
   const [lx0, lz0, lx1, lz1] = venue.data.stair.landing;
   text("Entrance", ...P([(lx0 + lx1) / 2, (lz0 + lz1) / 2]), `600 17px ${UI}`, INK_2, "center");
-  const [sx0] = venue.data.stair.upperLanding;
-  text(
-    "Stair",
-    ...P([(lx1 + sx0) / 2, venue.data.stair.flight.to[1] - 0.6]),
-    `500 17px ${UI}`,
-    INK_2,
-    "center",
-  );
+  const { from, to } = venue.data.stair.flight;
+  text("Stair", ...P([(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]), `500 17px ${UI}`, INK_2, "center");
 
   // Walls with their openings.
   for (const w of venue.data.walls) {

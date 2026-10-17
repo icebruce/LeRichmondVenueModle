@@ -49,24 +49,20 @@
           [16, 11.3],
           [11.2, 11.3],
           [11.2, 9.6],
-          [9.81, 6.4]
+          [9.81, 7.85]
         ],
         "confidence": "M",
-        "sources": ["C", "F01"]
+        "sources": ["C", "F01", "owner 2026-10-17"]
       },
       "steps": {
         "value": [
           {
-            "from": [10.23, 7.36],
-            "to": [10.64, 8.32]
-          },
-          {
-            "from": [11.4, 11.3],
-            "to": [12.5, 11.3]
+            "from": [10.02, 8.11],
+            "to": [10.64, 8.9]
           }
         ],
-        "confidence": "L",
-        "sources": []
+        "confidence": "M",
+        "sources": ["owner 2026-10-17"]
       }
     }
   },
@@ -90,38 +86,22 @@
         {
           "id": "garage-north",
           "kind": "garageDoor",
-          "start": 9.7,
-          "end": 13.3,
+          "start": 7.8,
+          "end": 14.1,
           "sill": 0,
           "head": 4.4
         },
         {
           "id": "garage-south",
           "kind": "garageDoor",
-          "start": 5.5,
-          "end": 9.1,
+          "start": 0.9,
+          "end": 7.2,
           "sill": 0,
           "head": 4.4
-        },
-        {
-          "id": "exit-west",
-          "kind": "door",
-          "start": 4.3,
-          "end": 5.2,
-          "sill": 0,
-          "head": 2.2
-        }
-      ],
-      "panels": [
-        {
-          "start": 0,
-          "end": 5.2,
-          "finish": "greenPanel",
-          "height": 3.9
         }
       ],
       "confidence": "M",
-      "sources": ["R02", "R03", "R04", "U04", "U05", "F01"]
+      "sources": ["R01", "R02", "R03", "U05", "owner 2026-10-17"]
     },
     {
       "id": "east",
@@ -188,6 +168,14 @@
           "end": 10.8,
           "sill": 0,
           "head": 2.4
+        },
+        {
+          "id": "stair-up",
+          "kind": "stairway",
+          "start": 0,
+          "end": 1.2,
+          "sill": 0,
+          "head": 2.9
         }
       ],
       "panels": [
@@ -205,9 +193,9 @@
   ],
   "bar": {
     "outer": {
-      "value": [5.67, 2.16, 9.81, 6.4],
-      "confidence": "L",
-      "sources": ["F01", "R02", "U01"]
+      "value": [6.45, 2.16, 9.81, 7.85],
+      "confidence": "M",
+      "sources": ["F01", "R02", "U01", "owner 2026-10-17"]
     },
     "legWidth": 0.87,
     "frontDepth": 0.7,
@@ -247,27 +235,27 @@
     "sources": ["C", "UV02", "R09"]
   },
   "stair": {
-    "landing": [11.4, 12.9, 12.7, 14.3],
+    "landing": [10.9, 12.5, 14.8, 14.3],
     "flight": {
-      "from": [12.7, 13.1],
-      "to": [15.2, 14.3],
+      "from": [12.28, 11.3],
+      "to": [14.8, 12.5],
       "rise": 1.62,
       "treads": 9
     },
-    "upperLanding": [15.2, 11.9, 16, 14.3],
+    "upperLanding": [14.8, 11.3, 16, 12.5],
     "upperFlight": {
-      "from": [15.2, 11.9],
-      "to": [12.7, 13.1],
+      "from": [14.8, 12.5],
+      "to": [16, 15.86],
       "treads": 12
     },
-    "topLanding": [11.4, 11.9, 12.7, 14.3],
+    "topLanding": [14.8, 15.86, 16, 16.5],
     "confidence": "M",
-    "sources": ["C", "R01", "R09", "UV02", "owner 2026-10-16"]
+    "sources": ["C", "R01", "R09", "UV02", "owner 2026-10-17"]
   },
   "spots": {
     "dj1": {
       "x": 1.25,
-      "z": 10.7,
+      "z": 11.5,
       "rotY": 1.5708,
       "level": "main",
       "label": "DJ option 1"
@@ -342,8 +330,8 @@
     "chandeliers": [
       {
         "kind": "brassCluster",
-        "x": 7.74,
-        "z": 4.4,
+        "x": 8.13,
+        "z": 5.0,
         "bottom": 3.3,
         "top": 5.3,
         "radius": 0.7
@@ -415,13 +403,14 @@
       "drop": 1.05
     },
     "skylight": {
-      "x": 7.74,
-      "z": 4.4,
+      "x": 8.13,
+      "z": 5.0,
       "size": 1.3
     },
     "venueFurniture": {
       "barStools": {
-        "count": 12
+        "front": 5,
+        "side": 6
       }
     }
   },

@@ -11,10 +11,10 @@ const items = venueSampleItems();
 const dance = footprint(items.find((i) => i.libraryId === "dance-floor") as Item, catalog);
 
 describe("people", () => {
-  test("[PPL-01] 75 guests with 60 seats: 60 seated, 15 standing, none on the dance area at dinner", () => {
+  test("[PPL-01] 75 guests with 72 seats: 72 seated, 3 standing, none on the dance area at dinner", () => {
     const crowd = placePeople(items, 75, "dinner", venue, catalog, off, 1);
-    expect(crowd.seated).toHaveLength(60);
-    expect(crowd.standing).toHaveLength(15);
+    expect(crowd.seated).toHaveLength(72);
+    expect(crowd.standing).toHaveLength(3);
     expect(crowd.unplaced).toBe(0);
     expect(crowd.standing.some((p) => pointInPolygon([p.x, p.z], dance))).toBe(false);
     const free = walkArea(venue, items, catalog, off, 0.25);

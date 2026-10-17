@@ -14,6 +14,7 @@ export function toggledObstacles(venue: VenueModel, toggles: VenueToggles): Obst
     const [x0, z0, x1, z1] = venue.data.bar.outer.value;
     out.push({ id: "bar-stools-south", label: "the bar stools", polygon: rect(x0, z1, x1, z1 + 0.6) });
     out.push({ id: "bar-stools-west", label: "the bar stools", polygon: rect(x0 - 0.6, z0, x0, z1) });
+    out.push({ id: "bar-stools-east", label: "the bar stools", polygon: rect(x1, z0, x1 + 0.6, z1) });
   }
   return out;
 }

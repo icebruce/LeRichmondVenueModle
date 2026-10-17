@@ -39,7 +39,8 @@ export function alongWall(wall: WallData, s: number, inset = 0): Vec2 {
 }
 
 /**
- * Railing runs: every raised-floor edge not against a wall or the bar, split where a step crosses it.
+ * Railing runs: every raised-floor edge not against a wall or the bar, split where a step crosses it
+ * and stopped along the stair, whose own balustrade bounds that edge (owner, 2026-10-17).
  * Sampled every 12 cm, the baluster pitch the scene draws.
  */
 function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][] {
@@ -48,7 +49,12 @@ function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][]
   const onBoundary = (p: Vec2, q: Vec2) =>
     (p[0] === q[0] && (p[0] <= 0 || p[0] >= width || p[0] === bx1)) ||
     (p[1] === q[1] && (p[1] <= 0 || p[1] >= depth));
-  const gaps = d.levels.raised.steps.value;
+  const [ux0, uz0, ux1, uz1] = d.stair.upperLanding;
+  const gaps: { from: Vec2; to: Vec2 }[] = [
+    ...d.levels.raised.steps.value,
+    d.stair.flight,
+    { from: [ux0, uz0], to: [ux1, uz1] },
+  ];
   const inGap = (x: number, z: number) =>
     gaps.some(
       (g) =>
