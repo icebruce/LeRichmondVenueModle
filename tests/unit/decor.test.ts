@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { DECOR_GENERATORS, type Part, heightOf, stylePatch, tableDecor } from "../../src/domain/layout/decor";
+import {
+  DECOR_GENERATORS,
+  type Part,
+  candleLayout,
+  heightOf,
+  stylePatch,
+  tableDecor,
+} from "../../src/domain/layout/decor";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import {
   DEFAULT_STYLE,
@@ -255,31 +262,32 @@ describe("candle mix", () => {
     ).toThrow();
   });
 
-  test("[DEC-02] candles stay on the table top, clear of the place settings; what does not fit is left off", () => {
+  test("[DEC-02] candles stay on the table top, clear of the plates; what does not fit is left off", () => {
     const heavy = ["candle-sand-trio", "candelabra-5", "candelabra-3"].map((id) => ({ id, n: 8 }));
     const extras = { settings: true, menus: true, tableNumbers: true, linenLength: "floor" as const };
-    // A part's circle on the table top (boxes and planes by their half-diagonal).
-    const circle = (p: Part) => ({
-      x: p.x,
-      z: p.z,
-      r: p.prim === "box" || p.prim === "plane" ? Math.hypot(p.sx, p.sz) / 2 : Math.max(p.sx, p.sz),
-    });
-    for (const [libraryId, options] of [
-      ["table-round", { seats: 4 }],
-      ["table-round", { seats: 8 }],
-      ["table-rect", { seats: 12 }],
-      ["table-cocktail", {}],
-    ] as const) {
-      const t = shapeOf({ id: "t", libraryId, x: 4, z: 11, rotY: 0, options }, catalog);
+    const table = (libraryId: string, options: Record<string, number> = {}) =>
+      shapeOf({ id: "t", libraryId, x: 4, z: 11, rotY: 0, options }, catalog);
+    for (const t of [
+      table("table-round", { seats: 4 }),
+      table("table-round", { seats: 8 }),
+      table("table-rect", { seats: 12 }),
+      table("table-cocktail"),
+    ]) {
       const style = { ...DEFAULT_STYLE, florals: "floral-low", candles: heavy };
-      const run = (s: typeof style) => tableDecor(t, s, catalog, extras, 1);
-      const fixed = run({ ...style, florals: "none", runner: "none", candles: [] });
-      const base = run({ ...style, candles: [] });
-      const all = run(style);
-      const candles = all.slice(base.length - fixed.length, all.length - fixed.length);
-      // Round tables with flowers and settings may have room for none of these big pieces.
-      if (libraryId !== "table-round") expect(candles.length).toBeGreaterThan(0);
-      for (const part of candles) {
+      const { parts, placed, wanted } = candleLayout(t, style, catalog, extras);
+      // Twenty-four big pieces never all fit: some are left off rather than piled up.
+      expect(placed).toBeLessThan(wanted);
+      const plates = tableDecor(
+        t,
+        { ...style, florals: "none", runner: "none", candles: [] },
+        catalog,
+        extras,
+        1,
+      )
+        // Chargers and plates: the wide discs of each setting.
+        .filter((p) => p.prim === "cylinder" && p.sx >= 0.13)
+        .map(circle);
+      for (const part of parts) {
         const p = circle(part);
         const edge =
           t.kind === "rectTable"
@@ -288,26 +296,41 @@ describe("candle mix", () => {
               ? t.diameter / 2 - Math.hypot(p.x, p.z)
               : 0;
         expect(edge - p.r).toBeGreaterThanOrEqual(0);
-        // Among the plates and glasses (candelabra arms pass above them).
+        // Among the plates (candelabra arms pass above them).
         if (part.y < 0.2)
-          for (const f of fixed.map(circle))
+          for (const f of plates)
             expect(Math.hypot(p.x - f.x, p.z - f.z)).toBeGreaterThanOrEqual(p.r + f.r - 1e-9);
       }
-      // Twenty-four big pieces never all fit: some are left off rather than piled up.
-      expect(candles.filter((p) => p.slot === "flame").length).toBeLessThan(8 * (3 + 5 + 3));
     }
-    // The usual mix on an eight-seat round fits whole.
-    const fits = decor(
-      {
-        candles: [
-          { id: "candle-votives", n: 3 },
-          { id: "candle-tapers", n: 2 },
-        ],
-      },
-      true,
-    );
-    expect(fits.filter((p) => p.slot === "flame").length).toBe(5);
+    // The usual mixes fit whole on six- and eight-seat rounds, beside low or tall flowers, set for dinner.
+    for (const seats of [6, 8])
+      for (const florals of ["floral-low", "floral-tall"])
+        for (const candles of [
+          [{ id: "candle-votives", n: 3 }],
+          [{ id: "candle-tapers", n: 2 }],
+          [
+            { id: "candle-pillars", n: 1 },
+            { id: "candle-tapers", n: 3 },
+          ],
+        ]) {
+          const fit = candleLayout(
+            table("table-round", { seats }),
+            { ...DEFAULT_STYLE, florals, candles },
+            catalog,
+            extras,
+          );
+          expect(fit.placed, `${seats} seats, ${florals}, ${candles.map((c) => c.id).join("+")}`).toBe(
+            fit.wanted,
+          );
+        }
   });
+});
+
+/** A part's circle on the table top (boxes and planes by their half-diagonal). */
+const circle = (p: Part) => ({
+  x: p.x,
+  z: p.z,
+  r: p.prim === "box" || p.prim === "plane" ? Math.hypot(p.sx, p.sz) / 2 : Math.max(p.sx, p.sz),
 });
 
 describe("paintings", () => {

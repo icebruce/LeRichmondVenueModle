@@ -634,7 +634,7 @@ test("[LIB-13] [LAY-01] [REQ-01] one library: search every category, dressing on
   await expect(page.locator('[data-testid^="use-floral-"]').first()).toBeVisible();
   await page.getByTestId("library-search").fill("taper");
   await page.getByTestId("use-candle-tapers").click();
-  expect((await state(page)).active?.style.candles).toBe("candle-tapers");
+  expect((await state(page)).active?.style.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
   await page.getByTestId("library-search").fill("");
   await page.getByTestId("cant-find").click();
   await expect(page.getByTestId("add-inspiration")).toBeVisible();

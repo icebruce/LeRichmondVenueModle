@@ -558,15 +558,17 @@ function arrangeCandles(
   const parts: Part[] = [];
   order.forEach(({ parts: u, r, base }, i) => {
     const [ix, iz] = ideal[i] ?? [0, 0];
-    const fits = (c: Cell) =>
-      c.clear >= r && c.low >= base && taken.every((t) => Math.hypot(c.x - t.x, c.z - t.z) >= r + t.r + GAP);
-    const at = cells
-      .filter(fits)
-      .reduce<{ x: number; z: number } | null>(
-        (best, c) =>
-          !best || Math.hypot(c.x - ix, c.z - iz) < Math.hypot(best.x - ix, best.z - iz) ? c : best,
-        null,
-      );
+    // The nearest spot to the ideal one with room for it (distance first: it is the cheap test).
+    let at: Cell | null = null;
+    let best = Infinity;
+    for (const c of cells) {
+      const d = (c.x - ix) ** 2 + (c.z - iz) ** 2;
+      if (d >= best || c.clear < r || c.low < base) continue;
+      if (taken.every((t) => Math.hypot(c.x - t.x, c.z - t.z) >= r + t.r + GAP)) {
+        at = c;
+        best = d;
+      }
+    }
     if (!at) return;
     taken.push({ x: at.x, z: at.z, r });
     for (const p of u) parts.push({ ...p, x: p.x + at.x, z: p.z + at.z });
@@ -607,26 +609,24 @@ export function tableDecor(
   return dress(shape, style, catalog, extras, seed).parts;
 }
 
-/** How many of the table's candles have room on it, of how many its mix asks for (DEC-02). */
-export function candleFit(
+/**
+ * The table's candles as laid out (DEC-02): their parts, and how many of the mix found room
+ * (`placed` of `wanted`), for the Style page's hint.
+ */
+export function candleLayout(
   shape: Shape,
   style: TableStyle,
   catalog: Catalog,
   extras: Extras,
-): { placed: number; wanted: number } {
-  const { placed, wanted } = dress(shape, style, catalog, extras, 1);
-  return { placed, wanted };
+): { parts: Part[]; placed: number; wanted: number } {
+  return dress(shape, style, catalog, extras, 1).candles;
 }
 
-function dress(
-  shape: Shape,
-  style: TableStyle,
-  catalog: Catalog,
-  extras: Extras,
-  seed: number,
-): { parts: Part[]; placed: number; wanted: number } {
+type Dressed = { parts: Part[]; candles: { parts: Part[]; placed: number; wanted: number } };
+
+function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras, seed: number): Dressed {
   if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail")
-    return { parts: [], placed: 0, wanted: 0 };
+    return { parts: [], candles: { parts: [], placed: 0, wanted: 0 } };
   const rand = seededRandom(seed);
   const ctx: Ctx = {
     colours: FLORAL_PALETTES[style.floralColour]?.colours ?? FLORAL_PALETTES.white?.colours ?? ["#ffffff"],
@@ -674,24 +674,35 @@ function dress(
   }
   // Settings and the table number first: the candles keep clear of them, and of the flowers.
   const fixed: Part[] = [];
+  const plates: Circle[] = [];
   if (extras.settings && shape.kind !== "cocktail") {
     const edge = shape.kind === "rectTable" ? 0.32 + 0.2 : 0.3 + 0.22;
     const n = catalog.get(style.napkin)?.model;
     const napkin = n?.kind === "parametric" ? String(n.params.colour ?? "#ffffff") : null;
-    for (const ch of shape.chairs) fixed.push(...setting(ch, edge, style.charger, napkin, extras.menus));
+    for (const ch of shape.chairs) {
+      fixed.push(...setting(ch, edge, style.charger, napkin, extras.menus));
+      plates.push({
+        x: ch.x + Math.sin(ch.rotY) * edge,
+        z: ch.z + Math.cos(ch.rotY) * edge,
+        r: CHARGERS[style.charger] ? 0.165 : 0.135,
+      });
+    }
   }
   if (extras.tableNumbers && shape.kind !== "cocktail") {
     const [x, z] =
       shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
     fixed.push(...numberHolder(x, z));
+    plates.push({ x, z, r: 0.06 });
   }
-  const obstacles = [
-    ...flowers.map((f) => ({ x: f.x, z: f.z, r: radiusOf(f.parts) })),
-    ...fixed.map((p) => ({ x: p.x, z: p.z, r: reach({ ...p, x: 0, z: 0 }), low: true })),
+  // Candles keep clear of the plates and the table number (glasses and cutlery tuck in among them,
+  // as on a real table), and of the flowers where they stand (a tall arrangement by its stand).
+  const obstacles: Circle[] = [
+    ...flowers.map((f) => ({ x: f.x, z: f.z, r: radiusOf(f.parts.filter((p) => p.y < TABLE_LEVEL)) })),
+    ...plates.map((p) => ({ ...p, low: true })),
   ];
   const candles = arrangeCandles(shape, style.candles, obstacles, catalog, ctx);
   parts.push(...candles.parts, ...fixed);
-  return { parts, placed: candles.placed, wanted: candles.wanted };
+  return { parts, candles };
 }
 
 /**

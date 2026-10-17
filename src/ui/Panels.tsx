@@ -5,7 +5,7 @@ import {
   FLORAL_PALETTES,
   FLOWER_TYPES,
   FLOWER_TYPE_GENERATORS,
-  candleFit,
+  candleLayout,
   styleKeyOf,
   isRoomChoice,
 } from "../domain/layout/decor";
@@ -1057,11 +1057,17 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
   if (page) {
     const mix = shown.candles;
     const setMix = (next: CandleMix) => apply({ candles: next });
-    // Tables too small or too full for the whole mix show what fits (DEC-02); say how many.
+    // Tables too small or too full for the whole mix show what fits (DEC-02): say on how many of
+    // the tables being styled.
     const short =
       page === "candles"
         ? (target === "all" ? scenario.items.filter((i) => isTable(i, catalog)) : tables).filter((t) => {
-            const fit = candleFit(shapeOf(t, catalog), styleOf(t, scenario.style), catalog, scenario.style);
+            const fit = candleLayout(
+              shapeOf(t, catalog),
+              styleOf(t, scenario.style),
+              catalog,
+              scenario.style,
+            );
             return fit.placed < fit.wanted;
           }).length
         : 0;
@@ -1085,8 +1091,8 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
             <p className="hint">Up to {MAX_CANDLE_KINDS} kinds per table, arranged for you.</p>
             {short > 0 && (
               <p className="hint advisory" data-testid="candles-short">
-                {short === 1 ? "One table has" : `${short} tables have`} room for fewer: they show the candles
-                that fit beside the place settings.
+                {short === 1 ? "One table is" : `${short} tables are`} too small for the whole mix; they show
+                the candles that fit.
               </p>
             )}
             {mix.length > 0 && (
@@ -1190,21 +1196,6 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
         )}
         {page === "settings" && (
           <>
-            <h3 className="group-title">Every table</h3>
-            <div className="list">
-              <Toggle
-                label="Place settings"
-                checked={scenario.style.settings}
-                onChange={(v) => editor.setStyle("settings", v)}
-                testId="settings"
-              />
-              <Toggle
-                label="Menu cards"
-                checked={scenario.style.menus}
-                onChange={(v) => editor.setStyle("menus", v)}
-                testId="menus"
-              />
-            </div>
             {scenario.style.settings && (
               <>
                 <Chips
@@ -1230,6 +1221,22 @@ export function StylePanel({ page, open }: { page: StylePage | null; open: (p: S
                 />
               </>
             )}
+            {/* The switches cover every table, whatever is selected: below, as on the Style page. */}
+            <h3 className="group-title">Every table</h3>
+            <div className="list">
+              <Toggle
+                label="Place settings"
+                checked={scenario.style.settings}
+                onChange={(v) => editor.setStyle("settings", v)}
+                testId="settings"
+              />
+              <Toggle
+                label="Menu cards"
+                checked={scenario.style.menus}
+                onChange={(v) => editor.setStyle("menus", v)}
+                testId="menus"
+              />
+            </div>
           </>
         )}
       </div>
