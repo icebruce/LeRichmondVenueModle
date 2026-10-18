@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, invalidate, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, advance, invalidate, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -25,6 +25,7 @@ import {
   StaticShadows,
   Warmup,
   shadowDraws,
+  uncapNextFrame,
 } from "./frames";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
@@ -201,7 +202,6 @@ type ProjectFn = (x: number, y: number, z: number) => [number, number];
 function TestHooks() {
   const get = useThree((s) => s.get);
   const gl = useThree((s) => s.gl);
-  const invalidate = useThree((s) => s.invalidate);
   // Whole-frame totals across shadow, scene and effect passes, for the budget test (ARCHITECTURE §7).
   const frame = useRef({ calls: 0, triangles: 0 });
   const worst = useRef({ calls: 0, triangles: 0 });
@@ -224,12 +224,17 @@ function TestHooks() {
     (window as unknown as { __holdMotion?: () => void }).__holdMotion = () =>
       graphicsStore.setState({ moving: true, hold: true });
     // For the budget test: forgets earlier frames, then draws a full frame (shadow pass included)
-    // and one more, whose start records it; `__worstFrame` is the largest frame since.
+    // and one more, whose start records it; `__worstFrame` is the largest frame since. Drawn at
+    // once rather than on the next animation frames, which a software GPU on CI can hold up for
+    // minutes.
     (window as unknown as { __redraw?: () => void }).__redraw = () => {
       worst.current = { calls: 0, triangles: 0 };
       gl.info.reset();
       gl.shadowMap.needsUpdate = true;
-      invalidate(2);
+      for (let i = 0; i < 2; i++) {
+        uncapNextFrame();
+        advance(performance.now(), true, get());
+      }
     };
     (window as unknown as { __worstFrame?: () => typeof worst.current }).__worstFrame = () => worst.current;
     (window as unknown as { __programs?: () => number[] }).__programs = () =>
@@ -237,7 +242,7 @@ function TestHooks() {
     return () => {
       gl.info.autoReset = true;
     };
-  }, [gl, invalidate]);
+  }, [gl, get]);
   useEffect(() => {
     const w = window as unknown as { __project?: ProjectFn };
     const fn: ProjectFn = (x, y, z) => {

@@ -138,6 +138,11 @@ const STILL_MS = 150;
  */
 const clock = { lastDrawn: 0, gap: Infinity, motion: false, skip: false, refine: false };
 
+/** Test hook: the next frame draws whatever the frame cap (the budget test draws its frames itself). */
+export function uncapNextFrame() {
+  clock.lastDrawn = -Infinity;
+}
+
 /** Runs first in every display frame of the main view. `fps` caps drawing only when it draws directly. */
 export function FrameClock({ fps }: { fps: number }) {
   useFrame(() => {
