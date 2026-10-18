@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Vec2 } from "../../domain/geometry";
-import { type Materials, TILE, bevelGeo, boxGeo, metreUV } from "../materials";
+import { type Materials, SHADOW_SPREAD, TILE, bevelGeo, boxGeo, metreUV } from "../materials";
 import { CUT_HEIGHT, buildWall } from "./walls";
 
 type Props = { venue: VenueModel; m: Materials; cutWalls: ReadonlySet<string>; showCeiling: boolean };
@@ -69,8 +69,8 @@ export function Floors({ venue, m }: Pick<Props, "venue" | "m">) {
     // Light wood strips between the 0.65 m tiles (R03, R04): three to a texture repeat.
     const step = TILE.tile / 3;
     const strips: THREE.BufferGeometry[] = [];
-    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.016, 0, 0, x + 0.016, 0.003, D));
-    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.016, W, 0.003, z + 0.016));
+    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.04, 0, 0, x + 0.04, 0.003, D));
+    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.04, W, 0.003, z + 0.04));
     return { tile: tileG, raisedTop: top, raisedSide: side, joints: merge(strips) };
   }, [venue]);
   return (
@@ -279,18 +279,22 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
   );
 }
 
+/** The plinth reaches this far beyond the room's inner faces (m), down to `bottom`. */
+export const PLINTH = { margin: 0.75, bottom: -0.46 };
+
 /**
  * The room presented as a model (REFERENCE_NOTES §1, Presented): it stands on a light plinth, and
  * its soft shadow falls on the backdrop below.
  */
 export function Plinth({ venue, m }: Pick<Props, "venue" | "m">) {
   const g = useMemo(() => {
-    const o = 0.35 + 0.4;
+    const o = PLINTH.margin;
     const [x0, x1, z0, z1] = [-o, venue.width + o, -o, venue.depth + o];
-    const plinth = boxGeo(x0, -0.46, z0, x1, -0.01, z1);
-    const s = 2.2;
-    const shadow = new THREE.PlaneGeometry((x1 - x0) * s, (z1 - z0) * s).rotateX(-Math.PI / 2);
-    shadow.translate((x0 + x1) / 2, -0.47, (z0 + z1) / 2);
+    const plinth = bevelGeo(x0, PLINTH.bottom, z0, x1, -0.01, z1, 0.03);
+    // The shadow texture's rounded rectangle fills 1 / SHADOW_SPREAD of it: a contact band at the
+    // plinth's foot that fades out within a few metres.
+    const shadow = new THREE.PlaneGeometry((x1 - x0) * SHADOW_SPREAD, (z1 - z0) * SHADOW_SPREAD);
+    shadow.rotateX(-Math.PI / 2).translate((x0 + x1) / 2, PLINTH.bottom - 0.01, (z0 + z1) / 2);
     return { plinth, shadow };
   }, [venue]);
   return (

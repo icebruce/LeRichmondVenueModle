@@ -167,7 +167,7 @@ export function glowTexture(): THREE.CanvasTexture {
   return finish(c);
 }
 
-/** Smooth vertical backdrop behind the room, `top` to `bottom` (DESIGN_GUIDE §9). */
+/** Smooth vertical backdrop behind the room, `top` to `bottom` (DESIGN_GUIDE §9), dithered so it never bands. */
 export function gradientTexture(top: string, bottom: string): THREE.CanvasTexture {
   const [c, ctx] = canvas(256);
   const g = ctx.createLinearGradient(0, 0, 0, 256);
@@ -175,21 +175,33 @@ export function gradientTexture(top: string, bottom: string): THREE.CanvasTextur
   g.addColorStop(1, bottom);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 256, 256);
+  const data = ctx.getImageData(0, 0, 256, 256);
+  const random = rng(7);
+  for (let i = 0; i < data.data.length; i += 4) {
+    const n = random() < 0.5 ? -1 : 1;
+    for (let k = 0; k < 3; k++) data.data[i + k] = (data.data[i + k] as number) + n;
+  }
+  ctx.putImageData(data, 0, 0);
   const t = finish(c);
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
 
-/** The room's soft shadow on the backdrop: dark in the middle, fading out to nothing at the edges. */
-export function softShadowTexture(): THREE.CanvasTexture {
-  const size = 256;
+/**
+ * The model's soft shadow beneath it: a blurred rounded rectangle filling `1 / spread` of the
+ * texture, darkest in a band at its edge and fading to nothing before the texture's own edge.
+ */
+export function softShadowTexture(spread: number): THREE.CanvasTexture {
+  const size = 512;
   const [c, ctx] = canvas(size);
-  const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(0,0,0,0.55)");
-  g.addColorStop(0.5, "rgba(0,0,0,0.22)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
+  const inner = size / spread;
+  const at = (size - inner) / 2;
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = at * 0.7;
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(at, at, inner, inner, inner * 0.02);
+  ctx.fill();
   const t = finish(c);
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

@@ -112,6 +112,21 @@ float noise3(vec3 p) {
   return mat;
 }
 
+/** Evening glow of the stair's LED treads: saturated enough to stay lime-yellow after tone mapping. */
+export const LED_GLOW = 0.6;
+
+/** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
+export const SHADOW_SPREAD = 1.25;
+
+/**
+ * The backdrop gradient, top to bottom (DESIGN_GUIDE §9), and its brightness: authored warmer and
+ * brighter than it should read, as tone mapping greys and darkens it on screen.
+ */
+export const BACKDROP = {
+  day: { colors: ["#fff3e2", "#f2e2cc"], intensity: 1.8 },
+  evening: { colors: ["#2e2a24", "#211d18"], intensity: 1 },
+} as const;
+
 export type Materials = ReturnType<typeof useMaterials>;
 
 export function useMaterials(quality: Quality) {
@@ -156,13 +171,14 @@ export function useMaterials(quality: Quality) {
           map: tex.tileDiff,
           normalMap: tex.tileNor,
           roughnessMap: tex.tileRough,
-          color: "#8d8a84",
+          color: "#5c5b58",
           roughness: 0.8,
         }),
-        0.1,
+        0.15,
         { cell: TILE.tile / 3 },
       ),
-      tileJoint: std({ color: "#6f5d4a", roughness: 0.7 }),
+      // Weathered grey-tan wood strips (R03, R04).
+      tileJoint: std({ color: "#857a6a", roughness: 0.8 }),
       woodFloor: std({
         map: tex.floorDiff,
         normalMap: tex.floorNor,
@@ -171,15 +187,15 @@ export function useMaterials(quality: Quality) {
         roughness: 0.7,
       }),
       // Honey pine deck with darker beams (R02).
-      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f2d9ae", roughness: 0.85 }),
-      timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
+      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
+      timber: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
       girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
       cap: std({ color: "#e6dfd3", roughness: 0.8 }),
       groundShadow: new THREE.MeshBasicMaterial({
-        map: softShadowTexture(),
+        map: softShadowTexture(SHADOW_SPREAD),
         transparent: true,
         depthWrite: false,
       }),
@@ -235,13 +251,14 @@ export function useMaterials(quality: Quality) {
         color: "#f3efe6",
         roughness: 0.9,
         transparent: true,
-        opacity: 0.38,
+        opacity: 0.2,
         depthWrite: false,
         side: THREE.DoubleSide,
       }),
       flame: std({ color: "#ffd18a", emissive: "#ffb347", emissiveIntensity: 4 }),
       // Stair tread glow: lime-yellow, across each tread top (R01, R09, R11).
-      led: std({ color: "#d9e86a", emissive: "#d4ec4f", emissiveIntensity: 1.1, roughness: 0.6 }),
+      // Its glow follows the lighting (set in the scene): off in daylight.
+      led: std({ color: "#b8b85a", emissive: "#e2e23a", emissiveIntensity: LED_GLOW, roughness: 0.6 }),
       exitSign: std({ color: "#3a0b0b", emissive: "#ff2a2a", emissiveIntensity: 1.6 }),
       wineFrame: std({
         color: "#5c1717",

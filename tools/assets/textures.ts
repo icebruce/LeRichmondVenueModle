@@ -23,11 +23,11 @@ export const SETS: Record<string, readonly ("diff" | "nor_gl" | "rough")[]> = {
 const SHARP = new Set(["large_floor_tiles_02", "old_wood_floor", "yellow_brick", "red_brick"]);
 
 /**
- * Colour corrections baked into a set's colour map. The venue's brick is a pale buff and its ceiling
- * a pale honey pine (R01, R03, R07): both CC0 sets are warmer, so they are toned down here, once.
+ * Colour corrections baked into a set's colour map. The venue's brick is a warm buff-tan and its
+ * ceiling a honey pine (R01, R03, R10): both CC0 sets are more saturated, so they are toned down here, once.
  */
 const TONE: Record<string, { saturation: number; brightness: number }> = {
-  yellow_brick: { saturation: 0.55, brightness: 1.12 },
+  yellow_brick: { saturation: 0.8, brightness: 1.0 },
   roof_planks: { saturation: 0.7, brightness: 1.15 },
 };
 

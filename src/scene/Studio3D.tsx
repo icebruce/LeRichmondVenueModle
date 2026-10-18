@@ -27,7 +27,7 @@ import {
   shadowDraws,
   uncapNextFrame,
 } from "./frames";
-import { useMaterials } from "./materials";
+import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
 import {
@@ -396,10 +396,22 @@ function Scene({
   const eyeLevel = mode === "walk" || (view !== null && below);
   // A smooth gradient behind the model: warm grey in daylight, deep charcoal in the evening (§9).
   const backgrounds = useMemo(
-    () => ({ day: gradientTexture("#f1efea", "#d6d2ca"), evening: gradientTexture("#1d1f1c", "#0c0d0c") }),
+    () => ({
+      day: gradientTexture(...BACKDROP.day.colors),
+      evening: gradientTexture(...BACKDROP.evening.colors),
+    }),
     [],
   );
   const background = evening ? backgrounds.evening : backgrounds.day;
+  // The stair's LED treads glow in the evening only, and the backdrop brightens in daylight
+  // (uniform changes: no new shader).
+  const invalidate = useThree((s) => s.invalidate);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    m.led.emissiveIntensity = evening ? LED_GLOW : 0;
+    scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
+    invalidate();
+  }, [m, scene, evening, invalidate]);
   return (
     <>
       <primitive attach="background" object={background} />
@@ -511,7 +523,7 @@ export function Studio3D({
       camera={{
         fov: dollhouse?.fov ?? 30,
         near: 0.1,
-        far: 200,
+        far: 400,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],
       }}
       onPointerMissed={() => {

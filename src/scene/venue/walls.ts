@@ -76,14 +76,13 @@ export type WallMeshes = {
 };
 
 export const CUT_HEIGHT = 1.15;
-/** Spacing of the stiles on panelled walls (m). */
-const PANEL_STEP = 1.25;
 
 export function buildWall(wall: WallData, height: number, thickness: number, cut: boolean): WallMeshes {
   const full = wallPieces(wall, wall.height ?? height);
   const pieces = cut ? clip(full, CUT_HEIGHT) : full;
-  // Red brick dado band where the photos show one (wall.dado = its height).
-  const [low, high] = wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
+  // Red brick dado band where the photos show one (wall.dado = its height); a red-brick wall throughout.
+  const [low, high] =
+    wall.finish === "redBrick" ? [pieces, []] : wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
 
   const panels: THREE.BufferGeometry[] = [];
   for (const pn of wall.panels ?? []) {
@@ -98,12 +97,10 @@ export function buildWall(wall: WallData, height: number, thickness: number, cut
       const b = Math.min(p.y1, y1);
       if (!(s1 > s0 && b > a)) continue;
       panels.push(pieceGeo(wall, { s0, s1, y0: a, y1: b }, 0.04, 0.04));
-      // Panelled, not flat (R04, R09): stiles every 1.25 m, rails at the base, at 0.9 m and at the top.
-      const trim = (q: Piece) => panels.push(pieceGeo(wall, q, 0.025, 0.065));
-      for (let s = pn.start + PANEL_STEP; s < pn.end - 0.05; s += PANEL_STEP)
-        if (s > s0 + 0.04 && s < s1 - 0.04) trim({ s0: s - 0.04, s1: s + 0.04, y0: a, y1: b });
-      for (const r of [y0 + 0.1, y0 + 0.9, pn.height - 0.08])
-        if (r - 0.04 >= a && r + 0.04 <= b) trim({ s0, s1, y0: r - 0.04, y1: r + 0.04 });
+      // Flat paint with one ledge at 0.9 m (R04).
+      const r = y0 + 0.9;
+      if (r - 0.03 >= a && r + 0.03 <= b)
+        panels.push(pieceGeo(wall, { s0, s1, y0: r - 0.03, y1: r + 0.03 }, 0.03, 0.07));
     }
   }
 

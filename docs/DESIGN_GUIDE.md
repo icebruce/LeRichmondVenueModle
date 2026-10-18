@@ -165,9 +165,9 @@ Short, warm, plain. Sentence case. Numbers as numerals. Dimensions "≈ 2.4 m". 
 
 **Adapted to Le Richmond:**
 - Tall room (6.5–8 m): in Dollhouse the ceiling is hidden; chandeliers and pendants stay (toggle "Show ceiling" restores it).
-- Presented as a model: thick light wall caps (warm off-white) on the cut walls; the room stands on a light plinth whose soft shadow falls on the backdrop (owner, 2026-10-18; plan view leaves the plinth out).
+- Presented as a model (owner, 2026-10-18): thick light wall caps (warm off-white, bevelled) on the cut walls; the room stands on a light bevelled plinth with a soft shadow beneath it, against a smooth vertical gradient backdrop: high-key warm grey in daylight, deep charcoal in the evening. Plan view leaves the plinth out.
 - Default framing from the south-east looking north-west (photo R01 angle), so the back bar wall and the glazed garage doors stand at full height.
-- Background: a smooth vertical gradient, warm grey in daylight, deep charcoal in the evening; at eye level the terrace beyond the glass is a dark band with faint warm fairy-light points.
+- At eye level the terrace beyond the glass is a dark band with faint warm fairy-light points.
 - **Evening (default):** low warm ambient, chandeliers and back-bar shelving glowing (bloom kept subtle), candle pools on tablecloths, warm tone mapping. Mood reference: photo R08.
 - **Daylight:** neutral, soft, high-key like the samples; for checking layout.
 - Materials: buff and red brick, timber planks and beams, black steel, dark large-format tile with light joints, dark hardwood, white marble bar top, velvet curtains, brass.
