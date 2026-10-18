@@ -19,8 +19,13 @@ const python = process.env.BAKE_PYTHON ?? "python3";
 const PORT = 4180;
 /** Brightest share of texels allowed to clip in the 8-bit map. */
 const CLIP = 0.995;
-/** A bake with more unlit texels than this inside the room's islands fails. */
-const MAX_EMPTY = 0.01;
+/**
+ * Black specks allowed after filling: unlit texels with light all round them, a sign of light-map
+ * UVs out of step with the bake (a sound bake leaves unlit only what something rests on or hides).
+ */
+const MAX_SPECKS = 0.001;
+/** Share of the covered texels that must sit in islands that get light (the rest is buried). */
+const MIN_LIT = 0.7;
 /** Light-map density the large walls need at 2K (texels per metre). */
 const MIN_DENSITY = 30;
 
@@ -29,6 +34,8 @@ type Export = {
   geometryHash: string;
   inputsHash: string;
   atlas: { size: number; texelsPerMetre: number; islands: Island[] };
+  /** PNG: the texels the receivers' light-map triangles cover (rows top first). */
+  coverage: string;
   glb: string;
 };
 
@@ -66,6 +73,8 @@ async function exportRoom(): Promise<Export> {
 
 function bake(glb: string, mode: string, size: number): Float32Array {
   const file = join(cache, `${mode}.f32`);
+  // BAKE_REUSE=1 re-encodes the last bake (when only the encoding or the checks changed).
+  if (process.env.BAKE_REUSE && existsSync(file)) return read(file);
   const r = spawnSync(
     python,
     [
@@ -80,35 +89,66 @@ function bake(glb: string, mode: string, size: number): Float32Array {
     { stdio: "inherit" },
   );
   if (r.status !== 0) throw new Error(`bake ${mode} failed`);
+  return read(file);
+}
+
+function read(file: string): Float32Array {
   const b = readFileSync(file);
   return new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4);
 }
 
-/** Every texel inside an island, as an index into the map (rows top first). */
-function* inside(atlas: Export["atlas"]) {
-  for (const i of atlas.islands) {
+/** The covered texels of each island, as indices into the map (rows top first). */
+async function islandTexels(room: Export): Promise<number[][]> {
+  const { atlas } = room;
+  const mask = await sharp(Buffer.from(room.coverage, "base64")).extractChannel(0).raw().toBuffer();
+  return atlas.islands.map((i) => {
+    const out: number[] = [];
     const w = Math.ceil((i.u1 - i.u0) * atlas.texelsPerMetre);
     const h = Math.ceil((i.v1 - i.v0) * atlas.texelsPerMetre);
     for (let y = Math.floor(i.y); y < i.y + h; y++)
-      for (let x = Math.floor(i.x); x < i.x + w; x++) yield y * atlas.size + x;
-  }
+      for (let x = Math.floor(i.x); x < i.x + w; x++)
+        if ((mask[y * atlas.size + x] as number) > 127) out.push(y * atlas.size + x);
+    return out;
+  });
 }
 
-async function encode(px: Float32Array, atlas: Export["atlas"], mode: string) {
-  const { size } = atlas;
+async function encode(px: Float32Array, room: Export, mode: string) {
+  const { size } = room.atlas;
   // Rows run top first in both the bake and the light-map UVs (three samples a KTX2 map unflipped).
+  const peak = (t: number) => Math.max(px[t * 3] as number, px[t * 3 + 1] as number, px[t * 3 + 2] as number);
+  const near = (t: number) => [t - 1, t + 1, t - size, t + size].filter((n) => n >= 0 && n < size * size);
+  // Fill single unlit texels (too few samples in a dim corner) from their lit neighbours.
+  const islands = await islandTexels(room);
+  for (const texels of islands)
+    for (const t of texels) {
+      if (peak(t) > 0) continue;
+      const lit = near(t).filter((n) => peak(n) > 0);
+      if (lit.length < 3) continue;
+      for (let c = 0; c < 3; c++)
+        px[t * 3 + c] = lit.reduce((a, n) => a + (px[n * 3 + c] as number), 0) / lit.length;
+    }
+  // Faces buried in the model (a wall's end inside the next wall) get no light and are never seen;
+  // faces something rests on (the floor under the raised platform) are dark too. What must hold:
+  // most of the room gets light, and no lit area has black specks.
   const peaks: number[] = [];
-  let empty = 0;
+  let specks = 0;
   let count = 0;
-  for (const t of inside(atlas)) {
-    const k = t * 3;
-    const m = Math.max(px[k] as number, px[k + 1] as number, px[k + 2] as number);
-    if (m <= 0) empty++;
-    peaks.push(m);
-    count++;
+  let lit = 0;
+  for (const texels of islands) {
+    const values = texels.map(peak);
+    if (!values.some((v) => v > 0)) continue;
+    lit++;
+    texels.forEach((t, k) => {
+      const v = values[k] as number;
+      if (v <= 0 && near(t).every((n) => peak(n) > 0)) specks++;
+      peaks.push(v);
+      count++;
+    });
   }
-  if (empty / count > MAX_EMPTY)
-    throw new Error(`${mode}: ${((empty / count) * 100).toFixed(1)}% of the room's texels are unlit`);
+  const covered = islands.reduce((n, t) => n + t.length, 0);
+  if (count / covered < MIN_LIT)
+    throw new Error(`${mode}: only ${((count / covered) * 100).toFixed(0)}% of the room gets light`);
+  if (specks / count > MAX_SPECKS) throw new Error(`${mode}: ${specks} black specks in lit areas`);
   peaks.sort((a, b) => a - b);
   const scale = peaks[Math.floor(peaks.length * CLIP)] as number;
   // 8-bit with a 2.2 gamma (stored as sRGB, decoded to linear on the GPU), so the dark end keeps its steps.
@@ -140,7 +180,9 @@ async function encode(px: Float32Array, atlas: Export["atlas"], mode: string) {
     files[s === size ? "2k" : "1k"] = name;
     console.log(name, `${Math.round(ktx.length / 1024)} KB`);
   }
-  console.log(`${mode}: scale ${scale.toFixed(3)}, ${empty} unlit of ${count} texels`);
+  console.log(
+    `${mode}: scale ${scale.toFixed(3)}; ${lit} of ${islands.length} islands lit, ${specks} specks`,
+  );
   return { scale, files };
 }
 
@@ -149,12 +191,13 @@ if (room.atlas.texelsPerMetre < MIN_DENSITY)
   throw new Error(`light map at ${room.atlas.texelsPerMetre.toFixed(1)} texels/m, under ${MIN_DENSITY}`);
 const glb = join(cache, "room.glb");
 writeFileSync(glb, Buffer.from(room.glb, "base64"));
+writeFileSync(join(cache, "coverage.png"), Buffer.from(room.coverage, "base64"));
 console.log(
   `exported: ${room.atlas.islands.length} islands at ${room.atlas.texelsPerMetre.toFixed(1)} texels/m`,
 );
 const sets: Record<string, { scale: number; files: Record<string, string> }> = {};
 for (const mode of ["evening", "day"])
-  sets[mode] = await encode(bake(glb, mode, room.atlas.size), room.atlas, mode);
+  sets[mode] = await encode(bake(glb, mode, room.atlas.size), room, mode);
 const scriptHash = createHash("sha256")
   .update(readFileSync(join(root, "tools/blender/bake_room.py")))
   .digest("hex");

@@ -451,7 +451,7 @@ function Scene({
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
       <Items m={m} evening={evening} quality={quality} />
       {BAKE_EXPORT && <BakeExport m={m} />}
-      <People low={quality === "low"} />
+      <People low={quality === "low"} m={m} />
       <Advisories hidden={mode === "walk"} />
       <ShaderKeepers />
       <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}|${LEVERS[tier].shadow}`} />

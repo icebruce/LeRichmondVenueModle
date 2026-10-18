@@ -31,12 +31,24 @@ export function BakeExport({ m }: { m: Materials }) {
       const { GLTFExporter } = await import("three/examples/jsm/exporters/GLTFExporter.js");
       const { atlas, hash } = roomAtlas(venue);
       const root = new THREE.Group();
+      // Which texels the receivers cover, for the bake check (an island's box holds empty corners).
+      const cover = document.createElement("canvas");
+      cover.width = cover.height = atlas.size;
+      const ctx = cover.getContext("2d") as CanvasRenderingContext2D;
+      ctx.fillStyle = "#fff";
       for (const r of roomReceivers(venue)) {
         const mat = new THREE.MeshStandardMaterial({
           color: ALBEDO[r.material] ?? "#808080",
           name: r.material,
         });
-        const mesh = new THREE.Mesh(applyAtlas(r.geometry, atlas), mat);
+        const geo = applyAtlas(r.geometry, atlas);
+        const uv = geo.getAttribute("uv1");
+        for (let i = 0; i < uv.count; i += 3) {
+          ctx.beginPath();
+          for (let k = 0; k < 3; k++) ctx.lineTo(uv.getX(i + k) * atlas.size, uv.getY(i + k) * atlas.size);
+          ctx.fill();
+        }
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.name = `R:${r.name}`;
         root.add(mesh);
       }
@@ -67,7 +79,13 @@ export function BakeExport({ m }: { m: Materials }) {
       const bytes = new Uint8Array(glb);
       for (let i = 0; i < bytes.length; i += 0x8000)
         s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      return JSON.stringify({ geometryHash: hash, inputsHash: bakeInputsHash(venue), atlas, glb: btoa(s) });
+      return JSON.stringify({
+        geometryHash: hash,
+        inputsHash: bakeInputsHash(venue),
+        atlas,
+        coverage: cover.toDataURL("image/png").split(",")[1],
+        glb: btoa(s),
+      });
     };
   }, [scene, venue, m]);
   return null;

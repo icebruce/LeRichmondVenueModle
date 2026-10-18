@@ -111,6 +111,16 @@ bpy.context.view_layer.objects.active = room
 bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer=lightmap_uv, margin=2)
 print("baked", MODE, round(time.time() - t0), "s")
 
-px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[::-1, :, :3]
-np.ascontiguousarray(px).astype("<f4").tofile(OUT)
+# Denoise lightly: a masked blur that never mixes in empty texels (another island, or none).
+px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :3]
+mask = (px.sum(axis=2) > 0).astype(np.float32)[:, :, None]
+acc = np.zeros_like(px)
+weight = np.zeros_like(mask)
+for dy in (-1, 0, 1):
+    for dx in (-1, 0, 1):
+        w = 1.0 if (dx, dy) == (0, 0) else 0.6
+        acc += w * np.roll(np.roll(px * mask, dy, 0), dx, 1)
+        weight += w * np.roll(np.roll(mask, dy, 0), dx, 1)
+px = np.where(mask > 0, acc / np.maximum(weight, 1e-6), px)
+np.ascontiguousarray(px[::-1]).astype("<f4").tofile(OUT)
 print("done", round(time.time() - t0), "s")

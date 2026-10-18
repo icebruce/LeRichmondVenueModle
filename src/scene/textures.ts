@@ -191,7 +191,7 @@ export function gradientTexture(top: string, bottom: string): THREE.CanvasTextur
  * The model's soft shadow beneath it: a blurred rounded rectangle filling `1 / spread` of the
  * texture, darkest in a band at its edge and fading to nothing before the texture's own edge.
  */
-export function softShadowTexture(spread: number): THREE.CanvasTexture {
+export function softShadowTexture(spread: number, rounding = 0.02): THREE.CanvasTexture {
   const size = 512;
   const [c, ctx] = canvas(size);
   const inner = size / spread;
@@ -200,7 +200,7 @@ export function softShadowTexture(spread: number): THREE.CanvasTexture {
   ctx.shadowBlur = at * 0.7;
   ctx.fillStyle = "rgba(0,0,0,0.6)";
   ctx.beginPath();
-  ctx.roundRect(at, at, inner, inner, inner * 0.02);
+  ctx.roundRect(at, at, inner, inner, inner * rounding);
   ctx.fill();
   const t = finish(c);
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;

@@ -115,6 +115,9 @@ float noise3(vec3 p) {
 /** Evening glow of the stair's LED treads: saturated enough to stay lime-yellow after tone mapping. */
 export const LED_GLOW = 0.6;
 
+/** A contact shadow's plane is this many times the footprint it darkens. */
+export const CONTACT_SPREAD = 1.6;
+
 /** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
 export const SHADOW_SPREAD = 1.25;
 
@@ -194,6 +197,17 @@ export function useMaterials(quality: Quality) {
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
       cap: std({ color: "#e6dfd3", roughness: 0.8 }),
+      // Soft contact shadows under tables, chairs and standing guests (V2, Grounded): the baked
+      // floor takes no live shadow, so these ground what stands on it.
+      contact: new THREE.MeshBasicMaterial({
+        color: "#000000",
+        map: softShadowTexture(CONTACT_SPREAD, 0.3),
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+      }),
       groundShadow: new THREE.MeshBasicMaterial({
         map: softShadowTexture(SHADOW_SPREAD),
         transparent: true,

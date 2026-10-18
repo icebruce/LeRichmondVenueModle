@@ -26,6 +26,7 @@ import type { Materials } from "../materials";
 import type { Quality } from "../quality";
 import { type Placed, LIFT, TOP, moved } from "./common";
 import { Chairs, TableDecor } from "./Decor";
+import { TableContacts } from "./Contact";
 import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
 import { Line } from "./Line";
@@ -914,6 +915,7 @@ export function Items({
         );
       })}
       <Chairs placed={placed} scenario={scenario} low={quality === "low"} />
+      <TableContacts placed={placed} m={m} />
       <TableDecor placed={placed} scenario={scenario} m={m} evening={evening} low={quality === "low"} />
       {/* Touch rotates with the inspector buttons; a 3D handle is too small a target there. */}
       {single && camera !== "walk" && !coarse && !spotFor(single.item, venue) && !drag && (

@@ -11,7 +11,6 @@ const steps = stepArg > 0 ? process.argv[stepArg + 1].split(",") : ["1"];
 const MANUAL = {
   "VEN-01": "owner recognition at step 1 gate (fidelity review)",
   "LGT-01": "mood vs R08 at step 1 gate",
-  "LGT-03": "architecture decision (ADR-2)",
   "PLT-01": "owner devices at step gates",
   "PLT-03": "frame rate on real devices at step gates (draw calls and triangles are tested)",
   "REQ-03": "one real request delivered through a pull request at the step 3 gate (token reads are tested)",
