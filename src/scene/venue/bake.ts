@@ -66,7 +66,13 @@ export const ALBEDO: Partial<Record<keyof Materials, string>> = {
 /** FNV-1a of the venue data the bake script reads for its lights and sky. */
 export function bakeInputsHash(venue: VenueModel): string {
   const d = venue.data;
-  const text = JSON.stringify([d.room, d.backBar.rect, d.fixtures.chandeliers, d.fixtures.pendantRows]);
+  const text = JSON.stringify([
+    d.room,
+    d.walls,
+    d.backBar.rect,
+    d.fixtures.chandeliers,
+    d.fixtures.pendantRows,
+  ]);
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
   return h.toString(16).padStart(8, "0");

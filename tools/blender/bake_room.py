@@ -86,6 +86,14 @@ if MODE == "evening":
         wash = add_light("wash", "AREA", B((x0 + x1) / 2, C - 1.2, 1.6), 420, target=B((x0 + x1) / 2, 2.6, 0.0))
         wash.shape = "RECTANGLE"
         wash.size, wash.size_y = x1 - x0, 0.6
+    # Warm uplights washing the brick piers between the street windows (R05, R10).
+    east = next(w for w in V["walls"] if w["id"] == "east")
+    edges = [0.0] + [e for o in sorted(east["openings"], key=lambda o: o["start"]) for e in (o["start"], o["end"])] + [D]
+    for a, b in zip(edges[0::2], edges[1::2]):
+        if b - a < 0.3:
+            continue
+        z = (a + b) / 2
+        add_light("uplight", "SPOT", B(W - 0.25, 0.15, z), 90, target=B(W, 3.5, z), angle=40, blend=0.8)
     bb = V["backBar"]["rect"]["value"]
     back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 260, color=(1.0, 0.86, 0.68))
     back.shape = "RECTANGLE"
