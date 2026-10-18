@@ -34,7 +34,7 @@ export function Walls({ venue, m, cutWalls }: Pick<Props, "venue" | "m" | "cutWa
             {g.brick && <mesh geometry={g.brick} material={m.brick} receiveShadow castShadow />}
             {g.redBrick && <mesh geometry={g.redBrick} material={m.redBrick} receiveShadow />}
             {g.panel && <mesh geometry={g.panel} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.cap} castShadow />}
+            {g.cap && <mesh geometry={g.cap} material={m.cap} />}
           </group>
         );
       })}
