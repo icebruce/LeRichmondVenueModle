@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-const KEEP = ["position", "normal", "uv"] as const;
+const KEEP = ["position", "normal", "uv", "uv1"] as const;
 
 /** World-space, non-indexed copy with only the attributes every merge partner shares. */
 function baked(mesh: THREE.Mesh): THREE.BufferGeometry {

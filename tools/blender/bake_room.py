@@ -1,11 +1,14 @@
-"""Bake the fixed room's evening light (direct + bounced) into one light map.
+"""Bake the fixed room's light (direct + bounced) into its light map (visual stage V2, ADR-2).
 
-Usage: python bake_room.py <venue-export.glb> <venue_geometry.json> <out dir> <size> <samples>
+Usage: python bake_room.py <room.glb> <venue_geometry.json> <out.f32> <size> <samples> <evening|day>
+
+The GLB comes from the app (`?bake-export`, run by `npm run bake`): receivers named "R:..." carry
+the light-map UVs as their second UV set; everything else is an occluder or, where it glows, an
+emitter. Writes <size>x<size> RGB float32 irradiance, top row first, to <out.f32>.
 Venue (x, up, z) maps to Blender (x, -z, up).
 """
 import json
 import math
-import os
 import sys
 import time
 
@@ -13,19 +16,23 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-GLB, VENUE, OUT, SIZE, SAMPLES = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+GLB, VENUE, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
+SIZE, SAMPLES, MODE = int(sys.argv[4]), int(sys.argv[5]), sys.argv[6]
 t0 = time.time()
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
 sc.render.engine = "CYCLES"
 sc.cycles.device = "CPU"
 sc.cycles.samples = SAMPLES
+sc.cycles.use_denoising = False
 sc.cycles.max_bounces = 6
-sc.cycles.diffuse_bounces = 6
-sc.render.bake.margin = 6
+sc.cycles.diffuse_bounces = 4
 bpy.ops.import_scene.gltf(filepath=GLB)
 V = json.load(open(VENUE))
 B = lambda x, up, z: Vector((x, -z, up))
+C = V["room"]["ceiling"]["value"]
+W = V["room"]["width"]["value"]
+D = V["room"]["depth"]["value"]
 
 recv = [o for o in sc.objects if o.type == "MESH" and o.name.startswith("R:")]
 bpy.ops.object.select_all(action="DESELECT")
@@ -34,122 +41,76 @@ for o in recv:
 bpy.context.view_layer.objects.active = recv[0]
 bpy.ops.object.join()
 room = bpy.context.active_object
-room.name = "venue_baked"
-uv_main = room.data.uv_layers[0].name
-lm = room.data.uv_layers.new(name="lightmap")
-room.data.uv_layers.active = lm
-bpy.ops.object.mode_set(mode="EDIT")
-bpy.ops.mesh.select_all(action="SELECT")
-bpy.ops.uv.lightmap_pack(PREF_CONTEXT="ALL_FACES", PREF_PACK_IN_ONE=True, PREF_NEW_UVLAYER=False, PREF_BOX_DIV=12, PREF_MARGIN_DIV=0.3)
-bpy.ops.object.mode_set(mode="OBJECT")
-room.data.uv_layers[uv_main].active_render = True
-print("unwrapped", round(time.time() - t0), "s")
+lightmap_uv = room.data.uv_layers[1].name
+print("receivers joined", len(room.data.polygons), "faces;", round(time.time() - t0), "s")
 
-# --- the venue's own evening light ------------------------------------------------------------
 warm = (1.0, 0.83, 0.64)
 
 
-def point(name, loc, watts, radius=0.15, color=warm):
-    l = bpy.data.lights.new(name, "POINT")
-    l.energy = watts
-    l.color = color
-    l.shadow_soft_size = radius
-    o = bpy.data.objects.new(name, l)
-    sc.collection.objects.link(o)
-    o.location = loc
+def add_light(name, kind, loc, watts, color=warm, radius=0.2, target=None, angle=None, blend=0.6):
+    data = bpy.data.lights.new(name, kind)
+    data.energy = watts
+    data.color = color
+    if kind in ("POINT", "SPOT"):
+        data.shadow_soft_size = radius
+    if kind == "SPOT":
+        data.spot_size = math.radians(angle)
+        data.spot_blend = blend
+    obj = bpy.data.objects.new(name, data)
+    sc.collection.objects.link(obj)
+    obj.location = loc
+    if target is not None:
+        obj.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+    return data
 
 
-def spot(name, loc, target, watts, angle=60, color=warm, blend=0.6):
-    l = bpy.data.lights.new(name, "SPOT")
-    l.energy = watts
-    l.color = color
-    l.spot_size = math.radians(angle)
-    l.spot_blend = blend
-    l.shadow_soft_size = 0.6
-    o = bpy.data.objects.new(name, l)
-    sc.collection.objects.link(o)
-    o.location = loc
-    o.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+sc.world = bpy.data.worlds.new(MODE)
+sc.world.use_nodes = True
+bg = sc.world.node_tree.nodes["Background"]
+f = V["fixtures"]
+if MODE == "evening":
+    # The venue's own light (R06, R08, UV01): chandeliers, pendant drums, track washes on the brick,
+    # the lit back bar; a faint night sky through the glass.
+    bg.inputs["Color"].default_value = (0.05, 0.046, 0.042, 1)
+    bg.inputs["Strength"].default_value = 1.0
+    for c in f["chandeliers"]:
+        if c["kind"] == "brassCluster":
+            add_light("brass", "POINT", B(c["x"], (c["bottom"] + c["top"]) / 2, c["z"]), 1100, radius=1.0)
+        else:
+            add_light("cage", "POINT", B(c["x"], c["bottom"] + 0.6, c["z"]), 320, radius=0.6)
+    for row in f["pendantRows"]:
+        for i in range(row["count"]):
+            x = row["x0"] + (row["x1"] - row["x0"]) * i / max(1, row["count"] - 1)
+            add_light("drum", "SPOT", B(x, row["height"] - 0.3, row["z"]), 160, target=B(x, 0, row["z"]), angle=115, blend=1.0)
+    for x0, x1 in ((0.4, 5.4), (11.0, 15.6)):
+        wash = add_light("wash", "AREA", B((x0 + x1) / 2, C - 1.2, 1.6), 420, target=B((x0 + x1) / 2, 2.6, 0.0))
+        wash.shape = "RECTANGLE"
+        wash.size, wash.size_y = x1 - x0, 0.6
+    bb = V["backBar"]["rect"]["value"]
+    back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 260, color=(1.0, 0.86, 0.68))
+    back.shape = "RECTANGLE"
+    back.size, back.size_y = bb[2] - bb[0], 1.6
+    bpy.data.objects["backbar"].rotation_euler = (math.radians(-90), 0, 0)
+else:
+    # Daylight: soft sky through the garage doors and street windows, low sun from the terrace (west).
+    bg.inputs["Color"].default_value = (0.62, 0.72, 0.9, 1)
+    bg.inputs["Strength"].default_value = 3.0
+    sun = add_light("sun", "SUN", B(-20, 14, D / 2 + 4), 3.5, color=(1.0, 0.95, 0.86), target=B(W / 2, 0, D / 2))
+    sun.angle = math.radians(3)
 
-
-for c in V["fixtures"]["chandeliers"]:
-    if c["kind"] == "brassCluster":
-        point("brass", B(c["x"], (c["bottom"] + c["top"]) / 2, c["z"]), 1100, 1.0)
-    else:
-        point("cage", B(c["x"], c["bottom"] + 0.6, c["z"]), 320, 0.6)
-for row in V["fixtures"]["pendantRows"]:
-    for i in range(row["count"]):
-        x = row["x0"] + (row["x1"] - row["x0"]) * i / max(1, row["count"] - 1)
-        spot("drum", B(x, row["height"] - 0.3, row["z"]), B(x, 0, row["z"]), 160, 115, blend=1.0)
-C = V["room"]["ceiling"]["value"]
-# Track spots washing the north brick and the paintings (R01, R06).
-for x in (2.8, 13.3):
-    spot("track", B(x, C - 0.6, 2.6), B(x, 3.0, 0.0), 300, 120, blend=1.0)
-# Track lighting washing the north brick on both sides of the back bar (R06, R07): soft area washes.
-for x0, x1 in ((0.4, 5.4), (11.0, 15.6)):
-    wl = bpy.data.lights.new("wash", "AREA")
-    wl.energy = 420
-    wl.color = warm
-    wl.shape = "RECTANGLE"
-    wl.size, wl.size_y = x1 - x0, 0.6
-    wo = bpy.data.objects.new("wash", wl)
-    sc.collection.objects.link(wo)
-    wo.location = B((x0 + x1) / 2, C - 1.2, 1.6)
-    wo.rotation_euler = (Vector(B((x0 + x1) / 2, 2.6, 0.0)) - wo.location).to_track_quat("-Z", "Y").to_euler()
-# Back bar: a soft warm source in front of the lit shelves (R02, R03, R14).
-bb = V["backBar"]["rect"]["value"]
-l = bpy.data.lights.new("backbar", "AREA")
-l.energy = 260
-l.color = (1.0, 0.86, 0.68)
-l.shape = "RECTANGLE"
-l.size, l.size_y = bb[2] - bb[0], 1.6
-o = bpy.data.objects.new("backbar", l)
-sc.collection.objects.link(o)
-o.location = B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15)
-o.rotation_euler = (math.radians(-90), 0, 0)
-# Night outside: a faint cool sky through the glass.
-sc.world = bpy.data.worlds.new("night")
-sc.world.color = (0.05, 0.046, 0.042)
-
-# --- bake ---------------------------------------------------------------------------------------
+# Emitters from the app (lit shelves, the kitchen, LED treads): a glTF emissive becomes emission.
 img = bpy.data.images.new("lightmap", SIZE, SIZE, alpha=False, float_buffer=True)
 for slot in room.material_slots:
-    m = slot.material
-    m.use_nodes = True
-    nt = m.node_tree
-    n = nt.nodes.new("ShaderNodeTexImage")
-    n.image = img
-    nt.nodes.active = n
+    nt = slot.material.node_tree
+    node = nt.nodes.new("ShaderNodeTexImage")
+    node.image = img
+    nt.nodes.active = node
 bpy.ops.object.select_all(action="DESELECT")
 room.select_set(True)
 bpy.context.view_layer.objects.active = room
-bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer="lightmap", margin=6)
-print("baked", round(time.time() - t0), "s")
+bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer=lightmap_uv, margin=2)
+print("baked", MODE, round(time.time() - t0), "s")
 
-# Denoise lightly: masked blur that never mixes in empty (unbaked) texels.
-px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)
-rgb = px[:, :, :3]
-mask = (rgb.sum(axis=2) > 0).astype(np.float32)[:, :, None]
-acc = np.zeros_like(rgb)
-wsum = np.zeros_like(mask)
-for dy in (-1, 0, 1):
-    for dx in (-1, 0, 1):
-        w = 1.0 if (dx, dy) == (0, 0) else 0.6
-        acc += w * np.roll(np.roll(rgb * mask, dy, 0), dx, 1)
-        wsum += w * np.roll(np.roll(mask, dy, 0), dx, 1)
-den = np.where(wsum > 0, acc / np.maximum(wsum, 1e-6), rgb)
-px[:, :, :3] = np.where(mask > 0, den, rgb)
-img.pixels[:] = px.ravel()
-img.filepath_raw = os.path.join(OUT, "venue-lightmap.hdr")
-img.file_format = "HDR"
-img.save()
-
-# Remove the bake nodes again and export the room with both UV sets.
-for slot in room.material_slots:
-    nt = slot.material.node_tree
-    for n in [n for n in nt.nodes if n.type == "TEX_IMAGE" and n.image == img]:
-        nt.nodes.remove(n)
-bpy.ops.object.select_all(action="DESELECT")
-room.select_set(True)
-bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, "venue-baked.glb"), export_format="GLB", use_selection=True, export_image_format="JPEG", export_jpeg_quality=85)
-print("done", round(time.time() - t0), "s", "mean irradiance", float(rgb[mask[:, :, 0] > 0].mean()))
+px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[::-1, :, :3]
+np.ascontiguousarray(px).astype("<f4").tofile(OUT)
+print("done", round(time.time() - t0), "s")

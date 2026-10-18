@@ -7,6 +7,7 @@ import type { Catalog } from "../domain/library/catalog";
 import type { VenueModel } from "../domain/venue/model";
 import type { Editor, EditorState } from "../state/editor";
 import { type ViewState, viewStore } from "../state/view";
+import type { BakeManifest } from "./venue/bake";
 
 /** `readOnly`: the side-by-side compare view, which shows a scenario but does not edit it. */
 export type Studio = {
@@ -16,6 +17,8 @@ export type Studio = {
   readOnly?: boolean;
   /** A stored photo (an import, a print) as a URL to draw, or null if it cannot be had now. */
   imageUrl?: (id: string) => Promise<string | null>;
+  /** The room's light bake (`npm run bake`, visual stage V2); without it the room is lit live. */
+  bake?: BakeManifest;
 };
 
 export const StudioContext = createContext<Studio | null>(null);

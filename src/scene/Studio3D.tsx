@@ -29,6 +29,11 @@ import {
 } from "./frames";
 import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
+import { BakeExport } from "./BakeExport";
+import { useBake } from "./useBake";
+
+/** `?bake-export`: the bake tool's export of the fixed room (visual stage V2, `npm run bake`). */
+const BAKE_EXPORT = new URLSearchParams(window.location.search).has("bake-export");
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
 import {
   type AutoTier,
@@ -382,12 +387,13 @@ function Scene({
   auto: AutoTier | null;
   onTier: (t: Tier) => void;
 }) {
-  const { venue } = useStudio();
+  const { venue, bake: manifest } = useStudio();
   const m = useMaterials(quality);
   const mode = useEditor((s) => s.camera);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
+  const bake = useBake(venue, manifest, m, quality, evening);
   const view = useView((s) => s.view);
   const { cut, below } = useCutaway(mode, view);
   // The ceiling shows only from below it (walk, reference views, a dollhouse camera zoomed in low);
@@ -416,12 +422,12 @@ function Scene({
     <>
       <primitive attach="background" object={background} />
       <Lighting evening={evening} quality={quality} tier={tier} plan={mode === "plan"} />
-      <Walls venue={venue} m={m} cutWalls={cut} />
+      <Walls venue={venue} m={m} cutWalls={cut} bake={bake} />
       {/* The parts that never change with the camera, one mesh per material. */}
       <StaticMerge
         version={`${scenario.venueToggles.barStools}|${mode === "plan"}|${JSON.stringify(scenario.venueToggles.paintings)}`}
       >
-        <Floors venue={venue} m={m} />
+        <Floors venue={venue} m={m} bake={bake} />
         <Railing venue={venue} m={m} />
         <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
         <BackBar venue={venue} m={m} />
@@ -436,14 +442,15 @@ function Scene({
         <Backdrops venue={venue} m={m} evening={evening} />
       </group>
       <group visible={!cut.has("south")}>
-        <Mezzanine venue={venue} m={m} />
+        <Mezzanine venue={venue} m={m} bake={bake} />
       </group>
       <Stair venue={venue} m={m} inRoom={cut.has("south")} />
       <group visible={mode !== "plan"}>
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>
-      <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
+      <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
       <Items m={m} evening={evening} quality={quality} />
+      {BAKE_EXPORT && <BakeExport m={m} />}
       <People low={quality === "low"} />
       <Advisories hidden={mode === "walk"} />
       <ShaderKeepers />

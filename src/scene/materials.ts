@@ -186,6 +186,9 @@ export function useMaterials(quality: Quality) {
       // Honey pine deck with darker beams (R02).
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
+      // The same timber on the ceiling beams and the raised floor's sides, which carry the baked
+      // light (V2), kept apart from the stair's live-lit timber.
+      beam: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
       girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
@@ -267,6 +270,8 @@ export function useMaterials(quality: Quality) {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       // The closed side under the second flight and the turn landing (owner photo 4).
       stairWall: std({ color: "#262b28", roughness: 0.9 }),
+      // The mezzanine's underside, which carries the baked light (V2).
+      soffit: std({ color: "#262b28", roughness: 0.9 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
       // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and

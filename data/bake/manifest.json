@@ -1,0 +1,10 @@
+{
+  "geometryHash": "",
+  "inputsHash": "",
+  "scriptHash": "",
+  "samples": 0,
+  "sets": {
+    "evening": { "scale": 1, "files": { "2k": "", "1k": "" } },
+    "day": { "scale": 1, "files": { "2k": "", "1k": "" } }
+  }
+}
