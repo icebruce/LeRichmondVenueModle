@@ -4,7 +4,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { VenueModel } from "../../domain/venue/model";
 import type { Vec2 } from "../../domain/geometry";
 import { type Materials, SHADOW_SPREAD, TILE, bevelGeo, boxGeo, metreUV } from "../materials";
-import { CUT_HEIGHT, type WallMeshes, buildWall } from "./walls";
+import { CUT_HEIGHT, type WallMeshes, buildWall, splitFacing } from "./walls";
+import type { WallData } from "../../domain/venue/schema";
 import { applyAtlas } from "./lightmap";
 import type { Bake } from "../useBake";
 
@@ -32,17 +33,21 @@ function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
 export function Walls({ venue, m, cutWalls, bake }: Pick<Props, "venue" | "m" | "cutWalls" | "bake">) {
   const t = venue.data.room.wallThickness.value;
   const built = useMemo(() => {
-    // The cut walls take their light from the full walls' bake (the same planes).
-    const map = (g: WallMeshes): WallMeshes => ({
-      brick: g.brick && mapped(g.brick, bake),
-      redBrick: g.redBrick && mapped(g.redBrick, bake),
-      panel: g.panel && mapped(g.panel, bake),
-      cap: g.cap,
-    });
+    // With a bake, each surface splits: its face toward the room light-mapped (the cut walls take
+    // the full walls' bake, on the same planes), the rest lit live.
+    const map = (w: WallData, g: WallMeshes) => {
+      const part = (x: THREE.BufferGeometry | null) => {
+        if (!x) return null;
+        if (!bake) return { lit: x, live: null };
+        const { inner, outer } = splitFacing(x, w);
+        return { lit: applyAtlas(inner, bake.atlas), live: outer };
+      };
+      return { brick: part(g.brick), redBrick: part(g.redBrick), panel: part(g.panel), cap: g.cap };
+    };
     return venue.data.walls.map((w) => ({
       id: w.id,
-      full: map(buildWall(w, venue.ceiling, t, false)),
-      cut: map(buildWall(w, venue.ceiling, t, true)),
+      full: map(w, buildWall(w, venue.ceiling, t, false)),
+      cut: map(w, buildWall(w, venue.ceiling, t, true)),
     }));
   }, [venue, t, bake]);
   return (
@@ -51,9 +56,16 @@ export function Walls({ venue, m, cutWalls, bake }: Pick<Props, "venue" | "m" | 
         const g = cutWalls.has(w.id) ? w.cut : w.full;
         return (
           <group key={w.id} name={`wall-${w.id}`}>
-            {g.brick && <mesh geometry={g.brick} material={lit(m, bake, "brick")} receiveShadow castShadow />}
-            {g.redBrick && <mesh geometry={g.redBrick} material={lit(m, bake, "redBrick")} receiveShadow />}
-            {g.panel && <mesh geometry={g.panel} material={lit(m, bake, "greenPanel")} receiveShadow />}
+            {g.brick && (
+              <mesh geometry={g.brick.lit} material={lit(m, bake, "brick")} receiveShadow castShadow />
+            )}
+            {g.brick?.live && <mesh geometry={g.brick.live} material={m.brick} receiveShadow castShadow />}
+            {g.redBrick && (
+              <mesh geometry={g.redBrick.lit} material={lit(m, bake, "redBrick")} receiveShadow />
+            )}
+            {g.redBrick?.live && <mesh geometry={g.redBrick.live} material={m.redBrick} receiveShadow />}
+            {g.panel && <mesh geometry={g.panel.lit} material={lit(m, bake, "greenPanel")} receiveShadow />}
+            {g.panel?.live && <mesh geometry={g.panel.live} material={m.greenPanel} receiveShadow />}
             {g.cap && <mesh geometry={g.cap} material={m.cap} />}
           </group>
         );

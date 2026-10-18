@@ -12,7 +12,9 @@ const layer = (files, banned, message) => ({
 });
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "docs", "playwright-report", "test-results", "public"] },
+  {
+    ignores: ["dist", "node_modules", "docs", "playwright-report", "test-results", "public", "tools/.cache"],
+  },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {

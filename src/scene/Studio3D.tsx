@@ -141,10 +141,11 @@ function Lighting({
           intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
           distance={c.kind === "brassCluster" ? 14 : 8}
           decay={1.6}
-          color="#ffd4a8"
+          color="#ffdcb8"
         />
       ))}
-      <pointLight position={[8.4, 2.2, 1.6]} intensity={10 * glow} distance={7} decay={1.6} color="#ffc98e" />
+      {/* The back bar's glow, under its canopy (R01, R03). */}
+      <pointLight position={[8.1, 2.3, 0.4]} intensity={16 * glow} distance={7} decay={1.6} color="#ffc98e" />
       <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
       <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
       <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
@@ -152,7 +153,7 @@ function Lighting({
         <Lightformer
           form="rect"
           intensity={evening ? 0.6 : 2}
-          color={evening ? "#ffb070" : "#ffffff"}
+          color={evening ? "#ffd6b0" : "#ffffff"}
           position={[-6, 4, 7]}
           scale={[2, 6, 12]}
           rotation-y={Math.PI / 2}
@@ -417,6 +418,8 @@ function Scene({
   useEffect(() => {
     m.led.emissiveIntensity = evening ? LED_GLOW : 0;
     m.cap.emissiveIntensity = evening ? 0.12 : 0;
+    // Street sheers at night are lit only from inside: dimmer.
+    m.sheer.opacity = evening ? 0.1 : 0.2;
     scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
     invalidate();
   }, [m, scene, evening, invalidate]);

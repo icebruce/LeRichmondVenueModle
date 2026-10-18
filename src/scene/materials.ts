@@ -113,7 +113,7 @@ float noise3(vec3 p) {
 }
 
 /** Evening glow of the stair's LED treads: saturated enough to stay lime-yellow after tone mapping. */
-export const LED_GLOW = 0.6;
+export const LED_GLOW = 1.0;
 
 /** A contact shadow's plane is this many times the footprint it darkens. */
 export const CONTACT_SPREAD = 1.6;
@@ -218,7 +218,7 @@ export function useMaterials(quality: Quality) {
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
-      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 1.8, roughness: 0.5 }),
+      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 3, roughness: 0.5 }),
       bottles: std({
         color: "#5b3a1e",
         emissive: "#c27a2c",

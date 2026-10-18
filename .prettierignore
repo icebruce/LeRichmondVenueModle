@@ -1,4 +1,5 @@
 dist
+tools/.cache
 node_modules
 docs/handover
 public/assets

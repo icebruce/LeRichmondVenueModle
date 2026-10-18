@@ -2,7 +2,7 @@
 // light maps. Exports the room from the built app (`?bake-export`), bakes each set in Blender
 // (`tools/blender/bake_room.py`), checks the result, encodes KTX2 (2K desktop, 1K phone) and writes
 // `data/bake/manifest.json`, which the app checks against the room it builds before using the maps.
-// Usage: npm run build && npm run bake [-- <samples>]   (BAKE_PYTHON: Python with `bpy`)
+// Usage: npm run bake [-- <samples>]   (BAKE_PYTHON: Python with `bpy`)
 import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -43,11 +43,22 @@ mkdirSync(cache, { recursive: true });
 mkdirSync(out, { recursive: true });
 
 async function exportRoom(): Promise<Export> {
-  // Vite itself (not through npx), so stopping it below stops the server.
+  // Built into its own folder (a test run may be serving dist/); Vite run directly, not through
+  // npx, so stopping it below stops the server.
   const vite = join(root, "node_modules/vite/bin/vite.js");
-  const server = spawn(process.execPath, [vite, "preview", "--port", String(PORT), "--strictPort"], {
+  const dist = join(cache, "dist");
+  const built = spawnSync(process.execPath, [vite, "build", "--outDir", dist, "--emptyOutDir"], {
     cwd: root,
+    stdio: "inherit",
   });
+  if (built.status !== 0) throw new Error("build failed");
+  const server = spawn(
+    process.execPath,
+    [vite, "preview", "--port", String(PORT), "--strictPort", "--outDir", dist],
+    {
+      cwd: root,
+    },
+  );
   try {
     await new Promise((r) => setTimeout(r, 2500));
     const local = "/opt/pw-browsers/chromium";

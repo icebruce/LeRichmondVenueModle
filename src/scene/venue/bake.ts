@@ -3,7 +3,7 @@ import type { VenueModel } from "../../domain/venue/model";
 import type { Materials } from "../materials";
 import { type Atlas, buildAtlas, geometryHash } from "./lightmap";
 import { ceilingParts, floorParts, mezzanineParts } from "./Architecture";
-import { buildWall } from "./walls";
+import { buildWall, splitFacing } from "./walls";
 
 /**
  * The fixed room's baked light (visual stage V2, ADR-2): which surfaces carry the light map, their
@@ -28,11 +28,13 @@ export type Receiver = {
 export function roomReceivers(venue: VenueModel): Receiver[] {
   const t = venue.data.room.wallThickness.value;
   const out: Receiver[] = [];
+  // Walls: only the face toward the room (their backs, ends and tops stay live-lit).
   for (const w of venue.data.walls) {
     const g = buildWall(w, venue.ceiling, t, false);
-    if (g.brick) out.push({ name: `wall-${w.id}-brick`, material: "brick", geometry: g.brick });
-    if (g.redBrick) out.push({ name: `wall-${w.id}-red`, material: "redBrick", geometry: g.redBrick });
-    if (g.panel) out.push({ name: `wall-${w.id}-panel`, material: "greenPanel", geometry: g.panel });
+    const inner = (x: THREE.BufferGeometry) => splitFacing(x, w).inner;
+    if (g.brick) out.push({ name: `wall-${w.id}-brick`, material: "brick", geometry: inner(g.brick) });
+    if (g.redBrick) out.push({ name: `wall-${w.id}-red`, material: "redBrick", geometry: inner(g.redBrick) });
+    if (g.panel) out.push({ name: `wall-${w.id}-panel`, material: "greenPanel", geometry: inner(g.panel) });
   }
   const f = floorParts(venue);
   out.push(

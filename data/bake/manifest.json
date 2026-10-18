@@ -1,18 +1,18 @@
 {
-  "geometryHash": "49adbcd3",
+  "geometryHash": "eca6dcd9",
   "inputsHash": "02f7faa1",
-  "scriptHash": "b9bea495854fdf74fb85c50344dcdeca04dfa5e424f036248af3a475b929f402",
+  "scriptHash": "7b7192732214d80f6ad4ff220314b8c9e8c8fb445249266fe199a3313269190f",
   "samples": 128,
   "sets": {
     "evening": {
-      "scale": 4.565829277038574,
+      "scale": 3.9181385040283203,
       "files": {
         "2k": "evening_2k.ktx2",
         "1k": "evening_1k.ktx2"
       }
     },
     "day": {
-      "scale": 3.5500550270080566,
+      "scale": 1.900000810623169,
       "files": {
         "2k": "day_2k.ktx2",
         "1k": "day_1k.ktx2"

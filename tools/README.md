@@ -25,9 +25,9 @@ Offline tools Claude runs from committed scripts; nothing here ships in the app.
 
 ## Room light bake
 
-`npm run build && BAKE_PYTHON=<python with bpy> npm run bake [-- <samples>]` (default 256 samples; 128 takes about 15 minutes a set on 4 cores) (`bake/bake.ts`, visual stage V2, ADR-2):
+`BAKE_PYTHON=<python with bpy> npm run bake [-- <samples>]` (default 256 samples; 128 takes about 15 minutes a set on 4 cores) (`bake/bake.ts`, visual stage V2, ADR-2):
 
-1. Opens the built app with `?bake-export` and takes the fixed room as a GLB: the receivers (walls, floors, ceiling, mezzanine edge) with the light-map UVs the app computes (`src/scene/venue/lightmap.ts`), and every other opaque, drawn part as an occluder or, where it glows, an emitter.
+1. Builds the app into `tools/.cache/bake/dist` and opens it with `?bake-export` and takes the fixed room as a GLB: the receivers (walls, floors, ceiling, mezzanine edge) with the light-map UVs the app computes (`src/scene/venue/lightmap.ts`), and every other opaque, drawn part as an occluder or, where it glows, an emitter.
 2. Bakes each set, evening and daylight, in Blender (`blender/bake_room.py`): the venue's own lights from the venue data, Cycles diffuse direct and bounced, a light masked blur.
 3. Checks it: islands that get light have no unlit texels (faces buried in the model get none and are never seen), and the map holds at least 30 texels a metre.
 4. Writes KTX2 (8-bit, 2.2 gamma, 2K and 1K) to `public/assets/bake/` and `data/bake/manifest.json`: the room's geometry fingerprint, the light inputs' fingerprint, the bake script's hash and each set's scale.
