@@ -125,21 +125,19 @@ export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: Readon
   );
   return (
     <group name="openings">
-      {perWall
-        .filter((w) => !cutWalls.has(w.id))
-        .map(({ id, built }) => (
-          <group key={id}>
-            {built.frames && <mesh geometry={built.frames} material={m.blackMetal} castShadow />}
-            {built.lightFrames && <mesh geometry={built.lightFrames} material={m.windowFrame} castShadow />}
-            {built.kitchen && <mesh geometry={built.kitchen} material={m.kitchen} />}
-            {built.glass && <mesh geometry={built.glass} material={m.glass} />}
-            {built.doors && <mesh geometry={built.doors} material={m.greenPanel} />}
-            {built.voids && <mesh geometry={built.voids} material={m.darkVoid} />}
-            {built.signs && <mesh geometry={built.signs} material={m.exitSign} />}
-            {built.warm && <mesh geometry={built.warm} material={evening ? m.shelfGlow : m.fridge} />}
-            {built.curtains && <mesh geometry={built.curtains} material={m.velvet} castShadow />}
-          </group>
-        ))}
+      {perWall.map(({ id, built }) => (
+        <group key={id} visible={!cutWalls.has(id)}>
+          {built.frames && <mesh geometry={built.frames} material={m.blackMetal} castShadow />}
+          {built.lightFrames && <mesh geometry={built.lightFrames} material={m.windowFrame} castShadow />}
+          {built.kitchen && <mesh geometry={built.kitchen} material={m.kitchen} />}
+          {built.glass && <mesh geometry={built.glass} material={m.glass} />}
+          {built.doors && <mesh geometry={built.doors} material={m.greenPanel} />}
+          {built.voids && <mesh geometry={built.voids} material={m.darkVoid} />}
+          {built.signs && <mesh geometry={built.signs} material={m.exitSign} />}
+          {built.warm && <mesh geometry={built.warm} material={evening ? m.shelfGlow : m.fridge} />}
+          {built.curtains && <mesh geometry={built.curtains} material={m.velvet} castShadow />}
+        </group>
+      ))}
     </group>
   );
 }
@@ -168,7 +166,7 @@ export function Backdrops({ venue, m, evening }: P) {
       <mesh geometry={g.terrace} material={evening ? m.darkVoid : m.terrace} />
       <mesh geometry={g.terraceFloor} material={m.tile} />
       <mesh geometry={g.street} material={m.street} />
-      {evening && g.lights && <mesh geometry={g.lights} material={m.bulb} />}
+      {g.lights && <mesh geometry={g.lights} material={m.bulb} visible={evening} />}
     </group>
   );
 }
@@ -334,19 +332,18 @@ export function Furnishings({
       <mesh geometry={g.wine} material={m.wineFrame} />
       <mesh geometry={g.wineCanopy} material={m.steel} />
       {/* Plan view is a flat working drawing: no wall art lying outside the walls. */}
-      {art &&
-        paintings.map((p) => (
-          <group key={p.id}>
-            <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.035]}>
-              <boxGeometry args={[p.x1 - p.x0 + 0.06, p.y1 - p.y0 + 0.06, 0.04]} />
-              <meshStandardMaterial color="#1b1a19" roughness={0.6} />
-            </mesh>
-            <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.06]}>
-              <planeGeometry args={[p.x1 - p.x0, p.y1 - p.y0]} />
-              <meshStandardMaterial map={p.tex} roughness={0.7} />
-            </mesh>
-          </group>
-        ))}
+      {paintings.map((p) => (
+        <group key={p.id} visible={art}>
+          <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.035]}>
+            <boxGeometry args={[p.x1 - p.x0 + 0.06, p.y1 - p.y0 + 0.06, 0.04]} />
+            <meshStandardMaterial color="#1b1a19" roughness={0.6} />
+          </mesh>
+          <mesh position={[(p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, 0.06]}>
+            <planeGeometry args={[p.x1 - p.x0, p.y1 - p.y0]} />
+            <meshStandardMaterial map={p.tex} roughness={0.7} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -483,9 +480,11 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
       <primitive object={built.tubes} />
       <primitive object={built.bulbs} />
       <primitive object={built.crystals} />
-      {pendants && <primitive object={built.drums} />}
-      {pendants && <primitive object={built.drumGlow} />}
-      {pendants && built.cords && <mesh geometry={built.cords} material={m.blackMetal} />}
+      <group visible={pendants}>
+        <primitive object={built.drums} />
+        <primitive object={built.drumGlow} />
+        {built.cords && <mesh geometry={built.cords} material={m.blackMetal} />}
+      </group>
       {built.wires && <mesh geometry={built.wires} material={m.blackMetal} />}
     </group>
   );

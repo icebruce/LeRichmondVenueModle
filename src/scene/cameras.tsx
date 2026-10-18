@@ -28,9 +28,17 @@ const SEAT_EYE = 1.2;
 /** Whether a camera animation is running (read by walk controls and test hooks). */
 export const rig = { tweening: false };
 
-/** Side-by-side compare (SCN-06): this camera copies the main one every frame. */
+/** Redraws of the side-by-side views, asked for whenever the main camera moves (frames are on demand). */
+const followers = new Set<() => void>();
+
+/** Side-by-side compare (SCN-06): this camera copies the main one on every frame it draws. */
 function FollowCamera() {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    followers.add(invalidate);
+    return () => void followers.delete(invalidate);
+  }, [invalidate]);
   useFrame(() => {
     camera.position.set(...sharedPose.position);
     camera.quaternion.set(...sharedPose.quaternion);
@@ -95,8 +103,11 @@ function MainCamera() {
   const comparing = useView((s) => s.compare !== null);
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const size = useThree((s) => s.size);
+  const invalidate = useThree((s) => s.invalidate);
   const controls = useRef<OrbitImpl>(null);
-  const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number] } | null>(null);
+  const tween = useRef<{ from: Pose; to: Pose; t: number; fov: [number, number]; started?: boolean } | null>(
+    null,
+  );
   const presets = venue.data.cameraPresets;
   // The room to frame, walls included: the back (north and west) walls rise to the ceiling in the
   // cut-away view, the others are cut at the mezzanine's height.
@@ -151,6 +162,7 @@ function MainCamera() {
       t: 0,
       fov: [camera.fov, p.fov],
     };
+    invalidate();
   };
 
   // Mode switch, and starting or ending compare, animate to the mode's starting pose (CAM-05). A
@@ -198,6 +210,7 @@ function MainCamera() {
       tween.current = { from, to: beforePick.current, t: 0, fov: [camera.fov, camera.fov] };
       beforePick.current = null;
     } else beforePick.current = null;
+    invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickSeat]);
   const footprintSize = (t: { libraryId: string; options: Record<string, unknown> }) => {
@@ -227,7 +240,9 @@ function MainCamera() {
   // height (phone top bar and sheet), easing as they change. Zoom compensates so the room keeps its
   // size on screen.
   const inset = useRef({ x: 0, y: 0 });
-  useFrame((_, dt) => {
+  useFrame((_, delta) => {
+    // Frames are on demand: after a still view the first delta is the idle time.
+    const dt = Math.min(delta, 0.1);
     const walk = mode === "walk";
     // Side by side, the halves already sit beside the interface and frame alike.
     const flat = walk || comparing;
@@ -243,6 +258,7 @@ function MainCamera() {
     const offset = next.x !== 0 || next.y !== 0;
     const same = next.x === inset.current.x && next.y === inset.current.y;
     if (same && camera.aspect === aspect && offset === !!camera.view?.enabled) return;
+    if (!same) invalidate();
     inset.current = next;
     camera.aspect = aspect;
     camera.zoom = h / fullH;
@@ -251,8 +267,14 @@ function MainCamera() {
     camera.updateProjectionMatrix();
   });
 
-  // Publish the pose for the side-by-side compare view.
+  // Publish the pose for the side-by-side compare view, and have it redraw when the pose moved.
   useFrame(() => {
+    const [x, y, z] = sharedPose.position;
+    const q = sharedPose.quaternion;
+    const p = camera.position;
+    const k = camera.quaternion;
+    if (x !== p.x || y !== p.y || z !== p.z || q[0] !== k.x || q[1] !== k.y || q[2] !== k.z || q[3] !== k.w)
+      for (const f of followers) f();
     sharedPose.position = [camera.position.x, camera.position.y, camera.position.z];
     sharedPose.quaternion = [
       camera.quaternion.x,
@@ -278,7 +300,10 @@ function MainCamera() {
     const tw = tween.current;
     rig.tweening = tw !== null;
     if (!tw) return;
-    tw.t = Math.min(1, tw.t + dt / 0.6);
+    invalidate();
+    // The first frame after a still view carries the whole idle time; it only starts the animation.
+    tw.t = Math.min(1, tw.t + (tw.started ? dt : 0) / 0.6);
+    tw.started = true;
     const k = 1 - Math.pow(1 - tw.t, 3);
     camera.position.lerpVectors(tw.from.position, tw.to.position, k);
     const target = new THREE.Vector3().lerpVectors(tw.from.target, tw.to.target, k);
@@ -323,6 +348,7 @@ function WalkControls() {
   const { venue, catalog } = useStudio();
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   const items = useEditor((s) => s.scenarios[s.activeId]?.items ?? []);
   const toggles = useEditor((s) => s.scenarios[s.activeId]?.venueToggles);
   const look = useRef({ yaw: 0, pitch: 0, ready: false });
@@ -361,6 +387,7 @@ function WalkControls() {
       } else return;
       look.current.yaw -= dx * 0.004;
       look.current.pitch = Math.max(-1.1, Math.min(1.1, look.current.pitch - dy * 0.004));
+      invalidate();
     };
     const up = (e: PointerEvent) => {
       if (dragging?.id === e.pointerId) dragging = null;
@@ -368,6 +395,7 @@ function WalkControls() {
     const kd = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest?.("input, textarea")) return;
       keys.current.add(e.key.toLowerCase());
+      invalidate();
     };
     const ku = (e: KeyboardEvent) => keys.current.delete(e.key.toLowerCase());
     // Keys released while another window had focus never send keyup; stop walking instead.
@@ -382,7 +410,10 @@ function WalkControls() {
     window.addEventListener("keydown", kd);
     window.addEventListener("keyup", ku);
     window.addEventListener("blur", blur);
+    // The on-screen joystick writes here.
+    const stopInput = walkInput.subscribe(() => invalidate());
     return () => {
+      stopInput();
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -392,9 +423,11 @@ function WalkControls() {
       window.removeEventListener("blur", blur);
       if (document.pointerLockElement === el) document.exitPointerLock();
     };
-  }, [gl]);
+  }, [gl, invalidate]);
 
-  useFrame((_, dt) => {
+  useFrame((_, delta) => {
+    // Frames are on demand: after a still view the first delta is the idle time.
+    const dt = Math.min(delta, 0.1);
     const l = look.current;
     if (rig.tweening) {
       l.ready = false;
@@ -434,6 +467,8 @@ function WalkControls() {
     const eye = seat ? seat.y + SEAT_EYE : EYE + (onRaised ? venue.raised.height : 0);
     p.y += (eye - p.y) * Math.min(1, dt * 8);
     camera.rotation.set(l.pitch, l.yaw, 0, "YXZ");
+    // Keep drawing while walking, turning or settling to eye height; stop when still.
+    if (fwd || side || input.look[0] || Math.abs(eye - p.y) > 0.001) invalidate();
   });
   return null;
 }

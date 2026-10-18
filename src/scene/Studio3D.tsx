@@ -16,6 +16,8 @@ import { StudioContext, type Studio, useEditor, useStudio, useView } from "./con
 import { Items, Outline, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
+import { ShaderKeepers } from "./items/Line";
+import { StaticShadows, Warmup } from "./frames";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
@@ -56,12 +58,18 @@ function useCutaway(mode: CameraMode, view: string | null): Cutaway {
   return state;
 }
 
+/**
+ * The live lights. Their number and which of them cast shadows never change with the view or the
+ * lighting (a change would recompile every shader, the lag on a switch): lights a mode does not use
+ * are dimmed to zero instead of removed, and plan view hides its shadow instead of dropping it.
+ */
 function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quality; plan: boolean }) {
   const { venue } = useStudio();
   const shadowSize = quality === "high" ? 2048 : 1024;
   const fixtures = venue.data.fixtures.chandeliers;
   const W = venue.width;
   const D = venue.depth;
+  const glow = evening ? 1 : 0;
   return (
     <>
       <hemisphereLight args={evening ? ["#6a5139", "#20170e", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
@@ -69,8 +77,9 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 0.35 : 2.4}
         color={evening ? "#ffcf9a" : "#fff4e6"}
+        castShadow
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
-        castShadow={!plan}
+        shadow-intensity={plan ? 0 : 1}
         shadow-mapSize={[shadowSize, shadowSize]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
@@ -93,14 +102,10 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
           color="#ffbf7a"
         />
       ))}
-      {evening && (
-        <>
-          <pointLight position={[8.4, 2.2, 1.6]} intensity={10} distance={7} decay={1.6} color="#ffb060" />
-          <pointLight position={[13.5, 1.6, 6]} intensity={6} distance={9} decay={1.6} color="#ffb070" />
-          <pointLight position={[3.5, 1.6, 6]} intensity={6} distance={9} decay={1.6} color="#ffb070" />
-          <pointLight position={[5.6, 2, 11]} intensity={6} distance={8} decay={1.6} color="#ffb070" />
-        </>
-      )}
+      <pointLight position={[8.4, 2.2, 1.6]} intensity={10 * glow} distance={7} decay={1.6} color="#ffb060" />
+      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
+      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
+      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffb070" />
       <Environment resolution={128} frames={1}>
         <Lightformer
           form="rect"
@@ -155,13 +160,19 @@ function TestHooks() {
   const gl = useThree((s) => s.gl);
   // Whole-frame totals across shadow, scene and effect passes, for the budget test (ARCHITECTURE §7).
   const frame = useRef({ calls: 0, triangles: 0 });
+  const frames = useRef(0);
   useFrame(() => {
     frame.current = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    frames.current++;
     gl.info.reset();
   }, -100);
   useEffect(() => {
     gl.info.autoReset = false;
     (window as unknown as { __renderInfo?: () => typeof frame.current }).__renderInfo = () => frame.current;
+    // Frames drawn so far, and the ids of the compiled shader programs: a new id means a compile.
+    (window as unknown as { __frames?: () => number }).__frames = () => frames.current;
+    (window as unknown as { __programs?: () => number[] }).__programs = () =>
+      (gl.info.programs ?? []).map((p) => p.id);
     return () => {
       gl.info.autoReset = true;
     };
@@ -316,19 +327,29 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <BackBar venue={venue} m={m} />
       <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
-      {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
-      {!cut.has("south") && <Mezzanine venue={venue} m={m} />}
+      {/* Parts a view does not show are hidden, not unmounted: showing them never compiles a shader. */}
+      <group visible={eyeLevel}>
+        <Backdrops venue={venue} m={m} evening={evening} />
+      </group>
+      <group visible={!cut.has("south")}>
+        <Mezzanine venue={venue} m={m} />
+      </group>
       <Stair venue={venue} m={m} inRoom={cut.has("south")} />
-      {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
+      <group visible={mode !== "plan"}>
+        <Lights venue={venue} m={m} pendants={showCeiling} />
+      </group>
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
       <Items m={m} evening={evening} quality={quality} />
       <People low={quality === "low"} />
-      {mode !== "walk" && <Advisories />}
+      <Advisories hidden={mode === "walk"} />
+      <ShaderKeepers />
+      <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}`} />
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
       {!follow && <SelectionAnchor />}
       {!follow && <LibraryDrop evening={evening} />}
       <Effects evening={evening} quality={quality} />
+      <Warmup />
     </>
   );
 }
@@ -347,7 +368,10 @@ export function Studio3D({
   const dollhouse = studio.venue.data.cameraPresets.dollhouse;
   return (
     <Canvas
-      shadows
+      // Frames are drawn only when something changes: nothing renders while the view is still.
+      frameloop="demand"
+      // PCF: three dropped soft PCF and falls back to it anyway; naming it keeps shaders compiled ahead valid.
+      shadows="percentage"
       dpr={quality === "high" ? [1, 2] : [1, 1.5]}
       gl={{
         antialias: false,

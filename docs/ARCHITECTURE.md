@@ -133,6 +133,8 @@ The inspector builds its controls from `options`, and library captions from the 
 - **Venue shell:** generated meshes from venue data; PBR materials with tiling textures (CC0, provenance in `public/assets/LICENSES.md`) or procedural textures.
 - **Lighting (ADR-2):** live today; hybrid from visual stage V2: the fixed room carries baked light maps (evening and daylight, Blender, `npm run bake`, checked against a hash of the venue data), movables and placed lights stay live, and a stale bake falls back to live. Evening: hemisphere + a few shadow-free fill lights, one shadow-casting key light, emissive chandeliers/back bar/candles with selective bloom, N8AO ambient occlusion, ACES/AgX tone mapping. Daylight: soft sky + key light.
 - **Dollhouse cutaway:** walls whose normal faces the camera switch to a low cut height with a cap mesh; ceiling layer hidden; recomputed on camera move (cheap dot-product test per wall).
+- **Frames on demand (visual stage V0):** the canvas draws only when something changes (`frameloop="demand"`); camera animations, walking and the compare view ask for frames while they move. The one shadow-casting light is fixed, so its shadow map is redrawn only when the room's contents change (plan, drag, guests, cut-away walls), never for a camera move (`scene/frames.tsx`).
+- **No shader compiles after load:** the light set is the same in every view and lighting (unused lights are dimmed to zero, plan view hides its shadow instead of dropping it); parts a view does not show are hidden, not unmounted; lines keep their material when their points change (`scene/items/Line.tsx`); every shader, hidden parts and occasional lines included, is compiled on the second frame for the effects' linear buffer.
 - **Instancing:** chairs, people, candles, glasses use `InstancedMesh` per type and level of detail.
 - **Quality tiers:** `high` (desktop: shadows, AO, bloom, 2× DPR), `medium`, `low` (phone: no AO, 1.5× DPR cap, simplified chandeliers). Chosen from GPU tier detection and adjusted by a frame-time monitor.
 - **Walk collisions:** 2D circle-vs-polygon against level colliders; no physics engine (ADR-5).
@@ -170,8 +172,10 @@ Client resizes to ≤ 1600 px long edge, WebP/JPEG, EXIF stripped, ≤ 500 KB, b
 | Draw calls, full evening scene, 15 tables + 150 people | < 250 | < 150 |
 | Triangles | < 1.5 M | < 600 k |
 | Frame rate | 60 fps target | 30 fps floor |
+| Frames drawn while the view is still | 0 | 0 |
+| Shader compiles on a view, lighting or menu switch | 0 | 0 |
 
-CI checks draw calls and triangles (software rendering makes fps meaningless there); fps is checked on real devices at gates.
+CI checks draw calls, triangles, idle frames and shader compiles (software rendering makes fps meaningless there); fps is checked on real devices at gates.
 
 ## 8. Security
 

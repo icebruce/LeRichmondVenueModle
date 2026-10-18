@@ -10,6 +10,7 @@ import {
   photoFile,
   screenOf,
   setCamera,
+  settle,
   state,
 } from "./helpers";
 
@@ -378,6 +379,42 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
     expect(info.calls).toBeLessThan(calls);
     expect(info.triangles).toBeLessThan(triangles);
   }
+});
+
+test("[PLT-03] nothing is drawn while the view is still; views, lighting, menus and a selection compile no shader", async ({
+  page,
+}) => {
+  type Hooks = { __frames: () => number; __programs: () => number[]; __camera: (k: string | null) => void };
+  await openStudio(page);
+  const frames = () => page.evaluate(() => (window as unknown as Hooks).__frames());
+  const programs = () => page.evaluate(() => (window as unknown as Hooks).__programs());
+  // Still: no frame at all (VISUAL_STATUS targets: 0 frames while idle).
+  await page.waitForTimeout(1000);
+  const still = await frames();
+  await page.waitForTimeout(2000);
+  expect(await frames()).toBe(still);
+  // Every shader was compiled at load: switching never adds a program.
+  const loaded = Math.max(...(await programs()));
+  const run = async (js: string) => {
+    await page.evaluate(js);
+    await page.waitForTimeout(300);
+    await settle(page);
+  };
+  for (const js of [
+    "__studio.editor.setStyle('lighting', 'day')",
+    "__studio.editor.setStyle('lighting', 'evening')",
+    "__studio.editor.setCamera('plan')",
+    "__studio.editor.setCamera('walk')",
+    "__studio.editor.setCamera('dollhouse')",
+    "__camera('R03')",
+    "__camera(null)",
+    "__studio.editor.select(['t2'])",
+    "__studio.editor.select([])",
+  ])
+    await run(js);
+  for (const id of ["room", "add", "style", "guests", "plans"] as const) await openSection(page, id);
+  await settle(page);
+  expect((await programs()).filter((id) => id > loaded)).toEqual([]);
 });
 
 test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills the dance area", async ({
