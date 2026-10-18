@@ -43,7 +43,11 @@ mkdirSync(cache, { recursive: true });
 mkdirSync(out, { recursive: true });
 
 async function exportRoom(): Promise<Export> {
-  const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], { cwd: root });
+  // Vite itself (not through npx), so stopping it below stops the server.
+  const vite = join(root, "node_modules/vite/bin/vite.js");
+  const server = spawn(process.execPath, [vite, "preview", "--port", String(PORT), "--strictPort"], {
+    cwd: root,
+  });
   try {
     await new Promise((r) => setTimeout(r, 2500));
     const local = "/opt/pw-browsers/chromium";

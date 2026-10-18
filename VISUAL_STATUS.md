@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 built (PR #16, 2026-10-18), waiting on the owner: read `?perf` on the three devices, merge. V1 built on top (its PR opens once #16 is merged). Then V2 as one PR each, stopping after V2 for owner approval; V7 waits for the owner before any Meshy spend (owner, 2026-10-18). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 built (PR #16, 2026-10-18, CI green), waiting on the owner: read `?perf` on the three devices, merge. V1 and V2 built on top, one PR each once #16 is merged, then a stop for owner approval; V7 waits for the owner before any Meshy spend (owner, 2026-10-18). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -52,7 +52,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 |---|---|---|---|
 | V0 | Performance foundation, measurement, asset pipeline and checks | Must | Built (PR #16), waiting on the owner: device readings, merge |
 | V1 | Room model and surfaces | Must | Built, PR after #16 merges; owner: room on the preview, corridor position, lens |
-| V2 | Light: hybrid bake, evening calibration, grounding | Must | Not started |
+| V2 | Light: hybrid bake, evening calibration, grounding | Must | Built, PR after V1; owner: evening and daylight look on the preview |
 | V3 | Bar and back bar | Should | Not started |
 | V4 | Linens and chairs | Must | Not started |
 | V5 | Table décor and Photo mode | Must | Not started |
@@ -206,6 +206,17 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Devices:** frame rate equal or better than V1.
 
 **Gate:** the owner approves the evening and daylight look on the preview.
+
+**Built (2026-10-18):**
+
+- `npm run bake` (`tools/README.md`): the app exports the fixed room (`?bake-export`), Blender bakes evening and daylight (Cycles diffuse, direct and bounced, 128 samples, about 5 minutes a set on 4 cores), the tool checks the result and writes KTX2 maps, about 300 KB a set at 2K and 115 KB at 1K, plus `data/bake/manifest.json`.
+- Light-map UVs come from the app (`scene/venue/lightmap.ts`): flat islands packed at about 36 texels a metre at 2K, the same at export and at load; the dollhouse's cut walls reuse the full walls' bake.
+- Receivers: walls, floors (tiles and joints, raised floor), ceiling deck and beams, mezzanine edge. Their diffuse light comes from the map only; live highlights and reflections stay. The stair, bar, fixtures, everything movable and every placed light stay live.
+- Evening lights in the bake: chandeliers, pendant drums, two track washes on the north brick, the back bar, warm uplights on the east piers between the street windows. Daylight: sky through the glass and a low sun from the terrace. Exposure per set (`useBake.ts`: evening 0.3, daylight 2.6), the first calibration.
+- Grounding: soft contact shadows under tables, chairs and standing guests (one instanced draw each); the bake itself darkens corners and wall feet and pools light under the chandeliers.
+- Calmer evening live light, so white, ivory and champagne linen stay distinct (colour check: white reads light ivory-white, not beige).
+- `[LGT-03]`: CI fails when the manifest's fingerprints (room surfaces, light inputs, bake script) do not match; at load a mismatch draws the live-lit room (`?bake=stale` shows it).
+- Not done in V2: the box-projected reflection capture and an HDR daylight environment (the existing light-former environment stays); calibration camera presets matching R08 and U02 (U02 is not in the local cache). Both reviewed for need in the V2 review.
 
 ### V3: Bar and back bar
 
