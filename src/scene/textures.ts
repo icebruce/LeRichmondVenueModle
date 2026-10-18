@@ -136,3 +136,31 @@ export function glowTexture(): THREE.CanvasTexture {
   ctx.fillRect(0, 0, size, size);
   return finish(c);
 }
+
+/** Smooth vertical backdrop behind the room, `top` to `bottom` (DESIGN_GUIDE §9). */
+export function gradientTexture(top: string, bottom: string): THREE.CanvasTexture {
+  const [c, ctx] = canvas(256);
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const t = finish(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+/** The room's soft shadow on the backdrop: dark in the middle, fading out to nothing at the edges. */
+export function softShadowTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const [c, ctx] = canvas(size);
+  const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(0,0,0,0.55)");
+  g.addColorStop(0.5, "rgba(0,0,0,0.22)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const t = finish(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}

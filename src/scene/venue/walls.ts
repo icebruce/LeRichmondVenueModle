@@ -97,7 +97,7 @@ export function buildWall(wall: WallData, height: number, thickness: number, cut
   const caps = cut
     ? pieces
         .filter((p) => p.y1 >= CUT_HEIGHT - 1e-6)
-        .map((p) => pieceGeo(wall, { ...p, y0: CUT_HEIGHT, y1: CUT_HEIGHT + 0.02 }, thickness + 0.02, 0.01))
+        .map((p) => pieceGeo(wall, { ...p, y0: CUT_HEIGHT, y1: CUT_HEIGHT + 0.06 }, thickness + 0.06, 0.03))
     : [];
 
   return {

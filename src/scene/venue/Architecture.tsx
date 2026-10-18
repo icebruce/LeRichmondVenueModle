@@ -34,7 +34,7 @@ export function Walls({ venue, m, cutWalls }: Pick<Props, "venue" | "m" | "cutWa
             {g.brick && <mesh geometry={g.brick} material={m.brick} receiveShadow castShadow />}
             {g.redBrick && <mesh geometry={g.redBrick} material={m.redBrick} receiveShadow />}
             {g.panel && <mesh geometry={g.panel} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.steel} />}
+            {g.cap && <mesh geometry={g.cap} material={m.cap} castShadow />}
           </group>
         );
       })}
@@ -258,6 +258,28 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
       <mesh geometry={g.girders} material={m.steel} />
       <mesh geometry={g.ducts} material={m.blackMetal} />
       <mesh geometry={g.sky} material={m.bulb} />
+    </group>
+  );
+}
+
+/**
+ * The room presented as a model (REFERENCE_NOTES §1, Presented): it stands on a light plinth, and
+ * its soft shadow falls on the backdrop below.
+ */
+export function Plinth({ venue, m }: Pick<Props, "venue" | "m">) {
+  const g = useMemo(() => {
+    const o = 0.35 + 0.4;
+    const [x0, x1, z0, z1] = [-o, venue.width + o, -o, venue.depth + o];
+    const plinth = boxGeo(x0, -0.46, z0, x1, -0.01, z1);
+    const s = 2.2;
+    const shadow = new THREE.PlaneGeometry((x1 - x0) * s, (z1 - z0) * s).rotateX(-Math.PI / 2);
+    shadow.translate((x0 + x1) / 2, -0.47, (z0 + z1) / 2);
+    return { plinth, shadow };
+  }, [venue]);
+  return (
+    <group name="plinth">
+      <mesh geometry={g.plinth} material={m.cap} receiveShadow />
+      <mesh geometry={g.shadow} material={m.groundShadow} />
     </group>
   );
 }

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
-import { glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import { glowTexture, marbleTexture, softShadowTexture, tuftedTexture } from "./textures";
 import type { Quality } from "./quality";
 import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
@@ -165,6 +165,14 @@ export function useMaterials(quality: Quality) {
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f2d9ae", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
+      // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
+      // the room's soft shadow on the backdrop.
+      cap: std({ color: "#e6dfd3", roughness: 0.8 }),
+      groundShadow: new THREE.MeshBasicMaterial({
+        map: softShadowTexture(),
+        transparent: true,
+        depthWrite: false,
+      }),
       marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),

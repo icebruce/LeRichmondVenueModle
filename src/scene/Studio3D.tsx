@@ -28,6 +28,7 @@ import {
   uncapNextFrame,
 } from "./frames";
 import { useMaterials } from "./materials";
+import { gradientTexture } from "./textures";
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
 import {
   type AutoTier,
@@ -39,7 +40,7 @@ import {
   tierChoices,
 } from "../state/graphics";
 import { useStore } from "zustand";
-import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
+import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
 
@@ -393,7 +394,12 @@ function Scene({
   // from above it would hide the room.
   const showCeiling = mode === "walk" || (mode === "dollhouse" && below);
   const eyeLevel = mode === "walk" || (view !== null && below);
-  const background = useMemo(() => new THREE.Color(evening ? "#151715" : "#e8e6e0"), [evening]);
+  // A smooth gradient behind the model: warm grey in daylight, deep charcoal in the evening (§9).
+  const backgrounds = useMemo(
+    () => ({ day: gradientTexture("#f1efea", "#d6d2ca"), evening: gradientTexture("#1d1f1c", "#0c0d0c") }),
+    [],
+  );
+  const background = evening ? backgrounds.evening : backgrounds.day;
   return (
     <>
       <primitive attach="background" object={background} />
@@ -410,6 +416,9 @@ function Scene({
         <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       </StaticMerge>
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
+      <group visible={mode !== "plan"}>
+        <Plinth venue={venue} m={m} />
+      </group>
       {/* Parts a view does not show are hidden, not unmounted: showing them never compiles a shader. */}
       <group visible={eyeLevel}>
         <Backdrops venue={venue} m={m} evening={evening} />
