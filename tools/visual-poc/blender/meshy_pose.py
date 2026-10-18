@@ -26,6 +26,13 @@ for o in [o for o in sc.objects if o.name.startswith("Icosphere")]:
     bpy.data.objects.remove(o)
 arm = next(o for o in sc.objects if o.type == "ARMATURE")
 body = next(o for o in sc.objects if o.type == "MESH")
+# Meshy splits the mesh along every UV seam; weld it so smoothing and simplifying cannot tear it open.
+bm = bmesh.new()
+bm.from_mesh(body.data)
+bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+bm.to_mesh(body.data)
+bm.free()
+
 base = {}
 if frame is not None:
     sc.frame_set(frame)
