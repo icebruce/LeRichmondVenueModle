@@ -78,12 +78,42 @@ export function tuftedTexture(base: string): THREE.CanvasTexture {
       ctx.fillRect(x + ox - step, y - step, step * 2, step * 2);
     }
   }
-  ctx.fillStyle = "rgba(210,190,150,0.9)";
-  for (let x = 6; x < size; x += 12) {
-    ctx.beginPath();
-    ctx.arc(x, 8, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  return finish(c);
+}
+
+/** One brass nail head on leather, centred: repeats along a trim strip (UVs: one nail per repeat). */
+export function nailheadTexture(base: string): THREE.CanvasTexture {
+  const [c, ctx] = canvas(64);
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, 64, 64);
+  const g = ctx.createRadialGradient(28, 28, 2, 32, 32, 20);
+  g.addColorStop(0, "#f2dfaa");
+  g.addColorStop(0.6, "#b8955f");
+  g.addColorStop(1, "#4a3a22");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(32, 32, 20, 0, Math.PI * 2);
+  ctx.fill();
+  return finish(c);
+}
+
+/** Black steel with rows of rivet heads (girders, R02): one 0.6 m repeat holds a 4 × 4 grid. */
+export function rivetTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const [c, ctx] = canvas(size);
+  ctx.fillStyle = "#1c1e1f";
+  ctx.fillRect(0, 0, size, size);
+  const step = size / 4;
+  for (let y = step / 2; y < size; y += step)
+    for (let x = step / 2; x < size; x += step) {
+      const g = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, 7);
+      g.addColorStop(0, "#5a5d60");
+      g.addColorStop(1, "#141516");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
   return finish(c);
 }
 
@@ -137,23 +167,42 @@ export function glowTexture(): THREE.CanvasTexture {
   return finish(c);
 }
 
-/** Copy of an image texture with saturation and brightness adjusted (portable: no ctx.filter). */
-export function adjustedTexture(src: THREE.Texture, saturation: number, brightness: number): THREE.Texture {
-  const img = src.image as CanvasImageSource & { width: number; height: number };
-  if (!img?.width) return src;
-  const [c, ctx] = canvas(img.width);
-  ctx.drawImage(img, 0, 0, img.width, img.height);
-  const data = ctx.getImageData(0, 0, img.width, img.height);
-  const d = data.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i] as number;
-    const g = d[i + 1] as number;
-    const b = d[i + 2] as number;
-    const l = 0.299 * r + 0.587 * g + 0.114 * b;
-    d[i] = Math.min(255, (l + (r - l) * saturation) * brightness);
-    d[i + 1] = Math.min(255, (l + (g - l) * saturation) * brightness);
-    d[i + 2] = Math.min(255, (l + (b - l) * saturation) * brightness);
+/** Smooth vertical backdrop behind the room, `top` to `bottom` (DESIGN_GUIDE §9), dithered so it never bands. */
+export function gradientTexture(top: string, bottom: string): THREE.CanvasTexture {
+  const [c, ctx] = canvas(256);
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, top);
+  g.addColorStop(1, bottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const data = ctx.getImageData(0, 0, 256, 256);
+  const random = rng(7);
+  for (let i = 0; i < data.data.length; i += 4) {
+    const n = random() < 0.5 ? -1 : 1;
+    for (let k = 0; k < 3; k++) data.data[i + k] = (data.data[i + k] as number) + n;
   }
   ctx.putImageData(data, 0, 0);
-  return finish(c);
+  const t = finish(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+/**
+ * The model's soft shadow beneath it: a blurred rounded rectangle filling `1 / spread` of the
+ * texture, darkest in a band at its edge and fading to nothing before the texture's own edge.
+ */
+export function softShadowTexture(spread: number): THREE.CanvasTexture {
+  const size = 512;
+  const [c, ctx] = canvas(size);
+  const inner = size / spread;
+  const at = (size - inner) / 2;
+  ctx.shadowColor = "rgba(0,0,0,0.6)";
+  ctx.shadowBlur = at * 0.7;
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath();
+  ctx.roundRect(at, at, inner, inner, inner * 0.02);
+  ctx.fill();
+  const t = finish(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
 }

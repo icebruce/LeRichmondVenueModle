@@ -9,6 +9,7 @@ import { walkArea } from "../domain/layout/walk";
 import type { CameraMode } from "../state/editor";
 import { cameraCommands, sharedPose, viewStore, walkInput } from "../state/view";
 import { useEditor, useStudio, useView } from "./context";
+import { PLINTH } from "./venue/Architecture";
 
 export const EYE = 1.65;
 const SPEED = 2.2;
@@ -119,13 +120,15 @@ function MainCamera() {
     null,
   );
   const presets = venue.data.cameraPresets;
-  // The room to frame, walls included: the back (north and west) walls rise to the ceiling in the
-  // cut-away view, the others are cut at the mezzanine's height.
+  // The room to frame, walls and plinth included: the back (north and west) walls rise to the
+  // ceiling in the cut-away view, the others are cut at the mezzanine's height.
   const roomCorners = useMemo(() => {
-    const t = 0.35;
+    const t = PLINTH.margin;
     return [-t, venue.width + t].flatMap((x) =>
       [-t, venue.depth + t].flatMap((z) =>
-        [0, x < 0 || z < 0 ? venue.ceiling : venue.mezzanineHeight].map((y) => new THREE.Vector3(x, y, z)),
+        [PLINTH.bottom, x < 0 || z < 0 ? venue.ceiling : venue.mezzanineHeight].map(
+          (y) => new THREE.Vector3(x, y, z),
+        ),
       ),
     );
   }, [venue]);
@@ -279,6 +282,17 @@ function MainCamera() {
     camera.updateProjectionMatrix();
   }, CAMERA_FIRST);
 
+  // From overview distances the depth range starts further out, or 3 mm joint strips and tread
+  // glows flicker against the floor beneath them.
+  useFrame(() => {
+    const t = controls.current?.target;
+    const near =
+      mode === "walk" || !t ? 0.1 : Math.min(1, Math.max(0.1, camera.position.distanceTo(t) / 150));
+    if (Math.abs(camera.near - near) < 0.02) return;
+    camera.near = near;
+    camera.updateProjectionMatrix();
+  });
+
   // Publish the pose for the side-by-side compare view, and have it redraw when the pose moved.
   useFrame(() => {
     const [x, y, z] = sharedPose.position;
@@ -344,7 +358,8 @@ function MainCamera() {
       dampingFactor={0.12}
       screenSpacePanning={plan}
       minDistance={plan ? 8 : free ? 0.5 : 6}
-      maxDistance={plan ? 120 : 110}
+      // Far enough for a long lens to fit the whole room on a phone.
+      maxDistance={plan ? 120 : 220}
       minPolarAngle={plan ? 0 : free ? 0.05 : 0.25}
       maxPolarAngle={plan ? 0.0001 : free ? Math.PI - 0.15 : 1.32}
       mouseButtons={

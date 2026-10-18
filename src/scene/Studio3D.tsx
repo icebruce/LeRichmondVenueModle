@@ -27,7 +27,8 @@ import {
   shadowDraws,
   uncapNextFrame,
 } from "./frames";
-import { useMaterials } from "./materials";
+import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
+import { gradientTexture } from "./textures";
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
 import {
   type AutoTier,
@@ -39,7 +40,7 @@ import {
   tierChoices,
 } from "../state/graphics";
 import { useStore } from "zustand";
-import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
+import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
 
@@ -382,7 +383,7 @@ function Scene({
   onTier: (t: Tier) => void;
 }) {
   const { venue } = useStudio();
-  const m = useMaterials();
+  const m = useMaterials(quality);
   const mode = useEditor((s) => s.camera);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
@@ -393,7 +394,24 @@ function Scene({
   // from above it would hide the room.
   const showCeiling = mode === "walk" || (mode === "dollhouse" && below);
   const eyeLevel = mode === "walk" || (view !== null && below);
-  const background = useMemo(() => new THREE.Color(evening ? "#151715" : "#e8e6e0"), [evening]);
+  // A smooth gradient behind the model: warm grey in daylight, deep charcoal in the evening (§9).
+  const backgrounds = useMemo(
+    () => ({
+      day: gradientTexture(...BACKDROP.day.colors),
+      evening: gradientTexture(...BACKDROP.evening.colors),
+    }),
+    [],
+  );
+  const background = evening ? backgrounds.evening : backgrounds.day;
+  // The stair's LED treads glow in the evening only, and the backdrop brightens in daylight
+  // (uniform changes: no new shader).
+  const invalidate = useThree((s) => s.invalidate);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    m.led.emissiveIntensity = evening ? LED_GLOW : 0;
+    scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
+    invalidate();
+  }, [m, scene, evening, invalidate]);
   return (
     <>
       <primitive attach="background" object={background} />
@@ -410,6 +428,9 @@ function Scene({
         <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       </StaticMerge>
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
+      <group visible={mode !== "plan"}>
+        <Plinth venue={venue} m={m} />
+      </group>
       {/* Parts a view does not show are hidden, not unmounted: showing them never compiles a shader. */}
       <group visible={eyeLevel}>
         <Backdrops venue={venue} m={m} evening={evening} />
@@ -502,7 +523,7 @@ export function Studio3D({
       camera={{
         fov: dollhouse?.fov ?? 30,
         near: 0.1,
-        far: 200,
+        far: 400,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],
       }}
       onPointerMissed={() => {

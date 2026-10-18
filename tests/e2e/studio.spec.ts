@@ -355,6 +355,36 @@ for (const [bench, items] of [
       expect(info.triangles).toBeLessThan(triangles);
     });
 
+// Everything the studio downloads until the room is drawn: app, transcoder, textures (ARCHITECTURE §7;
+// served uncompressed here, so a ceiling on what the deployed site sends compressed).
+for (const [quality, limitMb] of [
+  ["high", 12],
+  ["low", 6],
+] as const)
+  test(`[PLT-03] [VEN-01] the initial download on ${quality} stays under ${limitMb} MB, phones on the 1K textures`, async ({
+    page,
+  }) => {
+    test.slow();
+    const sizes: Promise<number>[] = [];
+    const textures: string[] = [];
+    page.on("requestfinished", (r) => {
+      sizes.push(r.sizes().then((x) => x.responseBodySize));
+      if (r.url().includes("/assets/textures/")) textures.push(r.url().split("/").pop() ?? "");
+    });
+    await page.goto(`/?bench=sample&quality=${quality}`);
+    await page.waitForFunction(() => (window as unknown as { __redraw?: unknown }).__redraw, null, {
+      timeout: 120_000,
+    });
+    await expect(page.locator(".loading")).toHaveCount(0, { timeout: 120_000 });
+    await page.waitForLoadState("networkidle");
+    const total = (await Promise.all(sizes)).reduce((a, b) => a + b, 0);
+    console.log(
+      `initial download on ${quality}: ${(total / 1e6).toFixed(1)} MB, ${textures.length} textures`,
+    );
+    expect(total).toBeLessThan(limitMb * 1e6);
+    expect(textures.some((t) => t.endsWith("_2k.webp"))).toBe(quality === "high");
+  });
+
 test("[PLT-03] a tier change while the view is still redraws the room and its shadows, then compiles nothing more", async ({
   page,
 }) => {

@@ -61,7 +61,8 @@ function thumbItem(
 }
 
 function ThumbScene({ evening }: { evening: boolean }) {
-  const m = useMaterials();
+  // Thumbnails are small: the 1K set.
+  const m = useMaterials("low");
   return (
     <>
       {/* Lit pieces on a dark tile, so glows and light-coloured words read; the same colour as --thumb-dark. */}

@@ -150,7 +150,8 @@ export function drawPlan(
       g.beginPath();
       g.moveTo(...P(out(o.start, -0.12)));
       g.lineTo(...P(out(o.end, -0.12)));
-      const open = o.kind === "opening" || o.kind === "pass" || o.kind === "stairway";
+      const open =
+        o.kind === "opening" || o.kind === "pass" || o.kind === "stairway" || o.kind === "corridor";
       g.strokeStyle = open ? PAPER : GLASS;
       g.lineWidth = open ? 0.24 * scale : 0.08 * scale;
       g.stroke();

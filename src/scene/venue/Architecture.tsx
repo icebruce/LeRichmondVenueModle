@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Vec2 } from "../../domain/geometry";
-import { type Materials, TILE, boxGeo, metreUV } from "../materials";
+import { type Materials, SHADOW_SPREAD, TILE, bevelGeo, boxGeo, metreUV } from "../materials";
 import { CUT_HEIGHT, buildWall } from "./walls";
 
 type Props = { venue: VenueModel; m: Materials; cutWalls: ReadonlySet<string>; showCeiling: boolean };
@@ -34,7 +34,7 @@ export function Walls({ venue, m, cutWalls }: Pick<Props, "venue" | "m" | "cutWa
             {g.brick && <mesh geometry={g.brick} material={m.brick} receiveShadow castShadow />}
             {g.redBrick && <mesh geometry={g.redBrick} material={m.redBrick} receiveShadow />}
             {g.panel && <mesh geometry={g.panel} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.steel} />}
+            {g.cap && <mesh geometry={g.cap} material={m.cap} />}
           </group>
         );
       })}
@@ -66,11 +66,11 @@ export function Floors({ venue, m }: Pick<Props, "venue" | "m">) {
     const h = venue.raised.height;
     const top = slab(venue.raised.outline, h - 0.02, h, TILE.floor);
     const side = slab(venue.raised.outline, 0, h - 0.02, 1);
-    // Light wood strips between the large tiles (R03, R04): every half texture repeat.
-    const step = TILE.tile / 2;
+    // Light wood strips between the 0.65 m tiles (R03, R04): three to a texture repeat.
+    const step = TILE.tile / 3;
     const strips: THREE.BufferGeometry[] = [];
-    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.016, 0, 0, x + 0.016, 0.003, D));
-    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.016, W, 0.003, z + 0.016));
+    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.04, 0, 0, x + 0.04, 0.003, D));
+    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.04, W, 0.003, z + 0.04));
     return { tile: tileG, raisedTop: top, raisedSide: side, joints: merge(strips) };
   }, [venue]);
   return (
@@ -134,9 +134,9 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     ];
     const o = 0.05;
     const top = [
-      boxGeo(x0 - o, H - 0.05, z0, x0 + leg + 0.02, H, z1 + o, TILE.marble),
-      boxGeo(x1 - leg - 0.02, H - 0.05, z0, x1 + o, H, z1 + o, TILE.marble),
-      boxGeo(x0 + leg, H - 0.05, z1 - front - 0.02, x1 - leg, H, z1 + o, TILE.marble),
+      bevelGeo(x0 - o, H - 0.05, z0, x0 + leg + 0.02, H, z1 + o, 0.012, TILE.marble),
+      bevelGeo(x1 - leg - 0.02, H - 0.05, z0, x1 + o, H, z1 + o, 0.012, TILE.marble),
+      bevelGeo(x0 + leg, H - 0.05, z1 - front - 0.02, x1 - leg, H, z1 + o, 0.012, TILE.marble),
     ];
     const rail = [
       boxGeo(x0 - 0.2, 0.2, z0 + 0.2, x0 - 0.16, 0.24, z1 + 0.18),
@@ -192,15 +192,17 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
     // Over the mezzanine too, to its back wall.
     const back = venue.data.mezzanine.edgeZ + venue.data.mezzanine.depth;
     const planks = boxGeo(-0.4, C, -0.4, W + 0.4, C + 0.12, back + 0.3, TILE.ceiling);
+    // Heavy timber beams with softened edges, and riveted steel girders (R02, R03).
     const beams = merge(
       f.timberBeams.positions.map((x) =>
-        boxGeo(
+        bevelGeo(
           x - f.timberBeams.width / 2,
           C - f.timberBeams.depth,
           -0.35,
           x + f.timberBeams.width / 2,
           C,
           back + 0.2,
+          0.035,
           TILE.timber,
         ),
       ),
@@ -208,21 +210,25 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
     const gTop = C - f.timberBeams.depth;
     const girders = merge(
       f.steelGirders.positions.flatMap((z) => [
-        boxGeo(
+        bevelGeo(
           -0.35,
           gTop - f.steelGirders.depth,
           z - f.steelGirders.width / 2,
           W + 0.35,
           gTop,
           z + f.steelGirders.width / 2,
+          0.015,
+          TILE.rivets,
         ),
-        boxGeo(
+        bevelGeo(
           -0.35,
           gTop - f.steelGirders.depth - 0.04,
           z - 0.22,
           W + 0.35,
           gTop - f.steelGirders.depth,
           z + 0.22,
+          0.012,
+          TILE.rivets,
         ),
       ]),
     );
@@ -239,6 +245,17 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
       c.translate(W / 2, row.height + 0.55, row.z);
       ducts.push(c);
     }
+    // Conduit and lighting track: thin black runs under the deck.
+    const sv = f.services;
+    const y = C - sv.drop;
+    for (const z of sv.conduitZ) {
+      const c = new THREE.CylinderGeometry(0.022, 0.022, W, 6);
+      c.rotateZ(Math.PI / 2);
+      c.translate(W / 2, y, z);
+      ducts.push(c);
+    }
+    for (const x of sv.trackX)
+      ducts.push(boxGeo(x - 0.02, y + 0.04, 0.3, x + 0.02, y + 0.08, venue.depth - 0.3));
     const s = f.skylight;
     const sky = boxGeo(
       s.x - s.size / 2,
@@ -255,9 +272,35 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
     <group name="ceiling" visible={showCeiling}>
       <mesh geometry={g.planks} material={m.ceiling} />
       <mesh geometry={g.beams} material={m.timber} />
-      <mesh geometry={g.girders} material={m.steel} />
+      <mesh geometry={g.girders} material={m.girder} />
       <mesh geometry={g.ducts} material={m.blackMetal} />
       <mesh geometry={g.sky} material={m.bulb} />
+    </group>
+  );
+}
+
+/** The plinth reaches this far beyond the room's inner faces (m), down to `bottom`. */
+export const PLINTH = { margin: 0.75, bottom: -0.46 };
+
+/**
+ * The room presented as a model (REFERENCE_NOTES §1, Presented): it stands on a light plinth, and
+ * its soft shadow falls on the backdrop below.
+ */
+export function Plinth({ venue, m }: Pick<Props, "venue" | "m">) {
+  const g = useMemo(() => {
+    const o = PLINTH.margin;
+    const [x0, x1, z0, z1] = [-o, venue.width + o, -o, venue.depth + o];
+    const plinth = bevelGeo(x0, PLINTH.bottom, z0, x1, -0.01, z1, 0.03);
+    // The shadow texture's rounded rectangle fills 1 / SHADOW_SPREAD of it: a contact band at the
+    // plinth's foot that fades out within a few metres.
+    const shadow = new THREE.PlaneGeometry((x1 - x0) * SHADOW_SPREAD, (z1 - z0) * SHADOW_SPREAD);
+    shadow.rotateX(-Math.PI / 2).translate((x0 + x1) / 2, PLINTH.bottom - 0.01, (z0 + z1) / 2);
+    return { plinth, shadow };
+  }, [venue]);
+  return (
+    <group name="plinth">
+      <mesh geometry={g.plinth} material={m.cap} receiveShadow />
+      <mesh geometry={g.shadow} material={m.groundShadow} />
     </group>
   );
 }
@@ -267,31 +310,50 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
   const g = useMemo(() => {
     const z = venue.data.mezzanine;
     const H = z.floorHeight.value;
-    const z0 = z.edgeZ;
-    const z1 = z0 + z.depth;
-    const fascia = boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, z.xTo, H, z0 + 0.25);
-    const floor = boxGeo(z.xFrom, H - 0.02, z0, z.xTo, H, z1, TILE.floor);
+    const z1 = z.edgeZ + z.depth;
+    // The edge overhangs the room past the wall below, over the entrance (R09, owner photo 3), and
+    // steps back to the wall line before the stairwell, which stays open to the room (R01).
+    const zw = z.edgeZ;
+    const z0 = zw - z.projection.depth;
+    const xp = z.projection.xTo;
+    const fascia = merge([
+      boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, xp, H, z0 + 0.25),
+      boxGeo(xp - 0.27, H - z.fasciaDepth, z0 - 0.02, xp, H, zw),
+      boxGeo(xp, H - z.fasciaDepth, zw - 0.02, z.xTo, H, zw + 0.25),
+    ]);
+    const floor = merge([
+      boxGeo(z.xFrom, H - 0.02, z0, xp, H, zw, TILE.floor),
+      boxGeo(z.xFrom, H - 0.02, zw, z.xTo, H, z1, TILE.floor),
+    ]);
+    // The underside of the overhang: a dark recess above the entrance, the pass and the corridor.
+    const soffit = boxGeo(z.xFrom, H - 0.3, z0 + 0.25, xp - 0.27, H - 0.02, zw);
     const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
     // The street wall carries on along the stairwell to the back, lit like the room (R09).
-    const street = boxGeo(venue.width, 0, z0, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
+    const street = boxGeo(venue.width, 0, z.edgeZ, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
     // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
-    const edge = guard([z.xFrom, z0 + 0.06], [z.xTo, z0 + 0.06], H);
-    const well = guard([z.xTo - 0.06, z0 + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
+    const edge = [
+      guard([z.xFrom, z0 + 0.06], [xp - 0.06, z0 + 0.06], H),
+      guard([xp - 0.06, z0 + 0.06], [xp - 0.06, zw + 0.06], H),
+      guard([xp - 0.06, zw + 0.06], [z.xTo, zw + 0.06], H),
+    ];
+    const well = guard([z.xTo - 0.06, zw + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
     // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
-    const below = boxGeo(0, 0, z0 + 0.36, z.xTo, H - z.fasciaDepth, z1);
+    const below = boxGeo(0, 0, z.edgeZ + 0.36, z.xTo, H - z.fasciaDepth, z1);
     return {
       fascia,
+      soffit,
       floor,
       back,
       street,
-      bal: merge([...edge.steel, ...well.steel]),
-      rail: merge([edge.rail, well.rail]),
+      bal: merge([...edge.flatMap((e) => e.steel), ...well.steel]),
+      rail: merge([...edge.map((e) => e.rail), well.rail]),
       below,
     };
   }, [venue]);
   return (
     <group name="mezzanine">
       <mesh geometry={g.fascia} material={m.greenPanel} />
+      <mesh geometry={g.soffit} material={m.stairWall} />
       <mesh geometry={g.floor} material={m.woodFloor} />
       <mesh geometry={g.back} material={m.darkVoid} />
       <mesh geometry={g.street} material={m.brick} />
@@ -359,7 +421,8 @@ function flightGeo(
     const y = y0 + step * (i + 1);
     const [lo, hi] = run > 0 ? [a, a + run + 0.03] : [a + run - 0.03, a];
     wood.push(box(lo, y - 0.05, va, hi, y, vb, TILE.floor));
-    led.push(box(a - 0.01, y - 0.075, va + 0.02, a + 0.01, y - 0.05, vb - 0.02));
+    // The LED glow spreads across the whole tread top, lime-yellow (R01, R09, R11).
+    led.push(box(lo + 0.03, y, va + 0.03, hi - 0.03, y + 0.003, vb - 0.03));
     if (solid) base.push(box(lo, 0, va, hi, y - 0.05, vb));
   }
   const du = run * shown;

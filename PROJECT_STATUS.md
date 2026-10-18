@@ -92,7 +92,7 @@ To do, in order:
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. Step 4 (owner feedback of 2026-10-17): merged as PR #8–#13 (2026-10-17). Owner checks on a real phone: no pull-to-refresh, the back gesture steps out of layers, the sheet swipes down a step at a time, cloud saves; visual sign-off of the Add library, Style pages and light handle (marked pending in DESIGN_GUIDE). Freeze around 2026-11-10.
-5. Visual track (`VISUAL_STATUS.md`, plan v3): V0 built in PR #16 (on-demand rendering, shadows drawn once, constant light set, no shader compiles on switches, graphics tiers with Auto, `?perf` and benchmark scenes, asset pipeline and checks). Owner: approve the graphics setting mock-up, read `?perf` on the laptop, iPhone 16 and Galaxy S24, merge; then V1. Owner, before V7: attach the people reference image to a custom request ("Guest figures"). Meshy-generated models may be committed (owner, 2026-10-18).
+5. Visual track (`VISUAL_STATUS.md`, plan v3): V0 built in PR #16 (on-demand rendering, shadows drawn once, constant light set, no shader compiles on switches, graphics tiers with Auto, `?perf` and benchmark scenes, asset pipeline and checks). Owner: approve the graphics setting mock-up, read `?perf` on the laptop, iPhone 16 and Galaxy S24, merge; then V1. V1 (room model and surfaces) built on top, its PR after #16 merges; owner: confirm the restroom corridor position and pick the dollhouse lens. Owner, before V7: attach the people reference image to a custom request ("Guest figures"). Meshy-generated models may be committed (owner, 2026-10-18).
 
 ## Step 1 quality (2026-10-16)
 
@@ -116,7 +116,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 - Raised floor height; stair tread count. The EXIT door and tufted banquettes the fidelity review read at the west end of the green south wall (R04, owner photo 1) are not modelled for now (owner, 2026-10-18).
 - The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
-- Fidelity (2026-10-17, look only, not yet done): the mezzanine fascia may project ≈ 0.6 m into the room (a dark recess over the entrance, R09, owner photo 3); the LED treads glow lime-yellow across the whole tread top; the kitchen pass reads too bright in UV02.
+- Fidelity (2026-10-17, look only): done in visual stage V1: the mezzanine overhang over the entrance, lime tread glow, a dimmer kitchen pass.
 - Sample plan (4G): with the south wall 1.4 m north, the dance area moves in front of the bar, 3.9 × 3.1 m (≈ 12 m², just above the ≈ 11.8 m² suggested for 75 guests), clear of the kitchen pass and the corridor, ≈ 0.75 m from the bar front (the bar stools, when shown, take that walkway); the sweetheart table stays against the south wall at x 3.0, beside DJ option 1. Plans already saved keep their pieces; any now past the wall show "outside the room — move it". Confirm at the visual review.
 - Camera presets are approximate; R01, R03 and R09 were re-aimed in 4B (R01 now from the stair turn). Re-aim if the owner does not recognize them.
 - Phone: tap-and-hold drag, two-finger twist and the joystick need a check on a real phone (pointer handling is tested in software only).

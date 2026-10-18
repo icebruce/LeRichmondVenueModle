@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { WallData } from "../../domain/venue/schema";
 import { wallFrame } from "../../domain/venue/model";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { TILE, metreUV } from "../materials";
 
 /** Wall pieces in wall space: s along the wall, y up. */
@@ -42,10 +43,13 @@ function clip(pieces: Piece[], maxY: number): Piece[] {
 }
 
 /** World-space box for a piece; the wall's thickness extends away from the room. */
-function pieceGeo(wall: WallData, p: Piece, thickness: number, inset = 0): THREE.BufferGeometry {
+function pieceGeo(wall: WallData, p: Piece, thickness: number, inset = 0, bevel = 0): THREE.BufferGeometry {
   const { dir, normal } = wallFrame(wall);
   const w = p.s1 - p.s0;
-  const g = new THREE.BoxGeometry(w, p.y1 - p.y0, thickness);
+  const h = p.y1 - p.y0;
+  const g = bevel
+    ? new RoundedBoxGeometry(w, h, thickness, 1, Math.min(bevel, w / 2, h / 2))
+    : new THREE.BoxGeometry(w, h, thickness);
   // Local box: x along the wall, z across it (+z toward the room).
   g.translate(w / 2, (p.y0 + p.y1) / 2, -thickness / 2 + inset);
   const m = new THREE.Matrix4().makeBasis(
@@ -76,8 +80,9 @@ export const CUT_HEIGHT = 1.15;
 export function buildWall(wall: WallData, height: number, thickness: number, cut: boolean): WallMeshes {
   const full = wallPieces(wall, wall.height ?? height);
   const pieces = cut ? clip(full, CUT_HEIGHT) : full;
-  // Red brick dado band where the photos show one (wall.dado = its height).
-  const [low, high] = wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
+  // Red brick dado band where the photos show one (wall.dado = its height); a red-brick wall throughout.
+  const [low, high] =
+    wall.finish === "redBrick" ? [pieces, []] : wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
 
   const panels: THREE.BufferGeometry[] = [];
   for (const pn of wall.panels ?? []) {
@@ -90,14 +95,21 @@ export function buildWall(wall: WallData, height: number, thickness: number, cut
       const s1 = Math.min(p.s1, pn.end);
       const a = Math.max(p.y0, y0);
       const b = Math.min(p.y1, y1);
-      if (s1 > s0 && b > a) panels.push(pieceGeo(wall, { s0, s1, y0: a, y1: b }, 0.04, 0.04));
+      if (!(s1 > s0 && b > a)) continue;
+      panels.push(pieceGeo(wall, { s0, s1, y0: a, y1: b }, 0.04, 0.04));
+      // Flat paint with one ledge at 0.9 m (R04).
+      const r = y0 + 0.9;
+      if (r - 0.03 >= a && r + 0.03 <= b)
+        panels.push(pieceGeo(wall, { s0, s1, y0: r - 0.03, y1: r + 0.03 }, 0.03, 0.07));
     }
   }
 
   const caps = cut
     ? pieces
         .filter((p) => p.y1 >= CUT_HEIGHT - 1e-6)
-        .map((p) => pieceGeo(wall, { ...p, y0: CUT_HEIGHT, y1: CUT_HEIGHT + 0.02 }, thickness + 0.02, 0.01))
+        .map((p) =>
+          pieceGeo(wall, { ...p, y0: CUT_HEIGHT, y1: CUT_HEIGHT + 0.06 }, thickness + 0.06, 0.03, 0.015),
+        )
     : [];
 
   return {
@@ -107,7 +119,7 @@ export function buildWall(wall: WallData, height: number, thickness: number, cut
     ),
     redBrick: merged(
       low.map((p) => pieceGeo(wall, p, thickness)),
-      TILE.brick,
+      TILE.redBrick,
     ),
     panel: merged(panels, 1),
     cap: merged(caps, 1),

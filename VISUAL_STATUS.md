@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 built (PR #16, 2026-10-18), waiting on the owner: read `?perf` on the three devices, merge. Then V1 and V2 as one PR each, stopping after V2 for owner approval; V7 waits for the owner before any Meshy spend (owner, 2026-10-18). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 built (PR #16, 2026-10-18), waiting on the owner: read `?perf` on the three devices, merge. V1 built on top (its PR opens once #16 is merged). Then V2 as one PR each, stopping after V2 for owner approval; V7 waits for the owner before any Meshy spend (owner, 2026-10-18). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -51,7 +51,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | Stage | Delivers (summary) | Priority | State |
 |---|---|---|---|
 | V0 | Performance foundation, measurement, asset pipeline and checks | Must | Built (PR #16), waiting on the owner: device readings, merge |
-| V1 | Room model and surfaces | Must | Not started |
+| V1 | Room model and surfaces | Must | Built, PR after #16 merges; owner: room on the preview, corridor position, lens |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Not started |
 | V3 | Bar and back bar | Should | Not started |
 | V4 | Linens and chairs | Must | Not started |
@@ -153,6 +153,15 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Devices:** no frame-rate regression of more than 10% from V0.
 
 **Gate:** the owner approves the room on the preview.
+
+**Built (2026-10-18):**
+
+- Surfaces as KTX2 (Basis ETC1S, `npm run assets:textures`): slate tiles `large_floor_tiles_02` at 0.65 m with a tone per tile and 8 cm grey-tan wood joint strips; dark hardwood `old_wood_floor`; buff brick `yellow_brick` with soft patches (its colour correction baked into the file); red brick `red_brick` for the dado and the whole west wall; ceiling `roof_planks`. 2K colour maps for the four big surfaces on desktops, 1K otherwise and on phones. Initial download, served uncompressed: ≈ 5.8 MB desktop, ≈ 3.5 MB phone (CI, under the 12 and 6 MB budgets). The CSP allows `'wasm-unsafe-eval'` for the bundled transcoder.
+- Fidelity fixes: the restroom corridor (R07) at x 4.5–5.45 in the north wall, green inside with a framed photo, checked for clearance like the other openings, the north banquette ending at x 4.35; the mezzanine edge overhangs 0.6 m from its west end to x 12.28 (the foot of the first flight), then steps back so the stairwell stays open (R01, R09); lime-yellow glow across each tread top, evening only; a dimmer kitchen pass.
+- From the fidelity review: R01 camera moved onto the second flight ([15.4, 3.6, 12.4] → [8, 1.2, 5.5]), the steel girder to z 6.4 clear of the skylight, the north dado to 1.3 m, the green wall flat with one ledge, sheers lighter.
+- Room details: steel jambs and headers on the garage doors, bevelled beams, girders, caps, bar top and plinth, rivets on the girders, conduit and lighting track, nail-head trim on the banquettes, sheers behind the east velvet.
+- Presentation: light bevelled wall caps, a light plinth with a soft contact shadow, a dithered gradient backdrop (brightened in daylight so it reads high-key after tone mapping); the overview fit includes the plinth. `?lens=narrow` shows the dollhouse at 20° for the owner's A/B (ux and fidelity reviewers both recommend 20°); the overview may now pull back to 220 m, with the depth range following the distance.
+- Not done in V1: GPU texture memory against a budget (set at the V0 gate from the device readings); garage doors with 8–9 pane columns and arched black headboards on the banquettes (fidelity, minor).
 
 ### V2: Light (hybrid bake, evening calibration, grounding)
 
@@ -554,4 +563,5 @@ Stop the visual track when any of these holds:
 - **New spec rows and budgets when built:**
   - Spec rows: bar flowers (VEN) and Photo mode (EXP) (the graphics setting is PLT-05).
   - `ARCHITECTURE.md` §7 rows: GPU memory, view-switch freeze, idle frames, light maps, people.
+- **V1 (owner):** is the green restroom corridor directly left (west) of the back bar, as R07 shows, or elsewhere? R03 shows unbroken brick there, so it may predate the opening. And 20° or 30° for the dollhouse (`?lens=narrow` on the preview).
 - **V0 gate (owner):** open `?perf&bench=sample` and `?perf&bench=ppl03` on the laptop, iPhone 16 and Galaxy S24, orbit and drag at the dollhouse and eye-level cameras, press Copy and paste the numbers back; decide the phone draw-call budget for Balanced's still frame (≈ 155 against 150); set the GPU memory budget from the readings.

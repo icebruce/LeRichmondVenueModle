@@ -1,6 +1,21 @@
 /// <reference types="vitest/config" />
 import { type Connect, type Plugin, defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+
+/**
+ * The site's own response headers (`vercel.json`), so `vite preview`, which the browser tests run
+ * against, serves the same CSP as production: a blocked script fails a test, not the live site.
+ */
+const siteHeaders: Record<string, string> = Object.fromEntries(
+  (
+    JSON.parse(readFileSync(new URL("./vercel.json", import.meta.url), "utf8")) as {
+      headers: { source: string; headers: { key: string; value: string }[] }[];
+    }
+  ).headers
+    .filter((h) => h.source === "/(.*)")
+    .flatMap((h) => h.headers.map((x) => [x.key, x.value])),
+);
 
 /**
  * Local runs of the `api/` functions (Vercel serves them in production). Only when RS_DEV_API=1,
@@ -39,6 +54,7 @@ function devApi(): Plugin {
 
 export default defineConfig({
   plugins: [react(), ...(process.env.RS_DEV_API === "1" ? [devApi()] : [])],
+  preview: { headers: siteHeaders },
   build: {
     target: "es2022",
     chunkSizeWarningLimit: 1600,

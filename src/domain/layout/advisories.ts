@@ -103,7 +103,9 @@ export function clearanceZones(venue: VenueModel, depth: number): Zone[] {
             ? "the glass doors"
             : o.kind === "door"
               ? "the exit door"
-              : null;
+              : o.kind === "corridor"
+                ? "the restroom corridor"
+                : null;
       if (!name) continue;
       const from: Polygon = [alongWall(wall, o.start, 0), alongWall(wall, o.end, 0)];
       zones.push({

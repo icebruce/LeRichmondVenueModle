@@ -19,3 +19,6 @@ references/private_media/requests/
 # Blender as a Python module (tools/README.md)
 venv/
 __pycache__/
+
+# Downloaded sources for tools/assets (regenerated)
+tools/.cache/

@@ -1,83 +1,201 @@
 import * as THREE from "three";
-import { useTexture } from "@react-three/drei";
 import { useMemo } from "react";
-import { adjustedTexture, glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import { useLoader } from "@react-three/fiber";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import {
+  glowTexture,
+  marbleTexture,
+  nailheadTexture,
+  rivetTexture,
+  softShadowTexture,
+  tuftedTexture,
+} from "./textures";
+import type { Quality } from "./quality";
 import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
-const base = `${import.meta.env.BASE_URL}assets/textures/`;
+const base = `${import.meta.env.BASE_URL}assets/`;
 
+/**
+ * Room surfaces (visual stage V1): Poly Haven CC0 sets as WebP (`tools/assets/textures.ts`).
+ * `sharp`: a 2K colour map for desktops; every other map is 1K.
+ */
 const TEXTURES = {
-  brickDiff: "brick_wall_12_diff.webp",
-  brickNor: "brick_wall_12_nor_gl.webp",
-  brickRough: "brick_wall_12_rough.webp",
-  redBrickDiff: "brick_wall_006_diff.webp",
-  redBrickNor: "brick_wall_006_nor_gl.webp",
-  tileDiff: "granite_tile_diff.webp",
-  tileNor: "granite_tile_nor_gl.webp",
-  tileRough: "granite_tile_rough.webp",
-  floorDiff: "plank_flooring_04_diff.webp",
-  floorNor: "plank_flooring_04_nor_gl.webp",
-  floorRough: "plank_flooring_04_rough.webp",
-  ceilingDiff: "roof_planks_diff.webp",
-  ceilingNor: "roof_planks_nor_gl.webp",
-  timberDiff: "wood_floor_worn_diff.webp",
+  brickDiff: { file: "yellow_brick_diff", sharp: true },
+  brickNor: { file: "yellow_brick_nor", sharp: false },
+  brickRough: { file: "yellow_brick_rough", sharp: false },
+  redBrickDiff: { file: "red_brick_diff", sharp: true },
+  redBrickNor: { file: "red_brick_nor", sharp: false },
+  tileDiff: { file: "large_floor_tiles_02_diff", sharp: true },
+  tileNor: { file: "large_floor_tiles_02_nor", sharp: false },
+  tileRough: { file: "large_floor_tiles_02_rough", sharp: false },
+  floorDiff: { file: "old_wood_floor_diff", sharp: true },
+  floorNor: { file: "old_wood_floor_nor", sharp: false },
+  floorRough: { file: "old_wood_floor_rough", sharp: false },
+  ceilingDiff: { file: "roof_planks_diff", sharp: false },
+  ceilingNor: { file: "roof_planks_nor", sharp: false },
+  timberDiff: { file: "wood_floor_worn_diff", sharp: false },
+} as const;
+type TextureKey = keyof typeof TEXTURES;
+const KEYS = Object.keys(TEXTURES) as TextureKey[];
+
+/** The texture files for a device: desktops get the 2K colour maps, phones the 1K set. */
+export function textureUrls(quality: Quality): Record<TextureKey, string> {
+  return Object.fromEntries(
+    KEYS.map((k) => [
+      k,
+      `${base}textures/${TEXTURES[k].file}_${TEXTURES[k].sharp && quality === "high" ? "2k" : "1k"}.webp`,
+    ]),
+  ) as Record<TextureKey, string>;
+}
+
+/**
+ * Physical size in metres that one texture repeat covers (UVs are generated in metres), from the
+ * sets' real-world sizes; the floor's tiles are 0.65 m, three to a repeat (R03, R04).
+ */
+export const TILE = {
+  brick: 2,
+  redBrick: 1.4,
+  tile: 1.95,
+  floor: 3,
+  ceiling: 1.5,
+  timber: 2,
+  marble: 1.4,
+  rivets: 0.6,
 } as const;
 
-export const TEXTURE_URLS = Object.fromEntries(
-  Object.entries(TEXTURES).map(([k, f]) => [k, base + f]),
-) as Record<keyof typeof TEXTURES, string>;
-
-/** Physical size in metres that one texture repeat covers (UVs are generated in metres). */
-export const TILE = { brick: 2.4, tile: 1.3, floor: 1.6, ceiling: 1.6, timber: 1.2, marble: 1.4 } as const;
-
-function prep(t: THREE.Texture, color: boolean) {
+function prep(t: THREE.Texture, colour: boolean) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 8;
-  if (color) t.colorSpace = THREE.SRGBColorSpace;
+  if (colour) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
+/**
+ * Breaks up a repeating surface by world position (V1): `cell` gives each square of that size (m,
+ * on the floor plane) its own tone, the way real tiles differ; otherwise soft patches about `size`
+ * metres across, like a brick wall's weathering. `amount` is the largest change in brightness.
+ */
+function vary(
+  mat: THREE.MeshStandardMaterial,
+  amount: number,
+  { cell, size = 1.6 }: { cell?: number; size?: number },
+) {
+  const key = cell ? `tile${cell}` : `patch${size}`;
+  mat.customProgramCacheKey = () => `vary:${key}:${amount}`;
+  mat.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWorld;")
+      .replace(
+        "#include <worldpos_vertex>",
+        "#include <worldpos_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
+      );
+    const tone = cell
+      ? `hash3(floor(vWorld.xz / ${cell.toFixed(3)}).xyy)`
+      : `noise3(vWorld / ${size.toFixed(3)})`;
+    s.fragmentShader = s.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec3 vWorld;
+float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float noise3(vec3 p) {
+  vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>\ndiffuseColor.rgb *= 1.0 + ${(amount * 2).toFixed(3)} * (${tone} - 0.5);`,
+      );
+  };
+  return mat;
+}
+
+/** Evening glow of the stair's LED treads: saturated enough to stay lime-yellow after tone mapping. */
+export const LED_GLOW = 0.6;
+
+/** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
+export const SHADOW_SPREAD = 1.25;
+
+/**
+ * The backdrop gradient, top to bottom (DESIGN_GUIDE §9), and its brightness: authored warmer and
+ * brighter than it should read, as tone mapping greys and darkens it on screen.
+ */
+export const BACKDROP = {
+  day: { colors: ["#fff3e2", "#f2e2cc"], intensity: 1.8 },
+  evening: { colors: ["#2e2a24", "#211d18"], intensity: 1 },
+} as const;
+
 export type Materials = ReturnType<typeof useMaterials>;
 
-export function useMaterials() {
-  const tex = useTexture(TEXTURE_URLS);
+export function useMaterials(quality: Quality) {
+  const urls = textureUrls(quality);
+  const loaded = useLoader(
+    THREE.TextureLoader,
+    KEYS.map((k) => urls[k]),
+  );
   return useMemo(() => {
-    for (const [k, t] of Object.entries(tex)) prep(t, k.endsWith("Diff"));
+    // Colour maps are sRGB; normal and roughness maps are data.
+    const tex = Object.fromEntries(
+      KEYS.map((k, i) => [k, prep(loaded[i] as THREE.Texture, k.endsWith("Diff"))]),
+    ) as Record<TextureKey, THREE.Texture>;
     const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
     const marble = marbleTexture();
     const glow = glowTexture();
-    // The venue brick is a pale buff; the CC0 texture is warmer, so tone it down (R03, R07).
-    const buff = adjustedTexture(tex.brickDiff, 0.55, 1.12);
     return {
       glow,
-      brick: std({
-        map: buff,
-        normalMap: tex.brickNor,
-        roughnessMap: tex.brickRough,
-        color: "#f4ebdd",
-        roughness: 1,
-      }),
-      redBrick: std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#c9806a", roughness: 0.95 }),
+      brick: vary(
+        std({
+          map: tex.brickDiff,
+          normalMap: tex.brickNor,
+          roughnessMap: tex.brickRough,
+          color: "#f4ebdd",
+          roughness: 1,
+        }),
+        0.12,
+        { size: 1.6 },
+      ),
+      redBrick: vary(
+        std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#c9806a", roughness: 0.95 }),
+        0.1,
+        { size: 1.2 },
+      ),
       greenPanel: std({ color: "#28352e", roughness: 0.7 }),
-      tile: std({
-        map: tex.tileDiff,
-        normalMap: tex.tileNor,
-        roughnessMap: tex.tileRough,
-        color: "#8d8a84",
-        roughness: 0.8,
-      }),
-      tileJoint: std({ color: "#8d7559", roughness: 0.7 }),
+      // Each 0.65 m slate tile its own tone (R03, R04).
+      tile: vary(
+        std({
+          map: tex.tileDiff,
+          normalMap: tex.tileNor,
+          roughnessMap: tex.tileRough,
+          color: "#5c5b58",
+          roughness: 0.8,
+        }),
+        0.15,
+        { cell: TILE.tile / 3 },
+      ),
+      // Weathered grey-tan wood strips (R03, R04).
+      tileJoint: std({ color: "#857a6a", roughness: 0.8 }),
       woodFloor: std({
         map: tex.floorDiff,
         normalMap: tex.floorNor,
         roughnessMap: tex.floorRough,
-        color: "#8e7563",
+        color: "#c9b8a6",
         roughness: 0.7,
       }),
       // Honey pine deck with darker beams (R02).
-      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#e6c48e", roughness: 0.85 }),
-      timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
+      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
+      timber: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
+      girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
+      // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
+      // the room's soft shadow on the backdrop.
+      cap: std({ color: "#e6dfd3", roughness: 0.8 }),
+      groundShadow: new THREE.MeshBasicMaterial({
+        map: softShadowTexture(SHADOW_SPREAD),
+        transparent: true,
+        depthWrite: false,
+      }),
       marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
@@ -93,7 +211,8 @@ export function useMaterials() {
       fridge: std({ color: "#c9d7cf", emissive: "#e8f2ea", emissiveIntensity: 0.35, roughness: 0.2 }),
       brass: std({ color: "#b8955f", metalness: 1, roughness: 0.32 }),
       windowFrame: std({ color: "#e4e1d9", roughness: 0.6 }),
-      kitchen: std({ color: "#dfe3e0", emissive: "#f3f5f0", emissiveIntensity: 0.5, roughness: 0.3 }),
+      // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
+      kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
       blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
       bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 2.4, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
@@ -122,8 +241,21 @@ export function useMaterials() {
         side: THREE.DoubleSide,
       }),
       leather: std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 }),
+      // The banquettes' nail-head trim: a strip with one brass nail every 5 cm (trim sheet).
+      nailTrim: std({ map: nailheadTexture("#2a2b2d"), color: "#ffffff", metalness: 0.4, roughness: 0.45 }),
+      // Sheer curtains behind the velvet at the street windows (R10).
+      sheer: new THREE.MeshStandardMaterial({
+        color: "#f3efe6",
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.2,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
       flame: std({ color: "#ffd18a", emissive: "#ffb347", emissiveIntensity: 4 }),
-      led: std({ color: "#ffd77a", emissive: "#ffcc55", emissiveIntensity: 2.2 }),
+      // Stair tread glow: lime-yellow, across each tread top (R01, R09, R11).
+      // Its glow follows the lighting (set in the scene): off in daylight.
+      led: std({ color: "#b8b85a", emissive: "#e2e23a", emissiveIntensity: LED_GLOW, roughness: 0.6 }),
       exitSign: std({ color: "#3a0b0b", emissive: "#ff2a2a", emissiveIntensity: 1.6 }),
       wineFrame: std({
         color: "#5c1717",
@@ -149,7 +281,7 @@ export function useMaterials() {
       }),
       djFacade: std({ color: "#15161a", roughness: 0.4, metalness: 0.3 }),
     };
-  }, [tex]);
+  }, [loaded]);
 }
 
 /** Box-project UVs in metres from vertex positions and normals (geometry must be in world units). */
@@ -191,6 +323,23 @@ export function boxGeo(
   tile = 1,
 ): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0));
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return metreUV(g, tile);
+}
+
+/** `boxGeo` with rounded edges of radius `r` (m), so its edges catch a thin highlight (V1, Bevelled). */
+export function bevelGeo(
+  x0: number,
+  y0: number,
+  z0: number,
+  x1: number,
+  y1: number,
+  z1: number,
+  r: number,
+  tile = 1,
+): THREE.BufferGeometry {
+  const [w, h, d] = [Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)];
+  const g = new RoundedBoxGeometry(w, h, d, 1, Math.min(r, w / 2, h / 2, d / 2));
   g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   return metreUV(g, tile);
 }

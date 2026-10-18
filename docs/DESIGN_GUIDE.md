@@ -164,9 +164,10 @@ Short, warm, plain. Sentence case. Numbers as numerals. Dimensions "≈ 2.4 m". 
 **Reference:** owner-supplied DreamHouse3D isometric cutaway samples (not committed; third-party marketing images). What we take from them: high 3/4 isometric framing; far walls full height and near walls cut low with the wall thickness visible as a clean cap; soft contact shadows; clean neutral background; furniture with true proportions and visible detail.
 
 **Adapted to Le Richmond:**
-- Tall room (6.5–8 m): in Dollhouse the ceiling is hidden; chandeliers and pendants stay (toggle "Show ceiling" restores it). Wall caps in dark charcoal.
+- Tall room (6.5–8 m): in Dollhouse the ceiling is hidden; chandeliers and pendants stay (toggle "Show ceiling" restores it).
+- Presented as a model (owner, 2026-10-18): thick light wall caps (warm off-white, bevelled) on the cut walls; the room stands on a light bevelled plinth with a soft shadow beneath it, against a smooth vertical gradient backdrop: high-key warm grey in daylight, deep charcoal in the evening. Plan view leaves the plinth out.
 - Default framing from the south-east looking north-west (photo R01 angle), so the back bar wall and the glazed garage doors stand at full height.
-- Background: soft warm-grey gradient in daylight; deep charcoal in evening, with the terrace beyond the glass as a dark band with faint warm fairy-light points.
+- At eye level the terrace beyond the glass is a dark band with faint warm fairy-light points.
 - **Evening (default):** low warm ambient, chandeliers and back-bar shelving glowing (bloom kept subtle), candle pools on tablecloths, warm tone mapping. Mood reference: photo R08.
 - **Daylight:** neutral, soft, high-key like the samples; for checking layout.
 - Materials: buff and red brick, timber planks and beams, black steel, dark large-format tile with light joints, dark hardwood, white marble bar top, velvet curtains, brass.
