@@ -20,6 +20,7 @@ import {
   parentPage,
   Inspector,
   LayoutRules,
+  GraphicsPage,
   PaintingsPage,
   PeoplePanel,
   RoomPanel,
@@ -456,8 +457,8 @@ export function StudioUI() {
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section>("room");
-  const [page, setPage] = useState<"rules" | "paintings" | StylePage | null>(null);
-  const stylePage = page === "rules" || page === "paintings" ? null : page;
+  const [page, setPage] = useState<"rules" | "paintings" | "graphics" | StylePage | null>(null);
+  const stylePage = page === "rules" || page === "paintings" || page === "graphics" ? null : page;
   const [details, setDetails] = useState(false);
   const [checks, setChecks] = useState(false);
   const [sheet, setSheet] = useState<Sheet>("peek");
@@ -643,8 +644,16 @@ export function StudioUI() {
         <LayoutRules onBack={() => setPage(null)} />
       ) : page === "paintings" ? (
         <PaintingsPage onBack={() => setPage(null)} />
+      ) : page === "graphics" ? (
+        <GraphicsPage onBack={() => setPage(null)} />
       ) : (
-        <RoomPanel open={setPage} />
+        <RoomPanel
+          open={(p) => {
+            setPage(p);
+            // On a phone the room stays in view while a graphics choice applies (mock-up).
+            if (p === "graphics" && phone) setSheet("half");
+          }}
+        />
       )
     ) : section === "add" ? (
       <AddPanel

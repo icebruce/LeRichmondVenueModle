@@ -177,6 +177,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 | PLT-02 | M | 1 | Phone: everything works; the layout adapts (bottom tab bar, bottom sheet, camera / light / reset and undo / redo stacked top right). The system back gesture steps back through the app (menus, dialogs, pages, the selection, the sheet a height at a time, walking) and, with nothing open, asks before leaving (owner, 2026-10-17); the sheet swipes down a step at a time to closed; at half height its content scrolls and only its head (grabber, counts line) opens it full; no pull-to-refresh (owner, 2026-10-17). | Usable one-handed for viewing, presets, upload and dragging. |
 | PLT-03 | M | 1 | Quality adapts to the device; phones load a lighter scene. | — |
 | PLT-04 | M | 4 | Desktop: a labelled rail (Room, Add, Style, Guests, Plans) beside a wide panel, resizable 360–520 px and collapsible; one toolbar row; a selection shows a toolbar beside it and its details open inside the current section (owner, 2026-10-17, `DESIGN_GUIDE.md` §3.1). | Choosing a section always shows it; Details has a way back. |
+| PLT-05 | S | V0 | Graphics setting per device (Room › This device › Graphics): Auto (default; adapts to keep the room smooth), High, Balanced, Battery saver (phones only). Tiers change polish only, never lighting mood or models (owner-approved mock-up `docs/mockups/graphics.html`, 2026-10-18). | A choice applies at once and is kept on that device. |
 
 ## 6. Non-goals
 

@@ -27,8 +27,16 @@ import {
   shadowDraws,
 } from "./frames";
 import { useMaterials } from "./materials";
-import { type Quality, detectQuality, rememberedAutoTier, tierChoice } from "./quality";
-import { type AutoTier, LEVERS, type Tier, autoFor, graphicsStore } from "../state/graphics";
+import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
+import {
+  type AutoTier,
+  LEVERS,
+  type Tier,
+  type TierChoice,
+  autoFor,
+  graphicsStore,
+  tierChoices,
+} from "../state/graphics";
 import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
@@ -441,23 +449,34 @@ export function Studio3D({
   follow?: boolean;
 }) {
   const quality = useMemo(() => detectQuality(), []);
+  const phone = quality === "low";
   // The compare halves draw at Balanced; the main view follows the couple's choice, Auto by default.
-  const auto = useMemo(
-    () => (follow || tierChoice() !== "auto" ? null : autoFor(quality === "low", rememberedAutoTier())),
-    [follow, quality],
-  );
-  const [tier, setTier] = useState<Tier>(() => {
-    const choice = tierChoice();
-    return follow ? "balanced" : (auto?.tier ?? (choice === "auto" ? "high" : choice));
+  // Auto keeps watching whatever the choice, so a choice above what it settled on can say so.
+  const auto = useMemo(() => (follow ? null : autoFor(phone, rememberedAutoTier())), [follow, phone]);
+  const [autoTier, setAutoTier] = useState<Tier>(() => auto?.tier ?? "balanced");
+  // A saved choice this device does not offer (Battery saver off a phone) falls back to Auto.
+  const [choice, setChoice] = useState<TierChoice>(() => {
+    const saved = follow ? "auto" : tierChoice();
+    return tierChoices(phone).includes(saved) ? saved : "auto";
   });
+  // The setting (Room › This device › Graphics) writes the store; the choice is kept on this device.
+  useEffect(() => {
+    if (follow) return;
+    return graphicsStore.subscribe((g) => {
+      if (g.choice === choice) return;
+      rememberTierChoice(g.choice);
+      setChoice(g.choice);
+    });
+  }, [follow, choice]);
+  const tier: Tier = follow ? "balanced" : choice === "auto" ? autoTier : choice;
   useEffect(() => {
     // A new tier is drawn at once (its shadows too), not at the next change.
     invalidate();
     if (follow) return;
-    graphicsStore.setState({ choice: tierChoice(), tier });
+    graphicsStore.setState({ choice, tier, autoTier, phone });
     // Test hook: a tier change as Auto makes it.
-    (window as unknown as { __setTier?: (t: Tier) => void }).__setTier = setTier;
-  }, [follow, tier]);
+    (window as unknown as { __setTier?: (t: Tier) => void }).__setTier = setAutoTier;
+  }, [follow, choice, tier, autoTier, phone]);
   // Lower resolution while the main view moves (the compare halves draw at Balanced's moving one).
   const moving = useStore(graphicsStore, (s) => s.moving);
   const dpr = LEVERS[tier].dpr;
@@ -492,7 +511,13 @@ export function Studio3D({
     >
       <StudioContext.Provider value={studio}>
         <Suspense fallback={null}>
-          <Scene quality={quality} tier={tier} follow={follow} auto={auto} onTier={setTier} />
+          <Scene
+            quality={quality}
+            tier={tier}
+            follow={follow}
+            auto={choice === "auto" ? auto : null}
+            onTier={setAutoTier}
+          />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>

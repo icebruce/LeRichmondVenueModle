@@ -410,6 +410,26 @@ test("[PLT-03] a tier change while the view is still redraws the room and its sh
   ).toEqual([]);
 });
 
+test("[PLT-05] the graphics setting: Auto by default, a choice applies at once and is kept on this device", async ({
+  page,
+}) => {
+  await openStudio(page, "fresh&quality=high");
+  await expect(page.getByTestId("room-graphics")).toContainText("Auto (High)");
+  await page.getByTestId("room-graphics").click();
+  // Battery saver is for phones only.
+  await expect(page.getByTestId("graphics-battery")).toHaveCount(0);
+  await page.getByTestId("graphics-balanced").click();
+  await expect(page.getByTestId("graphics-balanced").locator("input")).toBeChecked();
+  await page.getByTestId("back").click();
+  await expect(page.getByTestId("room-graphics")).toContainText("Balanced");
+  await page.reload();
+  await expect(page.getByTestId("room-graphics")).toContainText("Balanced", { timeout: 60_000 });
+  // On a phone, Battery saver is offered too.
+  await openStudio(page, "fresh&quality=low");
+  await page.getByTestId("room-graphics").click();
+  await expect(page.getByTestId("graphics-battery")).toBeVisible();
+});
+
 test("[PLT-03] ?perf reads out the tier and frame totals and goes to the benchmark cameras", async ({
   page,
 }) => {

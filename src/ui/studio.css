@@ -1228,9 +1228,6 @@ button:disabled {
   background: var(--surface);
   overflow: hidden;
 }
-.list > * + * {
-  border-top: 1px solid var(--line);
-}
 .list > .row {
   min-height: 52px;
   padding: var(--s-2) var(--s-3);
@@ -1260,6 +1257,10 @@ button:disabled {
 }
 .nav-row.danger {
   color: var(--blocked);
+}
+/* Hairlines between grouped-list rows; after .nav-row, whose button reset would otherwise drop them. */
+.list > * + * {
+  border-top: 1px solid var(--line);
 }
 .nav-label {
   flex: 1;
@@ -2134,4 +2135,18 @@ textarea.text-input {
   .perf {
     top: var(--top);
   }
+}
+
+/* Room › This device › Graphics: one choice, checked in the chevron's place (mock-up graphics.html). */
+.choice-row {
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.choice-row:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.choice-check {
+  color: var(--accent);
+  flex: none;
 }

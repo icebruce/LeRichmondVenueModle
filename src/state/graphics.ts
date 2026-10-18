@@ -130,17 +130,29 @@ export function autoFor(phone: boolean, remembered: Tier | null): AutoTier {
 
 /** The tier in use, whether the view is moving, and the choice it comes from (read by `?perf`). */
 export const graphicsStore = createStore<{
+  /** The couple's choice on this device (Room › This device › Graphics), written by the UI. */
   choice: TierChoice;
   tier: Tier;
+  /** The tier Auto settled on here, whatever the choice: a choice above it may stutter. */
+  autoTier: Tier;
+  /** A phone (lighter scene): Battery saver is offered only here. */
+  phone: boolean;
   moving: boolean;
   /** Test hook: keep the view counted as moving (the budget test measures a frame of motion). */
   hold: boolean;
 }>(() => ({
   choice: "auto",
   tier: "high",
+  autoTier: "high",
+  phone: false,
   moving: false,
   hold: false,
 }));
+
+/** The choices offered on this device: Battery saver on phones only. */
+export function tierChoices(phone: boolean): TierChoice[] {
+  return ["auto", "high", "balanced", ...(phone ? (["battery"] as const) : [])];
+}
 
 /** `?perf` readings (VISUAL_STATUS.md, V0): published a few times a second while frames are drawn. */
 export type PerfReadings = {
