@@ -1,6 +1,6 @@
 // `npm run bake` (visual stage V2, ADR-2): bakes the fixed room's evening and daylight light into
 // light maps. Exports the room from the built app (`?bake-export`), bakes each set in Blender
-// (`tools/blender/bake_room.py`), checks the result, encodes KTX2 (2K desktop, 1K phone) and writes
+// (`tools/blender/bake_room.py`), checks the result, encodes WebP (2K desktop, 1K phone) and writes
 // `data/bake/manifest.json`, which the app checks against the room it builds before using the maps.
 // Usage: npm run bake [-- <samples>]   (BAKE_PYTHON: Python with `bpy`)
 import { createHash } from "node:crypto";
@@ -8,7 +8,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { encodeToKTX2 } from "ktx2-encoder";
 import { chromium } from "@playwright/test";
 
 const root = new URL("../..", import.meta.url).pathname;
@@ -129,7 +128,7 @@ async function islandTexels(room: Export): Promise<number[][]> {
 
 async function encode(px: Float32Array, room: Export, mode: string) {
   const { size } = room.atlas;
-  // Rows run top first in both the bake and the light-map UVs (three samples a KTX2 map unflipped).
+  // Rows run top first in both the bake and the light-map UVs (the app loads the map unflipped).
   const peak = (t: number) => Math.max(px[t * 3] as number, px[t * 3 + 1] as number, px[t * 3 + 2] as number);
   const near = (t: number) => [t - 1, t + 1, t - size, t + size].filter((n) => n >= 0 && n < size * size);
   // Fill single unlit texels (too few samples in a dim corner) from their lit neighbours.
@@ -166,34 +165,21 @@ async function encode(px: Float32Array, room: Export, mode: string) {
   if (specks / count > MAX_SPECKS) throw new Error(`${mode}: ${specks} black specks in lit areas`);
   peaks.sort((a, b) => a - b);
   const scale = peaks[Math.floor(peaks.length * CLIP)] as number;
-  // 8-bit with a 2.2 gamma (stored as sRGB, decoded to linear on the GPU), so the dark end keeps its steps.
+  // 8-bit with a 2.2 gamma (loaded as sRGB, decoded to linear on the GPU), so the dark end keeps its steps.
   const rgb = new Uint8Array(size * size * 3);
   for (let i = 0; i < rgb.length; i++)
     rgb[i] = Math.round(255 * Math.pow(Math.min(1, (px[i] as number) / scale), 1 / 2.2));
   const files: Record<string, string> = {};
   for (const s of [size, size / 2]) {
-    const png = await sharp(rgb, { raw: { width: size, height: size, channels: 3 } })
+    // Lossless: a light map's smooth gradients band under lossy compression.
+    const webp = await sharp(rgb, { raw: { width: size, height: size, channels: 3 } })
       .resize(s, s)
-      .png()
+      .webp({ lossless: true })
       .toBuffer();
-    const ktx = await encodeToKTX2(new Uint8Array(png), {
-      isUASTC: false,
-      generateMipmap: true,
-      isKTX2File: true,
-      isSetKTX2SRGBTransferFunc: true,
-      qualityLevel: 255,
-      imageDecoder: async (buf: Uint8Array) => {
-        const { data, info } = await sharp(Buffer.from(buf))
-          .ensureAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        return { width: info.width, height: info.height, data: new Uint8Array(data) };
-      },
-    });
-    const name = `${mode}_${s === size ? "2k" : "1k"}.ktx2`;
-    writeFileSync(join(out, name), ktx);
+    const name = `${mode}_${s === size ? "2k" : "1k"}.webp`;
+    writeFileSync(join(out, name), webp);
     files[s === size ? "2k" : "1k"] = name;
-    console.log(name, `${Math.round(ktx.length / 1024)} KB`);
+    console.log(name, `${Math.round(webp.length / 1024)} KB`);
   }
   console.log(
     `${mode}: scale ${scale.toFixed(3)}; ${lit} of ${islands.length} islands lit, ${specks} specks`,

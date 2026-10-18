@@ -7,15 +7,15 @@
     "evening": {
       "scale": 3.9181385040283203,
       "files": {
-        "2k": "evening_2k.ktx2",
-        "1k": "evening_1k.ktx2"
+        "2k": "evening_2k.webp",
+        "1k": "evening_1k.webp"
       }
     },
     "day": {
       "scale": 1.900000810623169,
       "files": {
-        "2k": "day_2k.ktx2",
-        "1k": "day_1k.ktx2"
+        "2k": "day_2k.webp",
+        "1k": "day_1k.webp"
       }
     }
   }

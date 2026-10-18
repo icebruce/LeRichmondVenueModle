@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
-import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
 import type { VenueModel } from "../domain/venue/model";
 import type { Materials } from "./materials";
 import type { Quality } from "./quality";
@@ -34,7 +33,6 @@ export function useBake(
   quality: Quality,
   evening: boolean,
 ): Bake | null {
-  const gl = useThree((s) => s.gl);
   const invalidate = useThree((s) => s.invalidate);
   const atlas = useMemo(() => (!manifest || BAKE_OFF ? null : bakeAtlas(venue, manifest)), [venue, manifest]);
   const size = quality === "high" ? "2k" : "1k";
@@ -42,10 +40,16 @@ export function useBake(
     atlas && manifest
       ? BAKE_SETS.map((k) => `${import.meta.env.BASE_URL}assets/bake/${manifest.sets[k].files[size]}`)
       : [];
-  const maps = useLoader(KTX2Loader, urls, (loader) => loader.detectSupport(gl)) as THREE.Texture[];
+  const maps = useLoader(THREE.TextureLoader, urls) as THREE.Texture[];
   const bake = useMemo(() => {
     const [map] = maps;
     if (!atlas || !map) return null;
+    // Before first use: the bake's rows run top first, as the light-map UVs do; 8-bit, 2.2 gamma.
+    for (const t of maps) {
+      t.flipY = false;
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.channel = 1;
+    }
     const materials: Partial<Materials> = {};
     for (const r of roomReceivers(venue)) {
       const key = r.material;
@@ -58,7 +62,6 @@ export function useBake(
     if (!bake || !manifest) return;
     const set = evening ? "evening" : "day";
     const map = maps[BAKE_SETS.indexOf(set)] as THREE.Texture;
-    map.channel = 1;
     for (const mat of Object.values(bake.materials) as THREE.MeshStandardMaterial[]) {
       mat.lightMap = map;
       // The bake holds irradiance over π (Cycles' diffuse colour pass is left out), scaled into 8 bits.

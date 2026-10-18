@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Vec2 } from "../../domain/geometry";
@@ -50,26 +50,37 @@ export function Walls({ venue, m, cutWalls, bake }: Pick<Props, "venue" | "m" | 
       cut: map(w, buildWall(w, venue.ceiling, t, true)),
     }));
   }, [venue, t, bake]);
+  // One mesh per material for all walls as the view cuts them (fewer draw calls), rebuilt when
+  // the set of cut walls changes.
+  const cutKey = [...cutWalls].sort().join();
+  const meshes = useMemo(() => {
+    const pick = built.map((w) => (cutKey.split(",").includes(w.id) ? w.cut : w.full));
+    const all = (f: (g: (typeof pick)[number]) => THREE.BufferGeometry | null | undefined) => {
+      const list = pick.map(f).filter((g): g is THREE.BufferGeometry => !!g);
+      return list.length ? merge(list) : null;
+    };
+    return {
+      brick: all((g) => g.brick?.lit),
+      brickLive: all((g) => g.brick?.live),
+      red: all((g) => g.redBrick?.lit),
+      redLive: all((g) => g.redBrick?.live),
+      panel: all((g) => g.panel?.lit),
+      panelLive: all((g) => g.panel?.live),
+      cap: all((g) => g.cap),
+    };
+  }, [built, cutKey]);
+  useEffect(() => () => Object.values(meshes).forEach((g) => g?.dispose()), [meshes]);
   return (
     <group name="walls">
-      {built.map((w) => {
-        const g = cutWalls.has(w.id) ? w.cut : w.full;
-        return (
-          <group key={w.id} name={`wall-${w.id}`}>
-            {g.brick && (
-              <mesh geometry={g.brick.lit} material={lit(m, bake, "brick")} receiveShadow castShadow />
-            )}
-            {g.brick?.live && <mesh geometry={g.brick.live} material={m.brick} receiveShadow castShadow />}
-            {g.redBrick && (
-              <mesh geometry={g.redBrick.lit} material={lit(m, bake, "redBrick")} receiveShadow />
-            )}
-            {g.redBrick?.live && <mesh geometry={g.redBrick.live} material={m.redBrick} receiveShadow />}
-            {g.panel && <mesh geometry={g.panel.lit} material={lit(m, bake, "greenPanel")} receiveShadow />}
-            {g.panel?.live && <mesh geometry={g.panel.live} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.cap} />}
-          </group>
-        );
-      })}
+      {meshes.brick && (
+        <mesh geometry={meshes.brick} material={lit(m, bake, "brick")} receiveShadow castShadow />
+      )}
+      {meshes.brickLive && <mesh geometry={meshes.brickLive} material={m.brick} receiveShadow castShadow />}
+      {meshes.red && <mesh geometry={meshes.red} material={lit(m, bake, "redBrick")} receiveShadow />}
+      {meshes.redLive && <mesh geometry={meshes.redLive} material={m.redBrick} receiveShadow />}
+      {meshes.panel && <mesh geometry={meshes.panel} material={lit(m, bake, "greenPanel")} receiveShadow />}
+      {meshes.panelLive && <mesh geometry={meshes.panelLive} material={m.greenPanel} receiveShadow />}
+      {meshes.cap && <mesh geometry={meshes.cap} material={m.cap} />}
     </group>
   );
 }
