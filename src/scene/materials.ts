@@ -196,14 +196,15 @@ export function useMaterials(quality: Quality) {
       girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
-      cap: std({ color: "#e6dfd3", roughness: 0.8 }),
+      // Its evening glow (set with the lighting) keeps it the lightest frame of the model.
+      cap: std({ color: "#e6dfd3", emissive: "#e6dfd3", emissiveIntensity: 0, roughness: 0.8 }),
       // Soft contact shadows under tables, chairs and standing guests (V2, Grounded): the baked
       // floor takes no live shadow, so these ground what stands on it.
       contact: new THREE.MeshBasicMaterial({
         color: "#000000",
         map: softShadowTexture(CONTACT_SPREAD, 0.3),
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.7,
         depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: -2,
@@ -213,7 +214,7 @@ export function useMaterials(quality: Quality) {
         transparent: true,
         depthWrite: false,
       }),
-      marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
+      marble: std({ map: marble, roughness: 0.3, metalness: 0 }),
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
@@ -231,7 +232,7 @@ export function useMaterials(quality: Quality) {
       // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
       kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
       blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
-      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 2.4, roughness: 0.3 }),
+      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 1.8, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
         color: "#fff6e8",
         emissive: "#ffd9a0",
@@ -290,7 +291,12 @@ export function useMaterials(quality: Quality) {
       street: std({ color: "#5d6266", roughness: 1 }),
       // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and
       // daylight, and a faint lit tint that darkens with the room instead of glowing.
-      danceLine: new THREE.MeshBasicMaterial({ color: DANCE_AREA_COLOUR, depthWrite: false }),
+      // Drawn with the transparent pass, after every floor, whichever floor material sorts first.
+      danceLine: new THREE.MeshBasicMaterial({
+        color: DANCE_AREA_COLOUR,
+        depthWrite: false,
+        transparent: true,
+      }),
       danceTint: new THREE.MeshStandardMaterial({
         color: DANCE_AREA_COLOUR,
         roughness: 1,

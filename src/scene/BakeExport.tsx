@@ -36,7 +36,7 @@ export function BakeExport({ m }: { m: Materials }) {
       cover.width = cover.height = atlas.size;
       const ctx = cover.getContext("2d") as CanvasRenderingContext2D;
       ctx.fillStyle = "#fff";
-      for (const r of roomReceivers(venue)) {
+      for (const r of roomReceivers(venue).filter((x) => x.baked !== false)) {
         const mat = new THREE.MeshStandardMaterial({
           color: ALBEDO[r.material] ?? "#808080",
           name: r.material,

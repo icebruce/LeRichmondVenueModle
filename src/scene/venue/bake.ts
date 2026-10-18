@@ -10,8 +10,16 @@ import { buildWall } from "./walls";
  * light-map UVs, and the check that a bake still matches the room.
  */
 
-/** A surface that carries the light map: its name in the export, its material, its full shape. */
-export type Receiver = { name: string; material: keyof Materials; geometry: THREE.BufferGeometry };
+/**
+ * A surface that carries the light map: its name in the export, its material, its full shape, and
+ * whether the bake sees it (`baked: false`: it lies on another receiver and takes that one's light).
+ */
+export type Receiver = {
+  name: string;
+  material: keyof Materials;
+  geometry: THREE.BufferGeometry;
+  baked?: false;
+};
 
 /**
  * The receivers, uncut and in a fixed order: walls, floors, ceiling, the mezzanine edge. The stair,
@@ -29,7 +37,8 @@ export function roomReceivers(venue: VenueModel): Receiver[] {
   const f = floorParts(venue);
   out.push(
     { name: "floor-tile", material: "tile", geometry: f.tile },
-    { name: "floor-joints", material: "tileJoint", geometry: f.joints },
+    // The joint strips take the tiles' light: baked themselves, each would shade its crossings.
+    { name: "floor-joints", material: "tileJoint", geometry: f.joints, baked: false },
     { name: "raised-top", material: "woodFloor", geometry: f.raisedTop },
     { name: "raised-side", material: "beam", geometry: f.raisedSide },
   );
@@ -110,9 +119,15 @@ export function bakeAtlas(
 }
 
 /**
- * A receiver's material with the light map: its diffuse light comes from the map alone (the live
- * lights' direct and ambient diffuse are dropped, as the bake holds them), while live highlights and
- * reflections stay. Any shader patch the source has (`vary`) is kept.
+ * Share of the live ambient (sky) light a baked surface keeps: faces the bake leaves dark (a cut
+ * wall's outer face, seen from the dollhouse) never turn into black pockets.
+ */
+const BAKED_AMBIENT = 0.35;
+
+/**
+ * A receiver's material with the light map: its diffuse light comes from the map (the live lights'
+ * direct diffuse is dropped, as the bake holds it, and only `BAKED_AMBIENT` of the sky's), while live
+ * highlights and reflections stay. Any shader patch the source has (`vary`) is kept.
  */
 export function bakedMaterial(
   src: THREE.MeshStandardMaterial,
@@ -127,7 +142,7 @@ export function bakedMaterial(
     src.onBeforeCompile(s, r);
     s.fragmentShader = s.fragmentShader.replace(
       "#include <lights_fragment_maps>",
-      "irradiance = vec3(0.0);\nreflectedLight.directDiffuse = vec3(0.0);\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);",
+      `irradiance *= ${BAKED_AMBIENT.toFixed(2)};\nreflectedLight.directDiffuse = vec3(0.0);\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);`,
     );
   };
   return b;

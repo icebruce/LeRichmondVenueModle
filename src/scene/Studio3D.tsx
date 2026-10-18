@@ -410,12 +410,13 @@ function Scene({
     [],
   );
   const background = evening ? backgrounds.evening : backgrounds.day;
-  // The stair's LED treads glow in the evening only, and the backdrop brightens in daylight
-  // (uniform changes: no new shader).
+  // The stair's LED treads glow and the caps lift in the evening only, and the backdrop brightens
+  // in daylight (uniform changes: no new shader).
   const invalidate = useThree((s) => s.invalidate);
   const scene = useThree((s) => s.scene);
   useEffect(() => {
     m.led.emissiveIntensity = evening ? LED_GLOW : 0;
+    m.cap.emissiveIntensity = evening ? 0.12 : 0;
     scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
     invalidate();
   }, [m, scene, evening, invalidate]);
