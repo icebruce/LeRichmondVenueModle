@@ -233,7 +233,7 @@
     "xTo": 14.8,
     "depth": 3.0,
     "fasciaDepth": 0.9,
-    "projection": 0.6,
+    "projection": { "depth": 0.6, "xTo": 12.28 },
     "floorHeight": {
       "value": 3.8,
       "min": 3.5,
@@ -412,6 +412,7 @@
       "radius": 0.28,
       "drop": 1.05
     },
+    "services": { "conduitZ": [3.4, 6.6, 10.2], "trackX": [3.5, 9.5, 12.5], "drop": 0.55 },
     "skylight": {
       "x": 8.13,
       "z": 5.0,

@@ -4,7 +4,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { VenueModel } from "../../domain/venue/model";
 import { artFor } from "../../domain/venue/art";
 import type { OpeningData, WallData } from "../../domain/venue/schema";
-import { type Materials, boxGeo } from "../materials";
+import { type Materials, bevelGeo, boxGeo } from "../materials";
 import { paintingTexture } from "../textures";
 import { openingMatrix } from "./walls";
 
@@ -54,6 +54,14 @@ function curtainGeo(width: number, height: number, folds: number): THREE.BufferG
   return g;
 }
 
+/** A 3.5 cm trim strip facing +z along x from `x0` to `x1`, at height `y`: one nail head per 5 cm. */
+function trim(x0: number, x1: number, y: number, z: number): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(x1 - x0, 0.035);
+  const uv = g.getAttribute("uv");
+  for (let i = 0; i < uv.count; i++) uv.setX(i, (uv.getX(i) * (x1 - x0)) / 0.05);
+  return g.translate((x0 + x1) / 2, y + 0.0175, z);
+}
+
 /** One wall's glazing, curtains, doors and openings, in world space. */
 function buildOpenings(wall: WallData) {
   const frames: THREE.BufferGeometry[] = [];
@@ -61,6 +69,7 @@ function buildOpenings(wall: WallData) {
   const kitchen: THREE.BufferGeometry[] = [];
   const glass: THREE.BufferGeometry[] = [];
   const curtains: THREE.BufferGeometry[] = [];
+  const sheers: THREE.BufferGeometry[] = [];
   const doors: THREE.BufferGeometry[] = [];
   const voids: THREE.BufferGeometry[] = [];
   const signs: THREE.BufferGeometry[] = [];
@@ -79,6 +88,12 @@ function buildOpenings(wall: WallData) {
         gridFrame(o, Math.max(3, Math.round(w / 0.6)), Math.max(4, Math.round((o.head - o.sill) / 0.62))),
       );
       add(glass, [local(0, o.sill, -0.07, w, o.head, -0.06)]);
+      // Steel jambs and a deep header band frame each door against the brick piers (R02, R03).
+      add(frames, [
+        bevelGeo(-0.12, 0, -0.05, 0.01, o.head + 0.28, 0.05, 0.01),
+        bevelGeo(w - 0.01, 0, -0.05, w + 0.12, o.head + 0.28, 0.05, 0.01),
+        bevelGeo(-0.12, o.head, -0.06, w + 0.12, o.head + 0.28, 0.06, 0.01),
+      ]);
     } else if (o.kind === "tallWindow") {
       // Street windows: off-white frames, three panes wide with a transom (R09, R10).
       add(lightFrames, gridFrame(o, 3, 4, 0.06));
@@ -94,6 +109,10 @@ function buildOpenings(wall: WallData) {
         curtains.push(g.applyMatrix4(mtx));
       }
       add(frames, [local(-0.8, ch, 0.12, w + 0.8, ch + 0.04, 0.2)]);
+      // Sheers across the glass, behind the velvet, from the rod down to the sill (R10).
+      const sheer = curtainGeo(w, ch - o.sill, Math.round(w / 0.3));
+      sheer.translate(w / 2, (ch + o.sill) / 2, 0.14);
+      sheers.push(sheer.applyMatrix4(mtx));
     } else if (o.kind === "door") {
       add(doors, [local(0.02, 0, -0.1, w - 0.02, o.head, -0.04)]);
       add(signs, [local(w / 2 - 0.18, o.head + 0.1, 0.0, w / 2 + 0.18, o.head + 0.28, 0.06)]);
@@ -126,6 +145,7 @@ function buildOpenings(wall: WallData) {
     kitchen: merge(kitchen),
     glass: merge(glass),
     curtains: merge(curtains),
+    sheers: merge(sheers),
     doors: merge(doors),
     voids: merge(voids),
     signs: merge(signs),
@@ -155,6 +175,7 @@ export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: Readon
           {built.signs && <mesh geometry={built.signs} material={m.exitSign} />}
           {built.warm && <mesh geometry={built.warm} material={evening ? m.shelfGlow : m.fridge} />}
           {built.curtains && <mesh geometry={built.curtains} material={m.velvet} castShadow />}
+          {built.sheers && <mesh geometry={built.sheers} material={m.sheer} />}
           {built.greens && <mesh geometry={built.greens} material={m.greenPanel} />}
           {built.floors && <mesh geometry={built.floors} material={m.woodFloor} receiveShadow />}
           {built.prints && <mesh geometry={built.prints} material={m.windowFrame} />}
@@ -315,10 +336,13 @@ export function Furnishings({
     const f = venue.data.fixtures;
     const seats: THREE.BufferGeometry[] = [];
     const backs: THREE.BufferGeometry[] = [];
+    const trims: THREE.BufferGeometry[] = [];
     for (const b of f.banquettes) {
       if (b.disabled || b.x0 === undefined || b.x1 === undefined) continue;
       seats.push(boxGeo(b.x0, 0, 0.12, b.x1, 0.46, b.depth));
       backs.push(boxGeo(b.x0, 0, 0, b.x1, b.backHeight, 0.14, 1.2));
+      // Nail-head trim along the top of the back and the seat front (R03, R07).
+      trims.push(trim(b.x0, b.x1, b.backHeight - 0.05, 0.142), trim(b.x0, b.x1, 0.38, b.depth + 0.002));
     }
     const [wx0, wz0, wx1, wz1] = f.wineWall.rect;
     const wine = boxGeo(wx0, 0, wz0, wx1, f.wineWall.height, wz1);
@@ -330,7 +354,7 @@ export function Furnishings({
       f.wineWall.height + 0.12,
       wz1 + 0.2,
     );
-    return { seats: merge(seats), backs: merge(backs), wine, wineCanopy };
+    return { seats: merge(seats), backs: merge(backs), trims: merge(trims), wine, wineCanopy };
   }, [venue]);
   // Hidden or swapped per scenario (VEN-05).
   const paintings = useMemo(
@@ -351,6 +375,7 @@ export function Furnishings({
     <group name="furnishings">
       {g.seats && <mesh geometry={g.seats} material={m.leather} receiveShadow castShadow />}
       {g.backs && <mesh geometry={g.backs} material={m.leather} receiveShadow />}
+      {g.trims && <mesh geometry={g.trims} material={m.nailTrim} />}
       <mesh geometry={g.wine} material={m.wineFrame} />
       <mesh geometry={g.wineCanopy} material={m.steel} />
       {/* Plan view is a flat working drawing: no wall art lying outside the walls. */}

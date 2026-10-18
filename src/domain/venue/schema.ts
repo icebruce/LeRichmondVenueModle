@@ -93,8 +93,11 @@ export const venueSchema = z.object({
     depth: z.number(),
     /** Height of the dark fascia band along the mezzanine edge. */
     fasciaDepth: z.number(),
-    /** How far the edge overhangs the room past the wall below it (m): a dark recess under it. */
-    projection: z.number(),
+    /**
+     * Where the edge overhangs the room past the wall below it: `depth` (m), from `xFrom` to `xTo`
+     * (the edge steps back to the wall line beyond); a dark recess under it.
+     */
+    projection: z.object({ depth: z.number(), xTo: z.number() }),
     floorHeight: estimate,
     confidence,
     sources: z.array(z.string()),
@@ -180,6 +183,11 @@ export const venueSchema = z.object({
     /** Round ducts along x under the deck: z positions, radius and drop below the ceiling. */
     ducts: z.object({ positions: z.array(z.number()), radius: z.number(), drop: z.number() }),
     skylight: z.object({ x: z.number(), z: z.number(), size: z.number() }),
+    /**
+     * Black services under the deck (R02, R03): conduit runs along x at these z, lighting track
+     * along z at these x, both `drop` below the ceiling.
+     */
+    services: z.object({ conduitZ: z.array(z.number()), trackX: z.array(z.number()), drop: z.number() }),
     venueFurniture: z.object({
       /** Stools along the bar's front and along each side (owner, 2026-10-17). */
       barStools: z.object({ front: z.number().int().positive(), side: z.number().int().positive() }),

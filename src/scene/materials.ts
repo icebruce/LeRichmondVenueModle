@@ -2,7 +2,15 @@ import * as THREE from "three";
 import { useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
-import { glowTexture, marbleTexture, softShadowTexture, tuftedTexture } from "./textures";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import {
+  glowTexture,
+  marbleTexture,
+  nailheadTexture,
+  rivetTexture,
+  softShadowTexture,
+  tuftedTexture,
+} from "./textures";
 import type { Quality } from "./quality";
 import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
@@ -53,6 +61,7 @@ export const TILE = {
   ceiling: 1.5,
   timber: 2,
   marble: 1.4,
+  rivets: 0.6,
 } as const;
 
 function prep(t: THREE.Texture) {
@@ -165,6 +174,7 @@ export function useMaterials(quality: Quality) {
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f2d9ae", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
+      girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
       cap: std({ color: "#e6dfd3", roughness: 0.8 }),
@@ -218,6 +228,17 @@ export function useMaterials(quality: Quality) {
         side: THREE.DoubleSide,
       }),
       leather: std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 }),
+      // The banquettes' nail-head trim: a strip with one brass nail every 5 cm (trim sheet).
+      nailTrim: std({ map: nailheadTexture("#2a2b2d"), color: "#ffffff", metalness: 0.4, roughness: 0.45 }),
+      // Sheer curtains behind the velvet at the street windows (R10).
+      sheer: new THREE.MeshStandardMaterial({
+        color: "#f3efe6",
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.38,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
       flame: std({ color: "#ffd18a", emissive: "#ffb347", emissiveIntensity: 4 }),
       // Stair tread glow: lime-yellow, across each tread top (R01, R09, R11).
       led: std({ color: "#d9e86a", emissive: "#d4ec4f", emissiveIntensity: 1.1, roughness: 0.6 }),
@@ -288,6 +309,23 @@ export function boxGeo(
   tile = 1,
 ): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0));
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return metreUV(g, tile);
+}
+
+/** `boxGeo` with rounded edges of radius `r` (m), so its edges catch a thin highlight (V1, Bevelled). */
+export function bevelGeo(
+  x0: number,
+  y0: number,
+  z0: number,
+  x1: number,
+  y1: number,
+  z1: number,
+  r: number,
+  tile = 1,
+): THREE.BufferGeometry {
+  const [w, h, d] = [Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)];
+  const g = new RoundedBoxGeometry(w, h, d, 1, Math.min(r, w / 2, h / 2, d / 2));
   g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   return metreUV(g, tile);
 }

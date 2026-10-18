@@ -78,12 +78,42 @@ export function tuftedTexture(base: string): THREE.CanvasTexture {
       ctx.fillRect(x + ox - step, y - step, step * 2, step * 2);
     }
   }
-  ctx.fillStyle = "rgba(210,190,150,0.9)";
-  for (let x = 6; x < size; x += 12) {
-    ctx.beginPath();
-    ctx.arc(x, 8, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  return finish(c);
+}
+
+/** One brass nail head on leather, centred: repeats along a trim strip (UVs: one nail per repeat). */
+export function nailheadTexture(base: string): THREE.CanvasTexture {
+  const [c, ctx] = canvas(64);
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, 64, 64);
+  const g = ctx.createRadialGradient(28, 28, 2, 32, 32, 20);
+  g.addColorStop(0, "#f2dfaa");
+  g.addColorStop(0.6, "#b8955f");
+  g.addColorStop(1, "#4a3a22");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(32, 32, 20, 0, Math.PI * 2);
+  ctx.fill();
+  return finish(c);
+}
+
+/** Black steel with rows of rivet heads (girders, R02): one 0.6 m repeat holds a 4 × 4 grid. */
+export function rivetTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const [c, ctx] = canvas(size);
+  ctx.fillStyle = "#1c1e1f";
+  ctx.fillRect(0, 0, size, size);
+  const step = size / 4;
+  for (let y = step / 2; y < size; y += step)
+    for (let x = step / 2; x < size; x += step) {
+      const g = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, 7);
+      g.addColorStop(0, "#5a5d60");
+      g.addColorStop(1, "#141516");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
   return finish(c);
 }
 
