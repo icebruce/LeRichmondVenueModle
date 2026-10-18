@@ -99,6 +99,31 @@ describe("entrance and stairwell", () => {
     expect(well?.head).toBeGreaterThanOrEqual(south.height ?? venue.ceiling);
   });
 
+  test("[VEN-01] the restroom corridor opens in the north wall between the west painting and the back bar (R07)", () => {
+    const north = venue.data.walls.find((w) => w.id === "north");
+    const corridor = north?.openings.find((o) => o.kind === "corridor");
+    if (!corridor) throw new Error("no restroom corridor");
+    const west = venue.data.fixtures.paintings.find((p) => p.wall === "north" && p.x1 < 6);
+    expect(corridor.start).toBeGreaterThan(west?.x1 ?? 0);
+    expect(corridor.end).toBeLessThan(venue.data.backBar.rect.value[0]);
+    expect(corridor.end - corridor.start).toBeGreaterThanOrEqual(0.9);
+    // No banquette across it.
+    for (const b of venue.data.fixtures.banquettes)
+      if (!b.wall && b.x0 !== undefined && b.x1 !== undefined)
+        expect(b.x1 <= corridor.start || b.x0 >= corridor.end).toBe(true);
+  });
+
+  test("[VEN-03] the mezzanine overhangs ≈ 0.6 m over the entrance and stops before the stairwell (R09, R01)", () => {
+    const { projection } = venue.data.mezzanine;
+    const south = venue.data.walls.find((w) => w.id === "south");
+    const entrance = south?.openings.find((o) => o.id === "corridor");
+    if (!south || !entrance) throw new Error("no entrance");
+    expect(projection.depth).toBeCloseTo(0.6, 5);
+    expect(projection.xTo).toBeGreaterThan(south.from[0] - entrance.start);
+    const { flight } = venue.data.stair;
+    expect(projection.xTo).toBeLessThanOrEqual(Math.min(flight.from[0], flight.to[0]));
+  });
+
   test("[VEN-01] [LAY-08] the entrance and the stair foot are kept clear", () => {
     const [lx0, lz0, , lz1] = venue.data.stair.landing;
     const south = venue.data.walls.find((w) => w.id === "south");
