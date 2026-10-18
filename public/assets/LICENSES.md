@@ -2,7 +2,7 @@
 
 ## Textures: CC0 1.0 (public domain)
 
-Downloaded at 2K and encoded as KTX2 (Basis ETC1S, 2K and 1K) by `tools/assets/textures.ts`; otherwise unmodified.
+Downloaded at 2K and encoded as WebP (2K and 1K) by `tools/assets/textures.ts`, with the colour corrections listed there; otherwise unmodified.
 
 | File(s) | Source | Licence |
 |---|---|---|

@@ -1,10 +1,9 @@
 // Room surfaces (visual stage V1): Poly Haven CC0 texture sets downloaded at 2K and encoded as
-// KTX2 (Basis ETC1S, mipmapped), a 2K set for desktops and a 1K set for phones. Compressed on the
-// GPU as well as on the wire. Usage: node tools/assets/textures.ts [cache_dir]
+// WebP, a 2K set for desktops and a 1K set for phones. (Not KTX2: its decoder builds code at run
+// time, which the site's CSP forbids; owner, 2026-10-18.) Usage: node tools/assets/textures.ts [cache_dir]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { encodeToKTX2 } from "ktx2-encoder";
 
 /** Asset id → the maps the app uses. Real-world size of one repeat is in materials.ts (TILE). */
 export const SETS: Record<string, readonly ("diff" | "nor_gl" | "rough")[]> = {
@@ -47,33 +46,17 @@ async function source(id: string, map: string): Promise<Buffer> {
   return readFileSync(file);
 }
 
-const decode = async (buf: Uint8Array) => {
-  const { data, info } = await sharp(Buffer.from(buf))
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  return { width: info.width, height: info.height, data: new Uint8Array(data) };
-};
-
 for (const [id, maps] of Object.entries(SETS)) {
   for (const map of maps) {
     const src = await source(id, map);
     for (const size of map === "diff" && SHARP.has(id) ? [2048, 1024] : [1024]) {
       const tone = map === "diff" ? TONE[id] : undefined;
-      const png = await (tone ? sharp(src).modulate(tone) : sharp(src)).resize(size, size).png().toBuffer();
-      const ktx = await encodeToKTX2(new Uint8Array(png), {
-        isUASTC: false,
-        generateMipmap: true,
-        isKTX2File: true,
-        // Colour maps are sRGB; normal and roughness maps are data.
-        isSetKTX2SRGBTransferFunc: map === "diff",
-        isNormalMap: map === "nor_gl",
-        qualityLevel: map === "diff" ? 160 : 128,
-        imageDecoder: decode,
-      });
-      const name = `${id}_${map === "nor_gl" ? "nor" : map}_${size === 2048 ? "2k" : "1k"}.ktx2`;
-      writeFileSync(join(out, name), ktx);
-      console.log(name, `${Math.round(ktx.length / 1024)} KB`);
+      const img = (tone ? sharp(src).modulate(tone) : sharp(src)).resize(size, size);
+      // Normal maps keep more detail: their small errors show as bumpy shading.
+      const webp = await img.webp({ quality: map === "nor_gl" ? 90 : 82 }).toBuffer();
+      const name = `${id}_${map === "nor_gl" ? "nor" : map}_${size === 2048 ? "2k" : "1k"}.webp`;
+      writeFileSync(join(out, name), webp);
+      console.log(name, `${Math.round(webp.length / 1024)} KB`);
     }
   }
 }

@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { useMemo } from "react";
-import { useLoader, useThree } from "@react-three/fiber";
-import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
+import { useLoader } from "@react-three/fiber";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
   glowTexture,
@@ -17,8 +16,8 @@ import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 const base = `${import.meta.env.BASE_URL}assets/`;
 
 /**
- * Room surfaces (visual stage V1): Poly Haven CC0 sets as KTX2 (`tools/assets/textures.ts`),
- * compressed on the GPU too. `sharp`: a 2K colour map for desktops; every other map is 1K.
+ * Room surfaces (visual stage V1): Poly Haven CC0 sets as WebP (`tools/assets/textures.ts`).
+ * `sharp`: a 2K colour map for desktops; every other map is 1K.
  */
 const TEXTURES = {
   brickDiff: { file: "yellow_brick_diff", sharp: true },
@@ -44,7 +43,7 @@ export function textureUrls(quality: Quality): Record<TextureKey, string> {
   return Object.fromEntries(
     KEYS.map((k) => [
       k,
-      `${base}textures/${TEXTURES[k].file}_${TEXTURES[k].sharp && quality === "high" ? "2k" : "1k"}.ktx2`,
+      `${base}textures/${TEXTURES[k].file}_${TEXTURES[k].sharp && quality === "high" ? "2k" : "1k"}.webp`,
     ]),
   ) as Record<TextureKey, string>;
 }
@@ -64,9 +63,10 @@ export const TILE = {
   rivets: 0.6,
 } as const;
 
-function prep(t: THREE.Texture) {
+function prep(t: THREE.Texture, colour: boolean) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 8;
+  if (colour) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
@@ -130,19 +130,16 @@ export const BACKDROP = {
 export type Materials = ReturnType<typeof useMaterials>;
 
 export function useMaterials(quality: Quality) {
-  const gl = useThree((s) => s.gl);
   const urls = textureUrls(quality);
-  // The Basis transcoder comes bundled with three's loader.
   const loaded = useLoader(
-    KTX2Loader,
+    THREE.TextureLoader,
     KEYS.map((k) => urls[k]),
-    (loader) => loader.detectSupport(gl),
   );
   return useMemo(() => {
-    const tex = Object.fromEntries(KEYS.map((k, i) => [k, prep(loaded[i] as THREE.Texture)])) as Record<
-      TextureKey,
-      THREE.Texture
-    >;
+    // Colour maps are sRGB; normal and roughness maps are data.
+    const tex = Object.fromEntries(
+      KEYS.map((k, i) => [k, prep(loaded[i] as THREE.Texture, k.endsWith("Diff"))]),
+    ) as Record<TextureKey, THREE.Texture>;
     const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
     const marble = marbleTexture();
     const glow = glowTexture();

@@ -6,7 +6,7 @@ Offline tools Claude runs from committed scripts; nothing here ships in the app.
 
 - **Blender, headless, as a Python module:** `python -m venv venv && venv/bin/pip install bpy numpy` (`blender.org` is allowed by the network policy). `import bpy` must come before `import bmesh`.
 - **glTF processing:** `@gltf-transform/*` and `meshoptimizer` are dev dependencies.
-- **Textures:** `ktx2-encoder` (Basis Universal in WebAssembly) and `sharp` are dev dependencies; no system tools.
+- **Textures:** `sharp` is a dev dependency; no system tools.
 - **Meshy:** the API key is injected by the session proxy; `docs.meshy.ai` is blocked (the API's own `/openapi` paths work). Meshy-generated models may be committed (owner, 2026-10-18).
 
 ## Checks
@@ -21,7 +21,7 @@ Offline tools Claude runs from committed scripts; nothing here ships in the app.
 
 ## Room textures
 
-`npm run assets:textures`: downloads the Poly Haven CC0 sets the room uses (2K JPEG, cached in the gitignored `tools/.cache/`), bakes in the colour corrections the venue needs and writes KTX2 (Basis ETC1S, mipmapped) to `public/assets/textures/`: a 2K colour map for the four big surfaces on desktops, 1K for everything else and for phones (`assets/textures.ts`).
+`npm run assets:textures`: downloads the Poly Haven CC0 sets the room uses (2K JPEG, cached in the gitignored `tools/.cache/`), bakes in the colour corrections the venue needs and writes WebP to `public/assets/textures/` (not KTX2: its decoder builds code at run time, which the site's CSP forbids): a 2K colour map for the four big surfaces on desktops, 1K for everything else and for phones (`assets/textures.ts`).
 
 ## Scripts
 

@@ -382,7 +382,7 @@ for (const [quality, limitMb] of [
       `initial download on ${quality}: ${(total / 1e6).toFixed(1)} MB, ${textures.length} textures`,
     );
     expect(total).toBeLessThan(limitMb * 1e6);
-    expect(textures.some((t) => t.endsWith("_2k.ktx2"))).toBe(quality === "high");
+    expect(textures.some((t) => t.endsWith("_2k.webp"))).toBe(quality === "high");
   });
 
 test("[PLT-03] a tier change while the view is still redraws the room and its shadows, then compiles nothing more", async ({

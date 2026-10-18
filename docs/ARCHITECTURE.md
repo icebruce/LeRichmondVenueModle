@@ -19,7 +19,7 @@
 | Server | Vercel Functions (Node 22) in `api/` | Plain handlers, no framework. |
 | Storage | Upstash Redis (REST) | Scenarios, versions, notes, catalogue metadata and imported images (§6.3). |
 | Tests | Vitest, Playwright (Chromium; mobile emulation) | See `TEST_STRATEGY.md`. |
-| Asset pipeline (offline, dev only) | Blender (`bpy` module, headless), glTF Transform 4 + meshoptimizer, ktx2-encoder + sharp | Authoring, detail and light bakes, `check-assets`, meshopt compression, KTX2 (Basis) textures; `tools/README.md`. |
+| Asset pipeline (offline, dev only) | Blender (`bpy` module, headless), glTF Transform 4 + meshoptimizer, sharp | Authoring, detail and light bakes, `check-assets`, meshopt compression, WebP textures; `tools/README.md`. |
 | Lint/format | ESLint (typescript-eslint strict, react-hooks, import boundaries), Prettier | Enforced by hooks and CI. |
 | Hosting | Vercel Hobby, Git integration | Preview URL per branch, production = `main`. |
 
@@ -184,7 +184,7 @@ CI checks draw calls, triangles, idle frames and shader compiles (software rende
 
 ## 8. Security
 
-Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-time compare; login rate limit (8 tries per 15 min per address, counted atomically before the password is checked); the session signature covers the password, so changing it signs everyone out; security headers (CSP allowing `blob:` and `data:` for textures and workers and `'wasm-unsafe-eval'` for the KTX2 transcoder, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: same-origin`, `X-Robots-Tag: noindex`). No secrets in Git (`.env.example` only).
+Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-time compare; login rate limit (8 tries per 15 min per address, counted atomically before the password is checked); the session signature covers the password, so changing it signs everyone out; security headers (CSP allowing `blob:` and `data:` for textures and workers, no `eval` of any kind: KTX2 textures are not used, as their decoder needs it (owner, 2026-10-18), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: same-origin`, `X-Robots-Tag: noindex`). No secrets in Git (`.env.example` only).
 
 ## 9. Deployment and CI
 
