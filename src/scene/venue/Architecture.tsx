@@ -34,7 +34,7 @@ export function Walls({ venue, m, cutWalls }: Pick<Props, "venue" | "m" | "cutWa
             {g.brick && <mesh geometry={g.brick} material={m.brick} receiveShadow castShadow />}
             {g.redBrick && <mesh geometry={g.redBrick} material={m.redBrick} receiveShadow />}
             {g.panel && <mesh geometry={g.panel} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.steel} />}
+            {g.cap && <mesh geometry={g.cap} material={m.cap} />}
           </group>
         );
       })}
@@ -67,10 +67,10 @@ export function Floors({ venue, m }: Pick<Props, "venue" | "m">) {
     const top = slab(venue.raised.outline, h - 0.02, h, TILE.floor);
     const side = slab(venue.raised.outline, 0, h - 0.02, 1);
     // Light wood strips between the large tiles (R03, R04): every half texture repeat.
-    const step = TILE.tile / 2;
+    const step = TILE.tile / 3;
     const strips: THREE.BufferGeometry[] = [];
-    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.016, 0, 0, x + 0.016, 0.003, D));
-    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.016, W, 0.003, z + 0.016));
+    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.009, 0, 0, x + 0.009, 0.002, D));
+    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.009, W, 0.002, z + 0.009));
     return { tile: tileG, raisedTop: top, raisedSide: side, joints: merge(strips) };
   }, [venue]);
   return (

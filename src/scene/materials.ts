@@ -7,17 +7,18 @@ import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 const base = `${import.meta.env.BASE_URL}assets/textures/`;
 
 const TEXTURES = {
-  brickDiff: "brick_wall_12_diff.webp",
-  brickNor: "brick_wall_12_nor_gl.webp",
-  brickRough: "brick_wall_12_rough.webp",
-  redBrickDiff: "brick_wall_006_diff.webp",
-  redBrickNor: "brick_wall_006_nor_gl.webp",
-  tileDiff: "granite_tile_diff.webp",
-  tileNor: "granite_tile_nor_gl.webp",
-  tileRough: "granite_tile_rough.webp",
-  floorDiff: "plank_flooring_04_diff.webp",
-  floorNor: "plank_flooring_04_nor_gl.webp",
-  floorRough: "plank_flooring_04_rough.webp",
+  // PROTOTYPE: V2 surfaces at real scale (Poly Haven CC0).
+  brickDiff: "ph/yellow_brick_diff.jpg",
+  brickNor: "ph/yellow_brick_nor_gl.jpg",
+  brickRough: "ph/yellow_brick_rough.jpg",
+  redBrickDiff: "ph/red_brick_diff.jpg",
+  redBrickNor: "ph/red_brick_nor_gl.jpg",
+  tileDiff: "ph/large_floor_tiles_02_diff.jpg",
+  tileNor: "ph/large_floor_tiles_02_nor_gl.jpg",
+  tileRough: "ph/large_floor_tiles_02_rough.jpg",
+  floorDiff: "ph/old_wood_floor_diff.jpg",
+  floorNor: "ph/old_wood_floor_nor_gl.jpg",
+  floorRough: "ph/old_wood_floor_rough.jpg",
   ceilingDiff: "roof_planks_diff.webp",
   ceilingNor: "roof_planks_nor_gl.webp",
   timberDiff: "wood_floor_worn_diff.webp",
@@ -28,7 +29,7 @@ export const TEXTURE_URLS = Object.fromEntries(
 ) as Record<keyof typeof TEXTURES, string>;
 
 /** Physical size in metres that one texture repeat covers (UVs are generated in metres). */
-export const TILE = { brick: 2.4, tile: 1.3, floor: 1.6, ceiling: 1.6, timber: 1.2, marble: 1.4 } as const;
+export const TILE = { brick: 2.0, tile: 2.0, floor: 3.0, ceiling: 1.6, timber: 1.2, marble: 1.4 } as const;
 
 function prep(t: THREE.Texture, color: boolean) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -47,7 +48,7 @@ export function useMaterials() {
     const marble = marbleTexture();
     const glow = glowTexture();
     // The venue brick is a pale buff; the CC0 texture is warmer, so tone it down (R03, R07).
-    const buff = adjustedTexture(tex.brickDiff, 0.55, 1.12);
+    const buff = adjustedTexture(tex.brickDiff, 0.7, 1.05);
     return {
       glow,
       brick: std({
@@ -57,16 +58,16 @@ export function useMaterials() {
         color: "#f4ebdd",
         roughness: 1,
       }),
-      redBrick: std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#c9806a", roughness: 0.95 }),
+      redBrick: std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#d8a08e", roughness: 0.95 }),
       greenPanel: std({ color: "#28352e", roughness: 0.7 }),
       tile: std({
         map: tex.tileDiff,
         normalMap: tex.tileNor,
         roughnessMap: tex.tileRough,
-        color: "#8d8a84",
+        color: "#6f665c",
         roughness: 0.8,
       }),
-      tileJoint: std({ color: "#8d7559", roughness: 0.7 }),
+      tileJoint: std({ color: "#5a4634", roughness: 0.7 }),
       woodFloor: std({
         map: tex.floorDiff,
         normalMap: tex.floorNor,
@@ -78,15 +79,17 @@ export function useMaterials() {
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#e6c48e", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
+      // PROTOTYPE: light wall caps (accepted target).
+      cap: std({ color: "#e6ddcf", roughness: 0.9 }),
       marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
-      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 1.8, roughness: 0.5 }),
+      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 3.2, roughness: 0.5 }),
       bottles: std({
         color: "#5b3a1e",
         emissive: "#c27a2c",
-        emissiveIntensity: 0.75,
+        emissiveIntensity: 1.3,
         roughness: 0.2,
         metalness: 0.1,
       }),

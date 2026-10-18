@@ -20,6 +20,17 @@ import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
+import { Lookdev } from "./proto/Lookdev";
+import { PocTable } from "./proto/Poc";
+import { BakeExportHook, BakedRoom } from "./proto/Bake";
+
+const POC = new URLSearchParams(window.location.search).has("poc");
+const BAKED = new URLSearchParams(window.location.search).has("baked");
+const Q = new URLSearchParams(window.location.search);
+const LMI = Number(Q.get("lmi") ?? 2.2);
+const DIRI = Number(Q.get("dir") ?? 0.06);
+
+const CAPTURE = new URLSearchParams(window.location.search).has("capture");
 
 type Cutaway = { cut: ReadonlySet<string>; below: boolean };
 
@@ -64,10 +75,12 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
   const D = venue.depth;
   return (
     <>
-      <hemisphereLight args={evening ? ["#6a5139", "#20170e", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
+      <hemisphereLight
+        args={evening ? ["#5c5044", "#1a1612", BAKED ? 0.06 : 0.22] : ["#e9eef2", "#a48d72", 1.25]}
+      />
       <directionalLight
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
-        intensity={evening ? 0.35 : 2.4}
+        intensity={evening ? (BAKED ? DIRI : 0.35) : 2.4}
         color={evening ? "#ffcf9a" : "#fff4e6"}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         castShadow={!plan}
@@ -83,22 +96,23 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
       >
         <object3D attach="target" position={[W / 2, 0, D / 2]} />
       </directionalLight>
-      {(quality === "high" ? fixtures : fixtures.slice(0, 2)).map((c, i) => (
-        <pointLight
-          key={i}
-          position={[c.x, c.bottom + (c.kind === "brassCluster" ? 0.9 : 0.5), c.z]}
-          intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
-          distance={c.kind === "brassCluster" ? 14 : 8}
-          decay={1.6}
-          color="#ffbf7a"
-        />
-      ))}
-      {evening && (
+      {!BAKED &&
+        (quality === "high" ? fixtures : fixtures.slice(0, 2)).map((c, i) => (
+          <pointLight
+            key={i}
+            position={[c.x, c.bottom + (c.kind === "brassCluster" ? 0.9 : 0.5), c.z]}
+            intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
+            distance={c.kind === "brassCluster" ? 14 : 8}
+            decay={1.6}
+            color="#ffcb92"
+          />
+        ))}
+      {evening && !BAKED && (
         <>
-          <pointLight position={[8.4, 2.2, 1.6]} intensity={10} distance={7} decay={1.6} color="#ffb060" />
-          <pointLight position={[13.5, 1.6, 6]} intensity={6} distance={9} decay={1.6} color="#ffb070" />
-          <pointLight position={[3.5, 1.6, 6]} intensity={6} distance={9} decay={1.6} color="#ffb070" />
-          <pointLight position={[5.6, 2, 11]} intensity={6} distance={8} decay={1.6} color="#ffb070" />
+          <pointLight position={[8.4, 2.2, 1.6]} intensity={5} distance={7} decay={1.6} color="#ffb060" />
+          <pointLight position={[13.5, 1.6, 6]} intensity={2.5} distance={9} decay={1.6} color="#ffb070" />
+          <pointLight position={[3.5, 1.6, 6]} intensity={2.5} distance={9} decay={1.6} color="#ffb070" />
+          <pointLight position={[5.6, 2, 11]} intensity={2.5} distance={8} decay={1.6} color="#ffb070" />
         </>
       )}
       <Environment resolution={128} frames={1}>
@@ -142,7 +156,7 @@ function Effects({ evening, quality }: { evening: boolean; quality: Quality }) {
         mipmapBlur
       />
       <ToneMapping mode={ToneMappingMode.AGX} />
-      <Vignette darkness={evening ? 0.42 : 0.2} offset={0.3} />
+      <Vignette darkness={evening ? 0.3 : 0.2} offset={0.35} />
     </EffectComposer>
   );
 }
@@ -309,21 +323,35 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
     <>
       <primitive attach="background" object={background} />
       <Lighting evening={evening} quality={quality} plan={mode === "plan"} />
-      <Walls venue={venue} m={m} cutWalls={cut} />
-      <Floors venue={venue} m={m} />
+      {BAKED && <BakedRoom intensity={LMI} />}
+      {!BAKED && <Walls venue={venue} m={m} cutWalls={cut} />}
+      {!BAKED && <Floors venue={venue} m={m} />}
       <Railing venue={venue} m={m} />
-      <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
-      <BackBar venue={venue} m={m} />
-      <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+      {!BAKED && <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />}
+      {!BAKED && <BackBar venue={venue} m={m} />}
+      {!BAKED && (
+        <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+      )}
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {eyeLevel && <Backdrops venue={venue} m={m} evening={evening} />}
-      {!cut.has("south") && <Mezzanine venue={venue} m={m} />}
-      <Stair venue={venue} m={m} inRoom={cut.has("south")} />
+      {!BAKED && !cut.has("south") && <Mezzanine venue={venue} m={m} />}
+      {!BAKED && <Stair venue={venue} m={m} inRoom={cut.has("south")} />}
       {mode !== "plan" && <Lights venue={venue} m={m} pendants={showCeiling} />}
-      <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
+      {!BAKED && <Ceiling venue={venue} m={m} showCeiling={showCeiling} />}
+      {
+        <Lookdev
+          baked={BAKED}
+          cut={cut}
+          showCeiling={showCeiling}
+          evening={evening}
+          overview={mode === "dollhouse" && !view}
+        />
+      }
+      {!follow && <BakeExportHook />}
+      {POC && <PocTable />}
       <Items m={m} evening={evening} quality={quality} />
       <People low={quality === "low"} />
-      {mode !== "walk" && <Advisories />}
+      {mode !== "walk" && !CAPTURE && <Advisories />}
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
       {!follow && <SelectionAnchor />}

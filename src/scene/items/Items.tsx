@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { Html, Line } from "@react-three/drei";
 import {
   type Item,
@@ -38,6 +39,134 @@ function itemIdOf(o: THREE.Object3D | null): string | null {
 const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 /** A lap-length cloth hangs this far below the table top (LIB-03). */
 const LAP_DROP = 0.3;
+
+/**
+ * PROTOTYPE: a draped cloth over a rounded-rectangle or round top: eased top edge, folds that deepen
+ * toward the hem, gathered more at the corners. Local frame, top at y = TOP.
+ */
+export function drape(kind: "rect" | "round", a: number, b: number, drop: number): THREE.BufferGeometry {
+  const ring: { x: number; z: number; nx: number; nz: number; corner: number; s: number }[] = [];
+  const step = 0.02;
+  if (kind === "round") {
+    const n = Math.ceil((2 * Math.PI * a) / step);
+    for (let i = 0; i < n; i++) {
+      const t = (i / n) * Math.PI * 2;
+      ring.push({
+        x: Math.cos(t) * a,
+        z: Math.sin(t) * a,
+        nx: Math.cos(t),
+        nz: Math.sin(t),
+        corner: 0,
+        s: t * a,
+      });
+    }
+  } else {
+    const rc = 0.13;
+    const hx = a / 2 - rc;
+    const hz = b / 2 - rc;
+    const corners: [number, number, number][] = [
+      [hx, hz, 0],
+      [-hx, hz, Math.PI / 2],
+      [-hx, -hz, Math.PI],
+      [hx, -hz, (3 * Math.PI) / 2],
+    ];
+    let s0 = 0;
+    for (let ci = 0; ci < 4; ci++) {
+      const [cx, cz, a0] = corners[ci] as [number, number, number];
+      const arcN = 8;
+      for (let k = 0; k < arcN; k++) {
+        const t = a0 + (k / arcN) * (Math.PI / 2);
+        ring.push({
+          x: cx + Math.cos(t) * rc,
+          z: cz + Math.sin(t) * rc,
+          nx: Math.cos(t),
+          nz: Math.sin(t),
+          corner: 1,
+          s: s0,
+        });
+        s0 += (rc * Math.PI) / 2 / arcN;
+      }
+      const [nx2, nz2, a1] = corners[(ci + 1) % 4] as [number, number, number];
+      const ex = cx + Math.cos(a0 + Math.PI / 2) * rc;
+      const ez = cz + Math.sin(a0 + Math.PI / 2) * rc;
+      const fx = nx2 + Math.cos(a1) * rc;
+      const fz = nz2 + Math.sin(a1) * rc;
+      const len = Math.hypot(fx - ex, fz - ez);
+      const m = Math.max(1, Math.round(len / step));
+      const nx = Math.cos(a0 + Math.PI / 2);
+      const nz = Math.sin(a0 + Math.PI / 2);
+      for (let k = 0; k < m; k++) {
+        const t = k / m;
+        const edge = Math.min(t, 1 - t) * len;
+        ring.push({
+          x: ex + (fx - ex) * t,
+          z: ez + (fz - ez) * t,
+          nx,
+          nz,
+          corner: Math.max(0, 1 - edge / 0.25),
+          s: s0,
+        });
+        s0 += len / m;
+      }
+    }
+  }
+  const rows = 22;
+  const pos: number[] = [];
+  const uv: number[] = [];
+  for (let r = 0; r <= rows; r++) {
+    const v = r / rows;
+    const y = r === 0 ? TOP : TOP - 0.012 - (drop - 0.012) * ((r - 1) / (rows - 1));
+    for (const p of ring) {
+      const ease = r === 0 ? -0.012 : 0;
+      const amp = 0.003 + 0.02 * Math.pow(v, 1.6) * (1 + 1.1 * p.corner);
+      const fold = Math.sin((p.s / 0.21) * Math.PI * 2 + Math.sin(p.s * 3.1) * 1.4) * amp * (r === 0 ? 0 : 1);
+      const off = ease + 0.022 * Math.pow(v, 1.3) + Math.max(-0.003, fold);
+      pos.push(p.x + p.nx * off, y, p.z + p.nz * off);
+      uv.push(p.s, v);
+    }
+  }
+  const n = ring.length;
+  const idx: number[] = [];
+  for (let r = 0; r < rows; r++)
+    for (let i = 0; i < n; i++) {
+      const a0 = r * n + i;
+      const a1 = r * n + ((i + 1) % n);
+      const b0 = a0 + n;
+      const b1 = a1 + n;
+      idx.push(a0, a1, b0, a1, b1, b0);
+    }
+  const skirt = new THREE.BufferGeometry();
+  skirt.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  skirt.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  skirt.setIndex(idx);
+  skirt.computeVertexNormals();
+  // Faces outward: flip if the first normal points into the cloth.
+  const nrm = skirt.getAttribute("normal");
+  const p0 = ring[0] as { nx: number; nz: number };
+  if (nrm.getX(n * 3) * p0.nx + nrm.getZ(n * 3) * p0.nz < 0) {
+    const flipped: number[] = [];
+    for (let i = 0; i < idx.length; i += 3)
+      flipped.push(idx[i] as number, idx[i + 2] as number, idx[i + 1] as number);
+    skirt.setIndex(flipped);
+    skirt.computeVertexNormals();
+  }
+  const shape = new THREE.Shape();
+  ring.forEach((p, i) => {
+    const x = p.x - p.nx * 0.012;
+    const z = -(p.z - p.nz * 0.012);
+    if (i) shape.lineTo(x, z);
+    else shape.moveTo(x, z);
+  });
+  const top = new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2).translate(0, TOP, 0);
+  const g = mergeGeometries(
+    [skirt.toNonIndexed(), top.toNonIndexed()].map((x) => {
+      x.deleteAttribute("uv");
+      return x;
+    }),
+  );
+  if (!g) throw new Error("drape merge failed");
+  return g;
+}
 
 /** Colours come from the design tokens (tokens.css), so the 3D outline matches the interface. */
 function token(name: string, fallback: string): string {
@@ -98,7 +227,6 @@ function TableBody({
 }) {
   // Floor length reaches the floor; lap length stops LAP_DROP below the top and shows the legs.
   const clothH = lap ? LAP_DROP : TOP;
-  const clothY = TOP - clothH / 2;
   if (shape.kind === "rectTable") {
     if (shape.farm || !linen) {
       const legs = [-1, 1].flatMap((sx) =>
@@ -121,9 +249,12 @@ function TableBody({
     const lz = shape.width / 2 - 0.1;
     return (
       <group>
-        <mesh position={[0, clothY, 0]} material={linen} castShadow receiveShadow>
-          <boxGeometry args={[shape.length + 0.06, clothH, shape.width + 0.06]} />
-        </mesh>
+        <mesh
+          geometry={drape("rect", shape.length + 0.06, shape.width + 0.06, clothH - 0.005)}
+          material={linen}
+          castShadow
+          receiveShadow
+        />
         {lap && (
           <Legs
             pts={[
@@ -153,9 +284,12 @@ function TableBody({
       );
     return (
       <group>
-        <mesh position={[0, clothY, 0]} material={linen} castShadow receiveShadow>
-          <cylinderGeometry args={[r + 0.03, r + (lap ? 0.05 : 0.07), clothH, segments]} />
-        </mesh>
+        <mesh
+          geometry={drape("round", r + 0.03, 0, clothH - 0.005)}
+          material={linen}
+          castShadow
+          receiveShadow
+        />
         {lap && (
           <mesh position={[0, (TOP - 0.03) / 2, 0]} material={m.blackMetal} castShadow>
             <cylinderGeometry args={[0.05, 0.05, TOP - 0.03, 8]} />
