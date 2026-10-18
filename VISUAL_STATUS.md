@@ -385,9 +385,41 @@ Estimates, from 2026-10-18 to the last visual merge on 2026-11-07, including own
 | V6 | only if ahead | — |
 | V7 | 11-03 → 11-07 | 11-03 |
 
-Eight stages in twenty days is tight. When a stage runs late, V6 is cut first, then V3, so that V7 keeps its window.
+Eight stages in twenty days is tight. When a stage runs late, V6 is cut first, then V3, so that V7 keeps its window. All people work, including generating the woman, happens in V7 (owner, 2026-10-18).
 
-Asset preparation for V7 can happen earlier without changing the app: generating the woman and getting her approved. It is done alongside earlier stages if the owner agrees (open item).
+## Starting a stage
+
+- **Read first:** this file, `docs/visual/REFERENCE_NOTES.md`, then the stage's spec rows.
+- **Prototype branch:** `proto/visual-poc` (never merged) holds:
+  - the proof-of-concept scene code behind `?poc&baked`
+  - the Blender, bake, capture and Meshy scripts, with `tools/visual-poc/README.md` on how to run them
+  - the Meshy man (rigged source, prompts, task ids: `tools/visual-poc/meshy/TASKS.md`)
+
+  V0 brings the scripts over into `tools/`. Its scene code is a reference, not a base: rebuild to the layer rules.
+- **Environment:**
+  - Blender runs headless: `python -m venv venv && venv/bin/pip install bpy numpy`; `blender.org` is allowed.
+  - The Meshy API key is injected by the session proxy; `docs.meshy.ai` is blocked.
+  - Capture scripts need `vite preview` on port 4173 and Chromium at `/opt/pw-browsers/chromium`.
+
+## Proof-of-concept findings (2026-10-17 and 2026-10-18)
+
+What worked, what failed, and what to carry into the stages:
+
+- **Light map (V2):**
+  - three.js `lightMap` on UV channel 1.
+  - An HDR light map loaded with RGBELoader needs `flipY = false`; with the default the light lands mirrored, which showed as a dark wedge on the walls.
+  - Values that read well in the evening shot: light-map intensity ~2.2, emissive capped at 0.9, room reflection intensity 0.35, hemisphere 0.06.
+  - Room exported from the app (GLTFExporter) and baked with Blender's `lightmap_pack` (it rejects `PREF_IMG_PX_SIZE`). A 2048 HDR was 11 MB: it must be encoded down (V2 targets).
+- **Blender:** `import bpy` must come before `import bmesh`.
+- **Detail baking (V4, V5):**
+  - Colour and ambient-occlusion bakes from full to simple models worked.
+  - The normal-map bake came out empty and is still to be fixed in the pipeline.
+- **Chairs (V4):**
+  - Automatic simplification mangled the chair.
+  - A purpose-built simple chair (2,340 triangles) with baked detail looked right.
+- **Linens (V4):** cloth simulation frayed and pooled at the hem; the procedural drape (rounded corners, 3 cm floating hem) looked right.
+- **Flowers (V5):** a modelled rose arrangement was 42k triangles; cards are required.
+- **People (V7):** see the People plan table; the posing and fitting scripts (`meshy_pose.py`, `mesh_audit.py`, `clash.py`) are the starting point.
 
 ## Graphics tiers
 
@@ -496,7 +528,6 @@ Stop the visual track when any of these holds:
 
 ## Open items
 
-- **Early asset preparation:** may Claude generate and get approval for the V7 characters alongside earlier stages (no app change), so V7 keeps its window?
 - **Meshy credits:** 989 left. Planned: people ≈ 150 (the woman, rigs, about 10 poses at 3 credits each, retries); décor through library requests at ~30 each when the owner asks; ≥ 300 kept in reserve.
 - **People reference image:** the owner attaches it to a custom request in the app ("Guest figures"), so it stays private and Claude can read it with the requests token.
 - **New spec rows and budgets when built:**
