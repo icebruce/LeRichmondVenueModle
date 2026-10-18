@@ -572,15 +572,20 @@ export function StudioUI() {
   useEffect(() => {
     const root = ui.current;
     if (!phone || camera === "walk" || !root) {
-      viewStore.setState({ insetBottom: 0 });
+      viewStore.setState({ insetBottom: 0, insetColumn: 0 });
       return;
     }
     const measure = () => {
       const h = root.clientHeight;
+      const top = root.getBoundingClientRect().top;
       const covers = [...root.querySelectorAll(".panel, .tabbar")].map(
         (el) => el.getBoundingClientRect().top,
       );
-      viewStore.setState({ insetBottom: Math.round(h - Math.min(h, ...covers)) });
+      const column = root.querySelector(".phone-controls")?.getBoundingClientRect().bottom ?? top;
+      viewStore.setState({
+        insetBottom: Math.round(h - Math.min(h, ...covers)),
+        insetColumn: Math.round(column - top),
+      });
     };
     measure();
     root.addEventListener("transitionend", measure);

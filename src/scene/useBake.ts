@@ -22,9 +22,21 @@ export type Bake = { atlas: Atlas; materials: Partial<Materials> };
 const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.3, day: 2.6 };
 
 /**
+ * Plan view is flat (DESIGN_GUIDE §9): an even light map in place of the bake, still bound, so
+ * switching to plan builds no new shader.
+ */
+const FLAT = ((t) => {
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.channel = 1;
+  t.needsUpdate = true;
+  return t;
+})(new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1));
+const FLAT_INTENSITY = 2.5;
+
+/**
  * The baked room light (visual stage V2, ADR-2), or null for the live-lit room: when no bake was
  * made from this room (the manifest's fingerprints differ), or `?bake=stale` forces it for tests.
- * Both sets load with the room; switching lighting swaps the map (no new shader).
+ * Both sets load with the room; switching lighting, or to plan, swaps the map (no new shader).
  */
 export function useBake(
   venue: VenueModel,
@@ -32,6 +44,7 @@ export function useBake(
   m: Materials,
   quality: Quality,
   evening: boolean,
+  plan: boolean,
 ): Bake | null {
   const invalidate = useThree((s) => s.invalidate);
   const atlas = useMemo(() => (!manifest || BAKE_OFF ? null : bakeAtlas(venue, manifest)), [venue, manifest]);
@@ -61,14 +74,14 @@ export function useBake(
   useEffect(() => {
     if (!bake || !manifest) return;
     const set = evening ? "evening" : "day";
-    const map = maps[BAKE_SETS.indexOf(set)] as THREE.Texture;
+    const map = plan ? FLAT : (maps[BAKE_SETS.indexOf(set)] as THREE.Texture);
     for (const mat of Object.values(bake.materials) as THREE.MeshStandardMaterial[]) {
       mat.lightMap = map;
       // The bake holds irradiance over π (Cycles' diffuse colour pass is left out), scaled into 8 bits.
-      mat.lightMapIntensity = Math.PI * manifest.sets[set].scale * EXPOSURE[set];
+      mat.lightMapIntensity = plan ? FLAT_INTENSITY : Math.PI * manifest.sets[set].scale * EXPOSURE[set];
     }
     invalidate();
-  }, [bake, maps, manifest, evening, invalidate]);
+  }, [bake, maps, manifest, evening, plan, invalidate]);
   // Test hook: whether the room is drawn with its bake.
   useEffect(() => {
     (window as unknown as { __bakeState?: () => string }).__bakeState = () => (bake ? "baked" : "live");

@@ -401,7 +401,7 @@ function Scene({
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
-  const bake = useBake(venue, manifest, m, quality, evening);
+  const bake = useBake(venue, manifest, m, quality, evening, mode === "plan");
   const view = useView((s) => s.view);
   const { cut, below } = useCutaway(mode, view);
   // The ceiling shows only from below it (walk, reference views, a dollhouse camera zoomed in low);

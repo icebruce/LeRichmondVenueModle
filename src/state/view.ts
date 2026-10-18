@@ -29,6 +29,8 @@ export type ViewState = {
   insetBottom: number;
   /** Phone: the width of the control column on the right; the overview keeps the room clear of it. */
   insetRight: number;
+  /** Phone: the control column's bottom edge; below it the overview may use the full width. */
+  insetColumn: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
   /** Scenario shown side by side with the active one, from the same camera (SCN-06). */
@@ -66,6 +68,7 @@ export const viewStore = createStore<ViewState>(() => ({
   insetTop: 0,
   insetBottom: 0,
   insetRight: 0,
+  insetColumn: 0,
   anchor: null,
   dropping: null,
   lift: null,
