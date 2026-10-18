@@ -20,7 +20,7 @@ export type Bake = { atlas: Atlas; materials: Partial<Materials> };
  * Brightness of each set on top of the bake's own scale: the evening and daylight calibration
  * against the reference photos (V2).
  */
-const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 1, day: 1 };
+const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.3, day: 2.6 };
 
 /**
  * The baked room light (visual stage V2, ADR-2), or null for the live-lit room: when no bake was
