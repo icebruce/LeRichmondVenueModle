@@ -131,7 +131,7 @@ The inspector builds its controls from `options`, and library captions from the 
 ## 5. Rendering
 
 - **Venue shell:** generated meshes from venue data; PBR materials with tiling textures (CC0, provenance in `public/assets/LICENSES.md`) or procedural textures.
-- **Lighting (ADR-2):** live only. Evening: hemisphere + a few shadow-free fill lights, one shadow-casting key light, emissive chandeliers/back bar/candles with selective bloom, N8AO ambient occlusion, ACES/AgX tone mapping. Daylight: soft sky + key light.
+- **Lighting (ADR-2):** live today; hybrid from visual stage V2: the fixed room carries baked light maps (evening and daylight, Blender, `npm run bake`, checked against a hash of the venue data), movables and placed lights stay live, and a stale bake falls back to live. Evening: hemisphere + a few shadow-free fill lights, one shadow-casting key light, emissive chandeliers/back bar/candles with selective bloom, N8AO ambient occlusion, ACES/AgX tone mapping. Daylight: soft sky + key light.
 - **Dollhouse cutaway:** walls whose normal faces the camera switch to a low cut height with a cap mesh; ceiling layer hidden; recomputed on camera move (cheap dot-product test per wall).
 - **Instancing:** chairs, people, candles, glasses use `InstancedMesh` per type and level of detail.
 - **Quality tiers:** `high` (desktop: shadows, AO, bloom, 2× DPR), `medium`, `low` (phone: no AO, 1.5× DPR cap, simplified chandeliers). Chosen from GPU tier detection and adjusted by a frame-time monitor.
@@ -187,7 +187,7 @@ Shared password (env `APP_PASSWORD`) + `SESSION_SECRET` ≥ 32 chars; constant-t
 | # | Decision | Why | Revisit if |
 |---|---|---|---|
 | ADR-1 | React + R3F + TypeScript with a build step | A state-driven 3D scene with many panels; less code than hand-wiring three.js + DOM. | — |
-| ADR-2 | Live browser lighting only; pre-computed (baked) lighting deferred | Simplicity; evening candlelight hides most of the difference. Baking (offline Blender run by Claude) stays an invisible upgrade option. | Owner judges the step 1 render not atmospheric enough. |
+| ADR-2 | Hybrid lighting (owner, 2026-10-17; was live only): the fixed room's light baked offline in Blender by Claude into light maps; movables and placed lights live; re-baked with any fixed-room change, guarded by CI and a load-time fallback to live | Soft bounced room light is the largest gap to the finish reference and no live technique gives it at phone cost; the room is fixed while décor moves, the standard case for a baked environment with live furniture. | The fixed room needs to change often after the freeze, or the bake's download misses the budget. |
 | ADR-3 | Upstash Redis + one shared password | Two users, zero cost, proven setup. | More users or per-person permissions needed. |
 | ADR-4 | Async collaboration with revision-based conflict detection, no live co-editing | Far simpler; matches how two partners actually plan. | Both routinely edit the same scenario at once. |
 | ADR-5 | No physics engine; 2D footprints per level | Placement and walk need only planar collision. | — |

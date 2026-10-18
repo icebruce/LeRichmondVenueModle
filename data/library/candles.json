@@ -173,6 +173,25 @@
       "thumbnail": "thumbs/candle-lantern.webp",
       "source": { "type": "built", "origin": "Richmond Studio generator: lantern", "licence": "Project" },
       "budget": { "triangles": 600, "phoneTriangles": 200, "drawCalls": 3 }
+    },
+    {
+      "id": "candle-cordless-lamp",
+      "name": "Gold cordless lamp",
+      "family": "candle",
+      "placement": "table",
+      "sizeM": { "w": 0.11, "d": 0.11, "h": 0.3 },
+      "sizePresets": [],
+      "model": { "kind": "parametric", "generator": "cordlessLamp", "params": {} },
+      "lowModel": { "kind": "parametric", "generator": "cordlessLamp", "params": { "quality": "low" } },
+      "options": [],
+      "seats": false,
+      "thumbnail": "thumbs/candle-cordless-lamp.webp",
+      "source": {
+        "type": "built",
+        "origin": "Richmond Studio generator: cordlessLamp (the venue's table lamps, R11, R12)",
+        "licence": "Project"
+      },
+      "budget": { "triangles": 300, "phoneTriangles": 120, "drawCalls": 2 }
     }
   ]
 }

@@ -43,10 +43,10 @@ describe("décor", () => {
     expect(tall).toBeLessThanOrEqual(1.2);
   });
 
-  test("[DEC-02] every candle preset has flames that glow in the evening", () => {
+  test("[DEC-02] every candle preset has flames (or a lamp's bulb) that glow in the evening", () => {
     for (const e of [...catalog.values()].filter((x) => x.family === "candle")) {
       const parts = decor({ candles: [{ id: e.id, n: 1 }] });
-      expect(parts.some((p) => p.slot === "flame")).toBe(true);
+      expect(parts.some((p) => p.slot === "flame" || p.slot === "bulb")).toBe(true);
     }
     expect(decor({ candles: [] })).toEqual([]);
   });
@@ -370,6 +370,10 @@ describe("candle mix", () => {
     expect(Math.max(...wax(low).map((p) => p.y + p.sy))).toBeCloseTo(0.3, 2);
     // Hurricanes and lanterns grow to their height.
     expect(heightOf(parts([{ id: "candle-lantern", n: 1, h: [50] }]))).toBeCloseTo(0.5, 2);
+    // The venue's cordless lamp stands at its height, lit under its shade.
+    const lamp = parts([{ id: "candle-cordless-lamp", n: 1, h: [35] }]);
+    expect(heightOf(lamp)).toBeCloseTo(0.35, 2);
+    expect(lamp.filter((p) => p.slot === "bulb")).toHaveLength(1);
   });
 
   test("[DEC-02] the candle group turns on the table, and a shuffle keeps its own order", () => {

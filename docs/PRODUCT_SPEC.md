@@ -68,7 +68,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 |---|---|---|---|---|
 | LGT-01 | M | 1 | Evening mode (default): warm low light, glowing chandeliers and back bar, candle glow on tables, terrace glass dark with faint fairy-light hints. | Side-by-side with R08 the mood reads as similar. |
 | LGT-02 | M | 1 | Daylight mode for clarity, one tap away. | Toggle switches in ≤ 1 s without losing state. |
-| LGT-03 | M | 1 | Live browser lighting only. Pre-computed lighting is a later option (`ARCHITECTURE.md` ADR-2). | — |
+| LGT-03 | M | 1 | Hybrid lighting (owner, 2026-10-17): the fixed room's light from the venue's own fixtures, direct and bounced, is pre-computed in Blender into light maps (evening and daylight); everything movable and every placed light stays live. Built in visual stage V2 (`VISUAL_STATUS.md`); until then live lighting only (`ARCHITECTURE.md` ADR-2). | CI fails when the light maps do not match the venue data; a mismatched bake at load falls back to live lighting. |
 
 ### 5.4 Layout — LAY
 
