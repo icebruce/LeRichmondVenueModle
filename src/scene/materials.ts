@@ -61,6 +61,48 @@ function prep(t: THREE.Texture) {
   return t;
 }
 
+/**
+ * Breaks up a repeating surface by world position (V1): `cell` gives each square of that size (m,
+ * on the floor plane) its own tone, the way real tiles differ; otherwise soft patches about `size`
+ * metres across, like a brick wall's weathering. `amount` is the largest change in brightness.
+ */
+function vary(
+  mat: THREE.MeshStandardMaterial,
+  amount: number,
+  { cell, size = 1.6 }: { cell?: number; size?: number },
+) {
+  const key = cell ? `tile${cell}` : `patch${size}`;
+  mat.customProgramCacheKey = () => `vary:${key}:${amount}`;
+  mat.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vWorld;")
+      .replace(
+        "#include <worldpos_vertex>",
+        "#include <worldpos_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
+      );
+    const tone = cell
+      ? `hash3(floor(vWorld.xz / ${cell.toFixed(3)}).xyy)`
+      : `noise3(vWorld / ${size.toFixed(3)})`;
+    s.fragmentShader = s.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec3 vWorld;
+float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float noise3(vec3 p) {
+  vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>\ndiffuseColor.rgb *= 1.0 + ${(amount * 2).toFixed(3)} * (${tone} - 0.5);`,
+      );
+  };
+  return mat;
+}
+
 export type Materials = ReturnType<typeof useMaterials>;
 
 export function useMaterials(quality: Quality) {
@@ -82,22 +124,35 @@ export function useMaterials(quality: Quality) {
     const glow = glowTexture();
     return {
       glow,
-      brick: std({
-        map: tex.brickDiff,
-        normalMap: tex.brickNor,
-        roughnessMap: tex.brickRough,
-        color: "#f4ebdd",
-        roughness: 1,
-      }),
-      redBrick: std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#c9806a", roughness: 0.95 }),
+      brick: vary(
+        std({
+          map: tex.brickDiff,
+          normalMap: tex.brickNor,
+          roughnessMap: tex.brickRough,
+          color: "#f4ebdd",
+          roughness: 1,
+        }),
+        0.12,
+        { size: 1.6 },
+      ),
+      redBrick: vary(
+        std({ map: tex.redBrickDiff, normalMap: tex.redBrickNor, color: "#c9806a", roughness: 0.95 }),
+        0.1,
+        { size: 1.2 },
+      ),
       greenPanel: std({ color: "#28352e", roughness: 0.7 }),
-      tile: std({
-        map: tex.tileDiff,
-        normalMap: tex.tileNor,
-        roughnessMap: tex.tileRough,
-        color: "#8d8a84",
-        roughness: 0.8,
-      }),
+      // Each 0.65 m slate tile its own tone (R03, R04).
+      tile: vary(
+        std({
+          map: tex.tileDiff,
+          normalMap: tex.tileNor,
+          roughnessMap: tex.tileRough,
+          color: "#8d8a84",
+          roughness: 0.8,
+        }),
+        0.1,
+        { cell: TILE.tile / 3 },
+      ),
       tileJoint: std({ color: "#6f5d4a", roughness: 0.7 }),
       woodFloor: std({
         map: tex.floorDiff,
