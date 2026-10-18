@@ -111,13 +111,14 @@ function Lighting({
   const glow = evening ? 1 : 0;
   return (
     <>
-      <hemisphereLight args={evening ? ["#6a5139", "#20170e", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
+      {/* Evening warmth kept calm, so white linen reads white or ivory, not beige (V2 colour check). */}
+      <hemisphereLight args={evening ? ["#615a50", "#1f1b16", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
       <directionalLight
         // A new tier's shadow size needs a new shadow map.
         key={shadowSize}
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 0.35 : 2.4}
-        color={evening ? "#ffcf9a" : "#fff4e6"}
+        color={evening ? "#ffdfc0" : "#fff4e6"}
         castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         shadow-intensity={plan ? 0 : 1}
@@ -140,13 +141,13 @@ function Lighting({
           intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
           distance={c.kind === "brassCluster" ? 14 : 8}
           decay={1.6}
-          color="#ffbf7a"
+          color="#ffd4a8"
         />
       ))}
-      <pointLight position={[8.4, 2.2, 1.6]} intensity={10 * glow} distance={7} decay={1.6} color="#ffb060" />
-      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
-      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
-      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffb070" />
+      <pointLight position={[8.4, 2.2, 1.6]} intensity={10 * glow} distance={7} decay={1.6} color="#ffc98e" />
+      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
       <Environment resolution={128} frames={1}>
         <Lightformer
           form="rect"
