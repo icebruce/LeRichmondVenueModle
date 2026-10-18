@@ -31,7 +31,8 @@ function drawn(root: THREE.Object3D, out: THREE.Mesh[] = []): THREE.Mesh[] {
  * Static venue parts drawn as one mesh per material (visual stage V0: fewer draw calls in the main
  * and shadow passes). The parts render hidden inside; their visible meshes are baked into world
  * space and merged per material and shadow flags once mounted, and again whenever `version`
- * changes, so `version` must name every input that changes what the parts draw.
+ * changes, so `version` must name every input that changes what the parts draw. Instanced meshes
+ * are not merged and stay hidden here: draw them outside.
  */
 export function StaticMerge({ version, children }: { version: string; children: ReactNode }) {
   const source = useRef<THREE.Group>(null);

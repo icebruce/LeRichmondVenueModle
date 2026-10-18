@@ -80,9 +80,8 @@ export const CUT_HEIGHT = 1.15;
 export function buildWall(wall: WallData, height: number, thickness: number, cut: boolean): WallMeshes {
   const full = wallPieces(wall, wall.height ?? height);
   const pieces = cut ? clip(full, CUT_HEIGHT) : full;
-  // Red brick dado band where the photos show one (wall.dado = its height); a red-brick wall throughout.
-  const [low, high] =
-    wall.finish === "redBrick" ? [pieces, []] : wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
+  // Red brick dado band where the photos show one (wall.dado = its height).
+  const [low, high] = wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
 
   const panels: THREE.BufferGeometry[] = [];
   for (const pn of wall.panels ?? []) {

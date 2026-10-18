@@ -239,7 +239,8 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 6)
       frame.push(boxGeo(x - 0.04, 0.95, z0, x + 0.04, b.height, z1));
     frame.push(boxGeo(x0, b.height - 0.1, z0, x1, b.height, z1));
-    const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
+    // The canopy reaches the wall, over the passage behind the shelves (owner's photo, 2026-10-18).
+    const canopy = boxGeo(x0 - 0.2, b.canopyHeight, 0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
     const neon = new THREE.TorusGeometry(0.28, 0.025, 8, 32);
     neon.translate(x1 + 0.45, 2.1, 0.08);
     // Round neon sign on a dark backing board, so it reads as signage, not a floating ring (R02).
@@ -259,6 +260,24 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       neonBack,
     };
   }, [venue]);
+  return (
+    <group name="back-bar">
+      <mesh geometry={g.cabinet} material={m.backBarWood} />
+      <mesh geometry={g.counter} material={m.barBase} />
+      <mesh geometry={g.counterTop} material={m.marble} />
+      {g.fridges && <mesh geometry={g.fridges} material={m.fridge} />}
+      {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
+      {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
+      {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
+      <mesh geometry={g.canopy} material={m.steel} />
+      <mesh geometry={g.neonBack} material={m.blackMetal} />
+      <mesh geometry={g.neon} material={m.exitSign} />
+    </group>
+  );
+}
+
+/** The bottles on the back bar's shelves: one instanced mesh, so drawn outside `StaticMerge`. */
+export function BackBarBottles({ venue }: Pick<P, "venue">) {
   const bottles = useMemo(() => {
     const [x0, z0, x1] = venue.data.backBar.rect.value;
     // Bottle profile: body, shoulder, neck (lathe), so shelves read as bottles, not book spines.
@@ -309,21 +328,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     },
     [bottles],
   );
-  return (
-    <group name="back-bar">
-      <mesh geometry={g.cabinet} material={m.backBarWood} />
-      <mesh geometry={g.counter} material={m.barBase} />
-      <mesh geometry={g.counterTop} material={m.marble} />
-      {g.fridges && <mesh geometry={g.fridges} material={m.fridge} />}
-      {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
-      {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
-      {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
-      <mesh geometry={g.canopy} material={m.steel} />
-      <mesh geometry={g.neonBack} material={m.blackMetal} />
-      <mesh geometry={g.neon} material={m.exitSign} />
-      <primitive object={bottles} />
-    </group>
-  );
+  return <primitive object={bottles} />;
 }
 
 export function Furnishings({

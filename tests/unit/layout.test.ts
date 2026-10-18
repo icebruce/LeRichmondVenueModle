@@ -99,14 +99,18 @@ describe("entrance and stairwell", () => {
     expect(well?.head).toBeGreaterThanOrEqual(south.height ?? venue.ceiling);
   });
 
-  test("[VEN-01] the restroom corridor opens in the north wall between the west painting and the back bar (R07)", () => {
+  test("[VEN-01] the restroom corridor opens in the north wall half behind the back bar, reached by the passage behind it (R07, owner)", () => {
     const north = venue.data.walls.find((w) => w.id === "north");
     const corridor = north?.openings.find((o) => o.kind === "corridor");
     if (!corridor) throw new Error("no restroom corridor");
     const west = venue.data.fixtures.paintings.find((p) => p.wall === "north" && p.x1 < 6);
+    const [bx0, bz0] = venue.data.backBar.rect.value;
     expect(corridor.start).toBeGreaterThan(west?.x1 ?? 0);
-    expect(corridor.end).toBeLessThan(venue.data.backBar.rect.value[0]);
+    expect(corridor.start).toBeLessThan(bx0);
+    expect(corridor.end).toBeGreaterThan(bx0);
     expect(corridor.end - corridor.start).toBeGreaterThanOrEqual(0.9);
+    // The back bar stands off the wall: a walkable passage behind it to the corridor.
+    expect(bz0).toBeGreaterThanOrEqual(0.8);
     // No banquette across it.
     for (const b of venue.data.fixtures.banquettes)
       if (!b.wall && b.x0 !== undefined && b.x1 !== undefined)

@@ -92,7 +92,7 @@ export const cameraCommands = createStore<{ request: { key: string | null; n: nu
 export const sharedPose = {
   position: [0, 0, 0] as [number, number, number],
   quaternion: [0, 0, 0, 1] as [number, number, number, number],
-  fov: 30,
+  fov: 20,
 };
 
 export function requestCamera(key: string | null) {

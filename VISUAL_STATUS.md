@@ -51,7 +51,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | Stage | Delivers (summary) | Priority | State |
 |---|---|---|---|
 | V0 | Performance foundation, measurement, asset pipeline and checks | Must | Built (PR #16), waiting on the owner: device readings, merge |
-| V1 | Room model and surfaces | Must | Built, PR after #16 merges; owner: room on the preview, corridor position, lens |
+| V1 | Room model and surfaces | Must | Built, PR #17; owner tested it (2026-10-18): corridor and lens settled, changes go in V2; merge |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Built, PR after V1; owner: evening and daylight look on the preview |
 | V3 | Bar and back bar | Should | Not started |
 | V4 | Linens and chairs | Must | Not started |
@@ -217,6 +217,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - Calmer evening live light, so white, ivory and champagne linen stay distinct (colour check: white reads light ivory-white, not beige).
 - `[LGT-03]`: CI fails when the manifest's fingerprints (room surfaces, light inputs, bake script) do not match; at load a mismatch draws the live-lit room (`?bake=stale` shows it).
 - Reviews: `ux-reviewer` (1 blocker, 4 majors) and `fidelity-reviewer` (black wall tops and cut-wall faces, brick outshining the back bar, cold daylight) all addressed and re-baked; the colour check passes on the cloth drops.
+- Owner changes folded into V2 (2026-10-18), re-baked: the dollhouse lens is 20° (the `?lens=narrow` A/B is gone); the garage-door (west) wall has a red-brick dado under buff brick like the back-bar wall; the back bar stands 0.9 m off the north wall with a passage behind it (closed at its east end by the wine wall), the bar island's back end moving inland with it (front unchanged); the restroom corridor door sits half behind the back bar's west end (x 5.2–6.15). Also fixed: the back-bar bottles, hidden since V0 by the static merge (instanced meshes are now drawn outside it).
 - Not done in V2: the box-projected reflection capture and an HDR daylight environment (the light-former environment stays; neither review asked for them); calibration camera presets matching R08 and U02 (U02 is not in the local cache). The fixed bar, back bar and stair are in the bake as occluders, so their floor shadows are baked.
 
 ### V3: Bar and back bar
@@ -575,5 +576,5 @@ Stop the visual track when any of these holds:
 - **New spec rows and budgets when built:**
   - Spec rows: bar flowers (VEN) and Photo mode (EXP) (the graphics setting is PLT-05).
   - `ARCHITECTURE.md` §7 rows: GPU memory, view-switch freeze, idle frames, light maps, people.
-- **V1 (owner):** is the green restroom corridor directly left (west) of the back bar, as R07 shows, or elsewhere? R03 shows unbroken brick there, so it may predate the opening. And 20° or 30° for the dollhouse (`?lens=narrow` on the preview).
+- **V2 (owner):** is the red dado on the north and west walls ≈ 1.3 m, or nearer 1.0–1.1 m (it looks below the banquette tops in the owner's 2026-10-18 photo)? Is the passage behind the back bar ≈ 0.9 m?
 - **V0 gate (owner):** open `?perf&bench=sample` and `?perf&bench=ppl03` on the laptop, iPhone 16 and Galaxy S24, orbit and drag at the dollhouse and eye-level cameras, press Copy and paste the numbers back; decide the phone draw-call budget for Balanced's still frame (≈ 155 against 150); set the GPU memory budget from the readings.

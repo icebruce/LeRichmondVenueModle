@@ -46,7 +46,7 @@ import {
 } from "../state/graphics";
 import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
-import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
+import { BackBar, BackBarBottles, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
 
 /** The hidden performance overlay is on (`?perf`, V0). */
@@ -145,7 +145,13 @@ function Lighting({
         />
       ))}
       {/* The back bar's glow, under its canopy (R01, R03). */}
-      <pointLight position={[8.1, 2.3, 0.4]} intensity={16 * glow} distance={7} decay={1.6} color="#ffc98e" />
+      <pointLight
+        position={[8.1, 2.3, venue.data.backBar.rect.value[1] + 0.4]}
+        intensity={16 * glow}
+        distance={7}
+        decay={1.6}
+        color="#ffc98e"
+      />
       <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
       <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
       <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
@@ -438,6 +444,7 @@ function Scene({
         <BackBar venue={venue} m={m} />
         <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       </StaticMerge>
+      <BackBarBottles venue={venue} />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       <group visible={mode !== "plan"}>
         <Plinth venue={venue} m={m} />
@@ -533,7 +540,7 @@ export function Studio3D({
         powerPreference: "high-performance",
       }}
       camera={{
-        fov: dollhouse?.fov ?? 30,
+        fov: dollhouse?.fov ?? 20,
         near: 0.1,
         far: 400,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],

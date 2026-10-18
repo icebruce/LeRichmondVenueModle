@@ -41,9 +41,6 @@ export type Cloud = {
 
 export async function boot(): Promise<{ studio: Studio; cloud: Cloud }> {
   const data = parseVenue(venueJson);
-  // Owner's A/B for the dollhouse framing (visual stage V1): `?lens=narrow`, a longer lens.
-  const dollhouse = data.cameraPresets.dollhouse;
-  if (dollhouse && new URLSearchParams(window.location.search).get("lens") === "narrow") dollhouse.fov = 20;
   const venue = buildVenue(data);
   const builtIn = buildCatalog([
     tables,
