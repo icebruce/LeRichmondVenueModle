@@ -14,4 +14,6 @@ Setup: `python -m venv venv && venv/bin/pip install bpy numpy` (Blender as a Pyt
 | Check renders | `blender/seat_check.py <chair.glb> <guest.glb> <out_dir> [notable]` |
 | POC shot | `node tools/visual-poc/capture/capture-baked.mjs <out_dir> <tag>` with the preview server running |
 
-Meshy-generated models stay out of Git until Meshy's terms are confirmed for a public repo.
+Meshy-generated models may be committed (owner, 2026-10-18). The rigged man, his prompts and task ids are in `meshy/` (`meshy/TASKS.md`).
+
+Environment: `blender.org` is allowed by the network policy; the Meshy API key is injected by the session proxy; `docs.meshy.ai` is blocked.
