@@ -1,13 +1,15 @@
 # Third-party assets
 
-All assets below are **CC0 1.0 (public domain)**. Converted to WebP at 1024 px; otherwise unmodified.
+## Textures: CC0 1.0 (public domain)
+
+Downloaded at 2K and encoded as KTX2 (Basis ETC1S, 2K and 1K) by `tools/assets/textures.ts`; otherwise unmodified.
 
 | File(s) | Source | Licence |
 |---|---|---|
-| `textures/brick_wall_12_*` | Poly Haven — Brick Wall 12 — https://polyhaven.com/a/brick_wall_12 | CC0 |
-| `textures/brick_wall_006_*` | Poly Haven — Brick Wall 006 — https://polyhaven.com/a/brick_wall_006 | CC0 |
-| `textures/granite_tile_*` | Poly Haven — Granite Tile — https://polyhaven.com/a/granite_tile | CC0 |
-| `textures/plank_flooring_04_*` | Poly Haven — Plank Flooring 04 — https://polyhaven.com/a/plank_flooring_04 | CC0 |
+| `textures/large_floor_tiles_02_*` | Poly Haven — Large Floor Tiles 02 — https://polyhaven.com/a/large_floor_tiles_02 | CC0 |
+| `textures/old_wood_floor_*` | Poly Haven — Old Wood Floor — https://polyhaven.com/a/old_wood_floor | CC0 |
+| `textures/yellow_brick_*` | Poly Haven — Yellow Brick — https://polyhaven.com/a/yellow_brick | CC0 |
+| `textures/red_brick_*` | Poly Haven — Red Brick — https://polyhaven.com/a/red_brick | CC0 |
 | `textures/roof_planks_*` | Poly Haven — Roof Planks — https://polyhaven.com/a/roof_planks | CC0 |
 | `textures/wood_floor_worn_*` | Poly Haven — Wood Floor Worn — https://polyhaven.com/a/wood_floor_worn | CC0 |
 

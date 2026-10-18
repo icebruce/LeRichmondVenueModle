@@ -1,57 +1,89 @@
 import * as THREE from "three";
-import { useTexture } from "@react-three/drei";
 import { useMemo } from "react";
-import { adjustedTexture, glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import { useLoader, useThree } from "@react-three/fiber";
+import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
+import { glowTexture, marbleTexture, tuftedTexture } from "./textures";
+import type { Quality } from "./quality";
 import { DANCE_AREA_COLOUR } from "../domain/layout/items";
 
-const base = `${import.meta.env.BASE_URL}assets/textures/`;
+const base = `${import.meta.env.BASE_URL}assets/`;
 
+/**
+ * Room surfaces (visual stage V1): Poly Haven CC0 sets as KTX2 (`tools/assets/textures.ts`),
+ * compressed on the GPU too. `sharp`: a 2K colour map for desktops; every other map is 1K.
+ */
 const TEXTURES = {
-  brickDiff: "brick_wall_12_diff.webp",
-  brickNor: "brick_wall_12_nor_gl.webp",
-  brickRough: "brick_wall_12_rough.webp",
-  redBrickDiff: "brick_wall_006_diff.webp",
-  redBrickNor: "brick_wall_006_nor_gl.webp",
-  tileDiff: "granite_tile_diff.webp",
-  tileNor: "granite_tile_nor_gl.webp",
-  tileRough: "granite_tile_rough.webp",
-  floorDiff: "plank_flooring_04_diff.webp",
-  floorNor: "plank_flooring_04_nor_gl.webp",
-  floorRough: "plank_flooring_04_rough.webp",
-  ceilingDiff: "roof_planks_diff.webp",
-  ceilingNor: "roof_planks_nor_gl.webp",
-  timberDiff: "wood_floor_worn_diff.webp",
+  brickDiff: { file: "yellow_brick_diff", sharp: true },
+  brickNor: { file: "yellow_brick_nor", sharp: false },
+  brickRough: { file: "yellow_brick_rough", sharp: false },
+  redBrickDiff: { file: "red_brick_diff", sharp: true },
+  redBrickNor: { file: "red_brick_nor", sharp: false },
+  tileDiff: { file: "large_floor_tiles_02_diff", sharp: true },
+  tileNor: { file: "large_floor_tiles_02_nor", sharp: false },
+  tileRough: { file: "large_floor_tiles_02_rough", sharp: false },
+  floorDiff: { file: "old_wood_floor_diff", sharp: true },
+  floorNor: { file: "old_wood_floor_nor", sharp: false },
+  floorRough: { file: "old_wood_floor_rough", sharp: false },
+  ceilingDiff: { file: "roof_planks_diff", sharp: false },
+  ceilingNor: { file: "roof_planks_nor", sharp: false },
+  timberDiff: { file: "wood_floor_worn_diff", sharp: false },
+} as const;
+type TextureKey = keyof typeof TEXTURES;
+const KEYS = Object.keys(TEXTURES) as TextureKey[];
+
+/** The texture files for a device: desktops get the 2K colour maps, phones the 1K set. */
+export function textureUrls(quality: Quality): Record<TextureKey, string> {
+  return Object.fromEntries(
+    KEYS.map((k) => [
+      k,
+      `${base}textures/${TEXTURES[k].file}_${TEXTURES[k].sharp && quality === "high" ? "2k" : "1k"}.ktx2`,
+    ]),
+  ) as Record<TextureKey, string>;
+}
+
+/**
+ * Physical size in metres that one texture repeat covers (UVs are generated in metres), from the
+ * sets' real-world sizes; the floor's tiles are 0.65 m, three to a repeat (R03, R04).
+ */
+export const TILE = {
+  brick: 2,
+  redBrick: 1.4,
+  tile: 1.95,
+  floor: 3,
+  ceiling: 1.5,
+  timber: 2,
+  marble: 1.4,
 } as const;
 
-export const TEXTURE_URLS = Object.fromEntries(
-  Object.entries(TEXTURES).map(([k, f]) => [k, base + f]),
-) as Record<keyof typeof TEXTURES, string>;
-
-/** Physical size in metres that one texture repeat covers (UVs are generated in metres). */
-export const TILE = { brick: 2.4, tile: 1.3, floor: 1.6, ceiling: 1.6, timber: 1.2, marble: 1.4 } as const;
-
-function prep(t: THREE.Texture, color: boolean) {
+function prep(t: THREE.Texture) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 8;
-  if (color) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
 export type Materials = ReturnType<typeof useMaterials>;
 
-export function useMaterials() {
-  const tex = useTexture(TEXTURE_URLS);
+export function useMaterials(quality: Quality) {
+  const gl = useThree((s) => s.gl);
+  const urls = textureUrls(quality);
+  // The Basis transcoder comes bundled with three's loader.
+  const loaded = useLoader(
+    KTX2Loader,
+    KEYS.map((k) => urls[k]),
+    (loader) => loader.detectSupport(gl),
+  );
   return useMemo(() => {
-    for (const [k, t] of Object.entries(tex)) prep(t, k.endsWith("Diff"));
+    const tex = Object.fromEntries(KEYS.map((k, i) => [k, prep(loaded[i] as THREE.Texture)])) as Record<
+      TextureKey,
+      THREE.Texture
+    >;
     const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
     const marble = marbleTexture();
     const glow = glowTexture();
-    // The venue brick is a pale buff; the CC0 texture is warmer, so tone it down (R03, R07).
-    const buff = adjustedTexture(tex.brickDiff, 0.55, 1.12);
     return {
       glow,
       brick: std({
-        map: buff,
+        map: tex.brickDiff,
         normalMap: tex.brickNor,
         roughnessMap: tex.brickRough,
         color: "#f4ebdd",
@@ -66,16 +98,16 @@ export function useMaterials() {
         color: "#8d8a84",
         roughness: 0.8,
       }),
-      tileJoint: std({ color: "#8d7559", roughness: 0.7 }),
+      tileJoint: std({ color: "#6f5d4a", roughness: 0.7 }),
       woodFloor: std({
         map: tex.floorDiff,
         normalMap: tex.floorNor,
         roughnessMap: tex.floorRough,
-        color: "#8e7563",
+        color: "#c9b8a6",
         roughness: 0.7,
       }),
       // Honey pine deck with darker beams (R02).
-      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#e6c48e", roughness: 0.85 }),
+      ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f2d9ae", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#9c744c", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
       marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
@@ -149,7 +181,7 @@ export function useMaterials() {
       }),
       djFacade: std({ color: "#15161a", roughness: 0.4, metalness: 0.3 }),
     };
-  }, [tex]);
+  }, [loaded]);
 }
 
 /** Box-project UVs in metres from vertex positions and normals (geometry must be in world units). */

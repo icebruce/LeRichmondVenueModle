@@ -66,8 +66,8 @@ export function Floors({ venue, m }: Pick<Props, "venue" | "m">) {
     const h = venue.raised.height;
     const top = slab(venue.raised.outline, h - 0.02, h, TILE.floor);
     const side = slab(venue.raised.outline, 0, h - 0.02, 1);
-    // Light wood strips between the large tiles (R03, R04): every half texture repeat.
-    const step = TILE.tile / 2;
+    // Light wood strips between the 0.65 m tiles (R03, R04): three to a texture repeat.
+    const step = TILE.tile / 3;
     const strips: THREE.BufferGeometry[] = [];
     for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.016, 0, 0, x + 0.016, 0.003, D));
     for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.016, W, 0.003, z + 0.016));

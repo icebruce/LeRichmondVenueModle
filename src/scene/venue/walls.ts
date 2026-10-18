@@ -107,7 +107,7 @@ export function buildWall(wall: WallData, height: number, thickness: number, cut
     ),
     redBrick: merged(
       low.map((p) => pieceGeo(wall, p, thickness)),
-      TILE.brick,
+      TILE.redBrick,
     ),
     panel: merged(panels, 1),
     cap: merged(caps, 1),

@@ -382,7 +382,7 @@ function Scene({
   onTier: (t: Tier) => void;
 }) {
   const { venue } = useStudio();
-  const m = useMaterials();
+  const m = useMaterials(quality);
   const mode = useEditor((s) => s.camera);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).

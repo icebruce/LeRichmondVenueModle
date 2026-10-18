@@ -136,24 +136,3 @@ export function glowTexture(): THREE.CanvasTexture {
   ctx.fillRect(0, 0, size, size);
   return finish(c);
 }
-
-/** Copy of an image texture with saturation and brightness adjusted (portable: no ctx.filter). */
-export function adjustedTexture(src: THREE.Texture, saturation: number, brightness: number): THREE.Texture {
-  const img = src.image as CanvasImageSource & { width: number; height: number };
-  if (!img?.width) return src;
-  const [c, ctx] = canvas(img.width);
-  ctx.drawImage(img, 0, 0, img.width, img.height);
-  const data = ctx.getImageData(0, 0, img.width, img.height);
-  const d = data.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i] as number;
-    const g = d[i + 1] as number;
-    const b = d[i + 2] as number;
-    const l = 0.299 * r + 0.587 * g + 0.114 * b;
-    d[i] = Math.min(255, (l + (r - l) * saturation) * brightness);
-    d[i + 1] = Math.min(255, (l + (g - l) * saturation) * brightness);
-    d[i + 2] = Math.min(255, (l + (b - l) * saturation) * brightness);
-  }
-  ctx.putImageData(data, 0, 0);
-  return finish(c);
-}
