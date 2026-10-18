@@ -381,40 +381,97 @@ test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dresse
   }
 });
 
-test("[PLT-03] nothing is drawn while the view is still; views, lighting, menus and a selection compile no shader", async ({
+for (const quality of ["low", "high"] as const)
+  test(`[PLT-03] nothing is drawn while the view is still; views, lighting, menus and a selection compile no shader (${quality})`, async ({
+    page,
+  }) => {
+    type Hooks = { __frames: () => number; __programs: () => number[] };
+    await openStudio(page, `fresh&quality=${quality}`);
+    // A pinspot adds the evening-only beams and glows (LIB-08).
+    await page.evaluate(() => {
+      const ed = (window as unknown as W).__studio.editor as unknown as {
+        addItem: (id: string, at: [number, number]) => string | null;
+        select: (ids: string[]) => void;
+      };
+      ed.addItem("light-pinspot", [8, 6]);
+      ed.select([]);
+    });
+    await page.waitForTimeout(1500);
+    await settle(page);
+    const frames = () => page.evaluate(() => (window as unknown as Hooks).__frames());
+    const programs = () => page.evaluate(() => (window as unknown as Hooks).__programs());
+    // Still: no frame at all (VISUAL_STATUS targets: 0 frames while idle).
+    await page.waitForTimeout(1000);
+    const still = await frames();
+    await page.waitForTimeout(2000);
+    expect(await frames()).toBe(still);
+    // Every shader was compiled at load: switching never adds a program.
+    const loaded = Math.max(...(await programs()));
+    const run = async (js: string) => {
+      await page.evaluate(js);
+      await page.waitForTimeout(300);
+      await settle(page);
+    };
+    for (const js of [
+      "__studio.editor.setStyle('lighting', 'day')",
+      "__studio.editor.setStyle('lighting', 'evening')",
+      "__studio.editor.setCamera('plan')",
+      "__studio.editor.setCamera('walk')",
+      "__studio.editor.setCamera('dollhouse')",
+      "__camera('R03')",
+      "__camera(null)",
+      "__studio.editor.select(['t2'])",
+      "__studio.editor.select([])",
+    ])
+      await run(js);
+    for (const id of ["room", "add", "style", "guests", "plans"] as const) await openSection(page, id);
+    await settle(page);
+    expect((await programs()).filter((id) => id > loaded)).toEqual([]);
+  });
+
+test("[PLT-03] the shadow map is redrawn when the room changes, not when the camera moves", async ({
   page,
 }) => {
-  type Hooks = { __frames: () => number; __programs: () => number[]; __camera: (k: string | null) => void };
+  type Hooks = { __shadowDraws: () => number };
   await openStudio(page);
-  const frames = () => page.evaluate(() => (window as unknown as Hooks).__frames());
-  const programs = () => page.evaluate(() => (window as unknown as Hooks).__programs());
-  // Still: no frame at all (VISUAL_STATUS targets: 0 frames while idle).
-  await page.waitForTimeout(1000);
-  const still = await frames();
-  await page.waitForTimeout(2000);
-  expect(await frames()).toBe(still);
-  // Every shader was compiled at load: switching never adds a program.
-  const loaded = Math.max(...(await programs()));
-  const run = async (js: string) => {
-    await page.evaluate(js);
-    await page.waitForTimeout(300);
-    await settle(page);
+  const draws = () => page.evaluate(() => (window as unknown as Hooks).__shadowDraws());
+  const before = await draws();
+  const box = (await page.getByTestId("studio-canvas").boundingBox()) as {
+    x: number;
+    y: number;
+    width: number;
   };
-  for (const js of [
-    "__studio.editor.setStyle('lighting', 'day')",
-    "__studio.editor.setStyle('lighting', 'evening')",
-    "__studio.editor.setCamera('plan')",
-    "__studio.editor.setCamera('walk')",
-    "__studio.editor.setCamera('dollhouse')",
-    "__camera('R03')",
-    "__camera(null)",
-    "__studio.editor.select(['t2'])",
-    "__studio.editor.select([])",
-  ])
-    await run(js);
-  for (const id of ["room", "add", "style", "guests", "plans"] as const) await openSection(page, id);
+  const [x, y] = [box.x + box.width * 0.7, box.y + 400];
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 6; i++) await page.mouse.move(x + i * 5, y);
+  await page.mouse.up();
+  await page.waitForTimeout(1000);
   await settle(page);
-  expect((await programs()).filter((id) => id > loaded)).toEqual([]);
+  expect(await draws()).toBe(before);
+  await page.evaluate(() =>
+    ((window as unknown as W).__studio.editor as unknown as { setGuests: (n: number) => void }).setGuests(60),
+  );
+  await expect.poll(draws).toBeGreaterThan(before);
+});
+
+test("[PLT-03] labels stay on their place in the room after the window resizes", async ({ page }) => {
+  await openStudio(page);
+  const label = page.locator(".advisory-label").first();
+  await expect(label).toBeVisible();
+  const at = async () => {
+    await page.waitForTimeout(500);
+    await settle(page);
+    const b = (await label.boundingBox()) as { x: number; y: number };
+    return [b.x, b.y];
+  };
+  const before = await at();
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await at();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const after = await at();
+  expect(Math.abs((after[0] as number) - (before[0] as number))).toBeLessThan(3);
+  expect(Math.abs((after[1] as number) - (before[1] as number))).toBeLessThan(3);
 });
 
 test("[PPL-01] [PPL-02] [SCN-07] guests sit first, the rest stand; party fills the dance area", async ({

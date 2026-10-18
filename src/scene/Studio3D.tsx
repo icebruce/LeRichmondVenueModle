@@ -16,8 +16,7 @@ import { StudioContext, type Studio, useEditor, useStudio, useView } from "./con
 import { Items, Outline, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
-import { ShaderKeepers } from "./items/Line";
-import { StaticShadows, Warmup } from "./frames";
+import { ShaderKeepers, StaticShadows, Warmup, shadowDraws } from "./frames";
 import { useMaterials } from "./materials";
 import { type Quality, detectQuality } from "./quality";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
@@ -171,6 +170,7 @@ function TestHooks() {
     (window as unknown as { __renderInfo?: () => typeof frame.current }).__renderInfo = () => frame.current;
     // Frames drawn so far, and the ids of the compiled shader programs: a new id means a compile.
     (window as unknown as { __frames?: () => number }).__frames = () => frames.current;
+    (window as unknown as { __shadowDraws?: () => number }).__shadowDraws = () => shadowDraws.n;
     (window as unknown as { __programs?: () => number[] }).__programs = () =>
       (gl.info.programs ?? []).map((p) => p.id);
     return () => {

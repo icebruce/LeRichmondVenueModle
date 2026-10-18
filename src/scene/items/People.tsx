@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { useEffect, useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { pointInPolygon } from "../../domain/geometry";
 import { placePeople } from "../../domain/layout/people";
@@ -53,6 +54,7 @@ export function People({ low }: { low: boolean }) {
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const show = useView((s) => s.showPeople);
   const drag = useView((s) => s.drag);
+  const invalidate = useThree((s) => s.invalidate);
   const geo = useMemo(() => figures(low), [low]);
   const meshes = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.9 });
@@ -111,7 +113,9 @@ export function People({ low }: { low: boolean }) {
     fill(meshes.seated, crowd.seated);
     fill(meshes.standing, crowd.standing);
     meshes.seated.castShadow = meshes.standing.castShadow = !low;
-  }, [crowd, meshes, venue, low]);
+    // Written in place: ask for a frame (frames are on demand).
+    invalidate();
+  }, [crowd, meshes, venue, low, invalidate]);
   if (!show || drag) return null;
   return (
     <group name="people">

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
@@ -40,6 +40,7 @@ export function Line({
   visible?: boolean;
 }) {
   const size = useThree((s) => s.size);
+  const invalidate = useThree((s) => s.invalidate);
   const [material] = useState(() => new LineMaterial({ transparent: true }));
   const line = useMemo(() => (segments ? new LineSegments2() : new Line2()), [segments]);
   const geometry = useMemo(() => {
@@ -47,53 +48,35 @@ export function Line({
     g.setPositions(points.flatMap((p) => (p instanceof THREE.Vector3 ? [p.x, p.y, p.z] : [...p])));
     return g;
   }, [points, segments]);
-  useEffect(() => {
+  // Changed in place, so each change asks for a frame itself (frames are drawn on demand).
+  useLayoutEffect(() => {
     line.geometry = geometry;
     line.computeLineDistances();
+    invalidate();
     return () => geometry.dispose();
-  }, [line, geometry]);
+  }, [line, geometry, invalidate]);
+  useLayoutEffect(() => {
+    material.color.set(color);
+    material.linewidth = lineWidth;
+    material.dashed = dashed;
+    material.dashSize = dashSize;
+    material.gapSize = gapSize;
+    material.depthTest = depthTest;
+    material.opacity = opacity;
+    material.resolution.set(size.width, size.height);
+    invalidate();
+  }, [material, color, lineWidth, dashed, dashSize, gapSize, depthTest, opacity, size, invalidate]);
   useEffect(() => () => material.dispose(), [material]);
-  material.color.set(color);
-  material.linewidth = lineWidth;
-  material.dashed = dashed;
-  material.dashSize = dashSize;
-  material.gapSize = gapSize;
-  material.depthTest = depthTest;
-  material.opacity = opacity;
-  material.resolution.set(size.width, size.height);
   return (
     <primitive
       object={line}
       material={material}
       renderOrder={renderOrder}
       visible={visible}
-      raycast={() => null}
+      raycast={noHit}
     />
   );
 }
 
-/**
- * Hidden objects that hold the shaders of things drawn only now and then (lines, outline fills), so
- * selecting, dragging or switching views never compiles one: they are compiled with the scene at
- * load and never released.
- */
-export function ShaderKeepers() {
-  const objects = useMemo(() => {
-    const solid = new LineMaterial({ transparent: true });
-    const dashed = new LineMaterial({ transparent: true });
-    dashed.dashed = true;
-    const fill = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
-    return [
-      new Line2(new LineGeometry(), solid),
-      new Line2(new LineGeometry(), dashed),
-      new THREE.Mesh(undefined, fill),
-    ];
-  }, []);
-  return (
-    <group visible={false}>
-      {objects.map((o, i) => (
-        <primitive key={i} object={o} />
-      ))}
-    </group>
-  );
-}
+/** Lines are drawn over the room and never take a pointer. */
+const noHit = () => null;

@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last; V0 next. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 in progress (2026-10-18): frames on demand, shadows once and no shader compiles on switches (PR #16). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -50,7 +50,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 
 | Stage | Delivers (summary) | Priority | State |
 |---|---|---|---|
-| V0 | Performance foundation, measurement, asset pipeline and checks | Must | Not started |
+| V0 | Performance foundation, measurement, asset pipeline and checks | Must | In progress: rendering merged in parts (PR #16) |
 | V1 | Room model and surfaces | Must | Not started |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Not started |
 | V3 | Bar and back bar | Should | Not started |
