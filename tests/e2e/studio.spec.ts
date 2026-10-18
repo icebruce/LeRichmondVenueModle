@@ -314,6 +314,9 @@ for (const [bench, items] of [
     test(`[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] benchmark ${bench} on ${tier} stays inside the draw-call and triangle budgets`, async ({
       page,
     }) => {
+      // Software rendering on a 2-core CI runner: the first frames compile every shader and can
+      // each block the page for well over a minute.
+      test.slow();
       type Hooks = {
         __worstFrame: () => { calls: number; triangles: number };
         __redraw: () => void;
@@ -327,7 +330,6 @@ for (const [bench, items] of [
       await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
       expect((await state(page)).active?.items.length).toBe(items);
       // Each reading draws one full frame (shadow pass included) and reads the largest frame since.
-      // Software rendering can take seconds a frame here: wait for both frames to be drawn.
       const read = async () => {
         const drawn = await page.evaluate(() => {
           const w = window as unknown as Hooks;
@@ -335,7 +337,7 @@ for (const [bench, items] of [
           return w.__frames();
         });
         await page.waitForFunction((n) => (window as unknown as Hooks).__frames() >= n + 2, drawn, {
-          timeout: 60_000,
+          timeout: 180_000,
         });
         return page.evaluate(() => (window as unknown as Hooks).__worstFrame());
       };
