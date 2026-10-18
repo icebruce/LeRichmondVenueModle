@@ -209,14 +209,15 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 **Built (2026-10-18):**
 
-- `npm run bake` (`tools/README.md`): the app exports the fixed room (`?bake-export`), Blender bakes evening and daylight (Cycles diffuse, direct and bounced, 128 samples, about 5 minutes a set on 4 cores), the tool checks the result and writes KTX2 maps, about 300 KB a set at 2K and 115 KB at 1K, plus `data/bake/manifest.json`.
-- Light-map UVs come from the app (`scene/venue/lightmap.ts`): flat islands packed at about 36 texels a metre at 2K, the same at export and at load; the dollhouse's cut walls reuse the full walls' bake.
-- Receivers: walls, floors (tiles and joints, raised floor), ceiling deck and beams, mezzanine edge. Their diffuse light comes from the map only; live highlights and reflections stay. The stair, bar, fixtures, everything movable and every placed light stay live.
-- Evening lights in the bake: chandeliers, pendant drums, two track washes on the north brick, the back bar, warm uplights on the east piers between the street windows. Daylight: sky through the glass and a low sun from the terrace. Exposure per set (`useBake.ts`: evening 0.3, daylight 2.6), the first calibration.
+- `npm run bake` (`tools/README.md`): the app exports the fixed room (`?bake-export`), Blender bakes evening and daylight (Cycles diffuse, direct and bounced, 128 samples, 7 to 11 minutes a set on 4 cores), the tool checks the result and writes KTX2 maps, about 300 KB a set at 2K and 115 KB at 1K, plus `data/bake/manifest.json`.
+- Light-map UVs come from the app (`scene/venue/lightmap.ts`): flat islands packed at about 42 texels a metre at 2K, the same at export and at load; the dollhouse's cut walls reuse the full walls' bake.
+- Receivers: the walls' faces toward the room (their backs, ends and tops stay live-lit, so cut walls and wall tops never go dark), floors (the joint strips take the tiles' light), ceiling deck and beams, mezzanine edge. Their diffuse light comes from the map and a little of the live sky; live highlights and reflections stay. The stair, bar, fixtures, everything movable and every placed light stay live.
+- Evening lights in the bake: chandeliers, pendant drums, six track spots scalloping the north brick, the back bar (its glow brighter than the brick, as in R01, R03, R08), warm uplights on the east piers between the street windows. Daylight: a warm sky through the glass and a low sun from the terrace. Exposure per set (`useBake.ts`: evening 0.3, daylight 2.6), the first calibration.
 - Grounding: soft contact shadows under tables, chairs and standing guests (one instanced draw each); the bake itself darkens corners and wall feet and pools light under the chandeliers.
 - Calmer evening live light, so white, ivory and champagne linen stay distinct (colour check: white reads light ivory-white, not beige).
 - `[LGT-03]`: CI fails when the manifest's fingerprints (room surfaces, light inputs, bake script) do not match; at load a mismatch draws the live-lit room (`?bake=stale` shows it).
-- Not done in V2: the box-projected reflection capture and an HDR daylight environment (the existing light-former environment stays); calibration camera presets matching R08 and U02 (U02 is not in the local cache). Both reviewed for need in the V2 review.
+- Reviews: `ux-reviewer` (1 blocker, 4 majors) and `fidelity-reviewer` (black wall tops and cut-wall faces, brick outshining the back bar, cold daylight) all addressed and re-baked; the colour check passes on the cloth drops.
+- Not done in V2: the box-projected reflection capture and an HDR daylight environment (the light-former environment stays; neither review asked for them); calibration camera presets matching R08 and U02 (U02 is not in the local cache). The fixed bar, back bar and stair are in the bake as occluders, so their floor shadows are baked.
 
 ### V3: Bar and back bar
 
