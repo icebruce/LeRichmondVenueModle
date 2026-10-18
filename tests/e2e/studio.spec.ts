@@ -642,15 +642,19 @@ test("[CAM-04] sit at a chair: seated eye height, facing the table; stand up ret
   await page.getByTestId("sit-here").click();
   await page.getByTestId("seat-1").click();
   await expect(page.getByTestId("seated")).toContainText("table 2");
-  // The camera moves down to the seat (it starts once walk mode is set up).
+  // The camera moves down to the seat (it starts once walk mode is set up): wait until it arrives
+  // at seated eye height (1.2 m above the floor it stands on).
   await page.waitForFunction(
-    () => ((window as unknown as { __pose: () => number[] }).__pose()[1] ?? 9) < 1.6,
+    () => {
+      const y = (window as unknown as { __pose: () => number[] }).__pose()[1] ?? 9;
+      return y > 1.15 && y < 1.25;
+    },
     null,
     { timeout: 30_000 },
   );
+  await settle(page);
   const pose = await page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose());
   const t2 = await item(page, "t2");
-  // Seated eye height (1.2 m above the floor it stands on) at the edge of table 2.
   expect(pose[1] ?? 0).toBeGreaterThan(1.15);
   expect(pose[1] ?? 0).toBeLessThan(1.25);
   expect(Math.hypot((pose[0] ?? 0) - t2.x, (pose[2] ?? 0) - t2.z)).toBeLessThan(2.2);
