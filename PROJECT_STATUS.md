@@ -31,7 +31,7 @@
 - Lighting: hybrid from visual stage V2: the fixed room baked in Blender, movables live (owner, 2026-10-17; ADR-2, LGT-03). Until then, live lighting.
 - Docs structure and tooling chosen on their merits; WeddingRunbookPlanner was a reference only.
 - Pull request per step with Vercel preview for owner review.
-- Visual upgrade (look and performance) is a separate track in `VISUAL_STATUS.md`, finishing before the freeze; no visual merges after 2026-11-07 (owner, 2026-10-16; supersedes PR #7). Plan v3 (2026-10-18, pending owner approval in PR #15): stages V0–V7 with validation per stage, hybrid baked room light, an asset quality bar (low-poly allowed, never broken) and people last within a fixed people budget; path-traced stills stay out.
+- Visual upgrade (look and performance) is a separate track in `VISUAL_STATUS.md`, finishing before the freeze; no visual merges after 2026-11-07 (owner, 2026-10-16; supersedes PR #7). Plan v3 (owner, 2026-10-18): stages V0–V7 with validation per stage, hybrid baked room light, an asset quality bar (low-poly allowed, never broken) and people last within a fixed people budget; path-traced stills stay out.
 - Library: ~90 items across tables, chairs, linens, tableware, candles, florals, plants, lights, signs, event pieces; custom pieces added later through in-app requests built by Claude (owner-approved 2026-10-15).
 - Stair has two flights (owner, 2026-10-16): entrance landing east to a turn landing at the east wall, then back west up to a head landing on the mezzanine edge; the raised floor's south step moved west beside it.
 - Main chandelier is a dense cluster of short brass cylinders with bare bulbs (owner, 2026-10-16).
@@ -92,7 +92,7 @@ To do, in order:
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. Step 4 (owner feedback of 2026-10-17): merged as PR #8–#13 (2026-10-17). Owner checks on a real phone: no pull-to-refresh, the back gesture steps out of layers, the sheet swipes down a step at a time, cloud saves; visual sign-off of the Add library, Style pages and light handle (marked pending in DESIGN_GUIDE). Freeze around 2026-11-10.
-5. Visual track (`VISUAL_STATUS.md`, plan v3): owner approves the plan in PR #15; then V0 (on-demand rendering, shadows drawn once, constant light count, `?perf` overlay, asset checks), and the owner reads the baseline on the iPhone 16 and Galaxy S24. Owner, before V7: confirm Meshy's terms for committing generated models, and attach the people reference image to a custom request ("Guest figures").
+5. Visual track (`VISUAL_STATUS.md`, plan v3): plan approved (owner, 2026-10-18); next V0 (on-demand rendering, shadows drawn once, constant light count, `?perf` overlay, asset checks), and the owner reads the baseline on the iPhone 16 and Galaxy S24. Owner, before V7: attach the people reference image to a custom request ("Guest figures"). Meshy-generated models may be committed (owner, 2026-10-18).
 
 ## Step 1 quality (2026-10-16)
 
@@ -114,7 +114,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 
 ## Open items
 
-- Raised floor height; stair tread count. The fidelity review (2026-10-17) reads R04 and owner photo 1 as an EXIT door and tufted banquettes at the west end of the green south wall: not modelled until the owner confirms (it would sit near the sweetheart table and DJ option 1).
+- Raised floor height; stair tread count. The EXIT door and tufted banquettes the fidelity review read at the west end of the green south wall (R04, owner photo 1) are not modelled for now (owner, 2026-10-18).
 - The stair and mezzanine balustrades are plain iron bars; the photos show scrolled iron panels (look only).
 - Fidelity (2026-10-17, look only, not yet done): the mezzanine fascia may project ≈ 0.6 m into the room (a dark recess over the entrance, R09, owner photo 3); the LED treads glow lime-yellow across the whole tread top; the kitchen pass reads too bright in UV02.
 - Sample plan (4G): with the south wall 1.4 m north, the dance area moves in front of the bar, 3.9 × 3.1 m (≈ 12 m², just above the ≈ 11.8 m² suggested for 75 guests), clear of the kitchen pass and the corridor, ≈ 0.75 m from the bar front (the bar stools, when shown, take that walkway); the sweetheart table stays against the south wall at x 3.0, beside DJ option 1. Plans already saved keep their pieces; any now past the wall show "outside the room — move it". Confirm at the visual review.

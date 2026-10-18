@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** Plan v3 drafted at the owner's request (2026-10-18), pending owner approval in PR #15: end-to-end implementation in eight stages, people last; V0 next. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last; V0 next. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -387,7 +387,7 @@ Estimates, from 2026-10-18 to the last visual merge on 2026-11-07, including own
 
 Eight stages in twenty days is tight. When a stage runs late, V6 is cut first, then V3, so that V7 keeps its window.
 
-Asset preparation for V7 can happen earlier without changing the app: generating and approving the woman, and checking Meshy's terms. It is done alongside earlier stages if the owner agrees (open item).
+Asset preparation for V7 can happen earlier without changing the app: generating the woman and getting her approved. It is done alongside earlier stages if the owner agrees (open item).
 
 ## Graphics tiers
 
@@ -467,7 +467,7 @@ Stop the visual track when any of these holds:
 - **Defaults and purpose:**
   - Evening is the default; daylight kept.
   - The 3D is for deciding décor and seeing it realistically (owner, 2026-10-17). Table décor (V5) and Photo mode are first-class, and colour accuracy under evening light is a gate.
-- **Plan v3** (requested by the owner, 2026-10-18; approval pending in PR #15):
+- **Plan v3** (owner, 2026-10-18):
   - Staged end to end with validation per stage.
   - People are the last stage.
   - Every model must meet the asset quality bar (low-poly allowed, never broken).
@@ -488,13 +488,14 @@ Stop the visual track when any of these holds:
   - Blender (5.2, headless) for asset authoring, detail baking and the room light bake.
   - Meshy for people and, on request, organic décor.
   - Both run by Claude offline from committed scripts.
+  - Meshy-generated models may be committed to this repository (owner accepts Meshy's terms, 2026-10-18).
+- **Kitchen wall:** no EXIT door or banquettes for now (owner, 2026-10-18).
 - **Graphics setting:** Auto, High, Balanced and Battery saver; Battery saver on phone only (owner, 2026-10-16; confirmed 2026-10-17).
 - **Test devices:** iPhone 16 and Samsung Galaxy S24 (owner, 2026-10-17).
 - **Gold cordless table lamp** added to the library; the R07 opening is the restroom corridor (owner, 2026-10-17).
 
 ## Open items
 
-- **Meshy terms** (before V7): can generated models be committed to this public repository? If not, the owner chooses: a private repository, another host for the people files, or a fallback figure source (Microsoft Rocketbox, MIT licence).
 - **Early asset preparation:** may Claude generate and get approval for the V7 characters alongside earlier stages (no app change), so V7 keeps its window?
 - **Meshy credits:** 989 left. Planned: people ≈ 150 (the woman, rigs, about 10 poses at 3 credits each, retries); décor through library requests at ~30 each when the owner asks; ≥ 300 kept in reserve.
 - **People reference image:** the owner attaches it to a custom request in the app ("Guest figures"), so it stays private and Claude can read it with the requests token.

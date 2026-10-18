@@ -61,7 +61,7 @@ Status: **M** modelled · **V0–V7** planned in that stage · **—** skipped (
 | Wine wall: tall glass case with racks near the east windows | R15 UV02 | M; bottles as cards V3 |
 | North wall: buff brick over red-brick dado; tufted nail-head headboard banquettes; paintings | R01 R06 R07 R10 | M (plain); brick V1, banquettes V1 |
 | Restroom corridor: opening to a green-walled space with a framed photo, north wall near the pop-art painting (owner, 2026-10-17) | R07 | V1 (opening; exact position from R07 in the fidelity review) |
-| South (kitchen) wall: dark green panelling, EXIT door, tufted banquettes, fiddle-leaf fig | R04 | M (green wall); EXIT door and banquettes ? (open item); fig V6 |
+| South (kitchen) wall: dark green panelling, EXIT door, tufted banquettes, fiddle-leaf fig | R04 | M (green wall); EXIT door and banquettes — (owner, 2026-10-18: not for now); fig V6 |
 | Mezzanine fascia: dark green, long linear HVAC grille, projection screen above, red SORTIE neon | R09 | M (fascia, exit); grille as texture V1; screen — |
 | Stair: LED treads (lime-yellow glow across each tread top), scrolled iron balustrade panels, timber handrail | R01 R09 R11 | M (plain bars); tread glow V1; scroll panels V6 |
 | East wall: tall windows, gold velvet curtains on black rods, white sheers behind, brick piers with red-brick bands | R05 R09 R10 R13 | M (windows, curtains); sheers V1; pleats V6; pier bands V1 |
