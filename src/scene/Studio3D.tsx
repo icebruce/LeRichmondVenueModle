@@ -196,11 +196,14 @@ function TestHooks() {
   const invalidate = useThree((s) => s.invalidate);
   // Whole-frame totals across shadow, scene and effect passes, for the budget test (ARCHITECTURE §7).
   const frame = useRef({ calls: 0, triangles: 0 });
+  const worst = useRef({ calls: 0, triangles: 0 });
   const frames = useRef(0);
   useFrame(() => {
     // Battery saver skips display frames between its drawn ones: keep the last drawn frame's totals.
-    if (gl.info.render.calls)
+    if (gl.info.render.calls) {
       frame.current = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+      if (frame.current.calls > worst.current.calls) worst.current = frame.current;
+    }
     frames.current++;
     gl.info.reset();
   }, -100);
@@ -212,11 +215,15 @@ function TestHooks() {
     (window as unknown as { __shadowDraws?: () => number }).__shadowDraws = () => shadowDraws.n;
     (window as unknown as { __holdMotion?: () => void }).__holdMotion = () =>
       graphicsStore.setState({ moving: true, hold: true });
-    // A full frame, shadow pass included, for the budget test: the worst frame is what counts.
+    // For the budget test: forgets earlier frames, then draws a full frame (shadow pass included)
+    // and one more, whose start records it; `__worstFrame` is the largest frame since.
     (window as unknown as { __redraw?: () => void }).__redraw = () => {
+      worst.current = { calls: 0, triangles: 0 };
+      gl.info.reset();
       gl.shadowMap.needsUpdate = true;
-      invalidate();
+      invalidate(2);
     };
+    (window as unknown as { __worstFrame?: () => typeof worst.current }).__worstFrame = () => worst.current;
     (window as unknown as { __programs?: () => number[] }).__programs = () =>
       (gl.info.programs ?? []).map((p) => p.id);
     return () => {

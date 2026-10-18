@@ -315,23 +315,29 @@ for (const [bench, items] of [
       page,
     }) => {
       type Hooks = {
-        __renderInfo: () => { calls: number; triangles: number };
+        __worstFrame: () => { calls: number; triangles: number };
         __redraw: () => void;
         __holdMotion: () => void;
+        __frames: () => number;
       };
       await page.goto(`/?bench=${bench}&quality=${quality}&tier=${tier}`);
-      await page.waitForFunction(() => (window as unknown as { __renderInfo?: unknown }).__renderInfo, null, {
+      await page.waitForFunction(() => (window as unknown as { __redraw?: unknown }).__redraw, null, {
         timeout: 60_000,
       });
       await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
       expect((await state(page)).active?.items.length).toBe(items);
-      // Each reading forces a full frame (shadow pass included) and reads it on the next one.
+      // Each reading draws one full frame (shadow pass included) and reads the largest frame since.
+      // Software rendering can take seconds a frame here: wait for both frames to be drawn.
       const read = async () => {
-        for (let i = 0; i < 2; i++) {
-          await page.evaluate(() => (window as unknown as Hooks).__redraw());
-          await page.waitForTimeout(400);
-        }
-        return page.evaluate(() => (window as unknown as Hooks).__renderInfo());
+        const drawn = await page.evaluate(() => {
+          const w = window as unknown as Hooks;
+          w.__redraw();
+          return w.__frames();
+        });
+        await page.waitForFunction((n) => (window as unknown as Hooks).__frames() >= n + 2, drawn, {
+          timeout: 60_000,
+        });
+        return page.evaluate(() => (window as unknown as Hooks).__worstFrame());
       };
       // Measure the settled room: software rendering takes a few seconds to build every mesh.
       const settled = async () => {
