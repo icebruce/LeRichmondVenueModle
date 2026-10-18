@@ -1,0 +1,22 @@
+{
+  "geometryHash": "0a3a935d",
+  "inputsHash": "6737c9c9",
+  "scriptHash": "7b7192732214d80f6ad4ff220314b8c9e8c8fb445249266fe199a3313269190f",
+  "samples": 256,
+  "sets": {
+    "evening": {
+      "scale": 3.833522319793701,
+      "files": {
+        "2k": "evening_2k.webp",
+        "1k": "evening_1k.webp"
+      }
+    },
+    "day": {
+      "scale": 1.900000810623169,
+      "files": {
+        "2k": "day_2k.webp",
+        "1k": "day_1k.webp"
+      }
+    }
+  }
+}

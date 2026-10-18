@@ -6,6 +6,8 @@ import { pointInPolygon } from "../../domain/geometry";
 import { placePeople } from "../../domain/layout/people";
 import type { Scenario } from "../../domain/scenario/schema";
 import { useEditor, useStudio, useView } from "../context";
+import type { Materials } from "../materials";
+import { CONTACT_SMALL, type Contact, ContactShadows } from "./Contact";
 
 const MAX = 300;
 
@@ -49,7 +51,7 @@ function figures(low: boolean) {
 }
 
 /** Guests seated on chairs and standing in open floor (PPL-01..03), two instanced meshes. */
-export function People({ low }: { low: boolean }) {
+export function People({ low, m }: { low: boolean; m: Materials }) {
   const { venue, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const show = useView((s) => s.showPeople);
@@ -88,12 +90,19 @@ export function People({ low }: { low: boolean }) {
       ),
     [scenario.items, scenario.guests, scenario.phase, scenario.venueToggles, venue, catalog],
   );
+  const level = useMemo(
+    () => (x: number, z: number) => (pointInPolygon([x, z], venue.raised.outline) ? venue.raised.height : 0),
+    [venue],
+  );
+  // Standing guests stand on a soft contact shadow; seated ones have their chair's.
+  const contacts = useMemo<Contact[]>(
+    () => crowd.standing.map((p) => ({ ...p, y: level(p.x, p.z), w: CONTACT_SMALL, d: CONTACT_SMALL })),
+    [crowd, level],
+  );
   useEffect(() => {
     const t = new THREE.Object3D();
     const c = new THREE.Color();
     const tones = ["#a69d92", "#8f877e", "#b8afa4", "#7d766f", "#9a9187"];
-    const level = (x: number, z: number) =>
-      pointInPolygon([x, z], venue.raised.outline) ? venue.raised.height : 0;
     const fill = (mesh: THREE.InstancedMesh, list: { x: number; z: number; rotY: number }[]) => {
       const n = Math.min(MAX, list.length);
       for (let i = 0; i < n; i++) {
@@ -115,12 +124,13 @@ export function People({ low }: { low: boolean }) {
     meshes.seated.castShadow = meshes.standing.castShadow = !low;
     // Written in place: ask for a frame (frames are on demand).
     invalidate();
-  }, [crowd, meshes, venue, low, invalidate]);
+  }, [crowd, meshes, level, low, invalidate]);
   if (!show || drag) return null;
   return (
     <group name="people">
       <primitive object={meshes.seated} />
       <primitive object={meshes.standing} />
+      <ContactShadows list={contacts} m={m} />
     </group>
   );
 }

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-const KEEP = ["position", "normal", "uv"] as const;
+const KEEP = ["position", "normal", "uv", "uv1"] as const;
 
 /** World-space, non-indexed copy with only the attributes every merge partner shares. */
 function baked(mesh: THREE.Mesh): THREE.BufferGeometry {
@@ -31,7 +31,8 @@ function drawn(root: THREE.Object3D, out: THREE.Mesh[] = []): THREE.Mesh[] {
  * Static venue parts drawn as one mesh per material (visual stage V0: fewer draw calls in the main
  * and shadow passes). The parts render hidden inside; their visible meshes are baked into world
  * space and merged per material and shadow flags once mounted, and again whenever `version`
- * changes, so `version` must name every input that changes what the parts draw.
+ * changes, so `version` must name every input that changes what the parts draw. Instanced meshes
+ * are not merged and stay hidden here: draw them outside.
  */
 export function StaticMerge({ version, children }: { version: string; children: ReactNode }) {
   const source = useRef<THREE.Group>(null);

@@ -80,9 +80,8 @@ export const CUT_HEIGHT = 1.15;
 export function buildWall(wall: WallData, height: number, thickness: number, cut: boolean): WallMeshes {
   const full = wallPieces(wall, wall.height ?? height);
   const pieces = cut ? clip(full, CUT_HEIGHT) : full;
-  // Red brick dado band where the photos show one (wall.dado = its height); a red-brick wall throughout.
-  const [low, high] =
-    wall.finish === "redBrick" ? [pieces, []] : wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
+  // Red brick dado band where the photos show one (wall.dado = its height).
+  const [low, high] = wall.dado ? splitAt(pieces, wall.dado) : [[], pieces];
 
   const panels: THREE.BufferGeometry[] = [];
   for (const pn of wall.panels ?? []) {
@@ -136,4 +135,42 @@ export function openingMatrix(wall: WallData, start: number): THREE.Matrix4 {
   );
   m.setPosition(wall.from[0] + dir[0] * start, 0, wall.from[1] + dir[1] * start);
   return m;
+}
+
+/**
+ * A wall's faces split by which way they look: `inner`, the face toward the room (it carries the
+ * baked light, V2), and `outer`, everything else (its back, ends and top, seen from the dollhouse
+ * and lit live). Geometry must be non-indexed, in world space.
+ */
+export function splitFacing(
+  g: THREE.BufferGeometry,
+  wall: WallData,
+): { inner: THREE.BufferGeometry; outer: THREE.BufferGeometry } {
+  const { normal } = wallFrame(wall);
+  const pos = g.getAttribute("position");
+  const names = Object.keys(g.attributes);
+  const parts = { inner: [] as number[], outer: [] as number[] };
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += 3) {
+    a.fromBufferAttribute(pos, i);
+    b.fromBufferAttribute(pos, i + 1);
+    c.fromBufferAttribute(pos, i + 2);
+    const n = c.sub(b).cross(a.sub(b)).normalize();
+    (n.x * normal[0] + n.z * normal[1] > 0.9 ? parts.inner : parts.outer).push(i, i + 1, i + 2);
+  }
+  const pick = (list: number[]) => {
+    const out = new THREE.BufferGeometry();
+    for (const name of names) {
+      const src = g.getAttribute(name);
+      const arr = new Float32Array(list.length * src.itemSize);
+      list.forEach((v, k) => {
+        for (let j = 0; j < src.itemSize; j++) arr[k * src.itemSize + j] = src.getComponent(v, j);
+      });
+      out.setAttribute(name, new THREE.BufferAttribute(arr, src.itemSize));
+    }
+    return out;
+  };
+  return { inner: pick(parts.inner), outer: pick(parts.outer) };
 }

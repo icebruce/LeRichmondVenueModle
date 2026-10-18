@@ -35,8 +35,8 @@ const wall = z.object({
   id: z.enum(["north", "west", "east", "south"]),
   from: vec2,
   to: vec2,
-  /** `brick`: buff brick (with a red `dado` where given); `redBrick`: red-brown brick throughout. */
-  finish: z.enum(["brick", "redBrick"]),
+  /** Buff brick, with a red `dado` where given. */
+  finish: z.enum(["brick"]),
   height: z.number().optional(),
   /** Height of a red brick band at the base of the wall, where the photos show one. */
   dado: z.number().optional(),

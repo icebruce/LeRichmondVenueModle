@@ -29,6 +29,11 @@ import {
 } from "./frames";
 import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
+import { BakeExport } from "./BakeExport";
+import { useBake } from "./useBake";
+
+/** `?bake-export`: the bake tool's export of the fixed room (visual stage V2, `npm run bake`). */
+const BAKE_EXPORT = new URLSearchParams(window.location.search).has("bake-export");
 import { type Quality, detectQuality, rememberTierChoice, rememberedAutoTier, tierChoice } from "./quality";
 import {
   type AutoTier,
@@ -41,7 +46,7 @@ import {
 } from "../state/graphics";
 import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
-import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
+import { BackBar, BackBarBottles, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
 
 /** The hidden performance overlay is on (`?perf`, V0). */
@@ -106,13 +111,14 @@ function Lighting({
   const glow = evening ? 1 : 0;
   return (
     <>
-      <hemisphereLight args={evening ? ["#6a5139", "#20170e", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
+      {/* Evening warmth kept calm, so white linen reads white or ivory, not beige (V2 colour check). */}
+      <hemisphereLight args={evening ? ["#615a50", "#1f1b16", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
       <directionalLight
         // A new tier's shadow size needs a new shadow map.
         key={shadowSize}
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 0.35 : 2.4}
-        color={evening ? "#ffcf9a" : "#fff4e6"}
+        color={evening ? "#ffdfc0" : "#fff4e6"}
         castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         shadow-intensity={plan ? 0 : 1}
@@ -135,18 +141,25 @@ function Lighting({
           intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
           distance={c.kind === "brassCluster" ? 14 : 8}
           decay={1.6}
-          color="#ffbf7a"
+          color="#ffdcb8"
         />
       ))}
-      <pointLight position={[8.4, 2.2, 1.6]} intensity={10 * glow} distance={7} decay={1.6} color="#ffb060" />
-      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
-      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffb070" />
-      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffb070" />
+      {/* The back bar's glow, under its canopy (R01, R03). */}
+      <pointLight
+        position={[8.1, 2.3, venue.data.backBar.rect.value[1] + 0.4]}
+        intensity={16 * glow}
+        distance={7}
+        decay={1.6}
+        color="#ffc98e"
+      />
+      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
       <Environment resolution={128} frames={1}>
         <Lightformer
           form="rect"
           intensity={evening ? 0.6 : 2}
-          color={evening ? "#ffb070" : "#ffffff"}
+          color={evening ? "#ffd6b0" : "#ffffff"}
           position={[-6, 4, 7]}
           scale={[2, 6, 12]}
           rotation-y={Math.PI / 2}
@@ -382,12 +395,13 @@ function Scene({
   auto: AutoTier | null;
   onTier: (t: Tier) => void;
 }) {
-  const { venue } = useStudio();
+  const { venue, bake: manifest } = useStudio();
   const m = useMaterials(quality);
   const mode = useEditor((s) => s.camera);
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   // Plan view is always flat daylight for placing (DESIGN_GUIDE §9).
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
+  const bake = useBake(venue, manifest, m, quality, evening, mode === "plan");
   const view = useView((s) => s.view);
   const { cut, below } = useCutaway(mode, view);
   // The ceiling shows only from below it (walk, reference views, a dollhouse camera zoomed in low);
@@ -403,12 +417,15 @@ function Scene({
     [],
   );
   const background = evening ? backgrounds.evening : backgrounds.day;
-  // The stair's LED treads glow in the evening only, and the backdrop brightens in daylight
-  // (uniform changes: no new shader).
+  // The stair's LED treads glow and the caps lift in the evening only, and the backdrop brightens
+  // in daylight (uniform changes: no new shader).
   const invalidate = useThree((s) => s.invalidate);
   const scene = useThree((s) => s.scene);
   useEffect(() => {
     m.led.emissiveIntensity = evening ? LED_GLOW : 0;
+    m.cap.emissiveIntensity = evening ? 0.12 : 0;
+    // Street sheers at night are lit only from inside: dimmer.
+    m.sheer.opacity = evening ? 0.1 : 0.2;
     scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
     invalidate();
   }, [m, scene, evening, invalidate]);
@@ -416,17 +433,18 @@ function Scene({
     <>
       <primitive attach="background" object={background} />
       <Lighting evening={evening} quality={quality} tier={tier} plan={mode === "plan"} />
-      <Walls venue={venue} m={m} cutWalls={cut} />
+      <Walls venue={venue} m={m} cutWalls={cut} bake={bake} />
       {/* The parts that never change with the camera, one mesh per material. */}
       <StaticMerge
         version={`${scenario.venueToggles.barStools}|${mode === "plan"}|${JSON.stringify(scenario.venueToggles.paintings)}`}
       >
-        <Floors venue={venue} m={m} />
+        <Floors venue={venue} m={m} bake={bake} />
         <Railing venue={venue} m={m} />
         <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
         <BackBar venue={venue} m={m} />
         <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       </StaticMerge>
+      <BackBarBottles venue={venue} />
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       <group visible={mode !== "plan"}>
         <Plinth venue={venue} m={m} />
@@ -436,15 +454,16 @@ function Scene({
         <Backdrops venue={venue} m={m} evening={evening} />
       </group>
       <group visible={!cut.has("south")}>
-        <Mezzanine venue={venue} m={m} />
+        <Mezzanine venue={venue} m={m} bake={bake} />
       </group>
       <Stair venue={venue} m={m} inRoom={cut.has("south")} />
       <group visible={mode !== "plan"}>
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>
-      <Ceiling venue={venue} m={m} showCeiling={showCeiling} />
+      <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
       <Items m={m} evening={evening} quality={quality} />
-      <People low={quality === "low"} />
+      {BAKE_EXPORT && <BakeExport m={m} />}
+      <People low={quality === "low"} m={m} />
       <Advisories hidden={mode === "walk"} />
       <ShaderKeepers />
       <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}|${LEVERS[tier].shadow}`} />
@@ -521,7 +540,7 @@ export function Studio3D({
         powerPreference: "high-performance",
       }}
       camera={{
-        fov: dollhouse?.fov ?? 30,
+        fov: dollhouse?.fov ?? 20,
         near: 0.1,
         far: 400,
         position: (dollhouse?.position ?? [26, 24, 30]) as [number, number, number],

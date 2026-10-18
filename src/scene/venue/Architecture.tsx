@@ -1,12 +1,28 @@
 import * as THREE from "three";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Vec2 } from "../../domain/geometry";
 import { type Materials, SHADOW_SPREAD, TILE, bevelGeo, boxGeo, metreUV } from "../materials";
-import { CUT_HEIGHT, buildWall } from "./walls";
+import { CUT_HEIGHT, type WallMeshes, buildWall, splitFacing } from "./walls";
+import type { WallData } from "../../domain/venue/schema";
+import { applyAtlas } from "./lightmap";
+import type { Bake } from "../useBake";
 
-type Props = { venue: VenueModel; m: Materials; cutWalls: ReadonlySet<string>; showCeiling: boolean };
+type Props = {
+  venue: VenueModel;
+  m: Materials;
+  cutWalls: ReadonlySet<string>;
+  showCeiling: boolean;
+  /** The baked room light, or null when the room is lit live (V2). */
+  bake: Bake | null;
+};
+
+/** A receiver's geometry with its light-map UVs when the room has a bake. */
+const mapped = (g: THREE.BufferGeometry, bake: Bake | null) => (bake ? applyAtlas(g, bake.atlas) : g);
+/** A receiver's material: light-mapped when the room has a bake. */
+const lit = (m: Materials, bake: Bake | null, key: keyof Materials) =>
+  (bake?.materials[key] ?? m[key]) as THREE.Material;
 
 function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const g = mergeGeometries(geos.map((x) => (x.index ? x.toNonIndexed() : x)));
@@ -14,30 +30,57 @@ function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
   return g;
 }
 
-export function Walls({ venue, m, cutWalls }: Pick<Props, "venue" | "m" | "cutWalls">) {
+export function Walls({ venue, m, cutWalls, bake }: Pick<Props, "venue" | "m" | "cutWalls" | "bake">) {
   const t = venue.data.room.wallThickness.value;
-  const built = useMemo(
-    () =>
-      venue.data.walls.map((w) => ({
-        id: w.id,
-        full: buildWall(w, venue.ceiling, t, false),
-        cut: buildWall(w, venue.ceiling, t, true),
-      })),
-    [venue, t],
-  );
+  const built = useMemo(() => {
+    // With a bake, each surface splits: its face toward the room light-mapped (the cut walls take
+    // the full walls' bake, on the same planes), the rest lit live.
+    const map = (w: WallData, g: WallMeshes) => {
+      const part = (x: THREE.BufferGeometry | null) => {
+        if (!x) return null;
+        if (!bake) return { lit: x, live: null };
+        const { inner, outer } = splitFacing(x, w);
+        return { lit: applyAtlas(inner, bake.atlas), live: outer };
+      };
+      return { brick: part(g.brick), redBrick: part(g.redBrick), panel: part(g.panel), cap: g.cap };
+    };
+    return venue.data.walls.map((w) => ({
+      id: w.id,
+      full: map(w, buildWall(w, venue.ceiling, t, false)),
+      cut: map(w, buildWall(w, venue.ceiling, t, true)),
+    }));
+  }, [venue, t, bake]);
+  // One mesh per material for all walls as the view cuts them (fewer draw calls), rebuilt when
+  // the set of cut walls changes.
+  const cutKey = [...cutWalls].sort().join();
+  const meshes = useMemo(() => {
+    const pick = built.map((w) => (cutKey.split(",").includes(w.id) ? w.cut : w.full));
+    const all = (f: (g: (typeof pick)[number]) => THREE.BufferGeometry | null | undefined) => {
+      const list = pick.map(f).filter((g): g is THREE.BufferGeometry => !!g);
+      return list.length ? merge(list) : null;
+    };
+    return {
+      brick: all((g) => g.brick?.lit),
+      brickLive: all((g) => g.brick?.live),
+      red: all((g) => g.redBrick?.lit),
+      redLive: all((g) => g.redBrick?.live),
+      panel: all((g) => g.panel?.lit),
+      panelLive: all((g) => g.panel?.live),
+      cap: all((g) => g.cap),
+    };
+  }, [built, cutKey]);
+  useEffect(() => () => Object.values(meshes).forEach((g) => g?.dispose()), [meshes]);
   return (
     <group name="walls">
-      {built.map((w) => {
-        const g = cutWalls.has(w.id) ? w.cut : w.full;
-        return (
-          <group key={w.id} name={`wall-${w.id}`}>
-            {g.brick && <mesh geometry={g.brick} material={m.brick} receiveShadow castShadow />}
-            {g.redBrick && <mesh geometry={g.redBrick} material={m.redBrick} receiveShadow />}
-            {g.panel && <mesh geometry={g.panel} material={m.greenPanel} receiveShadow />}
-            {g.cap && <mesh geometry={g.cap} material={m.cap} />}
-          </group>
-        );
-      })}
+      {meshes.brick && (
+        <mesh geometry={meshes.brick} material={lit(m, bake, "brick")} receiveShadow castShadow />
+      )}
+      {meshes.brickLive && <mesh geometry={meshes.brickLive} material={m.brick} receiveShadow castShadow />}
+      {meshes.red && <mesh geometry={meshes.red} material={lit(m, bake, "redBrick")} receiveShadow />}
+      {meshes.redLive && <mesh geometry={meshes.redLive} material={m.redBrick} receiveShadow />}
+      {meshes.panel && <mesh geometry={meshes.panel} material={lit(m, bake, "greenPanel")} receiveShadow />}
+      {meshes.panelLive && <mesh geometry={meshes.panelLive} material={m.greenPanel} receiveShadow />}
+      {meshes.cap && <mesh geometry={meshes.cap} material={m.cap} />}
     </group>
   );
 }
@@ -58,27 +101,38 @@ function slab(points: readonly Vec2[], y0: number, y1: number, tile: number): TH
   return metreUV(g, tile);
 }
 
-export function Floors({ venue, m }: Pick<Props, "venue" | "m">) {
+/** The floors: tile, its joint strips, and the raised floor (top and sides). */
+export function floorParts(venue: VenueModel) {
+  const W = venue.width;
+  const D = venue.depth;
+  const tileG = boxGeo(0, -0.05, 0, W, 0, D, TILE.tile);
+  const h = venue.raised.height;
+  const top = slab(venue.raised.outline, h - 0.02, h, TILE.floor);
+  const side = slab(venue.raised.outline, 0, h - 0.02, 1);
+  // Light wood strips between the 0.65 m tiles (R03, R04): three to a texture repeat.
+  const step = TILE.tile / 3;
+  const strips: THREE.BufferGeometry[] = [];
+  for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.04, 0, 0, x + 0.04, 0.003, D));
+  for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.04, W, 0.003, z + 0.04));
+  return { tile: tileG, raisedTop: top, raisedSide: side, joints: merge(strips) };
+}
+
+export function Floors({ venue, m, bake }: Pick<Props, "venue" | "m" | "bake">) {
   const { tile, raisedTop, raisedSide, joints } = useMemo(() => {
-    const W = venue.width;
-    const D = venue.depth;
-    const tileG = boxGeo(0, -0.05, 0, W, 0, D, TILE.tile);
-    const h = venue.raised.height;
-    const top = slab(venue.raised.outline, h - 0.02, h, TILE.floor);
-    const side = slab(venue.raised.outline, 0, h - 0.02, 1);
-    // Light wood strips between the 0.65 m tiles (R03, R04): three to a texture repeat.
-    const step = TILE.tile / 3;
-    const strips: THREE.BufferGeometry[] = [];
-    for (let x = step; x < W; x += step) strips.push(boxGeo(x - 0.04, 0, 0, x + 0.04, 0.003, D));
-    for (let z = step; z < D; z += step) strips.push(boxGeo(0, 0, z - 0.04, W, 0.003, z + 0.04));
-    return { tile: tileG, raisedTop: top, raisedSide: side, joints: merge(strips) };
-  }, [venue]);
+    const f = floorParts(venue);
+    return {
+      tile: mapped(f.tile, bake),
+      raisedTop: mapped(f.raisedTop, bake),
+      raisedSide: mapped(f.raisedSide, bake),
+      joints: mapped(f.joints, bake),
+    };
+  }, [venue, bake]);
   return (
     <group name="floors">
-      <mesh geometry={tile} material={m.tile} receiveShadow />
-      <mesh geometry={joints} material={m.tileJoint} receiveShadow />
-      <mesh geometry={raisedTop} material={m.woodFloor} receiveShadow />
-      <mesh geometry={raisedSide} material={m.timber} receiveShadow />
+      <mesh geometry={tile} material={lit(m, bake, "tile")} receiveShadow />
+      <mesh geometry={joints} material={lit(m, bake, "tileJoint")} receiveShadow />
+      <mesh geometry={raisedTop} material={lit(m, bake, "woodFloor")} receiveShadow />
+      <mesh geometry={raisedSide} material={lit(m, bake, "beam")} receiveShadow />
     </group>
   );
 }
@@ -184,94 +238,105 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
   );
 }
 
-export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "showCeiling">) {
-  const g = useMemo(() => {
-    const W = venue.width;
-    const C = venue.ceiling;
-    const f = venue.data.fixtures;
-    // Over the mezzanine too, to its back wall.
-    const back = venue.data.mezzanine.edgeZ + venue.data.mezzanine.depth;
-    const planks = boxGeo(-0.4, C, -0.4, W + 0.4, C + 0.12, back + 0.3, TILE.ceiling);
-    // Heavy timber beams with softened edges, and riveted steel girders (R02, R03).
-    const beams = merge(
-      f.timberBeams.positions.map((x) =>
-        bevelGeo(
-          x - f.timberBeams.width / 2,
-          C - f.timberBeams.depth,
-          -0.35,
-          x + f.timberBeams.width / 2,
-          C,
-          back + 0.2,
-          0.035,
-          TILE.timber,
-        ),
+/** The ceiling: plank deck, timber beams, steel girders, ducts and services, skylight. */
+export function ceilingParts(venue: VenueModel) {
+  const W = venue.width;
+  const C = venue.ceiling;
+  const f = venue.data.fixtures;
+  // Over the mezzanine too, to its back wall.
+  const back = venue.data.mezzanine.edgeZ + venue.data.mezzanine.depth;
+  const planks = boxGeo(-0.4, C, -0.4, W + 0.4, C + 0.12, back + 0.3, TILE.ceiling);
+  // Heavy timber beams with softened edges, and riveted steel girders (R02, R03).
+  const beams = merge(
+    f.timberBeams.positions.map((x) =>
+      bevelGeo(
+        x - f.timberBeams.width / 2,
+        C - f.timberBeams.depth,
+        -0.35,
+        x + f.timberBeams.width / 2,
+        C,
+        back + 0.2,
+        0.035,
+        TILE.timber,
       ),
-    );
-    const gTop = C - f.timberBeams.depth;
-    const girders = merge(
-      f.steelGirders.positions.flatMap((z) => [
-        bevelGeo(
-          -0.35,
-          gTop - f.steelGirders.depth,
-          z - f.steelGirders.width / 2,
-          W + 0.35,
-          gTop,
-          z + f.steelGirders.width / 2,
-          0.015,
-          TILE.rivets,
-        ),
-        bevelGeo(
-          -0.35,
-          gTop - f.steelGirders.depth - 0.04,
-          z - 0.22,
-          W + 0.35,
-          gTop - f.steelGirders.depth,
-          z + 0.22,
-          0.012,
-          TILE.rivets,
-        ),
-      ]),
-    );
-    const ducts: THREE.BufferGeometry[] = [];
-    for (const z of f.ducts.positions) {
-      const c = new THREE.CylinderGeometry(f.ducts.radius, f.ducts.radius, W + 0.7, 20);
-      c.rotateZ(Math.PI / 2);
-      c.translate(W / 2, C - f.ducts.drop, z);
-      ducts.push(c);
-    }
-    for (const row of f.pendantRows) {
-      const c = new THREE.CylinderGeometry(0.02, 0.02, W, 6);
-      c.rotateZ(Math.PI / 2);
-      c.translate(W / 2, row.height + 0.55, row.z);
-      ducts.push(c);
-    }
-    // Conduit and lighting track: thin black runs under the deck.
-    const sv = f.services;
-    const y = C - sv.drop;
-    for (const z of sv.conduitZ) {
-      const c = new THREE.CylinderGeometry(0.022, 0.022, W, 6);
-      c.rotateZ(Math.PI / 2);
-      c.translate(W / 2, y, z);
-      ducts.push(c);
-    }
-    for (const x of sv.trackX)
-      ducts.push(boxGeo(x - 0.02, y + 0.04, 0.3, x + 0.02, y + 0.08, venue.depth - 0.3));
-    const s = f.skylight;
-    const sky = boxGeo(
-      s.x - s.size / 2,
-      C - 0.01,
-      s.z - s.size / 2,
-      s.x + s.size / 2,
-      C + 0.02,
-      s.z + s.size / 2,
-    );
-    return { planks, beams, girders, ducts: merge(ducts), sky };
-  }, [venue]);
+    ),
+  );
+  const gTop = C - f.timberBeams.depth;
+  const girders = merge(
+    f.steelGirders.positions.flatMap((z) => [
+      bevelGeo(
+        -0.35,
+        gTop - f.steelGirders.depth,
+        z - f.steelGirders.width / 2,
+        W + 0.35,
+        gTop,
+        z + f.steelGirders.width / 2,
+        0.015,
+        TILE.rivets,
+      ),
+      bevelGeo(
+        -0.35,
+        gTop - f.steelGirders.depth - 0.04,
+        z - 0.22,
+        W + 0.35,
+        gTop - f.steelGirders.depth,
+        z + 0.22,
+        0.012,
+        TILE.rivets,
+      ),
+    ]),
+  );
+  const ducts: THREE.BufferGeometry[] = [];
+  for (const z of f.ducts.positions) {
+    const c = new THREE.CylinderGeometry(f.ducts.radius, f.ducts.radius, W + 0.7, 20);
+    c.rotateZ(Math.PI / 2);
+    c.translate(W / 2, C - f.ducts.drop, z);
+    ducts.push(c);
+  }
+  for (const row of f.pendantRows) {
+    const c = new THREE.CylinderGeometry(0.02, 0.02, W, 6);
+    c.rotateZ(Math.PI / 2);
+    c.translate(W / 2, row.height + 0.55, row.z);
+    ducts.push(c);
+  }
+  // Conduit and lighting track: thin black runs under the deck.
+  const sv = f.services;
+  const y = C - sv.drop;
+  for (const z of sv.conduitZ) {
+    const c = new THREE.CylinderGeometry(0.022, 0.022, W, 6);
+    c.rotateZ(Math.PI / 2);
+    c.translate(W / 2, y, z);
+    ducts.push(c);
+  }
+  for (const x of sv.trackX)
+    ducts.push(boxGeo(x - 0.02, y + 0.04, 0.3, x + 0.02, y + 0.08, venue.depth - 0.3));
+  const s = f.skylight;
+  const sky = boxGeo(
+    s.x - s.size / 2,
+    C - 0.01,
+    s.z - s.size / 2,
+    s.x + s.size / 2,
+    C + 0.02,
+    s.z + s.size / 2,
+  );
+  return { planks, beams, girders, ducts: merge(ducts), sky };
+}
+
+export function Ceiling({
+  venue,
+  m,
+  showCeiling,
+  bake,
+}: Pick<Props, "venue" | "m" | "showCeiling" | "bake">) {
+  const g = useMemo(() => {
+    const c = ceilingParts(venue);
+    return { ...c, planks: mapped(c.planks, bake), beams: mapped(c.beams, bake) };
+  }, [venue, bake]);
   // Hidden rather than unmounted, so showing it never compiles a shader.
   return (
     <group name="ceiling" visible={showCeiling}>
-      <mesh geometry={g.planks} material={m.ceiling} />
-      <mesh geometry={g.beams} material={m.timber} />
+      <mesh geometry={g.planks} material={lit(m, bake, "ceiling")} />
+      <mesh geometry={g.beams} material={lit(m, bake, "beam")} />
       <mesh geometry={g.girders} material={m.girder} />
       <mesh geometry={g.ducts} material={m.blackMetal} />
       <mesh geometry={g.sky} material={m.bulb} />
@@ -305,56 +370,67 @@ export function Plinth({ venue, m }: Pick<Props, "venue" | "m">) {
   );
 }
 
+/** The mezzanine edge and what lies behind it. */
+export function mezzanineParts(venue: VenueModel) {
+  const z = venue.data.mezzanine;
+  const H = z.floorHeight.value;
+  const z1 = z.edgeZ + z.depth;
+  // The edge overhangs the room past the wall below, over the entrance (R09, owner photo 3), and
+  // steps back to the wall line before the stairwell, which stays open to the room (R01).
+  const zw = z.edgeZ;
+  const z0 = zw - z.projection.depth;
+  const xp = z.projection.xTo;
+  const fascia = merge([
+    boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, xp, H, z0 + 0.25),
+    boxGeo(xp - 0.27, H - z.fasciaDepth, z0 - 0.02, xp, H, zw),
+    boxGeo(xp, H - z.fasciaDepth, zw - 0.02, z.xTo, H, zw + 0.25),
+  ]);
+  const floor = merge([
+    boxGeo(z.xFrom, H - 0.02, z0, xp, H, zw, TILE.floor),
+    boxGeo(z.xFrom, H - 0.02, zw, z.xTo, H, z1, TILE.floor),
+  ]);
+  // The underside of the overhang: a dark recess above the entrance, the pass and the corridor.
+  const soffit = boxGeo(z.xFrom, H - 0.3, z0 + 0.25, xp - 0.27, H - 0.02, zw);
+  const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
+  // The street wall carries on along the stairwell to the back, lit like the room (R09).
+  const street = boxGeo(venue.width, 0, z.edgeZ, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
+  // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
+  const edge = [
+    guard([z.xFrom, z0 + 0.06], [xp - 0.06, z0 + 0.06], H),
+    guard([xp - 0.06, z0 + 0.06], [xp - 0.06, zw + 0.06], H),
+    guard([xp - 0.06, zw + 0.06], [z.xTo, zw + 0.06], H),
+  ];
+  const well = guard([z.xTo - 0.06, zw + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
+  // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
+  const below = boxGeo(0, 0, z.edgeZ + 0.36, z.xTo, H - z.fasciaDepth, z1);
+  return {
+    fascia,
+    soffit,
+    floor,
+    back,
+    street,
+    bal: merge([...edge.flatMap((e) => e.steel), ...well.steel]),
+    rail: merge([...edge.map((e) => e.rail), well.rail]),
+    below,
+  };
+}
+
 /** Mezzanine edge (non-walkable backdrop): fascia, balustrade, dark volume behind (VEN-03). */
-export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
+export function Mezzanine({ venue, m, bake }: Pick<Props, "venue" | "m" | "bake">) {
   const g = useMemo(() => {
-    const z = venue.data.mezzanine;
-    const H = z.floorHeight.value;
-    const z1 = z.edgeZ + z.depth;
-    // The edge overhangs the room past the wall below, over the entrance (R09, owner photo 3), and
-    // steps back to the wall line before the stairwell, which stays open to the room (R01).
-    const zw = z.edgeZ;
-    const z0 = zw - z.projection.depth;
-    const xp = z.projection.xTo;
-    const fascia = merge([
-      boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, xp, H, z0 + 0.25),
-      boxGeo(xp - 0.27, H - z.fasciaDepth, z0 - 0.02, xp, H, zw),
-      boxGeo(xp, H - z.fasciaDepth, zw - 0.02, z.xTo, H, zw + 0.25),
-    ]);
-    const floor = merge([
-      boxGeo(z.xFrom, H - 0.02, z0, xp, H, zw, TILE.floor),
-      boxGeo(z.xFrom, H - 0.02, zw, z.xTo, H, z1, TILE.floor),
-    ]);
-    // The underside of the overhang: a dark recess above the entrance, the pass and the corridor.
-    const soffit = boxGeo(z.xFrom, H - 0.3, z0 + 0.25, xp - 0.27, H - 0.02, zw);
-    const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
-    // The street wall carries on along the stairwell to the back, lit like the room (R09).
-    const street = boxGeo(venue.width, 0, z.edgeZ, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
-    // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
-    const edge = [
-      guard([z.xFrom, z0 + 0.06], [xp - 0.06, z0 + 0.06], H),
-      guard([xp - 0.06, z0 + 0.06], [xp - 0.06, zw + 0.06], H),
-      guard([xp - 0.06, zw + 0.06], [z.xTo, zw + 0.06], H),
-    ];
-    const well = guard([z.xTo - 0.06, zw + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
-    // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
-    const below = boxGeo(0, 0, z.edgeZ + 0.36, z.xTo, H - z.fasciaDepth, z1);
+    const z = mezzanineParts(venue);
     return {
-      fascia,
-      soffit,
-      floor,
-      back,
-      street,
-      bal: merge([...edge.flatMap((e) => e.steel), ...well.steel]),
-      rail: merge([...edge.map((e) => e.rail), well.rail]),
-      below,
+      ...z,
+      fascia: mapped(z.fascia, bake),
+      soffit: mapped(z.soffit, bake),
+      floor: mapped(z.floor, bake),
     };
-  }, [venue]);
+  }, [venue, bake]);
   return (
     <group name="mezzanine">
-      <mesh geometry={g.fascia} material={m.greenPanel} />
-      <mesh geometry={g.soffit} material={m.stairWall} />
-      <mesh geometry={g.floor} material={m.woodFloor} />
+      <mesh geometry={g.fascia} material={lit(m, bake, "greenPanel")} />
+      <mesh geometry={g.soffit} material={lit(m, bake, "soffit")} />
+      <mesh geometry={g.floor} material={lit(m, bake, "woodFloor")} />
       <mesh geometry={g.back} material={m.darkVoid} />
       <mesh geometry={g.street} material={m.brick} />
       <mesh geometry={g.bal} material={m.blackMetal} />

@@ -122,15 +122,18 @@ function buildOpenings(wall: WallData) {
       add(frames, [local(0, 0.95, -0.3, w, 1.0, 0.15)]);
       add(voids, [local(-0.05, 0, -1.55, 0, o.head, -0.2), local(w, 0, -1.55, w + 0.05, o.head, -0.2)]);
     } else if (o.kind === "corridor") {
-      // A short corridor with green walls and a framed black-and-white photo facing the room (R07).
+      // A short corridor with green walls and a framed black-and-white photo facing the room (R07);
+      // it turns left (west) at the back, into the dark (owner, 2026-10-18).
       const d = 1.6;
+      const turn = -0.9;
       add(greens, [
-        local(-0.05, 0, -d, 0, o.head, -0.2),
+        local(-0.05, 0, turn, 0, o.head, -0.2),
         local(w, 0, -d, w + 0.05, o.head, -0.2),
-        local(-0.05, 0, -d - 0.05, w + 0.05, o.head, -d),
-        local(-0.05, o.head, -d, w + 0.05, o.head + 0.05, -0.2),
+        local(-1.0, 0, -d - 0.05, w + 0.05, o.head, -d),
+        local(-1.0, o.head, -d, w + 0.05, o.head + 0.05, -0.2),
       ]);
-      add(floors, [local(0, -0.05, -d, w, 0, -0.2)]);
+      add(voids, [local(-1.05, 0, -d, -1.0, o.head, turn)]);
+      add(floors, [local(-1.0, -0.05, -d, w, 0, -0.2)]);
       const fw = Math.min(0.42, w * 0.45);
       add(frames, [local(w / 2 - fw / 2, 1.25, -d, w / 2 + fw / 2, 1.8, -d + 0.03)]);
       add(prints, [local(w / 2 - fw / 2 + 0.06, 1.31, -d + 0.03, w / 2 + fw / 2 - 0.06, 1.74, -d + 0.035)]);
@@ -239,13 +242,16 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 6)
       frame.push(boxGeo(x - 0.04, 0.95, z0, x + 0.04, b.height, z1));
     frame.push(boxGeo(x0, b.height - 0.1, z0, x1, b.height, z1));
+    // Over the shelves only, so the passage behind them stays visible from above.
     const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
+    // Round neon sign on a dark backing board on the wine wall's face, so it reads as signage, not a
+    // floating ring (R01, R02).
+    const face = venue.data.fixtures.wineWall.rect[3];
     const neon = new THREE.TorusGeometry(0.28, 0.025, 8, 32);
-    neon.translate(x1 + 0.45, 2.1, 0.08);
-    // Round neon sign on a dark backing board, so it reads as signage, not a floating ring (R02).
+    neon.translate(x1 + 0.45, 2.1, face + 0.045);
     const neonBack = new THREE.CylinderGeometry(0.36, 0.36, 0.02, 32);
     neonBack.rotateX(Math.PI / 2);
-    neonBack.translate(x1 + 0.45, 2.1, 0.045);
+    neonBack.translate(x1 + 0.45, 2.1, face + 0.01);
     return {
       cabinet,
       counter,
@@ -259,6 +265,24 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       neonBack,
     };
   }, [venue]);
+  return (
+    <group name="back-bar">
+      <mesh geometry={g.cabinet} material={m.backBarWood} />
+      <mesh geometry={g.counter} material={m.barBase} />
+      <mesh geometry={g.counterTop} material={m.marble} />
+      {g.fridges && <mesh geometry={g.fridges} material={m.fridge} />}
+      {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
+      {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
+      {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
+      <mesh geometry={g.canopy} material={m.steel} />
+      <mesh geometry={g.neonBack} material={m.blackMetal} />
+      <mesh geometry={g.neon} material={m.exitSign} />
+    </group>
+  );
+}
+
+/** The bottles on the back bar's shelves: one instanced mesh, so drawn outside `StaticMerge`. */
+export function BackBarBottles({ venue }: Pick<P, "venue">) {
   const bottles = useMemo(() => {
     const [x0, z0, x1] = venue.data.backBar.rect.value;
     // Bottle profile: body, shoulder, neck (lathe), so shelves read as bottles, not book spines.
@@ -309,21 +333,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     },
     [bottles],
   );
-  return (
-    <group name="back-bar">
-      <mesh geometry={g.cabinet} material={m.backBarWood} />
-      <mesh geometry={g.counter} material={m.barBase} />
-      <mesh geometry={g.counterTop} material={m.marble} />
-      {g.fridges && <mesh geometry={g.fridges} material={m.fridge} />}
-      {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
-      {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
-      {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
-      <mesh geometry={g.canopy} material={m.steel} />
-      <mesh geometry={g.neonBack} material={m.blackMetal} />
-      <mesh geometry={g.neon} material={m.exitSign} />
-      <primitive object={bottles} />
-    </group>
-  );
+  return <primitive object={bottles} />;
 }
 
 export function Furnishings({

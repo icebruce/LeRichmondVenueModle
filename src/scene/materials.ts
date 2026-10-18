@@ -113,7 +113,10 @@ float noise3(vec3 p) {
 }
 
 /** Evening glow of the stair's LED treads: saturated enough to stay lime-yellow after tone mapping. */
-export const LED_GLOW = 0.6;
+export const LED_GLOW = 1.0;
+
+/** A contact shadow's plane is this many times the footprint it darkens. */
+export const CONTACT_SPREAD = 1.6;
 
 /** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
 export const SHADOW_SPREAD = 1.25;
@@ -186,21 +189,36 @@ export function useMaterials(quality: Quality) {
       // Honey pine deck with darker beams (R02).
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
       timber: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
+      // The same timber on the ceiling beams and the raised floor's sides, which carry the baked
+      // light (V2), kept apart from the stair's live-lit timber.
+      beam: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
       steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
       girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
-      cap: std({ color: "#e6dfd3", roughness: 0.8 }),
+      // Its evening glow (set with the lighting) keeps it the lightest frame of the model.
+      cap: std({ color: "#e6dfd3", emissive: "#e6dfd3", emissiveIntensity: 0, roughness: 0.8 }),
+      // Soft contact shadows under tables, chairs and standing guests (V2, Grounded): the baked
+      // floor takes no live shadow, so these ground what stands on it.
+      contact: new THREE.MeshBasicMaterial({
+        color: "#000000",
+        map: softShadowTexture(CONTACT_SPREAD, 0.3),
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+      }),
       groundShadow: new THREE.MeshBasicMaterial({
         map: softShadowTexture(SHADOW_SPREAD),
         transparent: true,
         depthWrite: false,
       }),
-      marble: std({ map: marble, roughness: 0.18, metalness: 0 }),
+      marble: std({ map: marble, roughness: 0.3, metalness: 0 }),
       barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
-      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 1.8, roughness: 0.5 }),
+      shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 3, roughness: 0.5 }),
       bottles: std({
         color: "#5b3a1e",
         emissive: "#c27a2c",
@@ -214,7 +232,7 @@ export function useMaterials(quality: Quality) {
       // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
       kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
       blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
-      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 2.4, roughness: 0.3 }),
+      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 1.8, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
         color: "#fff6e8",
         emissive: "#ffd9a0",
@@ -267,11 +285,18 @@ export function useMaterials(quality: Quality) {
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       // The closed side under the second flight and the turn landing (owner photo 4).
       stairWall: std({ color: "#262b28", roughness: 0.9 }),
+      // The mezzanine's underside, which carries the baked light (V2).
+      soffit: std({ color: "#262b28", roughness: 0.9 }),
       terrace: std({ color: "#1b2421", roughness: 1 }),
       street: std({ color: "#5d6266", roughness: 1 }),
       // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and
       // daylight, and a faint lit tint that darkens with the room instead of glowing.
-      danceLine: new THREE.MeshBasicMaterial({ color: DANCE_AREA_COLOUR, depthWrite: false }),
+      // Drawn with the transparent pass, after every floor, whichever floor material sorts first.
+      danceLine: new THREE.MeshBasicMaterial({
+        color: DANCE_AREA_COLOUR,
+        depthWrite: false,
+        transparent: true,
+      }),
       danceTint: new THREE.MeshStandardMaterial({
         color: DANCE_AREA_COLOUR,
         roughness: 1,

@@ -23,7 +23,8 @@
     "library:thumbs": "node scripts/render-thumbnails.mjs",
     "check:assets": "node tools/assets/check-assets.ts",
     "assets:optimize": "node tools/assets/optimize.ts",
-    "assets:textures": "node tools/assets/textures.ts"
+    "assets:textures": "node tools/assets/textures.ts",
+    "bake": "node tools/bake/bake.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -77,8 +77,8 @@
         {
           "id": "restroom-corridor",
           "kind": "corridor",
-          "start": 4.5,
-          "end": 5.45,
+          "start": 5.2,
+          "end": 6.15,
           "sill": 0,
           "head": 2.4
         }
@@ -90,7 +90,8 @@
       "id": "west",
       "from": [0, 12.9],
       "to": [0, 0],
-      "finish": "redBrick",
+      "finish": "brick",
+      "dado": 1.3,
       "openings": [
         {
           "id": "garage-north",
@@ -110,7 +111,7 @@
         }
       ],
       "confidence": "M",
-      "sources": ["R01", "R02", "R03", "U05", "owner 2026-10-17"]
+      "sources": ["R01", "R02", "R03", "U05", "owner 2026-10-17", "owner 2026-10-18"]
     },
     {
       "id": "east",
@@ -202,9 +203,9 @@
   ],
   "bar": {
     "outer": {
-      "value": [6.45, 2.16, 9.81, 7.85],
+      "value": [6.45, 3.06, 9.81, 7.85],
       "confidence": "M",
-      "sources": ["F01", "R02", "U01", "owner 2026-10-17"]
+      "sources": ["F01", "R02", "U01", "owner 2026-10-17", "owner 2026-10-18"]
     },
     "legWidth": 0.87,
     "frontDepth": 0.7,
@@ -219,13 +220,13 @@
   },
   "backBar": {
     "rect": {
-      "value": [5.67, 0, 10.6, 0.6],
+      "value": [5.67, 0.9, 10.6, 1.5],
       "confidence": "M",
-      "sources": ["R02", "R03", "UV01"]
+      "sources": ["R02", "R03", "UV01", "owner 2026-10-18"]
     },
     "height": 3.1,
     "canopyHeight": 3.35,
-    "rearCounter": [5.67, 0.6, 10.6, 1.2]
+    "rearCounter": [5.67, 1.5, 10.6, 2.1]
   },
   "mezzanine": {
     "edgeZ": 12.9,
@@ -436,7 +437,7 @@
     "dollhouse": {
       "position": [26, 24, 30],
       "target": [8, 0.5, 6.3],
-      "fov": 30
+      "fov": 20
     },
     "plan": {
       "position": [8, 40, 6.5],

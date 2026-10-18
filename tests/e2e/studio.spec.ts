@@ -385,6 +385,19 @@ for (const [quality, limitMb] of [
     expect(textures.some((t) => t.endsWith("_2k.webp"))).toBe(quality === "high");
   });
 
+test("[LGT-03] the room draws with its light maps when the bake matches it, and live-lit when it does not", async ({
+  page,
+}) => {
+  type Hooks = { __bakeState: () => string };
+  const state = () => page.evaluate(() => (window as unknown as Hooks).__bakeState());
+  await openStudio(page);
+  await page.waitForFunction(() => "__bakeState" in window, null, { timeout: 60_000 });
+  expect(await state()).toBe("baked");
+  await openStudio(page, "fresh&bake=stale");
+  await page.waitForFunction(() => "__bakeState" in window, null, { timeout: 60_000 });
+  expect(await state()).toBe("live");
+});
+
 test("[PLT-03] a tier change while the view is still redraws the room and its shadows, then compiles nothing more", async ({
   page,
 }) => {
