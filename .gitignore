@@ -15,3 +15,7 @@ references/PRIVATE_LOCAL_PHOTO_CACHE/
 references/private_media/
 .vercel/
 references/private_media/requests/
+
+# Blender as a Python module (tools/README.md)
+venv/
+__pycache__/

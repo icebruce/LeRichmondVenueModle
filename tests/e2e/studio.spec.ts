@@ -298,87 +298,127 @@ test("[CAM-05] [VEN-01] reference views land exactly on their pose; Reset view r
   for (let i = 0; i < 3; i++) expect(back[i]).toBeCloseTo(start[i] ?? NaN, 0);
 });
 
-test("[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] 15 fully set tables, a dressed room and 150 people stay inside the draw-call and triangle budgets", async ({
+// The benchmark scenes (src/app/bench.ts): the venue sample with the heaviest dressing and 75
+// guests; 15 fully set tables, a dressed room and 150 guests. Phone budgets for the phone tiers.
+// Balanced is measured on a frame of motion (its ambient occlusion is drawn only once the view is
+// still; that frame is logged, not held to the budget, and goes to the V0 device gate).
+for (const [bench, items] of [
+  ["sample", 10],
+  ["ppl03", 27],
+] as const)
+  for (const [quality, tier, calls, triangles] of [
+    ["high", "high", 250, 1_500_000],
+    ["low", "balanced", 150, 600_000],
+    ["low", "battery", 150, 600_000],
+  ] as const)
+    test(`[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] benchmark ${bench} on ${tier} stays inside the draw-call and triangle budgets`, async ({
+      page,
+    }) => {
+      type Hooks = {
+        __renderInfo: () => { calls: number; triangles: number };
+        __redraw: () => void;
+        __holdMotion: () => void;
+      };
+      await page.goto(`/?bench=${bench}&quality=${quality}&tier=${tier}`);
+      await page.waitForFunction(() => (window as unknown as { __renderInfo?: unknown }).__renderInfo, null, {
+        timeout: 60_000,
+      });
+      await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
+      expect((await state(page)).active?.items.length).toBe(items);
+      // Each reading forces a full frame (shadow pass included) and reads it on the next one.
+      const read = async () => {
+        for (let i = 0; i < 2; i++) {
+          await page.evaluate(() => (window as unknown as Hooks).__redraw());
+          await page.waitForTimeout(400);
+        }
+        return page.evaluate(() => (window as unknown as Hooks).__renderInfo());
+      };
+      // Measure the settled room: software rendering takes a few seconds to build every mesh.
+      const settled = async () => {
+        let info = await read();
+        for (let i = 0; i < 20; i++) {
+          const next = await read();
+          const same = next.calls === info.calls && next.triangles === info.triangles;
+          info = next;
+          if (same) break;
+        }
+        return info;
+      };
+      if (tier === "balanced") {
+        const still = await settled();
+        console.log(`${bench} ${tier} still frame: ${still.calls} draw calls, ${still.triangles} triangles`);
+        await page.evaluate(() => (window as unknown as Hooks).__holdMotion());
+      }
+      const info = await settled();
+      console.log(`${bench} ${tier}: ${info.calls} draw calls, ${info.triangles} triangles`);
+      expect(info.calls).toBeGreaterThan(0);
+      expect(info.calls).toBeLessThan(calls);
+      expect(info.triangles).toBeLessThan(triangles);
+    });
+
+test("[PLT-03] a tier change while the view is still redraws the room and its shadows, then compiles nothing more", async ({
   page,
 }) => {
-  for (const [quality, calls, triangles] of [
-    ["high", 250, 1_500_000],
-    ["low", 150, 600_000],
-  ] as const) {
-    await page.goto(`/?quality=${quality}&fresh`);
-    await page.waitForFunction(() => (window as unknown as { __renderInfo?: unknown }).__renderInfo, null, {
-      timeout: 60_000,
-    });
-    await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
-    const tables = await page.evaluate(() => {
-      const ed = (window as unknown as W).__studio.editor as unknown as {
-        createScenario: (kind: "blank" | "sample") => string;
-        addItem: (id: string, at: [number, number], o?: Record<string, number>) => string | null;
-        setGuests: (n: number) => void;
-        applyStyle: (target: "all", patch: Record<string, unknown>) => void;
-        setStyle: (key: string, value: boolean) => void;
-        active: () => { items: { libraryId: string }[] };
-      };
-      // 15 round tables of 8 in an empty room and 150 guests: 120 seated, 30 standing; the
-      // heaviest table dressing the layout allows (DEC-02 leaves off candles with no room): eight
-      // each of 5-arm candelabra, candle sand trios and tapers, no flowers, so the most candles
-      // fit (heavier than tall arrangements with a candle mix), runners and full place settings.
-      ed.createScenario("blank");
-      // Seeded across the room on a 2.8 m grid: from one point the free-spot search packs only 13.
-      for (let z = 1.45; z < 12.9; z += 2.8)
-        for (let x = 1.45; x < 16; x += 2.8)
-          if (ed.active().items.length < 15) ed.addItem("table-round", [x, z], { seats: 8 });
-      ed.setGuests(150);
-      ed.applyStyle("all", {
-        florals: "none",
-        candles: [
-          { id: "candelabra", n: 8, arms: 5 },
-          { id: "candle-sand-trio", n: 8 },
-          { id: "candle-tapers", n: 8 },
-        ],
-        runner: "runner-chiffon-ivory",
-        napkin: "napkin-sage",
-        charger: "gold",
-      });
-      for (const k of ["settings", "menus", "tableNumbers"]) ed.setStyle(k, true);
-      // And a dressed room: lights, plants, florals and signs from step 3.
-      for (const [id, x, z] of [
-        ["light-string", 5, 4],
-        ["light-string", 5, 9],
-        ["light-uplight", 0.6, 3],
-        ["light-uplight", 0.6, 7],
-        ["light-disco", 4.5, 11],
-        ["light-chandelier", 11, 6],
-        ["floral-arch", 2.8, 12.6],
-        ["floral-wall", 15, 7],
-        ["plant-olive", 15.5, 2],
-        ["plant-kentia", 12, 11.3],
-        ["sign-neon", 9, 0.4],
-        ["sign-welcome", 14, 12.4],
-      ] as const)
-        ed.addItem(id, [x, z]);
-      return ed.active().items.length;
-    });
-    expect(tables).toBe(27);
-    // Measure the settled room: software rendering takes a few seconds to rebuild every mesh after
-    // 27 additions, and a frame mid-rebuild can briefly hold old and new meshes together.
-    const read = () =>
-      page.evaluate(() =>
-        (window as unknown as { __renderInfo: () => { calls: number; triangles: number } }).__renderInfo(),
-      );
-    let info = await read();
-    for (let i = 0; i < 30; i++) {
-      await page.waitForTimeout(500);
-      const next = await read();
-      const settled = next.calls === info.calls && next.triangles === info.triangles;
-      info = next;
-      if (settled && i >= 3) break;
-    }
-    console.log(`${quality}: ${info.calls} draw calls, ${info.triangles} triangles`);
-    expect(info.calls).toBeGreaterThan(0);
-    expect(info.calls).toBeLessThan(calls);
-    expect(info.triangles).toBeLessThan(triangles);
+  type Hooks = {
+    __setTier: (t: string) => void;
+    __shadowDraws: () => number;
+    __programs: () => number[];
+    __renderInfo: () => { calls: number };
+  };
+  // Auto starts a desktop at High; step down as Auto would.
+  await openStudio(page, "fresh&quality=high");
+  const draws = await page.evaluate(() => (window as unknown as Hooks).__shadowDraws());
+  await page.evaluate(() => (window as unknown as Hooks).__setTier("balanced"));
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as Hooks).__shadowDraws()))
+    .toBeGreaterThan(draws);
+  await page.waitForTimeout(2000);
+  await settle(page);
+  // The room is drawn, not a blank canvas: unshadowed it reads as flat light grey (mean ≈ 220).
+  const shot = await page.getByTestId("studio-canvas").screenshot();
+  const mean = await page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const g = c.getContext("2d") as CanvasRenderingContext2D;
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4)
+      sum += ((d[i] as number) + (d[i + 1] as number) + (d[i + 2] as number)) / 3;
+    return sum / (d.length / 4);
+  }, shot.toString("base64"));
+  expect(mean).toBeLessThan(200);
+  // Shaders for the new tier were compiled once; switching views compiles nothing more.
+  const loaded = Math.max(...(await page.evaluate(() => (window as unknown as Hooks).__programs())));
+  for (const js of ["__studio.editor.setCamera('walk')", "__studio.editor.setCamera('dollhouse')"]) {
+    await page.evaluate(js);
+    await page.waitForTimeout(300);
+    await settle(page);
   }
+  expect(
+    (await page.evaluate(() => (window as unknown as Hooks).__programs())).filter((id) => id > loaded),
+  ).toEqual([]);
+});
+
+test("[PLT-03] ?perf reads out the tier and frame totals and goes to the benchmark cameras", async ({
+  page,
+}) => {
+  await page.goto("/?perf&bench=sample&quality=low&tier=battery");
+  const perf = page.getByTestId("perf");
+  await expect(perf).toContainText("Tier Battery saver", { timeout: 60_000 });
+  await expect(perf).toContainText(/Draw calls [1-9]\d* · triangles \d+k/, { timeout: 60_000 });
+  await expect(perf).toContainText(/GPU ≈ [1-9]\d* MB/, { timeout: 60_000 });
+  await perf.getByRole("button", { name: "Eye level" }).click();
+  // The camera animates there: wait for it to arrive at eye height.
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __pose: () => number[] }).__pose()[1]), {
+      timeout: 60_000,
+    })
+    .toBeCloseTo(1.65, 1);
 });
 
 for (const quality of ["low", "high"] as const)

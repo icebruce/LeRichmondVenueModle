@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 in progress (2026-10-18): frames on demand, shadows once and no shader compiles on switches (PR #16). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 built (PR #16, 2026-10-18), waiting on the owner: approve `docs/mockups/graphics.html`, read `?perf` on the three devices, merge. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -50,7 +50,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 
 | Stage | Delivers (summary) | Priority | State |
 |---|---|---|---|
-| V0 | Performance foundation, measurement, asset pipeline and checks | Must | In progress: rendering merged in parts (PR #16) |
+| V0 | Performance foundation, measurement, asset pipeline and checks | Must | Built (PR #16), waiting on the owner: graphics-setting mock-up, device readings, merge |
 | V1 | Room model and surfaces | Must | Not started |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Not started |
 | V3 | Bar and back bar | Should | Not started |
@@ -95,6 +95,26 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 - **Review:** `ux-reviewer` on the setting mock-up and overlay.
 
 **Gate:** the targets below are met on the owner's devices, or the gap is recorded with a fix plan. The phone draw-call budget is revisited from measurement.
+
+**Built (PR #16, 2026-10-18):**
+
+- Frames on demand, shadows redrawn only when the room's contents change, the same light set in every view, parts hidden rather than unmounted, every shader compiled at load: 0 frames while still and 0 compiles on view, lighting, menu and selection switches (CI, both device weights), and none after a tier change.
+- Tiers High, Balanced, Battery saver with Auto (`state/graphics.ts`); the compare halves draw at Balanced's moving resolution. The in-app setting is not built: `docs/mockups/graphics.html` (ux-reviewed) waits on owner approval. Until then Auto runs everywhere and `?tier=` is for tests.
+- Lever differences from the table, decided in the build: bloom keeps one resolution in every tier, and multisampling, bloom strength and vignette follow the device as before (changing either at run time rebuilds every effect pass, a stall of its own); "Décor and people detail" follows the device (phones load the lighter models, PLT-03), since Auto never changes models. Light maps, textures and the reflection capture levers come with V1 and V2.
+- Static venue parts (floors, railing, bar, back bar, furnishings) merged per material.
+- `?perf` overlay with Copy and the two benchmark cameras (dollhouse, `benchEye`); `?bench=sample|ppl03` opens a benchmark scene on a fresh session.
+- `tools/`: the Blender and Meshy scripts, `check-assets` (in CI; 0 GLBs today, every piece is parametric) and `optimize` (glTF Transform, meshopt). Headless Blender verified: `pip install bpy` runs `mesh_audit.py` (45 open edges on the Meshy man, as the checker also finds).
+
+**Measured in CI (software rendering, frame totals with the shadow pass):**
+
+| Scene | High | Balanced (moving) | Balanced (still frame, with AO) | Battery saver |
+|---|---|---|---|---|
+| Venue sample, heaviest décor, 75 guests | ≈ 125–165 calls, ≈ 0.3–0.5 M tris | ≈ 110 | ≈ 120 | ≈ 70–90 |
+| PPL-03: 15 tables, 150 guests | ≈ 200–220, ≈ 0.85 M | ≈ 140 | ≈ 140–155 | ≈ 85–95 |
+
+The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occlusion passes), above the phone budget of 150; moving frames stay under it. Kept at 150 for the owner's decision at the gate (Open items).
+
+**Device baseline (owner, `?perf` → Copy, at the gate):** laptop —, iPhone 16 —, Galaxy S24 — (not yet read).
 
 ### V1: Room model and surfaces
 
@@ -533,4 +553,4 @@ Stop the visual track when any of these holds:
 - **New spec rows and budgets when built:**
   - Spec rows: bar flowers (VEN), graphics setting and Photo mode (PLT, EXP).
   - `ARCHITECTURE.md` §7 rows: GPU memory, view-switch freeze, idle frames, light maps, people.
-- **Architecture corrections:** `ARCHITECTURE.md` §5 describes three tiers and a frame-time monitor that do not exist yet (the code has two tiers chosen once); corrected in V0.
+- **V0 gate (owner):** approve the graphics setting mock-up (`docs/mockups/graphics.html`); open `?perf&bench=sample` and `?perf&bench=ppl03` on the laptop, iPhone 16 and Galaxy S24, orbit and drag at the dollhouse and eye-level cameras, press Copy and paste the numbers back; decide the phone draw-call budget for Balanced's still frame (≈ 155 against 150); set the GPU memory budget from the readings.

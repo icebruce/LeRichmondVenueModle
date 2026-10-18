@@ -1,3 +1,4 @@
+import { benchParam, buildBench } from "./bench";
 import venueJson from "../../data/venue_geometry.json";
 import tables from "../../data/library/tables.json";
 import chairs from "../../data/library/chairs.json";
@@ -52,7 +53,9 @@ export async function boot(): Promise<{ studio: Studio; cloud: Cloud }> {
     signs,
     photos,
   ]);
-  const fresh = new URLSearchParams(window.location.search).has("fresh");
+  // A benchmark scene (V0) always runs on a fresh session: the couple's plans are never touched.
+  const bench = benchParam();
+  const fresh = new URLSearchParams(window.location.search).has("fresh") || bench !== null;
   // The couple's imports join the catalogue: a new catalogue whenever they change, so the room,
   // counts and lists all recompute (the editor reads it through `deps`).
   const library = new LibrarySync(fresh ? "richmond-studio/fresh" : "richmond-studio");
@@ -80,6 +83,7 @@ export async function boot(): Promise<{ studio: Studio; cloud: Cloud }> {
     }
   });
   if ("activeId" in local && local.activeId) editor.switchScenario(local.activeId);
+  if (bench) buildBench(editor, bench);
   // If saved work could not be read, never overwrite it; the top bar says nothing is being saved.
   if (local.readable) persistLocal(editor, { key, unreadable: local.unreadable });
   else editor.setSaveState("error");

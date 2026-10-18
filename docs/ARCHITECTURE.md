@@ -19,6 +19,7 @@
 | Server | Vercel Functions (Node 22) in `api/` | Plain handlers, no framework. |
 | Storage | Upstash Redis (REST) | Scenarios, versions, notes, catalogue metadata and imported images (§6.3). |
 | Tests | Vitest, Playwright (Chromium; mobile emulation) | See `TEST_STRATEGY.md`. |
+| Asset pipeline (offline, dev only) | Blender (`bpy` module, headless), glTF Transform 4 + meshoptimizer | Authoring, detail and light bakes, `check-assets`, meshopt compression; `tools/README.md`. |
 | Lint/format | ESLint (typescript-eslint strict, react-hooks, import boundaries), Prettier | Enforced by hooks and CI. |
 | Hosting | Vercel Hobby, Git integration | Preview URL per branch, production = `main`. |
 
@@ -42,6 +43,7 @@ src/
   app/      Composition root: routes, providers, store wiring, the printable plan (canvas).
 tests/
   unit/  e2e/  visual/
+tools/   Offline asset pipeline: Blender and Meshy scripts, check-assets, optimize (tools/README.md)
 docs/  references/  scripts/  .claude/
 ```
 
@@ -136,7 +138,10 @@ The inspector builds its controls from `options`, and library captions from the 
 - **Frames on demand (visual stage V0):** the canvas draws only when something changes (`frameloop="demand"`); camera animations, walking and the compare view ask for frames while they move. The one shadow-casting light is fixed, so its shadow map is redrawn only when the room's contents change (plan, drag, guests, cut-away walls), never for a camera move (`scene/frames.tsx`).
 - **No shader compiles after load:** the light set is the same in every view and lighting (unused lights are dimmed to zero, plan view hides its shadow instead of dropping it); parts a view does not show are hidden, not unmounted; lines keep their material when their points change (`scene/items/Line.tsx`); every shader, hidden parts and occasional lines included, is compiled on the second frame for the effects' linear buffer.
 - **Instancing:** chairs, people, candles, glasses use `InstancedMesh` per type and level of detail.
-- **Quality tiers:** `high` (desktop: shadows, AO, bloom, 2× DPR), `medium`, `low` (phone: no AO, 1.5× DPR cap, simplified chandeliers). Chosen from GPU tier detection and adjusted by a frame-time monitor.
+- **Device weight (PLT-03):** phones and touch-first tablets load the lighter models (`lowModel`, fewer segments) and two chandelier lights instead of all (`scene/quality.ts`, `?quality=` for tests). It never changes at run time.
+- **Graphics tiers** (`state/graphics.ts`, VISUAL_STATUS.md "Graphics tiers"): High, Balanced and Battery saver trim polish only — resolution while moving and still, frame cap, ambient occlusion, bloom on or off, shadow size; multisampling, bloom strength and vignette follow the device (changing them at run time rebuilds every effect pass). Auto (default) starts at High on a desktop and Balanced on a phone, steps down after ~2 s of slow frames during motion and up after a sustained good run (never back to a tier it left), remembers its tier per device, and changes tier only while the view is still. Battery saver (phones) draws without effects at ≤ 30 fps. One frame clock in the main view times only frames inside a motion (not the first after a pause, not the still frame). The compare halves draw at Balanced's moving resolution. `?tier=` forces a tier for tests; the in-app setting waits on the owner's approval of `docs/mockups/graphics.html`.
+- **Static merge:** venue parts that never change with the camera (floors, railing, bar, back bar, furnishings) are drawn as one mesh per material (`scene/venue/merge.tsx`), rebuilt only when their inputs change.
+- **Measurement:** `?perf` shows frame times during motion, draw calls, triangles, a GPU memory estimate and the tier, with the benchmark cameras (dollhouse, `benchEye`) and Copy. `?bench=sample|ppl03` opens a benchmark scene on a fresh session (`app/bench.ts`).
 - **Walk collisions:** 2D circle-vs-polygon against level colliders; no physics engine (ADR-5).
 
 ## 6. Server and persistence
@@ -169,7 +174,7 @@ Client resizes to ≤ 1600 px long edge, WebP/JPEG, EXIF stripped, ≤ 500 KB, b
 |---|---|---|
 | First meaningful paint (plan + counts) | < 1.5 s | < 2.5 s |
 | Initial download (JS + scene) | < 12 MB | < 6 MB |
-| Draw calls, full evening scene, 15 tables + 150 people | < 250 | < 150 |
+| Draw calls, full evening scene, 15 tables + 150 people | < 250 | < 150 (frames of motion; Balanced's one still frame, with ambient occlusion, reaches ≈ 155: owner decision at the V0 gate) |
 | Triangles | < 1.5 M | < 600 k |
 | Frame rate | 60 fps target | 30 fps floor |
 | Frames drawn while the view is still | 0 | 0 |

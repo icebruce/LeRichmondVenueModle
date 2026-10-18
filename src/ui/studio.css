@@ -2101,3 +2101,37 @@ textarea.text-input {
 .stepper output.size {
   min-width: 7ch;
 }
+
+/* ---------- ?perf overlay (V0, hidden) ---------- */
+.perf {
+  position: absolute;
+  top: calc(var(--top) + var(--target) + var(--s-3));
+  left: calc(var(--inset-left, 0px) + var(--s-4));
+  max-width: calc(100% - var(--inset-left, 0px) - 2 * var(--s-4) - var(--target) - var(--s-3));
+  box-sizing: border-box;
+  padding: var(--s-3);
+  font: var(--t-footnote);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  /* Under every menu, popover and the phone sheet. */
+  z-index: 5;
+}
+.perf p {
+  margin: 0;
+}
+.perf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.perf-actions span {
+  color: var(--ink-2);
+}
+@media (max-width: 767px) {
+  /* No toolbar row on phones: start at the top. */
+  .perf {
+    top: var(--top);
+  }
+}

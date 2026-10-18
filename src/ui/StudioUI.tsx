@@ -5,6 +5,7 @@ import { shapeOf } from "../domain/layout/items";
 import { itemTitle, spotFor } from "../domain/layout/validate";
 import type { Scenario } from "../domain/scenario/schema";
 import { useStore } from "zustand";
+import { PerfOverlay } from "./Perf";
 import type { StoreApi } from "zustand/vanilla";
 import { type EditorState, ROTATE_STEP } from "../state/editor";
 import { adviseScenario } from "../domain/layout/advisories";
@@ -43,6 +44,8 @@ const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
 
 /** Desktop rail width (mirrors the `--rail-w` token) and the panel's width range (DESIGN_GUIDE §3.1). */
 const RAIL = 76;
+/** The hidden performance overlay (`?perf`, V0). */
+const PERF = new URLSearchParams(window.location.search).has("perf");
 /** Desktop: the toolbar row over the room (12 + 44 + 8 px); the overview frames the room below it. */
 const TOOLBAR_INSET = 64;
 /** Phone: the control column on the right (44 pt and its margins); the overview keeps clear of it. */
@@ -716,6 +719,7 @@ export function StudioUI() {
       ref={ui}
       style={{ "--inset-left": `${insetLeft}px` } as CSSProperties}
     >
+      {PERF && <PerfOverlay />}
       {!phone && (
         <>
           <nav className="rail" aria-label="Sections">

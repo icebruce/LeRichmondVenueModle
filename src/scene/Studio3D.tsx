@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, invalidate, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Html, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -16,11 +16,26 @@ import { StudioContext, type Studio, useEditor, useStudio, useView } from "./con
 import { Items, Outline, useFloorPointer } from "./items/Items";
 import { People } from "./items/People";
 import { Advisories } from "./items/Advisories";
-import { ShaderKeepers, StaticShadows, Warmup, shadowDraws } from "./frames";
+import {
+  DirectRender,
+  FrameClock,
+  Pacing,
+  PerfProbe,
+  ShaderKeepers,
+  StaticShadows,
+  Warmup,
+  shadowDraws,
+} from "./frames";
 import { useMaterials } from "./materials";
-import { type Quality, detectQuality } from "./quality";
+import { type Quality, detectQuality, rememberedAutoTier, tierChoice } from "./quality";
+import { type AutoTier, LEVERS, type Tier, autoFor, graphicsStore } from "../state/graphics";
+import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
+import { StaticMerge } from "./venue/merge";
+
+/** The hidden performance overlay is on (`?perf`, V0). */
+const PERF = new URLSearchParams(window.location.search).has("perf");
 
 type Cutaway = { cut: ReadonlySet<string>; below: boolean };
 
@@ -62,9 +77,19 @@ function useCutaway(mode: CameraMode, view: string | null): Cutaway {
  * lighting (a change would recompile every shader, the lag on a switch): lights a mode does not use
  * are dimmed to zero instead of removed, and plan view hides its shadow instead of dropping it.
  */
-function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quality; plan: boolean }) {
+function Lighting({
+  evening,
+  quality,
+  tier,
+  plan,
+}: {
+  evening: boolean;
+  quality: Quality;
+  tier: Tier;
+  plan: boolean;
+}) {
   const { venue } = useStudio();
-  const shadowSize = quality === "high" ? 2048 : 1024;
+  const shadowSize = LEVERS[tier].shadow;
   const fixtures = venue.data.fixtures.chandeliers;
   const W = venue.width;
   const D = venue.depth;
@@ -73,13 +98,15 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
     <>
       <hemisphereLight args={evening ? ["#6a5139", "#20170e", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
       <directionalLight
+        // A new tier's shadow size needs a new shadow map.
+        key={shadowSize}
         position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 0.35 : 2.4}
         color={evening ? "#ffcf9a" : "#fff4e6"}
-        castShadow
+        castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         shadow-intensity={plan ? 0 : 1}
-        shadow-mapSize={[shadowSize, shadowSize]}
+        shadow-mapSize={[shadowSize || 1, shadowSize || 1]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
         shadow-camera-left={-12}
@@ -127,26 +154,35 @@ function Lighting({ evening, quality, plan }: { evening: boolean; quality: Quali
   );
 }
 
-function Effects({ evening, quality }: { evening: boolean; quality: Quality }) {
-  if (quality === "low") {
-    return (
-      <EffectComposer multisampling={0}>
-        <Bloom intensity={evening ? 0.7 : 0.15} luminanceThreshold={0.9} mipmapBlur />
-        <ToneMapping mode={ToneMappingMode.AGX} />
-      </EffectComposer>
-    );
-  }
+/**
+ * Effects per tier (Graphics tiers): ambient occlusion live on High, only in the still frame on
+ * Balanced. Battery saver has none and draws directly
+ * (`DirectRender`). The look (bloom strength, vignette) follows the device, as before tiers, so a
+ * tier change never changes it.
+ */
+function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; quality: Quality }) {
+  const levers = LEVERS[tier];
+  const moving = useStore(graphicsStore, (s) => s.moving);
+  if (levers.direct) return null;
+  const high = quality === "high";
   return (
-    <EffectComposer multisampling={4}>
-      <N8AO aoRadius={0.7} intensity={evening ? 2.2 : 1.6} distanceFalloff={0.6} halfRes />
+    // Multisampling by device too: changing it rebuilds every effect pass.
+    <EffectComposer multisampling={high ? 4 : 0}>
+      <N8AO
+        enabled={levers.ao === "live" || !moving}
+        aoRadius={0.7}
+        intensity={evening ? 2.2 : 1.6}
+        distanceFalloff={0.6}
+        halfRes
+      />
       <Bloom
-        intensity={evening ? 0.75 : 0.15}
-        luminanceThreshold={0.85}
-        luminanceSmoothing={0.2}
+        intensity={evening ? (high ? 0.75 : 0.7) : 0.15}
+        luminanceThreshold={high ? 0.85 : 0.9}
+        luminanceSmoothing={high ? 0.2 : 0.03}
         mipmapBlur
       />
       <ToneMapping mode={ToneMappingMode.AGX} />
-      <Vignette darkness={evening ? 0.42 : 0.2} offset={0.3} />
+      <Vignette darkness={evening ? 0.42 : 0.2} offset={0.3} opacity={high ? 1 : 0} />
     </EffectComposer>
   );
 }
@@ -157,11 +193,14 @@ type ProjectFn = (x: number, y: number, z: number) => [number, number];
 function TestHooks() {
   const get = useThree((s) => s.get);
   const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   // Whole-frame totals across shadow, scene and effect passes, for the budget test (ARCHITECTURE §7).
   const frame = useRef({ calls: 0, triangles: 0 });
   const frames = useRef(0);
   useFrame(() => {
-    frame.current = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    // Battery saver skips display frames between its drawn ones: keep the last drawn frame's totals.
+    if (gl.info.render.calls)
+      frame.current = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
     frames.current++;
     gl.info.reset();
   }, -100);
@@ -171,12 +210,19 @@ function TestHooks() {
     // Frames drawn so far, and the ids of the compiled shader programs: a new id means a compile.
     (window as unknown as { __frames?: () => number }).__frames = () => frames.current;
     (window as unknown as { __shadowDraws?: () => number }).__shadowDraws = () => shadowDraws.n;
+    (window as unknown as { __holdMotion?: () => void }).__holdMotion = () =>
+      graphicsStore.setState({ moving: true, hold: true });
+    // A full frame, shadow pass included, for the budget test: the worst frame is what counts.
+    (window as unknown as { __redraw?: () => void }).__redraw = () => {
+      gl.shadowMap.needsUpdate = true;
+      invalidate();
+    };
     (window as unknown as { __programs?: () => number[] }).__programs = () =>
       (gl.info.programs ?? []).map((p) => p.id);
     return () => {
       gl.info.autoReset = true;
     };
-  }, [gl]);
+  }, [gl, invalidate]);
   useEffect(() => {
     const w = window as unknown as { __project?: ProjectFn };
     const fn: ProjectFn = (x, y, z) => {
@@ -302,7 +348,19 @@ function SelectionAnchor() {
   return null;
 }
 
-function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
+function Scene({
+  quality,
+  tier,
+  follow,
+  auto,
+  onTier,
+}: {
+  quality: Quality;
+  tier: Tier;
+  follow: boolean;
+  auto: AutoTier | null;
+  onTier: (t: Tier) => void;
+}) {
   const { venue } = useStudio();
   const m = useMaterials();
   const mode = useEditor((s) => s.camera);
@@ -319,13 +377,18 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
   return (
     <>
       <primitive attach="background" object={background} />
-      <Lighting evening={evening} quality={quality} plan={mode === "plan"} />
+      <Lighting evening={evening} quality={quality} tier={tier} plan={mode === "plan"} />
       <Walls venue={venue} m={m} cutWalls={cut} />
-      <Floors venue={venue} m={m} />
-      <Railing venue={venue} m={m} />
-      <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
-      <BackBar venue={venue} m={m} />
-      <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+      {/* The parts that never change with the camera, one mesh per material. */}
+      <StaticMerge
+        version={`${scenario.venueToggles.barStools}|${mode === "plan"}|${JSON.stringify(scenario.venueToggles.paintings)}`}
+      >
+        <Floors venue={venue} m={m} />
+        <Railing venue={venue} m={m} />
+        <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
+        <BackBar venue={venue} m={m} />
+        <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+      </StaticMerge>
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       {/* Parts a view does not show are hidden, not unmounted: showing them never compiles a shader. */}
       <group visible={eyeLevel}>
@@ -343,13 +406,19 @@ function Scene({ quality, follow }: { quality: Quality; follow: boolean }) {
       <People low={quality === "low"} />
       <Advisories hidden={mode === "walk"} />
       <ShaderKeepers />
-      <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}`} />
+      <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}|${LEVERS[tier].shadow}`} />
       <CameraRig follow={follow} />
       {!follow && <TestHooks />}
+      {!follow && PERF && <PerfProbe />}
       {!follow && <SelectionAnchor />}
       {!follow && <LibraryDrop evening={evening} />}
-      <Effects evening={evening} quality={quality} />
-      <Warmup />
+      <Effects evening={evening} tier={tier} quality={quality} />
+      {LEVERS[tier].direct && <DirectRender />}
+      {/* The main view keeps time and paces; the compare halves follow its camera. */}
+      {!follow && <FrameClock fps={LEVERS[tier].direct ? LEVERS[tier].fps : Infinity} />}
+      {!follow && <Pacing tier={tier} auto={auto} onTier={onTier} />}
+      {/* Again after a tier change, whose effects and shadows need other shaders. */}
+      <Warmup key={tier} direct={LEVERS[tier].direct} />
     </>
   );
 }
@@ -365,6 +434,26 @@ export function Studio3D({
   follow?: boolean;
 }) {
   const quality = useMemo(() => detectQuality(), []);
+  // The compare halves draw at Balanced; the main view follows the couple's choice, Auto by default.
+  const auto = useMemo(
+    () => (follow || tierChoice() !== "auto" ? null : autoFor(quality === "low", rememberedAutoTier())),
+    [follow, quality],
+  );
+  const [tier, setTier] = useState<Tier>(() => {
+    const choice = tierChoice();
+    return follow ? "balanced" : (auto?.tier ?? (choice === "auto" ? "high" : choice));
+  });
+  useEffect(() => {
+    // A new tier is drawn at once (its shadows too), not at the next change.
+    invalidate();
+    if (follow) return;
+    graphicsStore.setState({ choice: tierChoice(), tier });
+    // Test hook: a tier change as Auto makes it.
+    (window as unknown as { __setTier?: (t: Tier) => void }).__setTier = setTier;
+  }, [follow, tier]);
+  // Lower resolution while the main view moves (the compare halves draw at Balanced's moving one).
+  const moving = useStore(graphicsStore, (s) => s.moving);
+  const dpr = LEVERS[tier].dpr;
   const dollhouse = studio.venue.data.cameraPresets.dollhouse;
   return (
     <Canvas
@@ -372,7 +461,7 @@ export function Studio3D({
       frameloop="demand"
       // PCF: three dropped soft PCF and falls back to it anyway; naming it keeps shaders compiled ahead valid.
       shadows="percentage"
-      dpr={quality === "high" ? [1, 2] : [1, 1.5]}
+      dpr={[1, follow ? dpr.moving : moving ? dpr.moving : dpr.still]}
       gl={{
         antialias: false,
         toneMapping: THREE.NoToneMapping,
@@ -396,7 +485,7 @@ export function Studio3D({
     >
       <StudioContext.Provider value={studio}>
         <Suspense fallback={null}>
-          <Scene quality={quality} follow={follow} />
+          <Scene quality={quality} tier={tier} follow={follow} auto={auto} onTier={setTier} />
         </Suspense>
       </StudioContext.Provider>
     </Canvas>
