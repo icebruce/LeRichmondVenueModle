@@ -65,6 +65,9 @@ function buildOpenings(wall: WallData) {
   const voids: THREE.BufferGeometry[] = [];
   const signs: THREE.BufferGeometry[] = [];
   const warm: THREE.BufferGeometry[] = [];
+  const greens: THREE.BufferGeometry[] = [];
+  const floors: THREE.BufferGeometry[] = [];
+  const prints: THREE.BufferGeometry[] = [];
   for (const o of wall.openings) {
     const mtx = openingMatrix(wall, o.start);
     const w = o.end - o.start;
@@ -99,6 +102,19 @@ function buildOpenings(wall: WallData) {
       add(kitchen, [local(0, 0, -0.34, w, o.head, -0.33)]);
       add(frames, [local(0, 0.95, -0.3, w, 1.0, 0.15)]);
       add(voids, [local(-0.05, 0, -1.55, 0, o.head, -0.2), local(w, 0, -1.55, w + 0.05, o.head, -0.2)]);
+    } else if (o.kind === "corridor") {
+      // A short corridor with green walls and a framed black-and-white photo facing the room (R07).
+      const d = 1.6;
+      add(greens, [
+        local(-0.05, 0, -d, 0, o.head, -0.2),
+        local(w, 0, -d, w + 0.05, o.head, -0.2),
+        local(-0.05, 0, -d - 0.05, w + 0.05, o.head, -d),
+        local(-0.05, o.head, -d, w + 0.05, o.head + 0.05, -0.2),
+      ]);
+      add(floors, [local(0, -0.05, -d, w, 0, -0.2)]);
+      const fw = Math.min(0.42, w * 0.45);
+      add(frames, [local(w / 2 - fw / 2, 1.25, -d, w / 2 + fw / 2, 1.8, -d + 0.03)]);
+      add(prints, [local(w / 2 - fw / 2 + 0.06, 1.31, -d + 0.03, w / 2 + fw / 2 - 0.06, 1.74, -d + 0.035)]);
     } else if (o.kind === "opening" && o.sill === 0) {
       add(voids, [local(0, 0, -2.0, w, o.head, -1.95)]);
       add(signs, [local(w / 2 - 0.18, o.head + 0.1, 0.0, w / 2 + 0.18, o.head + 0.28, 0.06)]);
@@ -114,6 +130,9 @@ function buildOpenings(wall: WallData) {
     voids: merge(voids),
     signs: merge(signs),
     warm: merge(warm),
+    greens: merge(greens),
+    floors: merge(floors),
+    prints: merge(prints),
   };
 }
 
@@ -136,6 +155,9 @@ export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: Readon
           {built.signs && <mesh geometry={built.signs} material={m.exitSign} />}
           {built.warm && <mesh geometry={built.warm} material={evening ? m.shelfGlow : m.fridge} />}
           {built.curtains && <mesh geometry={built.curtains} material={m.velvet} castShadow />}
+          {built.greens && <mesh geometry={built.greens} material={m.greenPanel} />}
+          {built.floors && <mesh geometry={built.floors} material={m.woodFloor} receiveShadow />}
+          {built.prints && <mesh geometry={built.prints} material={m.windowFrame} />}
         </group>
       ))}
     </group>

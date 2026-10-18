@@ -73,7 +73,16 @@
       "to": [16, 0],
       "finish": "brick",
       "dado": 1.05,
-      "openings": [],
+      "openings": [
+        {
+          "id": "restroom-corridor",
+          "kind": "corridor",
+          "start": 4.5,
+          "end": 5.45,
+          "sill": 0,
+          "head": 2.4
+        }
+      ],
       "confidence": "H",
       "sources": ["R01", "R03", "R07", "UV01"]
     },
@@ -224,6 +233,7 @@
     "xTo": 14.8,
     "depth": 3.0,
     "fasciaDepth": 0.9,
+    "projection": 0.6,
     "floorHeight": {
       "value": 3.8,
       "min": 3.5,
@@ -279,7 +289,7 @@
     "banquettes": [
       {
         "x0": 0.7,
-        "x1": 5.3,
+        "x1": 4.35,
         "z": 0,
         "depth": 0.6,
         "backHeight": 1.35

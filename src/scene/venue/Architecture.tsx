@@ -267,20 +267,24 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
   const g = useMemo(() => {
     const z = venue.data.mezzanine;
     const H = z.floorHeight.value;
-    const z0 = z.edgeZ;
-    const z1 = z0 + z.depth;
+    const z1 = z.edgeZ + z.depth;
+    // The edge overhangs the room past the wall below (R09, owner photo 3).
+    const z0 = z.edgeZ - z.projection;
     const fascia = boxGeo(z.xFrom, H - z.fasciaDepth, z0 - 0.02, z.xTo, H, z0 + 0.25);
     const floor = boxGeo(z.xFrom, H - 0.02, z0, z.xTo, H, z1, TILE.floor);
+    // The underside of the overhang: a dark recess above the entrance, the pass and the corridor.
+    const soffit = boxGeo(z.xFrom, H - 0.3, z0 + 0.25, z.xTo, H - 0.02, z.edgeZ);
     const back = boxGeo(-0.35, 0, z1, venue.width + 0.35, venue.ceiling, z1 + 0.3);
     // The street wall carries on along the stairwell to the back, lit like the room (R09).
-    const street = boxGeo(venue.width, 0, z0, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
+    const street = boxGeo(venue.width, 0, z.edgeZ, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
     // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
     const edge = guard([z.xFrom, z0 + 0.06], [z.xTo, z0 + 0.06], H);
     const well = guard([z.xTo - 0.06, z0 + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
     // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
-    const below = boxGeo(0, 0, z0 + 0.36, z.xTo, H - z.fasciaDepth, z1);
+    const below = boxGeo(0, 0, z.edgeZ + 0.36, z.xTo, H - z.fasciaDepth, z1);
     return {
       fascia,
+      soffit,
       floor,
       back,
       street,
@@ -292,6 +296,7 @@ export function Mezzanine({ venue, m }: Pick<Props, "venue" | "m">) {
   return (
     <group name="mezzanine">
       <mesh geometry={g.fascia} material={m.greenPanel} />
+      <mesh geometry={g.soffit} material={m.stairWall} />
       <mesh geometry={g.floor} material={m.woodFloor} />
       <mesh geometry={g.back} material={m.darkVoid} />
       <mesh geometry={g.street} material={m.brick} />
@@ -359,7 +364,8 @@ function flightGeo(
     const y = y0 + step * (i + 1);
     const [lo, hi] = run > 0 ? [a, a + run + 0.03] : [a + run - 0.03, a];
     wood.push(box(lo, y - 0.05, va, hi, y, vb, TILE.floor));
-    led.push(box(a - 0.01, y - 0.075, va + 0.02, a + 0.01, y - 0.05, vb - 0.02));
+    // The LED glow spreads across the whole tread top, lime-yellow (R01, R09, R11).
+    led.push(box(lo + 0.03, y, va + 0.03, hi - 0.03, y + 0.003, vb - 0.03));
     if (solid) base.push(box(lo, 0, va, hi, y - 0.05, vb));
   }
   const du = run * shown;

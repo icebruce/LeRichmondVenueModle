@@ -125,7 +125,8 @@ export function useMaterials(quality: Quality) {
       fridge: std({ color: "#c9d7cf", emissive: "#e8f2ea", emissiveIntensity: 0.35, roughness: 0.2 }),
       brass: std({ color: "#b8955f", metalness: 1, roughness: 0.32 }),
       windowFrame: std({ color: "#e4e1d9", roughness: 0.6 }),
-      kitchen: std({ color: "#dfe3e0", emissive: "#f3f5f0", emissiveIntensity: 0.5, roughness: 0.3 }),
+      // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
+      kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
       blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
       bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 2.4, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
@@ -155,7 +156,8 @@ export function useMaterials(quality: Quality) {
       }),
       leather: std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 }),
       flame: std({ color: "#ffd18a", emissive: "#ffb347", emissiveIntensity: 4 }),
-      led: std({ color: "#ffd77a", emissive: "#ffcc55", emissiveIntensity: 2.2 }),
+      // Stair tread glow: lime-yellow, across each tread top (R01, R09, R11).
+      led: std({ color: "#d9e86a", emissive: "#d4ec4f", emissiveIntensity: 1.1, roughness: 0.6 }),
       exitSign: std({ color: "#3a0b0b", emissive: "#ff2a2a", emissiveIntensity: 1.6 }),
       wineFrame: std({
         color: "#5c1717",

@@ -41,7 +41,7 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) predates the owner's c
 | Black drum pendants, track spots, projector(s) | O: R01 R02 R04 U04 UV02 | H | Projector near glazing (R04, U04). |
 | Ceiling: timber beams on tongue-and-groove planks, riveted black steel girders, black ducts; skylight near bar | O: R01 R02 R03 U03 UV02 | H | Dance floor zone is under this full-height ceiling (C). |
 | West wall: 2 black steel glazed garage doors (a fine grid of small panes) | O: R02 R03 R04 R17 U01 U04 U05 · C | H | The doors take the wall: ≈ 5.6 m each, a 0.6 m divider, from the north end; a small wall (≈ 0.9 m) at the south end (C, 2026-10-17; shortened with the room in round 2). Terrace beyond = background only. |
-| Restroom corridor: an opening in the north wall near the pop-art painting into a green-walled corridor with a framed photo | O: R07 · C | M presence / L position | Owner, 2026-10-17. Exact position (between the back bar's east end and the painting, or east of it) fixed from R07 when modelled (visual plan V1). |
+| Restroom corridor: an opening in the north wall near the pop-art painting into a green-walled corridor with a framed photo | O: R07 · C | M presence / L position | Owner, 2026-10-17. Modelled (V1) from R07 at x ≈ 4.5–5.45, 2.4 m high: in R07 the pop-art hangs left (west) of the back bar, with ≈ 0.2 m of brick, the opening and a dark post between them; the north banquette now ends at x 4.35. To confirm with the owner: R01 and UV01 show the pop-art east of the bar, so the paintings may have moved between photos. |
 | Dark green panelled wall, tufted banquette, EXIT door seen in R04 | O: R04 · C | M | Not on the west wall (C, 2026-10-17); the south (kitchen) wall is the green one. |
 | North wall: buff brick over red-brick dado; tufted nail-head banquettes; horseman painting (west of back bar), pop-art portrait (east of back bar) | O: R01 R03 R06 R07 U03 U05 UV01 · C: F01 white rectangles = paintings | M | Artwork moves between years (R08, R15 differ); treat paintings as swappable. |
 | East wall: double-height street windows, velvet curtains, brick piers with red-brick bands | O: R05 R09 R10 R13 R15 UV01 UV02 | M | Window height est. 5–6 m (L). |
@@ -88,7 +88,7 @@ The drawn map in `docs/mockups/lofi.html` (Venue map tab) predates the owner's c
 | Main room width W–E × depth N–S | ≈ 16 × 12.9 m (range 14–18 × 12.5–16) | L | From F01 proportions if its 8-seat tables are ≈ 3.5 m; south wall moved 1.4 m north of the F01 kitchen line (C, 2026-10-17, round 2). Kitchen + corridor beyond the wall: the mezzanine above them is modelled ≈ 3 m deep (was ≈ 2.2 m) so the second flight, which now runs ≈ 2.4 m past the wall, lands on it (2026-10-17, round 2). |
 | Main ceiling (timber deck) | 6.5–8 m | L | Ceiling well above mezzanine level in R01/UV02 |
 | Mezzanine floor height | 3.5–4.2 m | L | Headroom over kitchen pass in UV02 |
-| Mezzanine projection into the main room | ≈ 0–1 m | L | Sits above kitchen + corridor (C). |
+| Mezzanine projection into the main room | ≈ 0.6 m (range 0–1 m) | L | Sits above kitchen + corridor (C). The edge overhangs the south wall line, a dark recess over the entrance (R09, owner photo 3; modelled in visual stage V1). |
 | Garage door (each) | ≈ 5.6 m W × 3.6–4.4 m H | M | Owner (2026-10-17): the two doors take the west wall, a small wall left at the south end |
 | Street windows | 2–2.5 m W × 5–6 m H | L | Curtain drops vs chairs |
 | Bar island | ≈ 5.7 m (W side) × ≈ 3.4 m (front) | M | 5 stools at the front (≈ 0.65 m pitch), 6 a side (≈ 0.95 m pitch) (C) |

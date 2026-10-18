@@ -70,6 +70,17 @@ describe("advisories", () => {
     ).toBe(false);
   });
 
+  test("[LAY-08] [VEN-01] a table in front of the restroom corridor (R07) is flagged; the sample plan is clear", () => {
+    const front: Item = { ...t("r", 5, 1.2), options: { seats: 4 } };
+    expect(
+      advise([front], 0, DEFAULT_THRESHOLDS, venue, catalog, NONE).some(
+        (x) => x.message.startsWith("Clearance ≈") && x.message.includes("at the restroom corridor"),
+      ),
+    ).toBe(true);
+    const sample = advise(venueSampleItems(), 75, DEFAULT_THRESHOLDS, venue, catalog, NONE);
+    expect(sample.filter((x) => x.message.includes("restroom corridor")).map((x) => x.message)).toEqual([]);
+  });
+
   test("[LAY-08] dance area size is compared with 35% of guests at 0.45 m² each", () => {
     const items = venueSampleItems();
     // Sample dance area 3.9 × 3.1 ≈ 12.1 m²; 75 guests need ≈ 11.8 m²; 150 need ≈ 23.6 m².

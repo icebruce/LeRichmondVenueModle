@@ -14,8 +14,11 @@ const rect4 = z.tuple([z.number(), z.number(), z.number(), z.number()]);
 
 const opening = z.object({
   id: z.string(),
-  /** `stairway`: a plain gap where the stair passes through the wall (no frame, sign or void). */
-  kind: z.enum(["garageDoor", "tallWindow", "door", "opening", "pass", "stairway"]),
+  /**
+   * `stairway`: a plain gap where the stair passes through the wall (no frame, sign or void).
+   * `corridor`: a walk-through opening into a short green-walled corridor (the restrooms, R07).
+   */
+  kind: z.enum(["garageDoor", "tallWindow", "door", "opening", "pass", "stairway", "corridor"]),
   start: z.number(),
   end: z.number(),
   sill: z.number(),
@@ -90,6 +93,8 @@ export const venueSchema = z.object({
     depth: z.number(),
     /** Height of the dark fascia band along the mezzanine edge. */
     fasciaDepth: z.number(),
+    /** How far the edge overhangs the room past the wall below it (m): a dark recess under it. */
+    projection: z.number(),
     floorHeight: estimate,
     confidence,
     sources: z.array(z.string()),
