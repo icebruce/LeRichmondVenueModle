@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Html, Line } from "@react-three/drei";
+import { Html } from "@react-three/drei";
 import {
   type Item,
   type Shape,
@@ -28,6 +28,7 @@ import { type Placed, LIFT, TOP, moved } from "./common";
 import { Chairs, TableDecor } from "./Decor";
 import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
+import { Line } from "./Line";
 
 /** The item an intersected mesh belongs to (its `item-<id>` group), if any. */
 function itemIdOf(o: THREE.Object3D | null): string | null {
@@ -506,7 +507,6 @@ export function Outline({ shape, tone, dark }: { shape: Shape; tone: Tone; dark:
           lineWidth={strong ? 4 : 2}
           depthTest={false}
           renderOrder={11}
-          transparent
           opacity={strong ? 1 : 0.7}
         />
       )}
@@ -519,7 +519,6 @@ export function Outline({ shape, tone, dark }: { shape: Shape; tone: Tone; dark:
         gapSize={0.1}
         depthTest={false}
         renderOrder={10}
-        transparent
         opacity={tone === "hover" ? 0.5 : 0.9}
       />
       {tone !== "ghost" && tone !== "refused" && (
@@ -555,7 +554,6 @@ function Guides({ drag, y, dark }: { drag: Drag; y: number; dark: boolean }) {
           gapSize={0.12}
           depthTest={false}
           renderOrder={12}
-          transparent
           opacity={0.85}
         />
       ))}
@@ -1113,7 +1111,6 @@ function HeightHandle({
       gapSize={0.08}
       depthTest={false}
       renderOrder={order}
-      transparent
       opacity={opacity}
     />
   );

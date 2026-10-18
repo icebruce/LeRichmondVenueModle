@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { useEffect, useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
 import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
 import { makePiece } from "../../domain/layout/pieces";
@@ -59,6 +60,8 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
 export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: Scenario; low: boolean }) {
   const { catalog } = useStudio();
   const drag = useView((s) => s.drag);
+  // Instances are written in place below, so each write asks for a frame (frames are on demand).
+  const invalidate = useThree((s) => s.invalidate);
   const used = useMemo(
     () => [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort(),
     [placed, scenario.style],
@@ -134,7 +137,8 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
         m.computeBoundingSphere();
       }
     }
-  }, [placed, drag, kinds, scenario.style]);
+    invalidate();
+  }, [placed, drag, kinds, scenario.style, invalidate]);
   return (
     <group name="chairs">
       {kinds.map((k) => (
@@ -188,6 +192,8 @@ export function TableDecor({
 }) {
   const { catalog } = useStudio();
   const drag = useView((s) => s.drag);
+  // Instances are written in place below, so each write asks for a frame (frames are on demand).
+  const invalidate = useThree((s) => s.invalidate);
   // Parts per table depend only on its shape and style; a drag just moves them.
   const perItem = useMemo(
     () =>
@@ -219,7 +225,6 @@ export function TableDecor({
         color: "#f3ecdf",
         roughness: 0.6,
         emissive: "#ffb46b",
-        emissiveIntensity: evening ? 0.18 : 0,
       }),
       flame: m.flame,
       glass: m.glass,
@@ -246,12 +251,7 @@ export function TableDecor({
       }),
       wood: new THREE.MeshStandardMaterial({ color: "#7a5a3c", roughness: 0.75 }),
       // Lights (LIB-08): bulbs glow in the evening; coloured beams show only then.
-      bulb: new THREE.MeshStandardMaterial({
-        color: "#fff1d6",
-        emissive: "#ffc77a",
-        emissiveIntensity: evening ? 3 : 0.25,
-        toneMapped: !evening,
-      }),
+      bulb: new THREE.MeshStandardMaterial({ color: "#fff1d6", emissive: "#ffc77a", toneMapped: false }),
       // Beams fade from the fixture outward; glows are soft round pools (washes, glints, halos).
       beam: new THREE.MeshBasicMaterial({
         color: "#ffffff",
@@ -279,13 +279,17 @@ export function TableDecor({
         flatShading: true,
       }),
     }),
-    [m, evening],
+    [m],
   );
+  // The lighting changes values only, never the materials or meshes: no shader compiles on a switch.
+  useEffect(() => {
+    (materials.wax as THREE.MeshStandardMaterial).emissiveIntensity = evening ? 0.18 : 0;
+    (materials.bulb as THREE.MeshStandardMaterial).emissiveIntensity = evening ? 3 : 0.25;
+  }, [materials, evening]);
   const groups = useMemo(() => {
     const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
     for (const { p, parts, base } of perItem) {
       for (const part of parts) {
-        if ((part.slot === "flame" || part.slot === "beam" || part.slot === "glow") && !evening) continue;
         const solid = low && SOLID_SLOTS.has(part.slot);
         const key = `${part.prim}:${solid ? "solid" : part.slot}`;
         let g = map.get(key);
@@ -294,7 +298,7 @@ export function TableDecor({
       }
     }
     return [...map.values()];
-  }, [perItem, evening, low]);
+  }, [perItem, low]);
   const meshes = useMemo(
     () =>
       groups.map((g) => {
@@ -371,8 +375,11 @@ export function TableDecor({
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
+      // Flames, beams and glows show only in the evening.
+      mesh.visible = evening || !["flame", "beam", "glow"].includes(g.slot);
     }
-  }, [meshes, drag, materials]);
+    invalidate();
+  }, [meshes, drag, materials, evening, invalidate]);
   return (
     <group name="table-decor">
       {meshes.map(({ g, mesh }) => (

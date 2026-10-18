@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { useMemo } from "react";
-import { Html, Line } from "@react-three/drei";
+import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { adviseScenario } from "../../domain/layout/advisories";
 import { pointInPolygon } from "../../domain/geometry";
+import { Line } from "./Line";
 import type { Scenario } from "../../domain/scenario/schema";
 import { viewStore } from "../../state/view";
 import { useEditor, useStudio, useView } from "../context";
@@ -14,8 +15,9 @@ const LABEL_MIN_BAND = 400;
 /**
  * Amber dashed outline on each advisory's floor area, with its short label (DESIGN_GUIDE §5);
  * never blocks anything. Live while dragging, so the couple sees an aisle close as they move.
+ * `hidden` (walk view) keeps the outline mounted but undrawn, so returning never compiles a shader.
  */
-export function Advisories() {
+export function Advisories({ hidden }: { hidden: boolean }) {
   const { venue, catalog } = useStudio();
   // In a small view (a phone's compare half, or the band above a half-height sheet) labels would
   // cover the room; outlines stay.
@@ -63,10 +65,12 @@ export function Advisories() {
   );
   // While choosing a seat, the chairs are what matter; the checks step aside.
   const picking = useView((s) => s.pickSeat !== null);
-  if (!segments.length || picking) return null;
+  if (!segments.length) return null;
+  const shown = !hidden && !picking;
   return (
     <group name="advisories">
       <Line
+        visible={shown}
         segments
         points={segments}
         color={amber}
@@ -76,11 +80,11 @@ export function Advisories() {
         gapSize={0.12}
         depthTest={false}
         renderOrder={8}
-        transparent
         opacity={0.95}
       />
       {list.map(
         (a) =>
+          shown &&
           labelled &&
           a.label && (
             <Html

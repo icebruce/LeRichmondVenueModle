@@ -43,7 +43,7 @@ export async function settle(page: Page) {
 
 export async function openStudio(page: Page, query = "fresh") {
   // Software rendering in CI is slow; the light quality tier keeps frames frequent enough to interact.
-  await page.goto(`/?quality=low&${query}`);
+  await page.goto(query.includes("quality=") ? `/?${query}` : `/?quality=low&${query}`);
   await page.waitForFunction(
     () => (window as unknown as W).__studio && (window as unknown as W).__project,
     null,

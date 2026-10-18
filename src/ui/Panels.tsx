@@ -32,6 +32,7 @@ import {
 import { ROTATE_STEP } from "../state/editor";
 import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
 import { libraryStore } from "../state/library";
+import { TIERS, type TierChoice, graphicsStore, tierChoices } from "../state/graphics";
 import { useAdvisories, useEditor, useStudio, useView } from "../scene/context";
 import { Icon, type IconName } from "./icons";
 import { RESULT_LABELS, requestStatus } from "../domain/library/imported";
@@ -1761,13 +1762,14 @@ const VIEWS: { key: string; label: string; detail: string }[] = [
 ];
 
 /** Room (VEN-05, LAY-05, LAY-08, LAY-12): views, the restaurant's own furniture and art, the layout rules. */
-export function RoomPanel({ open }: { open: (page: "rules" | "paintings") => void }) {
+export function RoomPanel({ open }: { open: (page: "rules" | "paintings" | "graphics") => void }) {
   const { editor, venue } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const snapping = useEditor((s) => s.snapping);
   const { front, side } = venue.data.fixtures.venueFurniture.barStools;
   const changed = Object.keys(scenario.venueToggles.paintings).length;
   const t = scenario.thresholds;
+  const g = useStore(graphicsStore);
   return (
     <div className="panel-body" data-testid="venue-panel">
       <PageHead title="Room" />
@@ -1822,6 +1824,70 @@ export function RoomPanel({ open }: { open: (page: "rules" | "paintings") => voi
         Main restaurant floor only. Room ≈ {venue.width} × {venue.depth} m, estimated from photos; every size
         is approximate.
       </p>
+      <h3 className="group-title">This device</h3>
+      <div className="list">
+        <NavRow
+          label="Graphics"
+          value={g.choice === "auto" ? `Auto (${TIER_NAMES[g.tier]})` : TIER_NAMES[g.choice]}
+          onClick={() => open("graphics")}
+          testId="room-graphics"
+        />
+      </div>
+    </div>
+  );
+}
+
+const TIER_NAMES: Record<TierChoice, string> = {
+  auto: "Auto",
+  high: "High",
+  balanced: "Balanced",
+  battery: "Battery saver",
+};
+
+/** Room › This device › Graphics (owner-approved mock-up `docs/mockups/graphics.html`). */
+export function GraphicsPage({ onBack }: { onBack: () => void }) {
+  const g = useStore(graphicsStore);
+  const list = useRef<HTMLDivElement>(null);
+  // Keyboard: the page opens on its chosen row, and going back returns to the Graphics row.
+  useEffect(() => {
+    list.current?.querySelector<HTMLInputElement>("input:checked")?.focus({ preventScroll: true });
+    return () => {
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>('[data-testid="room-graphics"]')?.focus(),
+      );
+    };
+  }, []);
+  const lines: Record<TierChoice, string> = {
+    auto: `Smooth on this device · now ${TIER_NAMES[g.autoTier]}`,
+    high: "Sharpest, softest shadows",
+    balanced: "Lighter while the view moves",
+    battery: "Smoothest on battery · simpler shadows and glow",
+  };
+  // A choice richer than what Auto settled on here may not keep up.
+  const strained = (c: TierChoice) => c !== "auto" && TIERS.indexOf(c) < TIERS.indexOf(g.autoTier);
+  return (
+    <div className="panel-body" data-testid="graphics">
+      <PageHead title="Graphics" back="Room" onBack={onBack} />
+      <div className="list" role="radiogroup" aria-label="Graphics" ref={list}>
+        {tierChoices(g.phone).map((c) => (
+          <label key={c} className="nav-row choice-row" data-testid={`graphics-${c}`}>
+            <input
+              type="radio"
+              name="graphics"
+              className="sr-only"
+              checked={g.choice === c}
+              onChange={() => graphicsStore.setState({ choice: c })}
+            />
+            <span className="nav-label">
+              {TIER_NAMES[c]}
+              <span className="nav-sub">{lines[c]}</span>
+              {g.choice === c && strained(c) && <span className="nav-sub">May stutter on this device</span>}
+            </span>
+            {g.choice === c && <Icon name="check" size={20} className="choice-check" />}
+          </label>
+        ))}
+      </div>
+      <p className="hint">Saved on this device. Lighting and furniture are the same in every choice.</p>
     </div>
   );
 }

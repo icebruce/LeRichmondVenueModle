@@ -92,7 +92,7 @@ To do, in order:
 2. Owner: on the deployed site, save a scenario (first shared save exercises Upstash scripting) and check an import on the second device. Claude cannot sign in, so these stay owner checks.
 3. Owner gate for step 3: import a real centrepiece; the custom request delivered.
 4. Step 4 (owner feedback of 2026-10-17): merged as PR #8–#13 (2026-10-17). Owner checks on a real phone: no pull-to-refresh, the back gesture steps out of layers, the sheet swipes down a step at a time, cloud saves; visual sign-off of the Add library, Style pages and light handle (marked pending in DESIGN_GUIDE). Freeze around 2026-11-10.
-5. Visual track (`VISUAL_STATUS.md`, plan v3): plan approved (owner, 2026-10-18); next V0 (on-demand rendering, shadows drawn once, constant light count, `?perf` overlay, asset checks), and the owner reads the baseline on the iPhone 16 and Galaxy S24. Owner, before V7: attach the people reference image to a custom request ("Guest figures"). Meshy-generated models may be committed (owner, 2026-10-18).
+5. Visual track (`VISUAL_STATUS.md`, plan v3): V0 built in PR #16 (on-demand rendering, shadows drawn once, constant light set, no shader compiles on switches, graphics tiers with Auto, `?perf` and benchmark scenes, asset pipeline and checks). Owner: approve the graphics setting mock-up, read `?perf` on the laptop, iPhone 16 and Galaxy S24, merge; then V1. Owner, before V7: attach the people reference image to a custom request ("Guest figures"). Meshy-generated models may be committed (owner, 2026-10-18).
 
 ## Step 1 quality (2026-10-16)
 

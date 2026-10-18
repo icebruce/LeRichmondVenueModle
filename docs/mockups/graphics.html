@@ -1,0 +1,447 @@
+<title>Graphics Setting Mock-up</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* An annotated sheet: the setting on a phone (Room page, then its own page) and in the desktop
+   panel. Screens use Richmond Studio's own tokens (src/ui/tokens.css); the app is light-only. */
+  :root {
+    --bg: #f7f7f4;
+    --surface: #ffffff;
+    --sunk: #eeede8;
+    --ink: #202522;
+    --ink-2: #5c605b;
+    --ink-3: #7e817b;
+    --line: #e5e5df;
+    --line-2: #d3d2ca;
+    --accent: #98775b;
+    --accent-soft: #efe6dc;
+    --new: #3f7d58;
+    --new-soft: #e6f0ea;
+    --device: #1b1d1a;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+    --t-title: 600 22px/28px var(--font-ui);
+    --t-headline: 600 17px/22px var(--font-ui);
+    --t-body: 400 15px/20px var(--font-ui);
+    --t-callout: 400 14px/19px var(--font-ui);
+    --t-footnote: 400 13px/18px var(--font-ui);
+    --t-caption: 500 12px/16px var(--font-ui);
+    --r-card: 12px;
+    --r-sheet: 16px;
+    --target: 44px;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: var(--t-body);
+    padding: 32px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    gap: 40px;
+  }
+  .intro {
+    display: grid;
+    gap: 8px;
+    max-width: 68ch;
+  }
+  .intro h1 {
+    font: 600 28px/34px var(--font-ui);
+    margin: 0;
+  }
+  .intro p,
+  .note {
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .eyebrow {
+    font: var(--t-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .row-of {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+  }
+  figure {
+    margin: 0;
+    display: grid;
+    gap: 12px;
+    max-width: 100%;
+  }
+  figcaption {
+    font: var(--t-footnote);
+    color: var(--ink-2);
+    max-width: 340px;
+  }
+  figcaption b {
+    color: var(--ink);
+  }
+  .phone {
+    width: 340px;
+    max-width: 100%;
+    height: 700px;
+    border-radius: 40px;
+    border: 10px solid var(--device);
+    background: #2a2622;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .sheet {
+    background: var(--surface);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    padding: 8px 16px 24px;
+    height: 86%;
+    overflow: hidden;
+  }
+  .grab {
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--line-2);
+    margin: 0 auto 12px;
+  }
+  .back {
+    font: var(--t-body);
+    font-weight: 600;
+    color: var(--accent);
+    min-height: var(--target);
+    display: flex;
+    align-items: center;
+  }
+  h2 {
+    font: var(--t-title);
+    margin: 0 0 12px;
+  }
+  h3 {
+    font: var(--t-callout);
+    color: var(--ink-2);
+    margin: 16px 0 8px;
+  }
+  .list {
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    overflow: hidden;
+  }
+  .row {
+    min-height: 52px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .row:first-child {
+    border-top: 0;
+  }
+  .row .label {
+    flex: 1;
+    min-width: 0;
+  }
+  .row .sub {
+    display: block;
+    font: var(--t-footnote);
+    color: var(--ink-2);
+  }
+  .row .value {
+    color: var(--ink-2);
+    font: var(--t-callout);
+  }
+  .chev {
+    color: var(--ink-3);
+  }
+  .check {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+  }
+  .new {
+    outline: 2px dashed var(--new);
+    outline-offset: 2px;
+    border-radius: var(--r-card);
+  }
+  .tag {
+    font: var(--t-caption);
+    color: var(--new);
+    background: var(--new-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .hint {
+    font: var(--t-footnote);
+    color: var(--ink-2);
+    margin: 8px 4px 0;
+  }
+  .views {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .views span {
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    min-height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    font: var(--t-callout);
+  }
+  .toggle {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--line-2);
+    position: relative;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+  .toggle.on {
+    background: var(--accent);
+  }
+  .toggle.on::after {
+    left: 21px;
+  }
+  .check svg {
+    display: block;
+  }
+  .warn {
+    display: block;
+    font: var(--t-footnote);
+    color: var(--ink-2);
+  }
+  .desk {
+    width: 400px;
+    max-width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    padding: 16px 20px 24px;
+  }
+  table {
+    border-collapse: collapse;
+    font: var(--t-callout);
+    width: 100%;
+    max-width: 900px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+</style>
+<div class="page">
+  <header class="intro">
+    <span class="eyebrow">Visual stage V0 · new pattern · for owner approval</span>
+    <h1>Graphics setting</h1>
+    <p>
+      One row at the end of Room, in a new “This device” group, opening its own page with four choices (three
+      on a desktop). Auto is the default and is what both phones and the laptop use today. The page is the
+      grouped list and “‹ Section” pattern already in the app, with a check in the chevron's place on the
+      chosen row.
+    </p>
+    <p class="note"><span class="tag">New</span> Dashed outline marks what is new on each screen.</p>
+  </header>
+
+  <div class="row-of">
+    <figure>
+      <div class="phone" aria-label="Phone, Room page">
+        <div class="sheet">
+          <div class="grab"></div>
+          <h2>Room</h2>
+          <p class="hint">… Views above (scrolled past) …</p>
+          <h3>Restaurant</h3>
+          <div class="list">
+            <div class="row">
+              <span class="label">Bar stools<span class="sub">5 at the front · 6 on each side</span></span
+              ><span class="toggle"></span>
+            </div>
+            <div class="row">
+              <span class="label">Paintings</span><span class="value">Current art</span
+              ><span class="chev">›</span>
+            </div>
+          </div>
+          <h3>Layout</h3>
+          <div class="list">
+            <div class="row">
+              <span class="label">Layout rules<span class="sub">When a check appears</span></span
+              ><span class="value">Aisle 1.0 m</span><span class="chev">›</span>
+            </div>
+            <div class="row">
+              <span class="label">Snap to 10 cm grid</span><span class="toggle on"></span>
+            </div>
+          </div>
+          <p class="hint">
+            Main restaurant floor only. Room ≈ 16 × 12.9 m, estimated from photos; every size is approximate.
+          </p>
+          <h3>This device</h3>
+          <div class="list new">
+            <div class="row">
+              <span class="label">Graphics</span><span class="value">Auto (Balanced)</span
+              ><span class="chev">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <b>1 · Room (scrolled to its end).</b> The new group comes last, after Layout and its hint. The row
+        shows the choice and, under Auto, the tier in use now.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="phone" aria-label="Phone, Graphics page">
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="back">‹ Room</div>
+          <h2>Graphics</h2>
+          <div class="list new" role="radiogroup" aria-label="Graphics">
+            <div class="row" role="radio" aria-checked="true">
+              <span class="label">Auto<span class="sub">Smooth on this device · now Balanced</span></span
+              ><span class="check" aria-hidden="true"
+                ><svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6 9 17l-5-5" /></svg
+              ></span>
+            </div>
+            <div class="row" role="radio" aria-checked="false">
+              <span class="label">High<span class="sub">Sharpest, softest shadows</span></span>
+            </div>
+            <div class="row" role="radio" aria-checked="false">
+              <span class="label">Balanced<span class="sub">Lighter while the view moves</span></span>
+            </div>
+            <div class="row" role="radio" aria-checked="false">
+              <span class="label"
+                >Battery saver<span class="sub">Smoothest on battery · simpler shadows and glow</span></span
+              >
+            </div>
+          </div>
+          <p class="hint">Saved on this device. Lighting and furniture are the same in every choice.</p>
+        </div>
+      </div>
+      <figcaption>
+        <b>2 · Graphics (phone).</b> Opens with the sheet at half height, so the room stays in view; a tap
+        applies at once. Battery saver is listed on phones only. A choice above the tier Auto settled on adds
+        “May stutter on this device” under its line.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="desk" aria-label="Desktop panel, Graphics page">
+        <div class="back">‹ Room</div>
+        <h2>Graphics</h2>
+        <div class="list new" role="radiogroup" aria-label="Graphics">
+          <div class="row" role="radio" aria-checked="true">
+            <span class="label">Auto<span class="sub">Smooth on this device · now High</span></span
+            ><span class="check" aria-hidden="true"
+              ><svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" /></svg
+            ></span>
+          </div>
+          <div class="row" role="radio" aria-checked="false">
+            <span class="label">High<span class="sub">Sharpest, softest shadows</span></span>
+          </div>
+          <div class="row" role="radio" aria-checked="false">
+            <span class="label">Balanced<span class="sub">Lighter while the view moves</span></span>
+          </div>
+        </div>
+        <p class="hint">Saved on this device. Lighting and furniture are the same in every choice.</p>
+      </div>
+      <figcaption><b>3 · Graphics (desktop panel).</b> Same page inside the panel; three choices.</figcaption>
+    </figure>
+  </div>
+
+  <section>
+    <h3 style="color: var(--ink); font: var(--t-headline)">
+      What each choice changes (VISUAL_STATUS.md, Graphics tiers)
+    </h3>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th></th>
+          <th>High</th>
+          <th>Balanced</th>
+          <th>Battery saver (phone)</th>
+        </tr>
+        <tr>
+          <td>Sharpness</td>
+          <td>up to 2×</td>
+          <td>2× still, 1.25× while moving</td>
+          <td>1.25×</td>
+        </tr>
+        <tr>
+          <td>Frame rate</td>
+          <td>60</td>
+          <td>60</td>
+          <td>30</td>
+        </tr>
+        <tr>
+          <td>Depth shading (ambient occlusion)</td>
+          <td>always</td>
+          <td>once the view stops</td>
+          <td>none</td>
+        </tr>
+        <tr>
+          <td>Glow (bloom)</td>
+          <td>on</td>
+          <td>on, lighter</td>
+          <td>glow sprites (from V2)</td>
+        </tr>
+        <tr>
+          <td>Shadows of tables and décor</td>
+          <td>soft, detailed</td>
+          <td>soft, simpler</td>
+          <td>painted under each piece (from V2)</td>
+        </tr>
+      </table>
+    </div>
+    <p class="note" style="margin-top: 12px">
+      Lighting mood and models never change between choices; phones always load the lighter models (PLT-03).
+      Built as native radio inputs in label rows (52 pt): Tab enters the group once, arrow keys move between
+      choices, the accent focus ring shows; the check (Lucide, 20 px, accent) is not the only signal.
+    </p>
+  </section>
+</div>

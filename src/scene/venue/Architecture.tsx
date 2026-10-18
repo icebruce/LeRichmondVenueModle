@@ -250,9 +250,9 @@ export function Ceiling({ venue, m, showCeiling }: Pick<Props, "venue" | "m" | "
     );
     return { planks, beams, girders, ducts: merge(ducts), sky };
   }, [venue]);
-  if (!showCeiling) return null;
+  // Hidden rather than unmounted, so showing it never compiles a shader.
   return (
-    <group name="ceiling">
+    <group name="ceiling" visible={showCeiling}>
       <mesh geometry={g.planks} material={m.ceiling} />
       <mesh geometry={g.beams} material={m.timber} />
       <mesh geometry={g.girders} material={m.steel} />
