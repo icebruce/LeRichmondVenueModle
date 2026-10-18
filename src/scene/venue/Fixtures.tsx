@@ -242,8 +242,8 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 6)
       frame.push(boxGeo(x - 0.04, 0.95, z0, x + 0.04, b.height, z1));
     frame.push(boxGeo(x0, b.height - 0.1, z0, x1, b.height, z1));
-    // The canopy reaches the wall, over the passage behind the shelves (owner's photo, 2026-10-18).
-    const canopy = boxGeo(x0 - 0.2, b.canopyHeight, 0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
+    // Over the shelves only, so the passage behind them stays visible from above.
+    const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
     // Round neon sign on a dark backing board on the wine wall's face, so it reads as signage, not a
     // floating ring (R01, R02).
     const face = venue.data.fixtures.wineWall.rect[3];

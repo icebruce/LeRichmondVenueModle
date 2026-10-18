@@ -5,7 +5,7 @@
   "samples": 256,
   "sets": {
     "evening": {
-      "scale": 3.832294464111328,
+      "scale": 3.833522319793701,
       "files": {
         "2k": "evening_2k.webp",
         "1k": "evening_1k.webp"
