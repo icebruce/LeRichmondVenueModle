@@ -1,6 +1,8 @@
 """Meshy rigged man -> matte (minimal face kept), seated, simplified GLB for the POC.
 
-Usage: python meshy_pose.py <rigged.glb> <out.glb> [standing]
+Usage: python meshy_pose.py <rigged-or-animated.glb> <out.glb> [standing] [frame=N] [hands=table|keep]
+frame=N freezes a Meshy animation clip at frame N as the base pose (mocap posture) instead of
+the hand-set seated pose; hands=keep leaves the clip's arms as they are.
 Blender Z up, front = -Y. Seat top at z 0.50, seat centre at the origin.
 """
 import math
@@ -13,7 +15,10 @@ import bmesh
 from mathutils import Matrix, Vector
 
 src, dst = sys.argv[1], sys.argv[2]
-standing = len(sys.argv) > 3 and sys.argv[3] == "standing"
+opts = dict(a.split("=", 1) if "=" in a else (a, "1") for a in sys.argv[3:])
+standing = "standing" in opts
+frame = int(opts["frame"]) if "frame" in opts else None
+hands_on_table = opts.get("hands", "table") == "table"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
 bpy.ops.import_scene.gltf(filepath=src)
@@ -21,12 +26,16 @@ for o in [o for o in sc.objects if o.name.startswith("Icosphere")]:
     bpy.data.objects.remove(o)
 arm = next(o for o in sc.objects if o.type == "ARMATURE")
 body = next(o for o in sc.objects if o.type == "MESH")
+base = {}
+if frame is not None:
+    sc.frame_set(frame)
+    base = {pb.name: pb.matrix_basis.copy() for pb in arm.pose.bones}
 for o in sc.objects:
     o.animation_data_clear()
 for a in list(bpy.data.actions):
     bpy.data.actions.remove(a)
 for pb in arm.pose.bones:
-    pb.matrix_basis = Matrix.Identity(4)
+    pb.matrix_basis = base.get(pb.name, Matrix.Identity(4))
 bpy.context.view_layer.update()
 
 # --- matte materials ---------------------------------------------------------------------------
@@ -85,7 +94,7 @@ def turn(name, axis_world, deg):
 
 
 spine_low = next(c.name for c in P["Hips"].children if c.name.lower().startswith("spine"))
-if not standing:
+if not standing and frame is None:
     # Pelvis tipped back a little and the spine brought upright again: the hips need less than 90°.
     turn("Hips", (1, 0, 0), 12)
     turn(spine_low, (1, 0, 0), -12)
@@ -99,10 +108,12 @@ for s, sg in (("Left", 1), ("Right", -1)):
         aim(f"{s}Hand", (sg * 0.03, -0.1, -1))
     else:
         aim(f"{s}UpLeg", (sg * 0.07, -1, -0.16))
-        aim(f"{s}Leg", (sg * 0.02, 0.06, -1))
-        aim(f"{s}Foot", (sg * 0.05, -1, -0.55))
-        # Upper arms hang slightly forward; forearms rest toward the table edge.
-        aim(f"{s}Arm", (sg * 0.15, -0.45, -0.88))
+        # Shins straight down and feet flat so the shoes reach the floor.
+        aim(f"{s}Leg", (sg * 0.02, -0.04, -1))
+        aim(f"{s}Foot", (sg * 0.05, -1, -0.45))
+        if hands_on_table:
+            # Upper arms hang slightly forward; forearms rest toward the table edge.
+            aim(f"{s}Arm", (sg * 0.15, -0.32, -0.94))
 bpy.ops.object.mode_set(mode="OBJECT")
 bpy.context.view_layer.update()
 
@@ -120,10 +131,10 @@ def members(name, th=0.5):
     return np.array([v.index for v in body.data.vertices if any(x.group == g and x.weight > th for x in v.groups)])
 
 
-def seat_ref(C):
-    hip = arm.matrix_world @ P["Hips"].head
-    m = (np.abs(C[:, 1] - hip.y) < 0.13) & (np.abs(C[:, 0] - hip.x) < 0.2) & (C[:, 2] < hip.z)
-    return C[m, 2].min(), C[m, 1].max()
+def seat_offset():
+    """World offset that puts the hip joints 10 cm above the seat top, 7 cm in front of its back."""
+    lj = (arm.matrix_world @ P["LeftUpLeg"].head + arm.matrix_world @ P["RightUpLeg"].head) / 2
+    return Vector((-lj.x, 0.07 - lj.y, 0.60 - lj.z))
 
 
 def hand_frame(C, s):
@@ -179,8 +190,8 @@ def place_hand(s, sg, pz, hz=-0.12):
 
 
 twist = []
-if not standing:
-    hand = {s: members(f"{s}Hand") for s in ("Left", "Right")}
+hand = {s: members(f"{s}Hand") for s in ("Left", "Right")}
+if not standing and hands_on_table:
     for s in ("Left", "Right"):
         sg = 1 if (A @ P[f"{s}Arm"].head).x > 0 else -1
         best = None
@@ -189,10 +200,10 @@ if not standing:
             P[f"{s}ForeArm"].matrix_basis, P[f"{s}Hand"].matrix_basis = rest[0].copy(), rest[1].copy()
             place_hand(s, sg, pz, tz)
             C = coords()
-            sz, by = seat_ref(C)
-            hz = C[hand[s], 2].min() - sz + 0.50
-            hy = C[hand[s], 1].mean() + (0.17 - by)
-            err = abs(hz - 0.768) + (0 if hy < -0.41 else (hy + 0.41) * 2)
+            o = seat_offset()
+            hz = C[hand[s], 2].min() + o.z
+            hy = C[hand[s], 1].mean() + o.y
+            err = abs(hz - 0.768) + max(0, hy + 0.41) * 2 + max(0, -0.46 - hy) * 2
             if best is None or err < best[0]:
                 best = (err, pz, hz, hy, tz)
         P[f"{s}ForeArm"].matrix_basis, P[f"{s}Hand"].matrix_basis = rest[0].copy(), rest[1].copy()
@@ -203,10 +214,17 @@ if not standing:
         print("TWIST forearm roll / hand turn (deg)", [round(x) for x in twist])
         print("HAND", s, "pitch", round(float(best[1]), 2), "hand pitch", best[4], "hand bottom z", round(best[2], 3), "hand y", round(best[3], 3))
     bpy.ops.object.mode_set(mode="OBJECT")
+if not standing:
+    for s in ("Left", "Right"):
+        feet = np.concatenate([members(f"{s}Foot", 0.3), members(f"{s}ToeBase", 0.3)])
+        print("FOOT", s, "lowest", round(coords()[feet, 2].min() + seat_offset().z, 3))
 for n in ("LeftUpLeg", "LeftLeg", "LeftArm", "LeftForeArm"):
     pb = P[n]
     print("DIR", n, tuple(round(x, 2) for x in (A @ (pb.tail - pb.head)).normalized()))
 hip_w = arm.matrix_world @ P["Hips"].head
+off = seat_offset()
+# Hands and head keep full detail when the rest of the body is simplified.
+detail = set(np.concatenate([hand["Left"], hand["Right"], members("Head", 0.3), members("neck", 0.3)]).tolist())
 dg = bpy.context.evaluated_depsgraph_get()
 posed = bpy.data.meshes.new_from_object(body.evaluated_get(dg))
 mesh = bpy.data.objects.new("guest", posed)
@@ -218,22 +236,18 @@ bpy.context.view_layer.objects.active = mesh
 mesh.select_set(True)
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
-# Place: buttocks on the seat top (0.50) for the seated pose, feet on the floor when standing.
-vs = [v.co for v in mesh.data.vertices]
+# Place: hip joints over the seat for the seated pose, feet on the floor when standing.
 if standing:
-    dz = -min(v.z for v in vs)
-    dy = -sum(v.y for v in vs) / len(vs)
-else:
-    # Buttocks: the body directly under the hip joint (the thighs run forward, out of this zone).
-    under = [v for v in vs if abs(v.y - hip_w.y) < 0.13 and abs(v.x - hip_w.x) < 0.2 and v.z < hip_w.z]
-    dz = 0.50 - min(v.z for v in under)
-    dy = 0.17 - max(v.y for v in under)
+    vs = [v.co for v in mesh.data.vertices]
+    off = Vector((0, -sum(v.y for v in vs) / len(vs), -min(v.z for v in vs)))
 for v in mesh.data.vertices:
-    v.co.z += dz
-    v.co.y += dy
+    v.co += off
 
+simplify = mesh.vertex_groups.new(name="simplify")
+simplify.add([i for i in range(len(mesh.data.vertices)) if i not in detail], 1.0, "REPLACE")
 md = mesh.modifiers.new("dec", "DECIMATE")
-md.ratio = 0.55
+md.ratio = 0.5
+md.vertex_group = "simplify"
 bpy.ops.object.modifier_apply(modifier="dec")
 for p in mesh.data.polygons:
     p.use_smooth = True
