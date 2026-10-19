@@ -83,40 +83,51 @@ function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][]
   return runs;
 }
 
-/**
- * A point on the middle of the bar top (VEN-06), `t` from 0 to 1 along it: from the north end of the
- * west side, round the front, to the north end of the east side.
- */
-export function barTopPoint(d: VenueData, t: number): Vec2 {
+/** Where a bar flower stands (VEN-06): the point, which run of the bar top, and metres along it. */
+export type BarTopPlace = { point: Vec2; run: "west" | "front" | "east"; along: number };
+
+/** How far from each open end of the bar top a vase can stand, so it never overhangs (VEN-06). */
+const BAR_END_INSET = 0.15;
+
+/** The three runs of the bar top's middle line, west side from its north end, front, east side to its north end. */
+function barTopRuns(d: VenueData): { run: BarTopPlace["run"]; a: Vec2; b: Vec2; length: number }[] {
   const [x0, z0, x1, z1] = d.bar.outer.value;
   const wx = x0 + d.bar.legWidth / 2;
   const ex = x1 - d.bar.legWidth / 2;
   const fz = z1 - d.bar.frontDepth / 2;
-  const runs: [Vec2, Vec2][] = [
-    [
-      [wx, z0],
-      [wx, fz],
-    ],
-    [
-      [wx, fz],
-      [ex, fz],
-    ],
-    [
-      [ex, fz],
-      [ex, z0],
-    ],
+  const nz = z0 + BAR_END_INSET;
+  const runs: [BarTopPlace["run"], Vec2, Vec2][] = [
+    ["west", [wx, nz], [wx, fz]],
+    ["front", [wx, fz], [ex, fz]],
+    ["east", [ex, fz], [ex, nz]],
   ];
-  const lengths = runs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]));
-  let s = Math.min(1, Math.max(0, t)) * lengths.reduce((a, b) => a + b, 0);
-  for (const [i, [a, b]] of runs.entries()) {
-    const l = lengths[i] as number;
-    if (s <= l || i === runs.length - 1) {
-      const k = l ? Math.min(1, s / l) : 0;
-      return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  return runs.map(([run, a, b]) => ({ run, a, b, length: Math.hypot(b[0] - a[0], b[1] - a[1]) }));
+}
+
+/** Length of the bar top's middle line a vase can travel (VEN-06). */
+export function barTopLength(d: VenueData): number {
+  return barTopRuns(d).reduce((n, r) => n + r.length, 0);
+}
+
+/**
+ * Where a bar flower stands at `t` from 0 to 1 along the middle of the bar top (VEN-06): from the
+ * north end of the west side, round the front, to the north end of the east side.
+ */
+export function barTopPlace(d: VenueData, t: number): BarTopPlace {
+  const runs = barTopRuns(d);
+  let s = Math.min(1, Math.max(0, t)) * runs.reduce((n, r) => n + r.length, 0);
+  for (const [i, r] of runs.entries()) {
+    if (s <= r.length || i === runs.length - 1) {
+      const k = r.length ? Math.min(1, s / r.length) : 0;
+      return {
+        point: [r.a[0] + (r.b[0] - r.a[0]) * k, r.a[1] + (r.b[1] - r.a[1]) * k],
+        run: r.run,
+        along: Math.min(s, r.length),
+      };
     }
-    s -= l;
+    s -= r.length;
   }
-  return [wx, z0];
+  throw new Error("unreachable");
 }
 
 function barObstacles(d: VenueData): Obstacle[] {

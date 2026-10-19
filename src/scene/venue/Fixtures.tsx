@@ -260,12 +260,22 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       bevelGeo(ex - 0.4, 1.0, ez - 0.25, ex + 0.4, 1.42, ez + 0.08, 0.03),
       boxGeo(ex - 0.38, 1.44, ez - 0.2, ex + 0.38, 1.46, ez + 0.08),
     );
-    const dark: THREE.BufferGeometry[] = [boxGeo(ex - 0.36, 0.96, ez + 0.02, ex + 0.36, 1.0, ez + 0.3)];
+    const dark: THREE.BufferGeometry[] = [
+      boxGeo(ex - 0.36, 0.96, ez + 0.02, ex + 0.36, 1.0, ez + 0.3),
+      // Dark side panels, so the body reads as a machine, not a box.
+      boxGeo(ex - 0.41, 1.02, ez - 0.24, ex - 0.4, 1.4, ez + 0.07),
+      boxGeo(ex + 0.4, 1.02, ez - 0.24, ex + 0.41, 1.4, ez + 0.07),
+    ];
+    // A steam wand at the right of the front.
+    const wand = new THREE.CylinderGeometry(0.008, 0.008, 0.26, 6);
+    wand.rotateX(0.35);
+    wand.translate(ex + 0.33, 1.12, ez + 0.14);
+    steel.push(wand);
     for (const dx of [-0.18, 0.18]) {
       const head = new THREE.CylinderGeometry(0.04, 0.045, 0.07, 12);
       head.translate(ex + dx, 1.06, ez + 0.13);
       steel.push(head);
-      const handle = new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6);
+      const handle = new THREE.CylinderGeometry(0.016, 0.016, 0.2, 6);
       handle.rotateX(Math.PI / 2 - 0.3);
       handle.translate(ex + dx, 1.05, ez + 0.24);
       dark.push(handle);
@@ -310,14 +320,20 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       disc.translate(x, b.canopyHeight - 0.002, z1 + 0.45);
       downlights.push(disc);
     }
-    // Small plants and dried grasses along the canopy top (R02).
+    // Small plants and dried grasses in white pots along the canopy top (R02).
+    const pots: THREE.BufferGeometry[] = [];
+    const potTop = b.canopyHeight + 0.18 + 0.16;
     for (let x = x0 + 0.2, i = 0; x < x1; x += 0.95, i++) {
       const plant = i % 2 === 0;
-      const size = plant ? 0.55 : 0.7;
-      for (const turn of [0, Math.PI / 2]) {
+      const size = plant ? 0.5 : 0.65;
+      const pz = (z0 + z1) / 2 + 0.3;
+      const pot = new THREE.CylinderGeometry(0.1, 0.075, 0.16, 12);
+      pot.translate(x, b.canopyHeight + 0.18 + 0.08, pz);
+      pots.push(pot);
+      for (const turn of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
         const q = card(size, size, plant ? CARD.plant : CARD.grass);
         q.rotateY(turn + i);
-        q.translate(x, b.canopyHeight + 0.18 + size / 2, (z0 + z1) / 2 + 0.3);
+        q.translate(x, potTop - 0.03 + size / 2, pz);
         cards.push(q);
       }
     }
@@ -342,6 +358,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       shelves: merge(shelves),
       strips: merge(strips),
       cards: merge(cards),
+      pots: merge(pots),
       canopy,
       downlights: merge(downlights),
       neon,
@@ -362,6 +379,7 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       {g.shelves && <mesh geometry={g.shelves} material={m.glass} />}
       {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
       {g.cards && <mesh geometry={g.cards} material={m.cards} />}
+      {g.pots && <mesh geometry={g.pots} material={m.cap} />}
       <mesh geometry={g.canopy} material={m.stainless} />
       {g.downlights && <mesh geometry={g.downlights} material={m.bulb} />}
       <mesh geometry={g.neonBack} material={m.blackMetal} />

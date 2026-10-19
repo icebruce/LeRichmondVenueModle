@@ -285,18 +285,24 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
       g.fillRect(x - 24, base - 10, 48, 8);
     }
   }
-  // Wine rack (third strip): bottle ends in a grid on dark wood; tiles both ways.
-  ctx.fillStyle = "#24180f";
+  // Wine rack (third strip): bottle ends in a wood lattice, one per cell; tiles both ways.
+  ctx.fillStyle = "#5a3d24";
   ctx.fillRect(0, 2 * band, size, band);
-  for (let y = 2 * band + 32; y < 3 * band; y += 64)
-    for (let x = 32; x < size; x += 64) {
-      ctx.fillStyle = r() < 0.5 ? "#1f2e1c" : "#3c1414";
+  for (let y = 2 * band; y < 3 * band; y += 128)
+    for (let x = 0; x < size; x += 128) {
+      ctx.fillStyle = "#1c120b";
+      ctx.fillRect(x + 8, y + 8, 112, 112);
+      ctx.fillStyle = r() < 0.55 ? "#22331f" : "#4a1717";
       ctx.beginPath();
-      ctx.arc(x, y, 26, 0, Math.PI * 2);
+      ctx.arc(x + 64, y + 64, 40, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(255,240,210,0.35)";
+      ctx.fillStyle = "#0e0a07";
       ctx.beginPath();
-      ctx.arc(x - 8, y - 8, 6, 0, Math.PI * 2);
+      ctx.arc(x + 64, y + 64, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,240,210,0.45)";
+      ctx.beginPath();
+      ctx.arc(x + 50, y + 48, 8, 0, Math.PI * 2);
       ctx.fill();
     }
   // Cells (bottom row): a leafy plant, dried grasses, a guitar and a violin.
@@ -337,10 +343,13 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
     const [cx, cy] = cell(i);
     const x = cx + band / 2;
     ctx.fillStyle = wood;
+    ctx.strokeStyle = "#1e130b";
+    ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.ellipse(x, cy + band - 62 * scale, 54 * scale, 52 * scale, 0, 0, Math.PI * 2);
     ctx.ellipse(x, cy + band - 140 * scale, 40 * scale, 38 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
     ctx.fillStyle = "#2a1a10";
     ctx.fillRect(x - 7 * scale, cy + 6, 14 * scale, band - 150 * scale);
     ctx.fillRect(x - 12 * scale, cy + 4, 24 * scale, 30 * scale);
@@ -348,8 +357,8 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
     ctx.arc(x, cy + band - 112 * scale, 14 * scale, 0, Math.PI * 2);
     ctx.fill();
   };
-  instrument(2, 1.4, "#b07a3c");
-  instrument(3, 1.05, "#8a3f1c");
+  instrument(2, 1.4, "#7a4c25");
+  instrument(3, 1.05, "#5c2a12");
   const map = finish(c);
   const glow = finish(gc);
   for (const t of [map, glow]) t.wrapT = THREE.ClampToEdgeWrapping;

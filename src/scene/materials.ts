@@ -263,6 +263,8 @@ export function useMaterials(quality: Quality) {
         emissive: "#ffffff",
         emissiveIntensity: 0.55,
         alphaTest: 0.5,
+        // Softer cut-out edges where multisampling is on (High).
+        alphaToCoverage: true,
         side: THREE.DoubleSide,
         roughness: 0.4,
       }),

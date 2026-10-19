@@ -660,7 +660,7 @@ export function StudioUI() {
           open={(p) => {
             setPage(p);
             // On a phone the room stays in view while a graphics choice applies (mock-up).
-            if (p === "graphics" && phone) setSheet("half");
+            if ((p === "graphics" || p === "flowers") && phone) setSheet("half");
           }}
         />
       )

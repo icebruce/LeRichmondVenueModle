@@ -15,6 +15,7 @@ import {
 } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
+import { type VenueModel, barTopLength, barTopPlace } from "../domain/venue/model";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
@@ -197,6 +198,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.currentTarget.value))}
+        aria-valuetext={format(value)}
         data-testid={testId}
       />
     </label>
@@ -1902,17 +1904,31 @@ export function GraphicsPage({ onBack }: { onBack: () => void }) {
   );
 }
 
-/** Where a bar flower stands, in words (VEN-06): `t` runs west side, front, east side. */
-function barSide(t: number): string {
-  return t < 0.36 ? "West side" : t > 0.64 ? "East side" : "Front";
+/** Two vases keep at least this far apart along the bar top (VEN-06). */
+const VASE_GAP_M = 0.3;
+
+/** Where a bar flower stands, in words the couple use in the room (VEN-06). */
+function barPlace(venue: VenueModel, t: number): string {
+  const { run, along } = barTopPlace(venue.data, t);
+  const m = (v: number) => `${v.toFixed(1)} m`;
+  if (run === "front") return `Front, ${m(along)} from the garage-door end`;
+  if (run === "west") return `Garage-door side, ${m(along)} from the back`;
+  const east = barTopPlace(venue.data, 1).along;
+  return `Raised side, ${m(east - along)} from the back`;
 }
 
 /** Room › Bar flowers (VEN-06): show or hide the two vases, and slide each along the bar top. */
 export function BarFlowersPage({ onBack }: { onBack: () => void }) {
-  const { editor } = useStudio();
+  const { editor, venue } = useStudio();
   const flowers = useEditor((s) => s.scenarios[s.activeId]?.venueToggles.barFlowers);
+  // The bar in view while the vases move.
+  useEffect(() => {
+    editor.setCamera("dollhouse");
+    requestAnimationFrame(() => requestCamera("R03"));
+  }, [editor]);
   if (!flowers) return null;
   const [a, b] = flowers.at;
+  const gap = VASE_GAP_M / barTopLength(venue.data);
   return (
     <div className="panel-body" data-testid="bar-flowers">
       <PageHead title="Bar flowers" back="Room" onBack={onBack} />
@@ -1931,25 +1947,22 @@ export function BarFlowersPage({ onBack }: { onBack: () => void }) {
             label="First vase"
             value={a}
             min={0}
-            max={1}
-            step={0.01}
-            format={barSide}
+            max={Math.max(0, b - gap)}
+            step={0.005}
+            format={(t) => barPlace(venue, t)}
             onChange={(v) => editor.setBarFlowers({ at: [v, b] })}
             testId="flower-a"
           />
           <Slider
             label="Second vase"
             value={b}
-            min={0}
+            min={Math.min(1, a + gap)}
             max={1}
-            step={0.01}
-            format={barSide}
+            step={0.005}
+            format={(t) => barPlace(venue, t)}
             onChange={(v) => editor.setBarFlowers({ at: [a, v] })}
             testId="flower-b"
           />
-          <p className="hint">
-            Each vase slides along the bar top, from the west side round the front to the east side.
-          </p>
         </>
       )}
     </div>
