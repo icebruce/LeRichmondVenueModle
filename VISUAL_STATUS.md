@@ -231,7 +231,9 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - Evening bake at about 2400 K, crisper chandelier shadows (smaller sources), narrower and brighter track scallops on the north brick, brighter pier uplights, a darker night sky; the buff brick takes a warm tint in the evening (`BRICK_TINT`).
 - The evening key light from nearly overhead, so the bar and tables cast their shadows straight down; soft contact shadows under the bar and back counter, in the existing instanced draw.
 - Ambient occlusion stronger and tighter (radius 0.55 m); full resolution and 4× multisampling with High on a desktop, so the setting shows on a still picture.
+- Calibrated after a `fidelity-reviewer` round against R06, R08, R11, R16 and R01–R03: the bake at about 2700 K and a lighter evening brick tint, so the buff brick reads amber and the red dado stays distinct; evening exposure 0.19 with dimmer chandeliers, 25 % live share and a 0.45 hemisphere, for a darker floor; track spots at 220 W, 22°, aimed lower, for separate pools on the north brick; neutral-warm live light and halved fills, so white linen reads white; the street dark through the glass at night; daylight exposure 3.4 with a brighter sky; darker floor joints. The terrace backdrop is bright by day, dark at night (owner, 2026-10-19).
 - Budget: ppl03 Balanced stays at 149 draw calls (≤ 150).
+- Not done: the ceiling still reads a little red by day (the review suggests a lighter beam colour; left for a later bake).
 
 ### V3: Bar and back bar
 

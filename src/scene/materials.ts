@@ -123,7 +123,7 @@ export const CONTACT_SPREAD = 1.6;
  * The buff brick's tint by day and in the evening (V2b): under the venue's warm light at night it
  * reads orange-brown in R06 and R08, not pale beige.
  */
-export const BRICK_TINT = { day: "#f4ebdd", evening: "#e3a77e" } as const;
+export const BRICK_TINT = { day: "#f4ebdd", evening: "#efd2b4" } as const;
 
 /** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
 export const SHADOW_SPREAD = 1.25;
@@ -187,7 +187,7 @@ export function useMaterials(quality: Quality) {
         { cell: TILE.tile / 3 },
       ),
       // Weathered grey-tan wood strips (R03, R04).
-      tileJoint: std({ color: "#857a6a", roughness: 0.8 }),
+      tileJoint: std({ color: "#6f665a", roughness: 0.8 }),
       woodFloor: std({
         map: tex.floorDiff,
         normalMap: tex.floorNor,
@@ -316,7 +316,9 @@ export function useMaterials(quality: Quality) {
       stairWall: std({ color: "#262b28", roughness: 0.9 }),
       // The mezzanine's underside, which carries the baked light (V2).
       soffit: std({ color: "#262b28", roughness: 0.9 }),
-      terrace: std({ color: "#1b2421", roughness: 1 }),
+      // The terrace through the garage doors by day: a bright, slightly green-grey backdrop, unlit
+      // (R02, R03; owner 2026-10-19). Dark at night (`darkVoid`).
+      terrace: new THREE.MeshBasicMaterial({ color: "#b9c4bf" }),
       street: std({ color: "#5d6266", roughness: 1 }),
       // The dance area is marked, not built (LIB-01): a solid sand line that reads in evening and
       // daylight, and a faint lit tint that darkens with the room instead of glowing.

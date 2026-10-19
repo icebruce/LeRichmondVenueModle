@@ -211,7 +211,8 @@ export function Backdrops({ venue, m, evening }: P) {
     <group name="backdrops">
       <mesh geometry={g.terrace} material={evening ? m.darkVoid : m.terrace} />
       <mesh geometry={g.terraceFloor} material={m.tile} />
-      <mesh geometry={g.street} material={m.street} />
+      {/* At night the street facades are dark through the glass (R11). */}
+      <mesh geometry={g.street} material={evening ? m.darkVoid : m.street} />
       {g.lights && <mesh geometry={g.lights} material={m.bulb} visible={evening} />}
     </group>
   );

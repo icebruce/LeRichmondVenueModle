@@ -4,7 +4,7 @@ Private web app for planning a wedding reception (2026-11-21, ~75 guests) at **R
 
 ## Scope guard (non-negotiable)
 
-- Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (only exception: DJ option 3 spot). Terrace = dark backdrop through the glass. No bistro. Not Salon Richmond 1861.
+- Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (only exception: DJ option 3 spot). Terrace = a backdrop through the glass (bright by day, dark at night; owner 2026-10-19), never modelled. No bistro. Not Salon Richmond 1861.
 - Terrace images (X01–X05) never inform geometry.
 - Dimensions are estimates with confidence; never present them as measured. Layout checks are advisory; never claim code or capacity compliance.
 

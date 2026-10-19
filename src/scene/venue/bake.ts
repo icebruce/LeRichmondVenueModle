@@ -130,7 +130,7 @@ const BAKED_AMBIENT = 0.08;
  * Share of the live lights' direct light a baked surface keeps (V2b): live shadows and the couple's
  * placed lights show on the floor and walls, and the graphics tiers' shadows show there too.
  */
-const LIVE_SHARE = 0.35;
+const LIVE_SHARE = 0.25;
 
 /**
  * A receiver's material with the light map: its diffuse light comes mostly from the map, with

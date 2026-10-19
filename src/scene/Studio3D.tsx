@@ -113,7 +113,7 @@ function Lighting({
   return (
     <>
       {/* Evening warmth kept calm, so white linen reads white or ivory, not beige (V2 colour check). */}
-      <hemisphereLight args={evening ? ["#615a50", "#1f1b16", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
+      <hemisphereLight args={evening ? ["#615a50", "#1f1b16", 0.45] : ["#e9eef2", "#a48d72", 1.25]} />
       <directionalLight
         // A new tier's shadow size needs a new shadow map.
         key={shadowSize}
@@ -121,7 +121,7 @@ function Lighting({
         // spots, so the bar and tables cast their shadows straight down (R06, R08).
         position={evening ? [W / 2 + 1.5, 14, D / 2 - 1.5] : [-12, 13, D / 2 - 3]}
         intensity={evening ? 1.1 : 2.4}
-        color={evening ? "#ffdfc0" : "#fff4e6"}
+        color={evening ? "#ffe8d4" : "#fff4e6"}
         castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         shadow-intensity={plan ? 0 : 1}
@@ -144,7 +144,7 @@ function Lighting({
           intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
           distance={c.kind === "brassCluster" ? 14 : 8}
           decay={1.6}
-          color="#ffdcb8"
+          color="#ffe6cf"
         />
       ))}
       {/* The back bar's glow, under its canopy (R01, R03). */}
@@ -155,9 +155,9 @@ function Lighting({
         decay={1.6}
         color="#ffc98e"
       />
-      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
-      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
-      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[13.5, 1.6, 6]} intensity={3 * glow} distance={9} decay={1.6} color="#ffe2c4" />
+      <pointLight position={[3.5, 1.6, 6]} intensity={3 * glow} distance={9} decay={1.6} color="#ffe2c4" />
+      <pointLight position={[5.6, 2, 11]} intensity={3 * glow} distance={8} decay={1.6} color="#ffe2c4" />
       <Environment resolution={128} frames={1}>
         <Lightformer
           form="rect"
