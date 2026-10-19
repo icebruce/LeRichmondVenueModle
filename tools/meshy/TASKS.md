@@ -25,10 +25,13 @@ bones' tails are unusable (take hand direction from the mesh); the mesh is split
 Previews at 3,000 triangles (`preview <name> <prompt> 3000 prop`), refined with PBR, then
 `blender/chair_from_meshy.py`. The first previews were rejected (carved back pad; a solid panel
 under the cross-back's seat; a grid back on the Chiavari); the prompts were tightened once.
-Credits after: 839.
+Not used: a second oval refine asking for a fully upholstered back (01a15242-8c7c-72c5-a583-b0a645f62e72;
+the defect it was meant to fix was a guest showing through the backrest) and a 2,000-triangle remesh
+(`POST /v1/remesh`, 5 credits, 01a15251-e3e7-775f-88c1-45634ef8aec2: thin ring, faceted pad, warped
+legs). Credits after: 824.
 
-| Chair | Preview | Refine | Fitted size (w × d × h, m) |
+| Chair | Preview | Refine | Width, backrest, height (m) |
 |---|---|---|---|
-| Oval-back | 01a15213-bab2-75f1-94ed-1763f0ce65e9 | 01a15215-1d15-74fc-ad1a-ea953e65a32a | 0.47 × 0.48 × 1.00 |
-| Cross-back | 01a15213-c34a-7759-8631-94e9972dcc87 | 01a15215-24e5-715f-9f11-6f0a449dc391 | 0.44 × 0.46 × 0.92 |
-| Chiavari | 01a15213-cb96-705d-8575-168e2fda0c24 | 01a15215-2c9a-75e3-81fb-ea14b3582ed7 | 0.41 × 0.46 × 0.92 |
+| Oval-back | 01a15213-bab2-75f1-94ed-1763f0ce65e9 | 01a15215-1d15-74fc-ad1a-ea953e65a32a | 0.47, -0.225, 1.00 |
+| Cross-back | 01a15213-c34a-7759-8631-94e9972dcc87 | 01a15215-24e5-715f-9f11-6f0a449dc391 | 0.44, -0.225, 0.92 |
+| Chiavari | 01a15213-cb96-705d-8575-168e2fda0c24 | 01a15215-2c9a-75e3-81fb-ea14b3582ed7 | 0.41, -0.225, 0.92 |
