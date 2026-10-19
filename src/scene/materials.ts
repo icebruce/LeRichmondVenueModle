@@ -259,7 +259,9 @@ export function useMaterials(quality: Quality) {
         vertexColors: true,
         transparent: true,
         depthWrite: false,
+        // Flat on the floor and seen from above: one pass (a transparent double side draws twice).
         side: THREE.DoubleSide,
+        forceSinglePass: true,
         polygonOffset: true,
         polygonOffsetFactor: -2,
       }),
