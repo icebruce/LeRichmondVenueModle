@@ -191,8 +191,9 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
   const moving = useStore(graphicsStore, (s) => s.moving);
   if (levers.direct) return null;
   const high = quality === "high";
-  // High draws its ambient occlusion at full resolution and smooths edges (V2b: the setting shows on
-  // a still picture, not only in motion); changing either rebuilds the effect passes once.
+  // High smooths edges (V2b: the setting shows on a still picture, not only in motion); changing it
+  // rebuilds the effect passes once. Ambient occlusion stays at half resolution on every tier: a
+  // switch would compile its passes again at the next camera change, and corners are baked anyway.
   const best = tier === "high" && high;
   return (
     <EffectComposer multisampling={best ? 4 : 0}>
@@ -201,7 +202,7 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
         aoRadius={0.55}
         intensity={evening ? 3.2 : 2.2}
         distanceFalloff={0.6}
-        halfRes={!best}
+        halfRes
       />
       <Bloom
         intensity={evening ? (high ? 0.75 : 0.7) : 0.15}
