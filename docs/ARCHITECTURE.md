@@ -106,7 +106,9 @@ Every change is a command (`addItem`, `moveItems`, `rotateItems`, `setSeats`, `a
 
 ```
 data/library/<family>.json      Entries: id, name, family, placement, sizeM {w,d,h}, sizePresets,
-                                model {kind:"parametric", generator, params} | {kind:"glb", file},
+                                model {kind:"parametric", generator, params, file?} | {kind:"glb", file}
+                                (a parametric `file`: the model the generator draws at full quality,
+                                tinted by params; chairs, V4),
                                 lowModel (phone version: same shape, or generator params.quality "low"),
                                 options [{type:number|choice|boolean|text, key, label, default, …}],
                                 thumbnail, source {type:"built"|"cc0"|"custom", origin, licence},
@@ -122,9 +124,13 @@ src/domain/layout/decor.ts       Table décor as unit-primitive parts (candles, 
                                 kind's sizes (CANDLE_SPECS: range, step, defaults in cm) live here
 src/domain/layout/pieces.ts      Step-3 pieces (plant, light, floralPiece, sign, eventPiece) as the same
                                 parts plus size, whether they block the floor, and optional words
-src/scene/items/                 Meshes per shape kind; chairs instanced; table décor and pieces drawn
-                                together, one instanced mesh per primitive and material
-public/assets/models/            GLB files (CC0 adapted or custom-built), meshopt-compressed
+src/scene/items/                 Meshes per shape kind; chairs instanced (on High a chair type with a
+                                model file is one mesh, finished as frame or seat by its mask); table
+                                décor and pieces drawn together, one instanced mesh per primitive and
+                                material
+public/assets/models/            GLB files (CC0 adapted, custom-built or Meshy-made and repaired). Not
+                                meshopt-compressed: its decoder needs 'wasm-unsafe-eval', which the CSP
+                                does not allow
 public/assets/thumbs/            Generated thumbnails (scripts/render-thumbnails)
 ```
 

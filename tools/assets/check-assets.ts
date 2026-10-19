@@ -148,6 +148,4 @@ if (problems.length) {
   console.error(`Asset check failed:\n- ${problems.join("\n- ")}`);
   process.exit(1);
 }
-console.log(
-  `Asset check passed (${files.length} models${files.length ? "" : ": none yet, every piece is parametric"}).`,
-);
+console.log(`Asset check passed (${files.length} models).`);

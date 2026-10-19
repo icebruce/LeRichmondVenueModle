@@ -13,11 +13,11 @@ Offline tools Claude runs from committed scripts; nothing here ships in the app.
 
 | Command | What |
 |---|---|
-| `npm run check:assets` | Every GLB under `public/assets/models/`, checked as one welded mesh (`assets/check-assets.ts`): open and non-manifold edges no more than its source had (`assets/sources.json`, 0 when absent), no zero-area or flipped triangles, triangle lists with normals only, a triangle budget on every library entry that uses it and within it, texture size (2K, 1K for a phone version), contact within 5 mm for floor and table pieces; a library entry's missing file fails too. Seat contact comes with the first chair GLB (V4). Runs in `npm run check` and CI; today there are no GLBs (every piece is parametric). |
+| `npm run check:assets` | Every GLB under `public/assets/models/`, checked as one welded mesh (`assets/check-assets.ts`): open and non-manifold edges no more than its source had (`assets/sources.json`, 0 when absent), no zero-area or flipped triangles, triangle lists with normals only, a triangle budget on every library entry that uses it and within it, texture size (2K, 1K for a phone version), contact within 5 mm for floor and table pieces; a library entry's missing file fails too. Seat contact (guests on chair seats) comes with the people in V7. Runs in `npm run check` and CI; the chairs (V4) are the first GLBs. |
 
 ## Prepare a model
 
-`npm run assets:optimize -- <in.glb> <out.glb> [desktop|phone]`: drops duplicate and unused data, resizes textures (2K or 1K) and compresses the geometry with meshopt; never simplifies or smooths. Node ≥ 22.18 runs the `.ts` tools directly.
+`npm run assets:optimize -- <in.glb> <out.glb> [desktop|phone]`: drops duplicate and unused data, resizes textures (2K or 1K) and compresses the geometry with meshopt; never simplifies or smooths. The app cannot decode meshopt under its CSP (no `'wasm-unsafe-eval'`), so the chairs ship uncompressed (about 250 KB each). Node ≥ 22.18 runs the `.ts` tools directly.
 
 ## Room textures
 
@@ -43,4 +43,5 @@ A room or light change makes the manifest stale: `[LGT-03]` fails in CI, and the
 | `blender/render_room.py` | A Cycles reference render of the fixed room (proof of concept, kept for calibration shots). | V2 |
 | `blender/meshy_pose.py` | Freeze a Meshy animated rig at one frame and fit it: `… <animated.glb> <out.glb> frame=1`. | V7 |
 | `blender/mesh_audit.py`, `clash.py`, `seat_check.py`, `dims.py`, `glb_info.py`, `anim_info.py` | Inspect a GLB: open edges after welding, intersections between two models, close-up check renders, bounds, contents, animation frames. | all |
-| `meshy/meshy.py` | Meshy API: `preview`, `refine`, `rig`, `animate`, `wait` (`wait <kind> <task_id> <out_dir> <name>` downloads; see `meshy/TASKS.md` for the man's task ids and the useful clips). The rigged man (`meshy/source/man-b-rig.glb`, 9.5 MB) stays on `proto/visual-poc` until V7 needs it. | V7 |
+| `blender/chair_from_meshy.py` | A Meshy chair made ready for the app: `… <meshy.glb> <out.glb> <w> <d> <h> <front>`. Repairs the remesher's fins and holes (watertight, no flipped triangles), fits the size, and writes a grey detail map plus `<out>-mask.png` (frame black, seat white) so the app tints each part per library entry. Task ids and sizes: `meshy/TASKS.md`. | V4 |
+| `meshy/meshy.py` | Meshy API: `preview` (`[polycount] [prop]` for objects), `refine`, `rig`, `animate`, `wait` (`wait <kind> <task_id> <out_dir> <name>` downloads; see `meshy/TASKS.md` for the man's task ids and the useful clips). The rigged man (`meshy/source/man-b-rig.glb`, 9.5 MB) stays on `proto/visual-poc` until V7 needs it. | V7 |
