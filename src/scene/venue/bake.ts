@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Materials } from "../materials";
 import { type Atlas, buildAtlas, geometryHash } from "./lightmap";
-import { ceilingParts, floorParts, mezzanineParts } from "./Architecture";
+import { barParts, ceilingParts, floorParts, mezzanineParts, railingParts, stairParts } from "./Architecture";
+import { backBarParts, furnishingParts } from "./Fixtures";
 import { buildWall, splitFacing } from "./walls";
 
 /**
@@ -22,8 +23,11 @@ export type Receiver = {
 };
 
 /**
- * The receivers, uncut and in a fixed order: walls, floors, ceiling, the mezzanine edge. The stair,
- * bar, fixtures and everything movable stay live-lit.
+ * The receivers, uncut and in a fixed order: walls (with their openings' reveals), floors, ceiling,
+ * the mezzanine edge, then the fixed furniture (the raised floor's step, the bar's base and well, the
+ * back bar's cabinet, counter, frame and shelves, the banquettes, the wine case, the stair's treads,
+ * landings and closed sides). Everything movable, and the furniture's metal, glass and trim, stay
+ * live-lit.
  */
 export function roomReceivers(venue: VenueModel): Receiver[] {
   const t = venue.data.room.wallThickness.value;
@@ -55,6 +59,25 @@ export function roomReceivers(venue: VenueModel): Receiver[] {
     { name: "mezzanine-soffit", material: "soffit", geometry: z.soffit },
     { name: "mezzanine-floor", material: "woodFloor", geometry: z.floor },
   );
+  // The fixed furniture (owner 2026-10-19): its own creases, and the floor's, in the bake.
+  const steps = railingParts(venue).steps;
+  if (steps) out.push({ name: "raised-step", material: "woodFloor", geometry: steps });
+  const bar = barParts(venue, false);
+  const back = backBarParts(venue);
+  const furn = furnishingParts(venue);
+  const stair = stairParts(venue, false);
+  out.push(
+    { name: "bar-base", material: "barBase", geometry: bar.base },
+    { name: "bar-well", material: "barBase", geometry: bar.wellBase },
+    { name: "back-counter", material: "barBase", geometry: back.counter },
+    { name: "back-cabinet", material: "backBarWood", geometry: back.cabinet },
+    ...(back.frame ? [{ name: "back-frame", material: "backBarWood" as const, geometry: back.frame }] : []),
+    ...(furn.seats ? [{ name: "banquette-seats", material: "leather" as const, geometry: furn.seats }] : []),
+    ...(furn.backs ? [{ name: "banquette-backs", material: "leather" as const, geometry: furn.backs }] : []),
+    { name: "wine-case", material: "wineFrame", geometry: furn.wine },
+    { name: "stair-wood", material: "stairWood", geometry: stair.wood },
+    { name: "stair-sides", material: "stairWall", geometry: stair.base },
+  );
   return out;
 }
 
@@ -72,6 +95,12 @@ export const ALBEDO: Partial<Record<keyof Materials, string>> = {
   ceiling: "#7a5230",
   greenPanel: "#28352e",
   soffit: "#262b28",
+  barBase: "#18191a",
+  backBarWood: "#3a2b21",
+  leather: "#2a2b2d",
+  wineFrame: "#5c1717",
+  stairWood: "#602b07",
+  stairWall: "#262b28",
 };
 
 /** FNV-1a of the venue data the bake script reads for its lights and sky. */
@@ -154,8 +183,10 @@ export function bakedMaterial(
   b.aoMapIntensity = 0;
   const key = src.customProgramCacheKey();
   b.customProgramCacheKey = () => `${key}|baked`;
+  // Any shader patch the source has, without its floor darkening (`grounded`): the bake has it.
+  const patch = (src.userData.ungrounded as typeof src.onBeforeCompile | undefined) ?? src.onBeforeCompile;
   b.onBeforeCompile = (s, r) => {
-    src.onBeforeCompile(s, r);
+    patch.call(src, s, r);
     s.fragmentShader = s.fragmentShader.replace(
       "#include <lights_fragment_maps>",
       `float bakedAO = texture2D(aoMap, vAoMapUv).r;

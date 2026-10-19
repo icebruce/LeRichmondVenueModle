@@ -7,6 +7,8 @@ import type { OpeningData, WallData } from "../../domain/venue/schema";
 import { type Materials, bevelGeo, boxGeo } from "../materials";
 import { CARD, CARD_STRIP_M, paintingTexture } from "../textures";
 import { openingMatrix } from "./walls";
+import { lit, mapped } from "./Architecture";
+import type { Bake } from "../useBake";
 
 type P = { venue: VenueModel; m: Materials; evening: boolean };
 
@@ -237,146 +239,159 @@ function card(w: number, h: number, region: readonly number[], repeat = 1): THRE
   return g;
 }
 
-export function BackBar({ venue, m }: Omit<P, "evening">) {
-  const g = useMemo(() => {
-    const b = venue.data.backBar;
-    const [x0, z0, x1, z1] = b.rect.value;
-    const rc = b.rearCounter;
-    const top = b.height;
-    const cabinet = boxGeo(x0, 0, z0, x1, 0.95, z1);
-    const counter = boxGeo(rc[0], 0, rc[1], rc[2], 0.92, rc[3]);
-    const counterTop = boxGeo(rc[0], 0.92, rc[1] - 0.02, rc[2], 0.96, rc[3] + 0.03);
-    // Dark glass-door fridges under the counter, framed in stainless (R02, R03).
-    const fridges: THREE.BufferGeometry[] = [];
-    const steel: THREE.BufferGeometry[] = [];
-    for (let x = rc[0] + 0.6; x < rc[2] - 0.6; x += 0.75) {
-      fridges.push(boxGeo(x, 0.1, rc[3] + 0.002, x + 0.65, 0.85, rc[3] + 0.01));
-      steel.push(
-        boxGeo(x - 0.02, 0.08, rc[3], x + 0.67, 0.12, rc[3] + 0.03),
-        boxGeo(x - 0.02, 0.83, rc[3], x + 0.67, 0.87, rc[3] + 0.03),
-        boxGeo(x - 0.02, 0.08, rc[3], x + 0.02, 0.87, rc[3] + 0.03),
-        boxGeo(x + 0.63, 0.08, rc[3], x + 0.67, 0.87, rc[3] + 0.03),
-      );
-    }
-    // The wide chrome espresso machine near the middle of the counter (R02, R03): body, a raised
-    // cup-warmer with cups, two group heads with black handles, a steam wand, the drip tray.
-    const ex = (rc[0] + rc[2]) / 2 + 0.3;
-    const ez = (rc[1] + rc[3]) / 2;
+/** The back bar: cabinet, rear counter and its fridges and espresso machine, frame and shelves, canopy, plants and neon. */
+export function backBarParts(venue: VenueModel) {
+  const b = venue.data.backBar;
+  const [x0, z0, x1, z1] = b.rect.value;
+  const rc = b.rearCounter;
+  const top = b.height;
+  const cabinet = boxGeo(x0, 0, z0, x1, 0.95, z1);
+  const counter = boxGeo(rc[0], 0, rc[1], rc[2], 0.92, rc[3]);
+  const counterTop = boxGeo(rc[0], 0.92, rc[1] - 0.02, rc[2], 0.96, rc[3] + 0.03);
+  // Dark glass-door fridges under the counter, framed in stainless (R02, R03).
+  const fridges: THREE.BufferGeometry[] = [];
+  const steel: THREE.BufferGeometry[] = [];
+  for (let x = rc[0] + 0.6; x < rc[2] - 0.6; x += 0.75) {
+    fridges.push(boxGeo(x, 0.1, rc[3] + 0.002, x + 0.65, 0.85, rc[3] + 0.01));
     steel.push(
-      bevelGeo(ex - 0.48, 1.0, ez - 0.25, ex + 0.48, 1.42, ez + 0.08, 0.035),
-      boxGeo(ex - 0.46, 1.44, ez - 0.22, ex + 0.46, 1.46, ez + 0.06),
+      boxGeo(x - 0.02, 0.08, rc[3], x + 0.67, 0.12, rc[3] + 0.03),
+      boxGeo(x - 0.02, 0.83, rc[3], x + 0.67, 0.87, rc[3] + 0.03),
+      boxGeo(x - 0.02, 0.08, rc[3], x + 0.02, 0.87, rc[3] + 0.03),
+      boxGeo(x + 0.63, 0.08, rc[3], x + 0.67, 0.87, rc[3] + 0.03),
     );
-    const cups: THREE.BufferGeometry[] = [];
-    for (let cx = ex - 0.38; cx <= ex + 0.38; cx += 0.095)
-      for (const cz of [ez - 0.14, ez - 0.02]) {
-        const cup = new THREE.CylinderGeometry(0.035, 0.028, 0.065, 10);
-        cup.translate(cx, 1.495, cz);
-        cups.push(cup);
-      }
-    const dark: THREE.BufferGeometry[] = [boxGeo(ex - 0.44, 0.96, ez + 0.02, ex + 0.44, 1.0, ez + 0.3)];
-    const wand = new THREE.CylinderGeometry(0.009, 0.009, 0.28, 6);
-    wand.rotateX(0.35);
-    wand.translate(ex + 0.4, 1.12, ez + 0.14);
-    steel.push(wand);
-    for (const dx of [-0.2, 0.2]) {
-      const head = new THREE.CylinderGeometry(0.05, 0.055, 0.08, 14);
-      head.translate(ex + dx, 1.06, ez + 0.13);
-      steel.push(head);
-      const handle = new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6);
-      handle.rotateX(Math.PI / 2 - 0.3);
-      handle.translate(ex + dx, 1.05, ez + 0.25);
-      dark.push(handle);
+  }
+  // The wide chrome espresso machine near the middle of the counter (R02, R03): body, a raised
+  // cup-warmer with cups, two group heads with black handles, a steam wand, the drip tray.
+  const ex = (rc[0] + rc[2]) / 2 + 0.3;
+  const ez = (rc[1] + rc[3]) / 2;
+  steel.push(
+    bevelGeo(ex - 0.48, 1.0, ez - 0.25, ex + 0.48, 1.42, ez + 0.08, 0.035),
+    boxGeo(ex - 0.46, 1.44, ez - 0.22, ex + 0.46, 1.46, ez + 0.06),
+  );
+  const cups: THREE.BufferGeometry[] = [];
+  for (let cx = ex - 0.38; cx <= ex + 0.38; cx += 0.095)
+    for (const cz of [ez - 0.14, ez - 0.02]) {
+      const cup = new THREE.CylinderGeometry(0.035, 0.028, 0.065, 10);
+      cup.translate(cx, 1.495, cz);
+      cups.push(cup);
     }
-    // Frame: plain dark posts between the bays, a stepped crown moulding (R02, R14).
-    const frame: THREE.BufferGeometry[] = [];
-    const bay = (x1 - x0) / BAYS;
-    for (let i = 0; i <= BAYS; i++) {
-      const x = x0 + i * bay;
-      frame.push(bevelGeo(x - 0.05, 0.95, z0, x + 0.05, top, z1, 0.012));
+  const dark: THREE.BufferGeometry[] = [boxGeo(ex - 0.44, 0.96, ez + 0.02, ex + 0.44, 1.0, ez + 0.3)];
+  const wand = new THREE.CylinderGeometry(0.009, 0.009, 0.28, 6);
+  wand.rotateX(0.35);
+  wand.translate(ex + 0.4, 1.12, ez + 0.14);
+  steel.push(wand);
+  for (const dx of [-0.2, 0.2]) {
+    const head = new THREE.CylinderGeometry(0.05, 0.055, 0.08, 14);
+    head.translate(ex + dx, 1.06, ez + 0.13);
+    steel.push(head);
+    const handle = new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6);
+    handle.rotateX(Math.PI / 2 - 0.3);
+    handle.translate(ex + dx, 1.05, ez + 0.25);
+    dark.push(handle);
+  }
+  // Frame: plain dark posts between the bays, a stepped crown moulding (R02, R14).
+  const frame: THREE.BufferGeometry[] = [];
+  const bay = (x1 - x0) / BAYS;
+  for (let i = 0; i <= BAYS; i++) {
+    const x = x0 + i * bay;
+    frame.push(bevelGeo(x - 0.05, 0.95, z0, x + 0.05, top, z1, 0.012));
+  }
+  frame.push(boxGeo(x0, 0.95, z0, x1, top, z0 + 0.04));
+  for (const [y, out] of [
+    [top - 0.12, 0],
+    [top - 0.04, 0.03],
+    [top + 0.03, 0.06],
+  ] as const)
+    frame.push(bevelGeo(x0 - out, y, z0, x1 + out, y + 0.09, z1 + out, 0.01));
+  const mirror = card(x1 - x0 - 0.08, top - 0.12 - 0.95, [0, 0, 1, 1], BAYS);
+  mirror.translate((x0 + x1) / 2, (0.95 + top - 0.12) / 2, z0 + 0.045);
+  const strips: THREE.BufferGeometry[] = [];
+  const cards: THREE.BufferGeometry[] = [];
+  for (const [i, y] of SHELVES.entries()) {
+    // Wood shelf boards, with a warm light strip under each front edge lighting the row beneath.
+    frame.push(boxGeo(x0 + 0.05, y - 0.04, z0 + 0.05, x1 - 0.05, y, z1 - 0.02));
+    strips.push(boxGeo(x0 + 0.05, y - 0.052, z1 - 0.07, x1 - 0.05, y - 0.04, z1 - 0.05));
+    // Behind the front row: backlit bottles, and glasses on the lowest shelf.
+    const row = card(x1 - x0 - 0.1, 0.32, i === 0 ? CARD.glasses : CARD.bottles, (x1 - x0) / CARD_STRIP_M);
+    row.translate((x0 + x1) / 2, y + 0.16, z0 + 0.14);
+    cards.push(row);
+  }
+  // A brushed stainless canopy over the shelves with a row of downlights (R02, R03).
+  const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
+  const downlights: THREE.BufferGeometry[] = [];
+  for (let x = x0 + 0.3; x < x1; x += 0.6) {
+    const disc = new THREE.CircleGeometry(0.045, 16);
+    disc.rotateX(Math.PI / 2);
+    disc.translate(x, b.canopyHeight - 0.002, z1 + 0.45);
+    downlights.push(disc);
+  }
+  // Ferns spilling over the canopy's front edge and dried branches in white pots (R02, R03).
+  const pots: THREE.BufferGeometry[] = [];
+  const potTop = b.canopyHeight + 0.18 + 0.16;
+  for (let x = x0 + 0.3, i = 0; x < x1; x += 1.25, i++) {
+    const plant = i % 2 === 0;
+    const size = plant ? 0.85 : 1.0;
+    const pz = z1 + 0.65;
+    const pot = new THREE.CylinderGeometry(0.1, 0.075, 0.16, 12);
+    pot.translate(x, b.canopyHeight + 0.18 + 0.08, pz);
+    pots.push(pot);
+    for (const turn of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
+      const q = card(size, size, plant ? CARD.plant : CARD.grass);
+      q.rotateY(turn + i);
+      q.translate(x, potTop - 0.03 + size / 2, pz);
+      cards.push(q);
     }
-    frame.push(boxGeo(x0, 0.95, z0, x1, top, z0 + 0.04));
-    for (const [y, out] of [
-      [top - 0.12, 0],
-      [top - 0.04, 0.03],
-      [top + 0.03, 0.06],
-    ] as const)
-      frame.push(bevelGeo(x0 - out, y, z0, x1 + out, y + 0.09, z1 + out, 0.01));
-    const mirror = card(x1 - x0 - 0.08, top - 0.12 - 0.95, [0, 0, 1, 1], BAYS);
-    mirror.translate((x0 + x1) / 2, (0.95 + top - 0.12) / 2, z0 + 0.045);
-    const strips: THREE.BufferGeometry[] = [];
-    const cards: THREE.BufferGeometry[] = [];
-    for (const [i, y] of SHELVES.entries()) {
-      // Wood shelf boards, with a warm light strip under each front edge lighting the row beneath.
-      frame.push(boxGeo(x0 + 0.05, y - 0.04, z0 + 0.05, x1 - 0.05, y, z1 - 0.02));
-      strips.push(boxGeo(x0 + 0.05, y - 0.052, z1 - 0.07, x1 - 0.05, y - 0.04, z1 - 0.05));
-      // Behind the front row: backlit bottles, and glasses on the lowest shelf.
-      const row = card(x1 - x0 - 0.1, 0.32, i === 0 ? CARD.glasses : CARD.bottles, (x1 - x0) / CARD_STRIP_M);
-      row.translate((x0 + x1) / 2, y + 0.16, z0 + 0.14);
-      cards.push(row);
-    }
-    // A brushed stainless canopy over the shelves with a row of downlights (R02, R03).
-    const canopy = boxGeo(x0 - 0.2, b.canopyHeight, z0, x1 + 0.2, b.canopyHeight + 0.18, z1 + 0.9);
-    const downlights: THREE.BufferGeometry[] = [];
-    for (let x = x0 + 0.3; x < x1; x += 0.6) {
-      const disc = new THREE.CircleGeometry(0.045, 16);
-      disc.rotateX(Math.PI / 2);
-      disc.translate(x, b.canopyHeight - 0.002, z1 + 0.45);
-      downlights.push(disc);
-    }
-    // Ferns spilling over the canopy's front edge and dried branches in white pots (R02, R03).
-    const pots: THREE.BufferGeometry[] = [];
-    const potTop = b.canopyHeight + 0.18 + 0.16;
-    for (let x = x0 + 0.3, i = 0; x < x1; x += 1.25, i++) {
-      const plant = i % 2 === 0;
-      const size = plant ? 0.85 : 1.0;
-      const pz = z1 + 0.65;
-      const pot = new THREE.CylinderGeometry(0.1, 0.075, 0.16, 12);
-      pot.translate(x, b.canopyHeight + 0.18 + 0.08, pz);
-      pots.push(pot);
-      for (const turn of [0, Math.PI / 3, (2 * Math.PI) / 3]) {
-        const q = card(size, size, plant ? CARD.plant : CARD.grass);
-        q.rotateY(turn + i);
-        q.translate(x, potTop - 0.03 + size / 2, pz);
-        cards.push(q);
-      }
-    }
-    // Round neon sign on a dark backing board on the wine wall's face, so it reads as signage, not a
-    // floating ring (R01, R02).
-    const face = venue.data.fixtures.wineWall.rect[3];
-    const neon = new THREE.TorusGeometry(0.28, 0.025, 8, 32);
-    neon.translate(x1 + 0.45, 2.1, face + 0.045);
-    const neonBack = new THREE.CylinderGeometry(0.36, 0.36, 0.02, 32);
-    neonBack.rotateX(Math.PI / 2);
-    neonBack.translate(x1 + 0.45, 2.1, face + 0.01);
+  }
+  // Round neon sign on a dark backing board on the wine wall's face, so it reads as signage, not a
+  // floating ring (R01, R02).
+  const face = venue.data.fixtures.wineWall.rect[3];
+  const neon = new THREE.TorusGeometry(0.28, 0.025, 8, 32);
+  neon.translate(x1 + 0.45, 2.1, face + 0.045);
+  const neonBack = new THREE.CylinderGeometry(0.36, 0.36, 0.02, 32);
+  neonBack.rotateX(Math.PI / 2);
+  neonBack.translate(x1 + 0.45, 2.1, face + 0.01);
+  return {
+    cabinet,
+    counter,
+    counterTop,
+    fridges: merge(fridges),
+    steel: merge(steel),
+    cups: merge(cups),
+    dark: merge(dark),
+    frame: merge(frame),
+    mirror,
+    strips: merge(strips),
+    cards: merge(cards),
+    pots: merge(pots),
+    canopy,
+    downlights: merge(downlights),
+    neon,
+    neonBack,
+  };
+}
+
+export function BackBar({ venue, m, bake }: Omit<P, "evening"> & { bake: Bake | null }) {
+  const g = useMemo(() => {
+    const p = backBarParts(venue);
+    // Cabinet, counter, frame and shelves carry the bake (V2b): the creases in the bays, under the
+    // counter top and the canopy.
     return {
-      cabinet,
-      counter,
-      counterTop,
-      fridges: merge(fridges),
-      steel: merge(steel),
-      cups: merge(cups),
-      dark: merge(dark),
-      frame: merge(frame),
-      mirror,
-      strips: merge(strips),
-      cards: merge(cards),
-      pots: merge(pots),
-      canopy,
-      downlights: merge(downlights),
-      neon,
-      neonBack,
+      ...p,
+      cabinet: mapped(p.cabinet, bake),
+      counter: mapped(p.counter, bake),
+      frame: p.frame && mapped(p.frame, bake),
     };
-  }, [venue]);
+  }, [venue, bake]);
   return (
     <group name="back-bar">
-      <mesh geometry={g.cabinet} material={m.backBarWood} />
-      <mesh geometry={g.counter} material={m.barBase} />
+      <mesh geometry={g.cabinet} material={lit(m, bake, "backBarWood")} />
+      <mesh geometry={g.counter} material={lit(m, bake, "barBase")} />
       <mesh geometry={g.counterTop} material={m.stainless} />
       {g.fridges && <mesh geometry={g.fridges} material={m.fridgeGlass} />}
       {g.steel && <mesh geometry={g.steel} material={m.stainless} />}
       {g.cups && <mesh geometry={g.cups} material={m.marble} />}
       {g.dark && <mesh geometry={g.dark} material={m.blackMetal} />}
-      {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
+      {g.frame && <mesh geometry={g.frame} material={lit(m, bake, "backBarWood")} />}
       <mesh geometry={g.mirror} material={m.antiqueMirror} />
       {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
       {g.cards && <mesh geometry={g.cards} material={m.cards} />}
@@ -482,91 +497,104 @@ export function BackBarBottles({ venue }: Pick<P, "venue">) {
   );
 }
 
+/** Banquettes, the wine case and its crates, and the instruments on the brick. */
+export function furnishingParts(venue: VenueModel) {
+  const f = venue.data.fixtures;
+  const seats: THREE.BufferGeometry[] = [];
+  const backs: THREE.BufferGeometry[] = [];
+  const trims: THREE.BufferGeometry[] = [];
+  for (const b of f.banquettes) {
+    if (b.disabled || b.x0 === undefined || b.x1 === undefined) continue;
+    seats.push(boxGeo(b.x0, 0, 0.12, b.x1, 0.46, b.depth));
+    backs.push(boxGeo(b.x0, 0, 0, b.x1, b.backHeight, 0.14, 1.2));
+    // Nail-head trim along the top of the back and the seat front (R03, R07).
+    trims.push(trim(b.x0, b.x1, b.backHeight - 0.05, 0.142), trim(b.x0, b.x1, 0.38, b.depth + 0.002));
+  }
+  const [wx0, wz0, wx1, wz1] = f.wineWall.rect;
+  const wine = boxGeo(wx0, 0, wz0, wx1, f.wineWall.height, wz1);
+  const wineCanopy = boxGeo(
+    wx0 - 0.15,
+    f.wineWall.height,
+    wz0 - 0.2,
+    wx1 + 0.15,
+    f.wineWall.height + 0.12,
+    wz1 + 0.2,
+  );
+  // The wine wall as a lit glass case (R02, R15): upright backlit bottles on glass shelves behind a
+  // glass front, on its two faces toward the room, with wooden crates at its foot.
+  const caseCards: THREE.BufferGeometry[] = [];
+  const caseShelves: THREE.BufferGeometry[] = [];
+  const caseGlass: THREE.BufferGeometry[] = [];
+  const ROW = 0.36;
+  for (let y = 0.4; y + ROW <= f.wineWall.height - 0.1; y += ROW) {
+    const south = card(wx1 - wx0 - 0.08, ROW - 0.04, CARD.bottles, (wx1 - wx0) / CARD_STRIP_M);
+    south.translate((wx0 + wx1) / 2, y + ROW / 2, wz1 + 0.006);
+    const east = card(wz1 - wz0 - 0.08, ROW - 0.04, CARD.bottles, (wz1 - wz0) / CARD_STRIP_M);
+    east.rotateY(Math.PI / 2);
+    east.translate(wx1 + 0.006, y + ROW / 2, (wz0 + wz1) / 2);
+    caseCards.push(south, east);
+    caseShelves.push(
+      boxGeo(wx0 + 0.03, y - 0.01, wz1, wx1 - 0.03, y, wz1 + 0.04),
+      boxGeo(wx1, y - 0.01, wz0 + 0.03, wx1 + 0.04, y, wz1 - 0.03),
+    );
+  }
+  caseGlass.push(
+    boxGeo(wx0 + 0.02, 0.35, wz1 + 0.045, wx1 - 0.02, f.wineWall.height - 0.05, wz1 + 0.05),
+    boxGeo(wx1 + 0.045, 0.35, wz0 + 0.02, wx1 + 0.05, f.wineWall.height - 0.05, wz1 - 0.02),
+  );
+  const crates = [
+    boxGeo(wx0 + 0.04, 0, wz1 - 0.35, wx1 - 0.04, 0.3, wz1 + 0.12),
+    boxGeo(wx0 + 0.1, 0, wz1 - 0.95, wx1 + 0.12, 0.28, wz1 - 0.45),
+  ];
+  // Violins and guitars hung on wires in front of the brick above the canopy, tilted (R02).
+  const instruments: THREE.BufferGeometry[] = [];
+  const [bx0, , bx1] = venue.data.backBar.rect.value;
+  for (const [i, [u, y, size, turn]] of (
+    [
+      [0.08, 4.5, 0.9, 0.7],
+      [0.26, 4.35, 0.62, -0.65],
+      [0.44, 4.6, 0.9, 0.6],
+      [0.6, 4.4, 0.62, -0.75],
+      [0.77, 4.55, 0.9, 0.65],
+      [0.93, 4.35, 0.62, -0.6],
+    ] as const
+  ).entries()) {
+    const q = card(size, size, i % 2 ? CARD.violin : CARD.guitar);
+    q.rotateZ(turn);
+    q.translate(bx0 + (bx1 - bx0) * u, y, 0.06);
+    instruments.push(q);
+  }
+  return {
+    seats: merge(seats),
+    backs: merge(backs),
+    trims: merge(trims),
+    wine,
+    wineCanopy,
+    caseCards: merge(caseCards),
+    caseShelves: merge(caseShelves),
+    caseGlass: merge(caseGlass),
+    crates: merge(crates),
+    instruments: merge(instruments),
+  };
+}
+
 export function Furnishings({
   venue,
   m,
   art,
   choices,
-}: Omit<P, "evening"> & { art: boolean; choices: Record<string, string> }) {
+  bake,
+}: Omit<P, "evening"> & { art: boolean; choices: Record<string, string>; bake: Bake | null }) {
   const g = useMemo(() => {
-    const f = venue.data.fixtures;
-    const seats: THREE.BufferGeometry[] = [];
-    const backs: THREE.BufferGeometry[] = [];
-    const trims: THREE.BufferGeometry[] = [];
-    for (const b of f.banquettes) {
-      if (b.disabled || b.x0 === undefined || b.x1 === undefined) continue;
-      seats.push(boxGeo(b.x0, 0, 0.12, b.x1, 0.46, b.depth));
-      backs.push(boxGeo(b.x0, 0, 0, b.x1, b.backHeight, 0.14, 1.2));
-      // Nail-head trim along the top of the back and the seat front (R03, R07).
-      trims.push(trim(b.x0, b.x1, b.backHeight - 0.05, 0.142), trim(b.x0, b.x1, 0.38, b.depth + 0.002));
-    }
-    const [wx0, wz0, wx1, wz1] = f.wineWall.rect;
-    const wine = boxGeo(wx0, 0, wz0, wx1, f.wineWall.height, wz1);
-    const wineCanopy = boxGeo(
-      wx0 - 0.15,
-      f.wineWall.height,
-      wz0 - 0.2,
-      wx1 + 0.15,
-      f.wineWall.height + 0.12,
-      wz1 + 0.2,
-    );
-    // The wine wall as a lit glass case (R02, R15): upright backlit bottles on glass shelves behind a
-    // glass front, on its two faces toward the room, with wooden crates at its foot.
-    const caseCards: THREE.BufferGeometry[] = [];
-    const caseShelves: THREE.BufferGeometry[] = [];
-    const caseGlass: THREE.BufferGeometry[] = [];
-    const ROW = 0.36;
-    for (let y = 0.4; y + ROW <= f.wineWall.height - 0.1; y += ROW) {
-      const south = card(wx1 - wx0 - 0.08, ROW - 0.04, CARD.bottles, (wx1 - wx0) / CARD_STRIP_M);
-      south.translate((wx0 + wx1) / 2, y + ROW / 2, wz1 + 0.006);
-      const east = card(wz1 - wz0 - 0.08, ROW - 0.04, CARD.bottles, (wz1 - wz0) / CARD_STRIP_M);
-      east.rotateY(Math.PI / 2);
-      east.translate(wx1 + 0.006, y + ROW / 2, (wz0 + wz1) / 2);
-      caseCards.push(south, east);
-      caseShelves.push(
-        boxGeo(wx0 + 0.03, y - 0.01, wz1, wx1 - 0.03, y, wz1 + 0.04),
-        boxGeo(wx1, y - 0.01, wz0 + 0.03, wx1 + 0.04, y, wz1 - 0.03),
-      );
-    }
-    caseGlass.push(
-      boxGeo(wx0 + 0.02, 0.35, wz1 + 0.045, wx1 - 0.02, f.wineWall.height - 0.05, wz1 + 0.05),
-      boxGeo(wx1 + 0.045, 0.35, wz0 + 0.02, wx1 + 0.05, f.wineWall.height - 0.05, wz1 - 0.02),
-    );
-    const crates = [
-      boxGeo(wx0 + 0.04, 0, wz1 - 0.35, wx1 - 0.04, 0.3, wz1 + 0.12),
-      boxGeo(wx0 + 0.1, 0, wz1 - 0.95, wx1 + 0.12, 0.28, wz1 - 0.45),
-    ];
-    // Violins and guitars hung on wires in front of the brick above the canopy, tilted (R02).
-    const instruments: THREE.BufferGeometry[] = [];
-    const [bx0, , bx1] = venue.data.backBar.rect.value;
-    for (const [i, [u, y, size, turn]] of (
-      [
-        [0.08, 4.5, 0.9, 0.7],
-        [0.26, 4.35, 0.62, -0.65],
-        [0.44, 4.6, 0.9, 0.6],
-        [0.6, 4.4, 0.62, -0.75],
-        [0.77, 4.55, 0.9, 0.65],
-        [0.93, 4.35, 0.62, -0.6],
-      ] as const
-    ).entries()) {
-      const q = card(size, size, i % 2 ? CARD.violin : CARD.guitar);
-      q.rotateZ(turn);
-      q.translate(bx0 + (bx1 - bx0) * u, y, 0.06);
-      instruments.push(q);
-    }
+    const p = furnishingParts(venue);
+    // The banquettes and the wine case carry the bake (V2b): the crease where seat meets back.
     return {
-      seats: merge(seats),
-      backs: merge(backs),
-      trims: merge(trims),
-      wine,
-      wineCanopy,
-      caseCards: merge(caseCards),
-      caseShelves: merge(caseShelves),
-      caseGlass: merge(caseGlass),
-      crates: merge(crates),
-      instruments: merge(instruments),
+      ...p,
+      seats: p.seats && mapped(p.seats, bake),
+      backs: p.backs && mapped(p.backs, bake),
+      wine: mapped(p.wine, bake),
     };
-  }, [venue]);
+  }, [venue, bake]);
   // Hidden or swapped per scenario (VEN-05).
   const paintings = useMemo(
     () =>
@@ -584,10 +612,10 @@ export function Furnishings({
   );
   return (
     <group name="furnishings">
-      {g.seats && <mesh geometry={g.seats} material={m.leather} receiveShadow castShadow />}
-      {g.backs && <mesh geometry={g.backs} material={m.leather} receiveShadow />}
+      {g.seats && <mesh geometry={g.seats} material={lit(m, bake, "leather")} receiveShadow castShadow />}
+      {g.backs && <mesh geometry={g.backs} material={lit(m, bake, "leather")} receiveShadow />}
       {g.trims && <mesh geometry={g.trims} material={m.nailTrim} />}
-      <mesh geometry={g.wine} material={m.wineFrame} />
+      <mesh geometry={g.wine} material={lit(m, bake, "wineFrame")} />
       {g.caseCards && <mesh geometry={g.caseCards} material={m.cards} />}
       {g.caseShelves && <mesh geometry={g.caseShelves} material={m.shelfGlow} />}
       {g.caseGlass && <mesh geometry={g.caseGlass} material={m.glass} />}

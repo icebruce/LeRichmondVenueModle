@@ -448,10 +448,16 @@ function Scene({
         version={`${scenario.venueToggles.barStools}|${mode === "plan"}|${JSON.stringify(scenario.venueToggles.paintings)}`}
       >
         <Floors venue={venue} m={m} bake={bake} />
-        <Railing venue={venue} m={m} />
-        <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
-        <BackBar venue={venue} m={m} />
-        <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+        <Railing venue={venue} m={m} bake={bake} />
+        <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} bake={bake} />
+        <BackBar venue={venue} m={m} bake={bake} />
+        <Furnishings
+          venue={venue}
+          m={m}
+          art={mode !== "plan"}
+          choices={scenario.venueToggles.paintings}
+          bake={bake}
+        />
       </StaticMerge>
       <BackBarBottles venue={venue} />
       {scenario.venueToggles.barFlowers.shown && (
@@ -468,7 +474,7 @@ function Scene({
       <group visible={!cut.has("south")}>
         <Mezzanine venue={venue} m={m} bake={bake} />
       </group>
-      <Stair venue={venue} m={m} inRoom={cut.has("south")} />
+      <Stair venue={venue} m={m} inRoom={cut.has("south")} bake={bake} />
       <group visible={mode !== "plan"}>
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>

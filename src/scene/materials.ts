@@ -83,6 +83,8 @@ const GROUND_MIN = 0.5;
  */
 function grounded<T extends THREE.MeshStandardMaterial>(mat: T): T {
   const prev = mat.onBeforeCompile.bind(mat);
+  // A light-mapped copy (`bakedMaterial`) takes its contact occlusion from the bake instead.
+  mat.userData.ungrounded = prev;
   const key = mat.customProgramCacheKey();
   mat.customProgramCacheKey = () => `${key}|ground`;
   mat.onBeforeCompile = (s, r) => {
@@ -235,6 +237,8 @@ export function useMaterials(quality: Quality) {
       // Honey pine deck with darker beams (R02).
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
       timber: grounded(std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 })),
+      // The stair's treads and landings: the timber, light-mapped on its own (V2b).
+      stairWood: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
       // The same timber on the ceiling beams and the raised floor's sides, which carry the baked
       // light (V2), kept apart from the stair's live-lit timber.
       beam: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),

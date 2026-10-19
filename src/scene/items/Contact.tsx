@@ -5,6 +5,8 @@ import { chairsWorld } from "../../domain/layout/items";
 import { useView } from "../context";
 import { CONTACT_SPREAD, type Materials } from "../materials";
 import type { Placed } from "./common";
+import type { Part, Slot } from "../../domain/layout/decor";
+import type { DecorParts } from "./Decor";
 
 /** Standing guests' contact shadows drawn at most. */
 const CAPACITY = 800;
@@ -48,8 +50,13 @@ export function ContactShadows({ list, m }: { list: Contact[]; m: Materials }) {
 }
 
 /** How far a footprint's contact shadow reaches past its edge (m), and its darkness at the edge. */
-const REACH = { table: 0.3, chair: 0.12 } as const;
-const EDGE = { table: 0.75, chair: 0.5 } as const;
+const REACH = { table: 0.3, chair: 0.12, decor: 0.05 } as const;
+const EDGE = { table: 0.75, chair: 0.5, decor: 0.45 } as const;
+/** Points round a circular footprint, by size. */
+const SEGMENTS = { table: 40, chair: 40, decor: 12 } as const;
+/** Décor that casts no contact shadow: light, and what lies flat on the cloth. */
+const FLAT: ReadonlySet<Slot> = new Set(["flame", "glow", "beam", "bulb", "fabric", "sheer", "paper"]);
+const UP = new THREE.Vector3(0, 1, 0);
 /** Corner radius of a rectangular footprint (m). */
 const CORNER = 0.04;
 
@@ -63,10 +70,10 @@ type Footprint = {
 };
 
 /** A footprint's edge, going round: point and outward normal in its own frame, as [x, z, nx, nz]. */
-function edge(f: Footprint["shape"]): [number, number, number, number][] {
+function edge(f: Footprint["shape"], segments: number): [number, number, number, number][] {
   if (f.kind === "round")
-    return Array.from({ length: 40 }, (_, i) => {
-      const a = (i / 40) * Math.PI * 2;
+    return Array.from({ length: segments }, (_, i) => {
+      const a = (i / segments) * Math.PI * 2;
       return [Math.cos(a) * f.radius, Math.sin(a) * f.radius, Math.cos(a), Math.sin(a)];
     });
   const [a, b] = [f.length / 2, f.width / 2];
@@ -92,8 +99,8 @@ function edge(f: Footprint["shape"]): [number, number, number, number][] {
 }
 
 /**
- * Contact shadows that follow each footprint's outline (owner 2026-10-19: tables and their cloths
- * looked afloat): as dark as `EDGE` under the piece and at its edge, then fading over a fixed `REACH`
+ * Contact shadows that follow each footprint's outline (owner 2026-10-19: tables and their cloths,
+ * and the décor on them, looked afloat): as dark as `EDGE` under the piece and at its edge, then fading over a fixed `REACH`
  * whatever its size. All of them are one mesh, rebuilt when a piece moves.
  */
 function footprintGeometry(list: Footprint[]): THREE.BufferGeometry {
@@ -104,7 +111,7 @@ function footprintGeometry(list: Footprint[]): THREE.BufferGeometry {
   const v = new THREE.Vector3();
   for (const f of list) {
     m.makeRotationY(f.rotY).setPosition(f.x, f.y + 0.004, f.z);
-    const ring = edge(f.shape);
+    const ring = edge(f.shape, SEGMENTS[f.size]);
     const [reach, dark] = [REACH[f.size], EDGE[f.size]];
     const add = (x: number, z: number, a: number) => {
       v.set(x, 0, z).applyMatrix4(m);
@@ -140,8 +147,21 @@ function footprintGeometry(list: Footprint[]): THREE.BufferGeometry {
   return g;
 }
 
-/** Contact shadows under the tables and their chairs; pieces being dragged are lifted, so none. */
-export function TableContacts({ placed, m }: { placed: Placed[]; m: Materials }) {
+/** What a décor part stands on, as a footprint, or null when it casts no contact shadow. */
+function decorFootprint(part: Part): Footprint["shape"] | null {
+  if (FLAT.has(part.slot) || part.rx || part.rz) return null;
+  const bottom = part.prim === "sphere" ? part.y - part.sy : part.y;
+  if (bottom > 0.01) return null;
+  if (part.prim === "box" || part.prim === "plane") return { kind: "rect", length: part.sx, width: part.sz };
+  const radius = Math.max(part.sx, part.sz) * (part.prim === "sphere" ? 0.7 : 1);
+  return { kind: "round", radius };
+}
+
+/**
+ * Contact shadows under the tables, their chairs, and the décor on them and on the floor; pieces
+ * being dragged are lifted, so none.
+ */
+export function TableContacts({ placed, decor, m }: { placed: Placed[]; decor: DecorParts; m: Materials }) {
   const drag = useView((s) => s.drag);
   const invalidate = useThree((s) => s.invalidate);
   const geometry = useMemo(() => {
@@ -165,8 +185,25 @@ export function TableContacts({ placed, m }: { placed: Placed[]; m: Materials })
           shape: { kind: "rect", length: CHAIR_SEAT, width: CHAIR_SEAT },
         });
     }
+    const at = new THREE.Vector3();
+    for (const { p, base, parts } of decor) {
+      if (drag?.ids.includes(p.item.id)) continue;
+      for (const part of parts) {
+        const shape = decorFootprint(part);
+        if (!shape) continue;
+        at.set(part.x, 0, part.z).applyAxisAngle(UP, p.item.rotY);
+        out.push({
+          x: p.item.x + at.x,
+          z: p.item.z + at.z,
+          y: p.y + base,
+          rotY: p.item.rotY + (part.ry ?? 0),
+          size: "decor",
+          shape,
+        });
+      }
+    }
     return footprintGeometry(out);
-  }, [placed, drag]);
+  }, [placed, decor, drag]);
   useEffect(() => {
     invalidate();
     return () => geometry.dispose();
