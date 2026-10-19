@@ -54,7 +54,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V1 | Room model and surfaces | Must | Merged (PR #17) |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Merged (PR #18), approved by the owner |
 | V3 | Bar and back bar | Should | Built, PR next |
-| V4 | Linens and chairs | Must | Not started |
+| V4 | Linens and chairs | Must | Built (PR after V2b, #20) |
 | V5 | Table décor and Photo mode | Must | Not started |
 | V6 | Remaining fixtures | If time allows | Not started |
 | V7 | People | Should | Not started |
@@ -293,6 +293,14 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Review:** `fidelity-reviewer` vs R04, R09 and R10; finish checklist item Soft goods.
 
 **Gate:** the owner approves on the preview.
+
+**Built (2026-10-19):**
+
+- **Linens:** every table wears a procedural drape (`scene/items/drape.ts`): an eased top edge, folds 4 cm deep at the hem round its line, a rectangle's corners crisp at the top and gathered round at the hem, a 3.5 cm flare; floor length stops 12 mm above the floor, lap length 0.30 m below the top. One geometry per table size, shared. Runner ends hang just outside the cloth's reach at their own hem (`domain/layout/cloth.ts`).
+- **Chair-gap rule:** a tucked chair's front stays outside the cloth's furthest reach, for every chair style and table size (unit test).
+- **Chairs (Meshy, approved 2026-10-19):** oval-back, cross-back and Chiavari, made with Meshy (about 3,000 triangles each; task ids in `tools/meshy/TASKS.md`) and prepared by `tools/blender/chair_from_meshy.py`: the remesher's topology kept (its few fins and pin holes do not show; refilling them made jagged patches), width and height fitted, the backrest placed where a seated guest's back rests, a grey detail map and a frame/seat mask, so each library entry tints frame and seat and every chair type is one draw call. About 320 KB each, uncompressed (the site's CSP has no `wasm-unsafe-eval` for meshopt). High only; Balanced and phones keep the parametric chairs. The venue chair: grey-oak frame, grey velvet (R04).
+- **Budgets:** High's triangle budget is 2.0 M (owner, 2026-10-19; was 1.5 M), for the Meshy chairs, flowers and chandeliers.
+- **Open:** lap cloths hang level; R04's lap cloths drop in points at the corners (owner to decide).
 
 ### V5: Table décor and Photo mode
 
