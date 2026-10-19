@@ -47,6 +47,19 @@ describe("editing", () => {
     );
   });
 
+  test("[VEN-06] the bar flowers hide and show, and sliding one along the bar undoes in one step", () => {
+    const { editor } = setup();
+    expect(editor.active().venueToggles.barFlowers.shown).toBe(true);
+    editor.setBarFlowers({ shown: false });
+    expect(editor.active().venueToggles.barFlowers.shown).toBe(false);
+    editor.setBarFlowers({ shown: true });
+    const start = editor.active().venueToggles.barFlowers.at;
+    for (const t of [0.5, 0.55, 0.6]) editor.setBarFlowers({ at: [t, start[1]] });
+    expect(editor.active().venueToggles.barFlowers.at).toEqual([0.6, start[1]]);
+    editor.undo();
+    expect(editor.active().venueToggles.barFlowers.at).toEqual(start);
+  });
+
   test("[LAY-05] moves snap to a 10 cm grid unless snapping is off", () => {
     const { editor, item } = setup();
     editor.moveItems([{ id: "t1", x: 2.84, z: 2.63 }]);

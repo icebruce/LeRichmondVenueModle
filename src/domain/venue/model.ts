@@ -83,6 +83,42 @@ function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][]
   return runs;
 }
 
+/**
+ * A point on the middle of the bar top (VEN-06), `t` from 0 to 1 along it: from the north end of the
+ * west side, round the front, to the north end of the east side.
+ */
+export function barTopPoint(d: VenueData, t: number): Vec2 {
+  const [x0, z0, x1, z1] = d.bar.outer.value;
+  const wx = x0 + d.bar.legWidth / 2;
+  const ex = x1 - d.bar.legWidth / 2;
+  const fz = z1 - d.bar.frontDepth / 2;
+  const runs: [Vec2, Vec2][] = [
+    [
+      [wx, z0],
+      [wx, fz],
+    ],
+    [
+      [wx, fz],
+      [ex, fz],
+    ],
+    [
+      [ex, fz],
+      [ex, z0],
+    ],
+  ];
+  const lengths = runs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]));
+  let s = Math.min(1, Math.max(0, t)) * lengths.reduce((a, b) => a + b, 0);
+  for (const [i, [a, b]] of runs.entries()) {
+    const l = lengths[i] as number;
+    if (s <= l || i === runs.length - 1) {
+      const k = l ? Math.min(1, s / l) : 0;
+      return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    }
+    s -= l;
+  }
+  return [wx, z0];
+}
+
 function barObstacles(d: VenueData): Obstacle[] {
   const [x0, z0, x1, z1] = d.bar.outer.value;
   const leg = d.bar.legWidth;

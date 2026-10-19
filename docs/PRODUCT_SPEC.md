@@ -51,6 +51,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 | VEN-03 | M | 1 | No walkable or editable mezzanine, terrace or bistro. | Walk mode cannot leave the main floor; nothing can be placed outside it except at `LAY-11`. |
 | VEN-04 | M | 1 | The raised floor east of the bar is a separate level with a visible step edge and railing. Items placed on it sit at its height. | A table dragged onto the strip rises to the strip level; one straddling the edge is refused. |
 | VEN-05 | S | 2 | Paintings are swappable décor (current artwork by default). | Owner can hide or swap each painting. |
+| VEN-06 | S | 4 | The two bar flowers (tall glass vases of white blossom branches, R02) stand on the bar top; the couple can slide each along the bar or hide both. Saved with the plan. | Owner hides them, shows them and slides one; the change is saved and undoes in one step. |
 
 ### 5.2 Cameras — CAM
 

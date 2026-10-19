@@ -10,6 +10,7 @@ import {
 } from "../../src/domain/layout/decor";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import {
+  DEFAULT_BAR_FLOWERS,
   DEFAULT_STYLE,
   newScenario,
   parseScenario,
@@ -172,12 +173,13 @@ describe("scenario files", () => {
       updatedAt: "2026-10-15T00:00:00.000Z",
     };
     const s = parseScenario(v1);
-    expect(s.schemaVersion).toBe(5);
+    expect(s.schemaVersion).toBe(6);
     expect(s.style).toMatchObject({ runner: "none", napkin: "none", menus: false, tableNumbers: false });
     expect(s.style).toMatchObject({ linen: "linen-white", linenLength: "lap" });
     expect(s.style.candles).toEqual([{ id: "candle-votives", n: 3 }]);
-    // The communal table is no longer modelled (LAY-12): an old file opens without it.
-    expect(s.venueToggles).toEqual({ barStools: false, paintings: {} });
+    // The communal table is no longer modelled (LAY-12): an old file opens without it; the bar
+    // flowers come in where the photos have them (VEN-06).
+    expect(s.venueToggles).toEqual({ barStools: false, paintings: {}, barFlowers: DEFAULT_BAR_FLOWERS });
   });
 
   test("[LIB-05] [SCN-08] a version 3 plan opens with its single candle choice as a mix, table overrides too", () => {
@@ -214,7 +216,7 @@ describe("scenario files", () => {
       updatedAt: "2026-10-16T00:00:00.000Z",
     };
     const s = parseScenario(v3);
-    expect(s.schemaVersion).toBe(5);
+    expect(s.schemaVersion).toBe(6);
     expect(s.style.candles).toEqual([{ id: "candle-pillars", n: 3 }]);
     expect(s.items[0]?.style?.candles).toEqual([]);
     expect(s.items[1]?.style?.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
@@ -430,7 +432,7 @@ describe("candle mix", () => {
       ],
     };
     const s = parseScenario(v4);
-    expect(s.schemaVersion).toBe(5);
+    expect(s.schemaVersion).toBe(6);
     // Both become the one candelabra: the first one's arms, their counts together.
     expect(s.style.candles).toEqual([
       { id: "candelabra", n: 3, arms: 5 },

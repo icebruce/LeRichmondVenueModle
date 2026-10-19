@@ -181,21 +181,48 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     const H = d.counterHeight.value;
     const leg = d.legWidth;
     const front = d.frontDepth;
+    // A thick marble slab with an eased edge over a panelled black base (R02, R03).
+    const slab = 0.08;
     const base = [
-      boxGeo(x0, 0, z0, x0 + leg, H - 0.05, z1),
-      boxGeo(x1 - leg, 0, z0, x1, H - 0.05, z1),
-      boxGeo(x0 + leg, 0, z1 - front, x1 - leg, H - 0.05, z1),
+      boxGeo(x0, 0, z0, x0 + leg, H - slab, z1),
+      boxGeo(x1 - leg, 0, z0, x1, H - slab, z1),
+      boxGeo(x0 + leg, 0, z1 - front, x1 - leg, H - slab, z1),
     ];
-    const o = 0.05;
+    // Raised stiles and rails framing the panels on the guest faces: west side and front.
+    const PANEL = 0.9;
+    const stile = (a: number, b: number, horizontal: boolean, at: number) =>
+      horizontal
+        ? boxGeo(a, at - 0.03, z1, b, at + 0.03, z1 + 0.02)
+        : boxGeo(x0 - 0.02, at - 0.03, a, x0, at + 0.03, b);
+    for (const y of [0.12, H - slab - 0.06]) {
+      base.push(stile(x0, x1, true, y), stile(z0, z1, false, y));
+    }
+    for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / Math.round((x1 - x0) / PANEL))
+      base.push(boxGeo(x - 0.03, 0.09, z1, x + 0.03, H - slab - 0.03, z1 + 0.02));
+    for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / Math.round((z1 - z0) / PANEL))
+      base.push(boxGeo(x0 - 0.02, 0.09, z - 0.03, x0, H - slab - 0.03, z + 0.03));
+    const o = 0.06;
+    const r = 0.025;
     const top = [
-      bevelGeo(x0 - o, H - 0.05, z0, x0 + leg + 0.02, H, z1 + o, 0.012, TILE.marble),
-      bevelGeo(x1 - leg - 0.02, H - 0.05, z0, x1 + o, H, z1 + o, 0.012, TILE.marble),
-      bevelGeo(x0 + leg, H - 0.05, z1 - front - 0.02, x1 - leg, H, z1 + o, 0.012, TILE.marble),
+      bevelGeo(x0 - o, H - slab, z0, x0 + leg + 0.02, H, z1 + o, r, TILE.marble),
+      bevelGeo(x1 - leg - 0.02, H - slab, z0, x1 + o, H, z1 + o, r, TILE.marble),
+      bevelGeo(x0 + leg, H - slab, z1 - front - 0.02, x1 - leg, H, z1 + o, r, TILE.marble),
     ];
-    const rail = [
-      boxGeo(x0 - 0.2, 0.2, z0 + 0.2, x0 - 0.16, 0.24, z1 + 0.18),
-      boxGeo(x0 - 0.2, 0.2, z1 + 0.16, x1, 0.24, z1 + 0.2),
-    ];
+    // A round black foot rail on brackets along the west side and the front (R03).
+    const rail: THREE.BufferGeometry[] = [];
+    const tube = (a: THREE.Vector3, b: THREE.Vector3) => {
+      const g = new THREE.CylinderGeometry(0.022, 0.022, a.distanceTo(b), 10);
+      g.rotateZ(Math.PI / 2);
+      if (a.x === b.x) g.rotateY(Math.PI / 2);
+      g.translate((a.x + b.x) / 2, a.y, (a.z + b.z) / 2);
+      rail.push(g);
+    };
+    const RY = 0.22;
+    const RO = 0.2;
+    tube(new THREE.Vector3(x0 - RO, RY, z0 + 0.2), new THREE.Vector3(x0 - RO, RY, z1 + RO));
+    tube(new THREE.Vector3(x0 - RO, RY, z1 + RO), new THREE.Vector3(x1, RY, z1 + RO));
+    for (let x = x0 + 0.4; x < x1; x += 1.1) rail.push(boxGeo(x - 0.012, 0.02, z1, x + 0.012, RY, z1 + RO));
+    for (let z = z0 + 0.4; z < z1; z += 1.1) rail.push(boxGeo(x0 - RO, 0.02, z - 0.012, x0, RY, z + 0.012));
     const stoolGeos: THREE.BufferGeometry[] = [];
     const seatGeos: THREE.BufferGeometry[] = [];
     if (stools) {
@@ -231,7 +258,7 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     <group name="bar">
       <mesh geometry={parts.base} material={m.barBase} castShadow receiveShadow />
       <mesh geometry={parts.top} material={m.marble} castShadow receiveShadow />
-      <mesh geometry={parts.rail} material={m.brass} />
+      <mesh geometry={parts.rail} material={m.blackMetal} />
       {parts.stools && <mesh geometry={parts.stools} material={m.blackMetal} castShadow />}
       {parts.seats && <mesh geometry={parts.seats} material={m.timber} castShadow />}
     </group>

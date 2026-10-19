@@ -33,6 +33,12 @@ export const DEFAULT_THRESHOLDS: Scenario["thresholds"] = {
   dancingShare: 0.35,
 };
 
+/**
+ * Where the bar flowers stand (VEN-06), as shares of the bar top's length: from the north end of
+ * its west side, round the front, to the north end of its east side. Both on the west half, as in R02.
+ */
+export const DEFAULT_BAR_FLOWERS: Scenario["venueToggles"]["barFlowers"] = { shown: true, at: [0.2, 0.42] };
+
 export function newScenario(id: string, name: string, now: string, items: Item[] = []): Scenario {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -43,7 +49,7 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
     style: { ...DEFAULT_STYLE },
     guests: { count: 75, seed: 1 },
     thresholds: { ...DEFAULT_THRESHOLDS },
-    venueToggles: { barStools: false, paintings: {} },
+    venueToggles: { barStools: false, paintings: {}, barFlowers: { ...DEFAULT_BAR_FLOWERS } },
     notes: [],
     updatedAt: now,
   };
@@ -160,6 +166,12 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
       }),
     };
   },
+  // v6 (visual stage V3): the bar flowers, shown where the photos have them.
+  5: (raw) => ({
+    ...raw,
+    schemaVersion: 6,
+    venueToggles: { barFlowers: { ...DEFAULT_BAR_FLOWERS }, ...(raw.venueToggles as object) },
+  }),
 };
 
 /** The two candelabra of v4 and their arms. */

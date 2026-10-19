@@ -3,7 +3,10 @@ import { z } from "zod";
 export const MAX_CANDLE_KINDS = 3;
 export const MAX_CANDLES_PER_KIND = 8;
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
+
+/** A share of a length, 0 to 1. */
+const unit = z.number().min(0).max(1);
 
 /** A candle size in cm; each kind's own range is applied where the candle is drawn. */
 const cm = z.number().positive().max(100);
@@ -100,6 +103,8 @@ export const scenarioSchema = z.object({
     barStools: z.boolean(),
     /** Painting id → "hidden" or a replacement artwork id; absent = the current artwork (VEN-05). */
     paintings: z.record(z.string(), z.string()),
+    /** The two vases of blossom on the bar top (VEN-06): shown, and where each stands along the bar. */
+    barFlowers: z.object({ shown: z.boolean(), at: z.tuple([unit, unit]) }),
   }),
   notes: z.array(noteSchema),
   updatedAt: z.string(),

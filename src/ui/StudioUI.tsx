@@ -22,6 +22,7 @@ import {
   LayoutRules,
   GraphicsPage,
   PaintingsPage,
+  BarFlowersPage,
   PeoplePanel,
   RoomPanel,
   type Section,
@@ -457,8 +458,9 @@ export function StudioUI() {
   const selection = useEditor((s) => s.selection);
   const camera = useEditor((s) => s.camera);
   const [section, setSection] = useState<Section>("room");
-  const [page, setPage] = useState<"rules" | "paintings" | "graphics" | StylePage | null>(null);
-  const stylePage = page === "rules" || page === "paintings" || page === "graphics" ? null : page;
+  const [page, setPage] = useState<"rules" | "paintings" | "flowers" | "graphics" | StylePage | null>(null);
+  const stylePage =
+    page === "rules" || page === "paintings" || page === "flowers" || page === "graphics" ? null : page;
   const [details, setDetails] = useState(false);
   const [checks, setChecks] = useState(false);
   const [sheet, setSheet] = useState<Sheet>("peek");
@@ -649,6 +651,8 @@ export function StudioUI() {
         <LayoutRules onBack={() => setPage(null)} />
       ) : page === "paintings" ? (
         <PaintingsPage onBack={() => setPage(null)} />
+      ) : page === "flowers" ? (
+        <BarFlowersPage onBack={() => setPage(null)} />
       ) : page === "graphics" ? (
         <GraphicsPage onBack={() => setPage(null)} />
       ) : (

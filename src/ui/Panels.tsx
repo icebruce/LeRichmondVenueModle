@@ -1762,7 +1762,11 @@ const VIEWS: { key: string; label: string; detail: string }[] = [
 ];
 
 /** Room (VEN-05, LAY-05, LAY-08, LAY-12): views, the restaurant's own furniture and art, the layout rules. */
-export function RoomPanel({ open }: { open: (page: "rules" | "paintings" | "graphics") => void }) {
+export function RoomPanel({
+  open,
+}: {
+  open: (page: "rules" | "paintings" | "flowers" | "graphics") => void;
+}) {
   const { editor, venue } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const snapping = useEditor((s) => s.snapping);
@@ -1807,6 +1811,12 @@ export function RoomPanel({ open }: { open: (page: "rules" | "paintings" | "grap
           value={changed ? `${changed} changed` : "Current art"}
           onClick={() => open("paintings")}
           testId="room-paintings"
+        />
+        <NavRow
+          label="Bar flowers"
+          value={scenario.venueToggles.barFlowers.shown ? "Shown" : "Hidden"}
+          onClick={() => open("flowers")}
+          testId="room-flowers"
         />
       </div>
       <h3 className="group-title">Layout</h3>
@@ -1888,6 +1898,60 @@ export function GraphicsPage({ onBack }: { onBack: () => void }) {
         ))}
       </div>
       <p className="hint">Saved on this device. Lighting and furniture are the same in every choice.</p>
+    </div>
+  );
+}
+
+/** Where a bar flower stands, in words (VEN-06): `t` runs west side, front, east side. */
+function barSide(t: number): string {
+  return t < 0.36 ? "West side" : t > 0.64 ? "East side" : "Front";
+}
+
+/** Room › Bar flowers (VEN-06): show or hide the two vases, and slide each along the bar top. */
+export function BarFlowersPage({ onBack }: { onBack: () => void }) {
+  const { editor } = useStudio();
+  const flowers = useEditor((s) => s.scenarios[s.activeId]?.venueToggles.barFlowers);
+  if (!flowers) return null;
+  const [a, b] = flowers.at;
+  return (
+    <div className="panel-body" data-testid="bar-flowers">
+      <PageHead title="Bar flowers" back="Room" onBack={onBack} />
+      <div className="list">
+        <Toggle
+          label="Show the bar flowers"
+          sub="Two tall vases of white blossom on the bar"
+          checked={flowers.shown}
+          onChange={(v) => editor.setBarFlowers({ shown: v })}
+          testId="toggle-flowers"
+        />
+      </div>
+      {flowers.shown && (
+        <>
+          <Slider
+            label="First vase"
+            value={a}
+            min={0}
+            max={1}
+            step={0.01}
+            format={barSide}
+            onChange={(v) => editor.setBarFlowers({ at: [v, b] })}
+            testId="flower-a"
+          />
+          <Slider
+            label="Second vase"
+            value={b}
+            min={0}
+            max={1}
+            step={0.01}
+            format={barSide}
+            onChange={(v) => editor.setBarFlowers({ at: [a, v] })}
+            testId="flower-b"
+          />
+          <p className="hint">
+            Each vase slides along the bar top, from the west side round the front to the east side.
+          </p>
+        </>
+      )}
     </div>
   );
 }

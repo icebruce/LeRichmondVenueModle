@@ -18,7 +18,8 @@ function skipped(o: THREE.Object3D): boolean {
  * `?bake-export` (`npm run bake`, visual stage V2): `window.__exportBake()` returns the fixed room as
  * a GLB for Blender. Receivers ("R:" + name) come from the venue data with their light-map UVs, in
  * plain materials of their average colour; everything else drawn and opaque goes in as an occluder
- * ("O:"), glowing where it glows, so the bake sees the bar, stair and fixtures in the light.
+ * ("O:"), glowing where it glows, so the bake sees the bar, stair and fixtures in the light. Glass
+ * and cut-out cards are left out.
  */
 export function BakeExport({ m }: { m: Materials }) {
   const scene = useThree((s) => s.scene);
@@ -58,7 +59,15 @@ export function BakeExport({ m }: { m: Materials }) {
         const mesh = o as THREE.Mesh;
         if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || skipped(o)) return;
         const src = mesh.material as THREE.MeshStandardMaterial;
-        if (Array.isArray(src) || receiverMaterials.has(src) || src.transparent || !src.color) return;
+        // Cut-out cards (bottles, plants, instruments) would bake as solid squares: left out.
+        if (
+          Array.isArray(src) ||
+          receiverMaterials.has(src) ||
+          src.transparent ||
+          src.alphaTest > 0 ||
+          !src.color
+        )
+          return;
         const geo = (mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone()).applyMatrix4(
           mesh.matrixWorld,
         );
