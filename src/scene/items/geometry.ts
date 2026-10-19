@@ -8,6 +8,12 @@ function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 /**
+ * How far any chair style reaches in front of its centre (its seat front, the oval chair's being the
+ * deepest), for the chair-gap rule with floor-length cloths (V4).
+ */
+export const CHAIR_FRONT_REACH = 0.21;
+
+/**
  * Venue oval-back chair (Louis style, R04/R12). Faces +z; the backrest is at -z.
  * Returns the wood frame and the upholstery as separate geometries for two instanced meshes.
  */
