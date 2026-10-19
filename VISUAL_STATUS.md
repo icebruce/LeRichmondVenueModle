@@ -100,7 +100,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 
 - Frames on demand, shadows redrawn only when the room's contents change, the same light set in every view, parts hidden rather than unmounted, every shader compiled at load: 0 frames while still and 0 compiles on view, lighting, menu and selection switches (CI, both device weights), and none after a tier change.
 - Tiers High, Balanced, Battery saver with Auto (`state/graphics.ts`); the compare halves draw at Balanced's moving resolution. The setting is built as the approved mock-up (`docs/mockups/graphics.html`, owner 2026-10-18; PLT-05): Room › This device › Graphics, kept per device.
-- Lever differences from the table, decided in the build: bloom keeps one resolution in every tier, and multisampling, bloom strength and vignette follow the device as before (changing either at run time rebuilds every effect pass, a stall of its own); "Décor and people detail" follows the device (phones load the lighter models, PLT-03), since Auto never changes models. Light maps, textures and the reflection capture levers come with V1 and V2.
+- Lever differences from the table, decided in the build: bloom keeps one resolution in every tier, and bloom strength and vignette follow the device as before; multisampling and full-resolution ambient occlusion come with High on a desktop (V2b, owner: the setting must show on a still picture; a tier change rebuilds the effect passes once); "Décor and people detail" follows the device (phones load the lighter models, PLT-03), since Auto never changes models. Light maps, textures and the reflection capture levers come with V1 and V2.
 - Static venue parts (floors, railing, bar, back bar, furnishings) merged per material.
 - `?perf` overlay with Copy and the two benchmark cameras (dollhouse, `benchEye`); `?bench=sample|ppl03` opens a benchmark scene on a fresh session.
 - `tools/`: the Blender and Meshy scripts, `check-assets` (in CI; 0 GLBs today, every piece is parametric) and `optimize` (glTF Transform, meshopt). Headless Blender verified: `pip install bpy` runs `mesh_audit.py` (45 open edges on the Meshy man, as the checker also finds).
@@ -219,6 +219,19 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - Reviews: `ux-reviewer` (1 blocker, 4 majors) and `fidelity-reviewer` (black wall tops and cut-wall faces, brick outshining the back bar, cold daylight) all addressed and re-baked; the colour check passes on the cloth drops.
 - Owner changes folded into V2 (2026-10-18), re-baked: the dollhouse lens is 20° (the `?lens=narrow` A/B is gone); the garage-door (west) wall has a red-brick dado under buff brick like the back-bar wall; the back bar stands 0.9 m off the north wall with a passage behind it (closed at its east end by the wine wall), the bar island's back end moving inland with it (front unchanged); the restroom corridor door sits half behind the back bar's west end (x 5.2–6.15). Also fixed: the back-bar bottles, hidden since V0 by the static merge (instanced meshes are now drawn outside it).
 - Not done in V2: the box-projected reflection capture and an HDR daylight environment (the light-former environment stays; neither review asked for them); calibration camera presets matching R08 and U02 (U02 is not in the local cache). The fixed bar, back bar and stair are in the bake as occluders, so their floor shadows are baked.
+
+### V2b: Light rework (owner, 2026-10-19)
+
+**Why:** the owner found the V2 evening flat: uniform light brick, no warm bounce, missing bar shadows and ambient occlusion, a night tone unlike R06/R08, and a graphics setting that showed no difference.
+
+**Built:**
+
+- Baked surfaces keep 8 % of the sky light (was 35 %, a uniform fill that flattened the bake's falloff) and 35 % of the live lights' direct light (was none), so live shadows and the couple's placed lights show on the floor and walls.
+- ACES filmic tone mapping (AgX greyed the warm light); evening exposure 0.24, daylight 2.3.
+- Evening bake at about 2400 K, crisper chandelier shadows (smaller sources), narrower and brighter track scallops on the north brick, brighter pier uplights, a darker night sky; the buff brick takes a warm tint in the evening (`BRICK_TINT`).
+- The evening key light from nearly overhead, so the bar and tables cast their shadows straight down; soft contact shadows under the bar and back counter, in the existing instanced draw.
+- Ambient occlusion stronger and tighter (radius 0.55 m); full resolution and 4× multisampling with High on a desktop, so the setting shows on a still picture.
+- Budget: ppl03 Balanced stays at 149 draw calls (≤ 150).
 
 ### V3: Bar and back bar
 

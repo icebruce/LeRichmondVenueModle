@@ -119,6 +119,11 @@ export const LED_GLOW = 1.0;
 
 /** A contact shadow's plane is this many times the footprint it darkens. */
 export const CONTACT_SPREAD = 1.6;
+/**
+ * The buff brick's tint by day and in the evening (V2b): under the venue's warm light at night it
+ * reads orange-brown in R06 and R08, not pale beige.
+ */
+export const BRICK_TINT = { day: "#f4ebdd", evening: "#e3a77e" } as const;
 
 /** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
 export const SHADOW_SPREAD = 1.25;
@@ -157,7 +162,7 @@ export function useMaterials(quality: Quality) {
           map: tex.brickDiff,
           normalMap: tex.brickNor,
           roughnessMap: tex.brickRough,
-          color: "#f4ebdd",
+          color: BRICK_TINT.day,
           roughness: 1,
         }),
         0.12,

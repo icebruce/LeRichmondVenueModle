@@ -27,7 +27,7 @@ import {
   shadowDraws,
   uncapNextFrame,
 } from "./frames";
-import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
+import { BACKDROP, BRICK_TINT, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
 import { BakeExport } from "./BakeExport";
 import { useBake } from "./useBake";
@@ -117,8 +117,10 @@ function Lighting({
       <directionalLight
         // A new tier's shadow size needs a new shadow map.
         key={shadowSize}
-        position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
-        intensity={evening ? 0.35 : 2.4}
+        // Evening: a warm light from nearly overhead, standing in for the chandeliers and track
+        // spots, so the bar and tables cast their shadows straight down (R06, R08).
+        position={evening ? [W / 2 + 1.5, 14, D / 2 - 1.5] : [-12, 13, D / 2 - 3]}
+        intensity={evening ? 1.1 : 2.4}
         color={evening ? "#ffdfc0" : "#fff4e6"}
         castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
@@ -189,15 +191,17 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
   const moving = useStore(graphicsStore, (s) => s.moving);
   if (levers.direct) return null;
   const high = quality === "high";
+  // High draws its ambient occlusion at full resolution and smooths edges (V2b: the setting shows on
+  // a still picture, not only in motion); changing either rebuilds the effect passes once.
+  const best = tier === "high" && high;
   return (
-    // Multisampling by device too: changing it rebuilds every effect pass.
-    <EffectComposer multisampling={high ? 4 : 0}>
+    <EffectComposer multisampling={best ? 4 : 0}>
       <N8AO
         enabled={levers.ao === "live" || !moving}
-        aoRadius={0.7}
-        intensity={evening ? 2.2 : 1.6}
+        aoRadius={0.55}
+        intensity={evening ? 3.2 : 2.2}
         distanceFalloff={0.6}
-        halfRes
+        halfRes={!best}
       />
       <Bloom
         intensity={evening ? (high ? 0.75 : 0.7) : 0.15}
@@ -205,7 +209,7 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
         luminanceSmoothing={high ? 0.2 : 0.03}
         mipmapBlur
       />
-      <ToneMapping mode={ToneMappingMode.AGX} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <Vignette darkness={evening ? 0.42 : 0.2} offset={0.3} opacity={high ? 1 : 0} />
     </EffectComposer>
   );
@@ -425,11 +429,15 @@ function Scene({
   useEffect(() => {
     m.led.emissiveIntensity = evening ? LED_GLOW : 0;
     m.cap.emissiveIntensity = evening ? 0.12 : 0;
+    for (const brick of [m.brick, bake?.materials.brick])
+      (brick as THREE.MeshStandardMaterial | undefined)?.color.set(
+        evening ? BRICK_TINT.evening : BRICK_TINT.day,
+      );
     // Street sheers at night are lit only from inside: dimmer.
     m.sheer.opacity = evening ? 0.1 : 0.2;
     scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
     invalidate();
-  }, [m, scene, evening, invalidate]);
+  }, [m, bake, scene, evening, invalidate]);
   return (
     <>
       <primitive attach="background" object={background} />

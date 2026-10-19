@@ -44,7 +44,8 @@ room = bpy.context.active_object
 lightmap_uv = room.data.uv_layers[1].name
 print("receivers joined", len(room.data.polygons), "faces;", round(time.time() - t0), "s")
 
-warm = (1.0, 0.83, 0.64)
+# About 2400 K: the venue at night is amber, not neutral (R06, R08; V2b).
+warm = (1.0, 0.72, 0.45)
 
 
 def add_light(name, kind, loc, watts, color=warm, radius=0.2, target=None, angle=None, blend=0.6):
@@ -71,13 +72,13 @@ f = V["fixtures"]
 if MODE == "evening":
     # The venue's own light (R06, R08, UV01): chandeliers, pendant drums, track washes on the brick,
     # the lit back bar; a faint night sky through the glass.
-    bg.inputs["Color"].default_value = (0.05, 0.046, 0.042, 1)
+    bg.inputs["Color"].default_value = (0.03, 0.028, 0.026, 1)
     bg.inputs["Strength"].default_value = 1.0
     for c in f["chandeliers"]:
         if c["kind"] == "brassCluster":
-            add_light("brass", "POINT", B(c["x"], (c["bottom"] + c["top"]) / 2, c["z"]), 1100, radius=1.0)
+            add_light("brass", "POINT", B(c["x"], (c["bottom"] + c["top"]) / 2, c["z"]), 1000, radius=0.45)
         else:
-            add_light("cage", "POINT", B(c["x"], c["bottom"] + 0.6, c["z"]), 320, radius=0.6)
+            add_light("cage", "POINT", B(c["x"], c["bottom"] + 0.6, c["z"]), 300, radius=0.3)
     for row in f["pendantRows"]:
         for i in range(row["count"]):
             x = row["x0"] + (row["x1"] - row["x0"]) * i / max(1, row["count"] - 1)
@@ -85,7 +86,7 @@ if MODE == "evening":
     # Track spots on the north brick, either side of the back bar: scallops of light with dark
     # gaps between them (R01, R08), not an even wash.
     for x in (1.6, 3.0, 4.4, 11.6, 13.2, 14.8):
-        add_light("track", "SPOT", B(x, C - 0.6, 1.8), 60, target=B(x, 2.6, 0.0), angle=36, blend=0.7)
+        add_light("track", "SPOT", B(x, C - 0.6, 1.8), 95, target=B(x, 2.6, 0.0), angle=30, blend=0.55)
     # Warm uplights washing the brick piers between the street windows (R05, R10).
     east = next(w for w in V["walls"] if w["id"] == "east")
     edges = [0.0] + [e for o in sorted(east["openings"], key=lambda o: o["start"]) for e in (o["start"], o["end"])] + [D]
@@ -93,10 +94,10 @@ if MODE == "evening":
         if b - a < 0.3:
             continue
         z = (a + b) / 2
-        add_light("uplight", "SPOT", B(W - 0.25, 0.15, z), 150, target=B(W, 2.5, z), angle=40, blend=0.8)
+        add_light("uplight", "SPOT", B(W - 0.25, 0.15, z), 200, target=B(W, 2.5, z), angle=36, blend=0.7)
     bb = V["backBar"]["rect"]["value"]
     # The lit back bar, brighter than the brick (R01 R03 R08): a soft source facing its shelves.
-    back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 420, color=(1.0, 0.86, 0.68))
+    back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 420, color=(1.0, 0.8, 0.58))
     back.shape = "RECTANGLE"
     back.size, back.size_y = bb[2] - bb[0], 1.6
     bpy.data.objects["backbar"].rotation_euler = (math.radians(90), 0, 0)

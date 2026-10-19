@@ -121,15 +121,21 @@ export function bakeAtlas(
 }
 
 /**
- * Share of the live ambient (sky) light a baked surface keeps: faces the bake leaves dark (a cut
- * wall's outer face, seen from the dollhouse) never turn into black pockets.
+ * Share of the live ambient (sky) light a baked surface keeps: just enough that faces the bake leaves
+ * dark (a cut wall's outer face, seen from the dollhouse) are not black, without flattening the
+ * bake's own falloff (V2b).
  */
-const BAKED_AMBIENT = 0.35;
+const BAKED_AMBIENT = 0.08;
+/**
+ * Share of the live lights' direct light a baked surface keeps (V2b): live shadows and the couple's
+ * placed lights show on the floor and walls, and the graphics tiers' shadows show there too.
+ */
+const LIVE_SHARE = 0.35;
 
 /**
- * A receiver's material with the light map: its diffuse light comes from the map (the live lights'
- * direct diffuse is dropped, as the bake holds it, and only `BAKED_AMBIENT` of the sky's), while live
- * highlights and reflections stay. Any shader patch the source has (`vary`) is kept.
+ * A receiver's material with the light map: its diffuse light comes mostly from the map, with
+ * `LIVE_SHARE` of the live lights' and `BAKED_AMBIENT` of the sky's; live highlights and reflections
+ * stay. Any shader patch the source has (`vary`) is kept.
  */
 export function bakedMaterial(
   src: THREE.MeshStandardMaterial,
@@ -144,7 +150,7 @@ export function bakedMaterial(
     src.onBeforeCompile(s, r);
     s.fragmentShader = s.fragmentShader.replace(
       "#include <lights_fragment_maps>",
-      `irradiance *= ${BAKED_AMBIENT.toFixed(2)};\nreflectedLight.directDiffuse = vec3(0.0);\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);`,
+      `irradiance *= ${BAKED_AMBIENT.toFixed(2)};\nreflectedLight.directDiffuse *= ${LIVE_SHARE.toFixed(2)};\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);`,
     );
   };
   return b;

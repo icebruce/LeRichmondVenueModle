@@ -19,7 +19,7 @@ export type Bake = { atlas: Atlas; materials: Partial<Materials> };
  * Brightness of each set on top of the bake's own scale: the evening and daylight calibration
  * against the reference photos (V2).
  */
-const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.3, day: 2.6 };
+const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.24, day: 2.3 };
 
 /**
  * Plan view is flat (DESIGN_GUIDE §9): an even light map in place of the bake, still bound, so

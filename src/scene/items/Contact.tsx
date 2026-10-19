@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
-import { useView } from "../context";
+import type { VenueModel } from "../../domain/venue/model";
+import { useStudio, useView } from "../context";
 import { CONTACT_SPREAD, type Materials } from "../materials";
 import type { Placed } from "./common";
 
@@ -45,11 +46,40 @@ export function ContactShadows({ list, m }: { list: Contact[]; m: Materials }) {
   return <primitive object={mesh} />;
 }
 
-/** Contact shadows under the tables and their chairs; pieces being dragged are lifted, so none. */
+/**
+ * Contact shadows where the bar and the back counter meet the floor (V2b, Grounded). Long runs are a
+ * row of near-square shadows, so their soft edges fall only at the sides.
+ */
+function venueContacts(venue: VenueModel): Contact[] {
+  const [x0, z0, x1, z1] = venue.data.bar.outer.value;
+  const { legWidth: leg, frontDepth: front } = venue.data.bar;
+  const rc = venue.data.backBar.rearCounter;
+  const out: Contact[] = [];
+  const run = (ax: number, az: number, bx: number, bz: number) => {
+    const along = bx - ax > bz - az;
+    const [len, wid] = along ? [bx - ax, bz - az] : [bz - az, bx - ax];
+    const n = Math.max(1, Math.round(len / (wid * 1.2)));
+    for (let i = 0; i < n; i++) {
+      const c = -len / 2 + (len * (i + 0.5)) / n;
+      const [x, z] = along ? [(ax + bx) / 2 + c, (az + bz) / 2] : [(ax + bx) / 2, (az + bz) / 2 + c];
+      const [w, d] = along ? [len / n, wid] : [wid, len / n];
+      out.push({ x, z, y: 0, rotY: 0, w, d });
+    }
+  };
+  run(x0, z0, x0 + leg, z1);
+  run(x1 - leg, z0, x1, z1);
+  run(x0 + leg, z1 - front, x1 - leg, z1);
+  run(rc[0], rc[1], rc[2], rc[3]);
+  return out;
+}
+
+/** Contact shadows under the bar, the tables and their chairs; pieces being dragged are lifted, so none. */
 export function TableContacts({ placed, m }: { placed: Placed[]; m: Materials }) {
   const drag = useView((s) => s.drag);
+  const { venue } = useStudio();
+  const fixed = useMemo(() => venueContacts(venue), [venue]);
   const list = useMemo(() => {
-    const out: Contact[] = [];
+    const out: Contact[] = [...fixed];
     for (const p of placed) {
       if (drag?.ids.includes(p.item.id)) continue;
       const s = p.shape;
@@ -62,7 +92,7 @@ export function TableContacts({ placed, m }: { placed: Placed[]; m: Materials })
       for (const ch of chairsWorld(p.item, s)) out.push({ ...ch, y: p.y, w: SMALL, d: SMALL });
     }
     return out;
-  }, [placed, drag]);
+  }, [placed, drag, fixed]);
   return <ContactShadows list={list} m={m} />;
 }
 
