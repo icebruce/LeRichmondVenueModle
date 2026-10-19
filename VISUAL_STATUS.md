@@ -246,11 +246,13 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 **Built (2026-10-18):**
 
 - Owner's heights from the V2 review: dado 1.2 m (north and west), banquette backs 1.45 m, restroom corridor head 2.1 m, the horseman painting portrait (1.45 × 2.0 m) over the banquettes.
-- Bar: an 8 cm marble slab with eased edges, a black base with raised stiles and rails framing panels, a round black foot rail on brackets.
-- Bar flowers (VEN-06, schema v6): two tall glass vases of white blossom branches on the bar top, as in R02; Room › Bar flowers shows or hides them and slides each along the bar (west side, front, east side). Three draws for both.
-- Back bar: six lit shelf rows to the frame top; a front row of real bottles (round spirits and wine, slim gin, squat six-sided decanters; two instanced draws), backlit bottle and glass cards behind it; an antique-mirror back panel, brighter at the top; bevelled posts with brass trim and a stepped crown; a brushed stainless canopy with a row of downlights (in the bake too); lit glass-door fridges in stainless frames; the chrome espresso machine; plants and dried grasses on the canopy and string instruments on the brick (cards).
-- Wine wall: bottle ends in a rack (cards) on its two faces toward the room. One card sheet (`backBarAtlas`) serves every card, so all of them draw as one mesh.
-- Not done: brass trim sheet as a texture (plain brass strips instead); the neon stays the V1 ring.
+- Bar: one U-shaped 8 cm marble slab with an eased edge and a 12 cm overhang on the guest side, a black base with raised stiles and rails framing panels, a round black foot rail on brackets; inside, a stainless working ledge and a dark mat.
+- Bar flowers (VEN-06, schema v6): two tall slim glass vases of white blossom on the bar top, one on the west side near the front, one along the front (R02). Room › Bar flowers shows or hides them and slides each along the bar; the readout names the side in room words (garage-door side, front, raised side) with its distance; the vases keep 15 cm off the ends and 30 cm apart; opening the page frames the bar; one undo step per vase. Not done: moving a vase by dragging it in the room.
+- Back bar (R02, R03, R14): four wide dark-wood bays with plain posts, a stepped crown with a brass line; four wood shelves 0.40 m apart above a clear zone over the counter, each with a warm strip under its front edge; a front row of real bottles (two instanced shapes, every bottle clear of the shelf above), backlit bottle and glass cards behind; an antique-mirror back panel; a brushed stainless canopy with downlights (in the bake too); dark glass-door fridges in stainless frames; a stainless counter top; a wide chrome espresso machine near the middle with cups on its warmer; ferns and dried branches in white pots at the canopy's front edge; violins and guitars hung tilted on the brick.
+- Wine wall: a lit glass case of upright bottles on glass shelves, on its two faces toward the room, with crates at its foot. One card sheet (`backBarAtlas`) serves every card; cut-out cards stay out of the bake.
+- A stored R02 camera (the main back-bar reference); the raised-floor railing no longer puts a post through the bar top.
+- Reviews: `ux-reviewer` (7 majors) and `fidelity-reviewer` (bottles through shelves, back bar read as coolers, wine wall not a lit case, railing post, fridges, counter top, espresso, plants, slab seams) addressed.
+- Not done: the neon stays the V1 ring (R02 shows a sunburst sign); Meshy models for the espresso machine, stools and flowers come with their stages.
 
 ### V4: Linens and chairs
 

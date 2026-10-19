@@ -214,7 +214,6 @@ export function softShadowTexture(spread: number, rounding = 0.02): THREE.Canvas
 export const CARD = {
   bottles: [0, 0.75, 1, 1],
   glasses: [0, 0.5, 1, 0.75],
-  rack: [0, 0.25, 1, 0.5],
   plant: [0, 0, 0.25, 0.25],
   grass: [0.25, 0, 0.5, 0.25],
   guitar: [0.5, 0, 0.75, 0.25],
@@ -285,41 +284,25 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
       g.fillRect(x - 24, base - 10, 48, 8);
     }
   }
-  // Wine rack (third strip): bottle ends in a wood lattice, one per cell; tiles both ways.
-  ctx.fillStyle = "#5a3d24";
-  ctx.fillRect(0, 2 * band, size, band);
-  for (let y = 2 * band; y < 3 * band; y += 128)
-    for (let x = 0; x < size; x += 128) {
-      ctx.fillStyle = "#1c120b";
-      ctx.fillRect(x + 8, y + 8, 112, 112);
-      ctx.fillStyle = r() < 0.55 ? "#22331f" : "#4a1717";
-      ctx.beginPath();
-      ctx.arc(x + 64, y + 64, 40, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#0e0a07";
-      ctx.beginPath();
-      ctx.arc(x + 64, y + 64, 14, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "rgba(255,240,210,0.45)";
-      ctx.beginPath();
-      ctx.arc(x + 50, y + 48, 8, 0, Math.PI * 2);
-      ctx.fill();
-    }
   // Cells (bottom row): a leafy plant, dried grasses, a guitar and a violin.
   const cell = (i: number) => [i * band, 3 * band] as const;
   {
+    // A fern: long arching fronds of small dark leaflets, trailing down at the sides.
     const [cx, cy] = cell(0);
-    for (let i = 0; i < 40; i++) {
-      const a = -Math.PI / 2 + (r() - 0.5) * 2.2;
-      const len = 60 + r() * 120;
-      ctx.fillStyle = r() < 0.5 ? "#3f6a34" : "#57803f";
-      ctx.save();
-      ctx.translate(cx + band / 2, cy + band - 20);
-      ctx.rotate(a + Math.PI / 2);
-      ctx.beginPath();
-      ctx.ellipse(0, -len / 2, 10 + r() * 8, len / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    for (let f = 0; f < 14; f++) {
+      const a = -Math.PI / 2 + (f / 13 - 0.5) * 2.8;
+      const len = 90 + r() * 40;
+      for (let k = 0.15; k < 1; k += 0.06) {
+        const droop = k * k * 60 * Math.abs(Math.cos(a));
+        const x = cx + band / 2 + Math.cos(a) * len * k;
+        const y = cy + band - 70 + Math.sin(a) * len * k + droop;
+        ctx.fillStyle = r() < 0.5 ? "#2f5a2a" : "#3e6e33";
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+          ctx.ellipse(x + side * 7 * (1 - k), y, 9 * (1 - k * 0.6), 4, a + side * 0.9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
   }
   {
@@ -340,6 +323,7 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
     }
   }
   const instrument = (i: number, scale: number, wood: string) => {
+    // Body at the bottom of the cell, a long neck and head reaching its top.
     const [cx, cy] = cell(i);
     const x = cx + band / 2;
     ctx.fillStyle = wood;
@@ -357,8 +341,8 @@ export function backBarAtlas(): { map: THREE.CanvasTexture; glow: THREE.CanvasTe
     ctx.arc(x, cy + band - 112 * scale, 14 * scale, 0, Math.PI * 2);
     ctx.fill();
   };
-  instrument(2, 1.4, "#7a4c25");
-  instrument(3, 1.05, "#5c2a12");
+  instrument(2, 1.0, "#c49a68");
+  instrument(3, 0.8, "#a8703f");
   const map = finish(c);
   const glow = finish(gc);
   for (const t of [map, glow]) t.wrapT = THREE.ClampToEdgeWrapping;

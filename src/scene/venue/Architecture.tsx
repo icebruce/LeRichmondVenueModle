@@ -201,13 +201,50 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
       base.push(boxGeo(x - 0.03, 0.09, z1, x + 0.03, H - slab - 0.03, z1 + 0.02));
     for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / Math.round((z1 - z0) / PANEL))
       base.push(boxGeo(x0 - 0.02, 0.09, z - 0.03, x0, H - slab - 0.03, z + 0.03));
-    const o = 0.06;
-    const r = 0.025;
-    const top = [
-      bevelGeo(x0 - o, H - slab, z0, x0 + leg + 0.02, H, z1 + o, r, TILE.marble),
-      bevelGeo(x1 - leg - 0.02, H - slab, z0, x1 + o, H, z1 + o, r, TILE.marble),
-      bevelGeo(x0 + leg, H - slab, z1 - front - 0.02, x1 - leg, H, z1 + o, r, TILE.marble),
+    // One U-shaped slab, overhanging the guest side, with an eased edge all round (R02, R03).
+    const o = 0.12;
+    const r = 0.02;
+    const [ix0, ix1, iz] = [x0 + leg + 0.02, x1 - leg - 0.02, z1 - front - 0.02];
+    // The bevel grows the outline by `r`, so it is drawn `r` inside the slab's true edge.
+    const outline = new THREE.Shape(
+      (
+        [
+          [x0 - o + r, z0 + r],
+          [x0 - o + r, z1 + o - r],
+          [x1 + o - r, z1 + o - r],
+          [x1 + o - r, z0 + r],
+          [ix1 + r, z0 + r],
+          [ix1 + r, iz + r],
+          [ix0 - r, iz + r],
+          [ix0 - r, z0 + r],
+        ] as const
+      ).map(([x, z]) => new THREE.Vector2(x, z)),
+    );
+    const slabGeo = new THREE.ExtrudeGeometry(outline, {
+      depth: slab - 2 * r,
+      bevelEnabled: true,
+      bevelThickness: r,
+      bevelSize: r,
+      bevelSegments: 3,
+      curveSegments: 4,
+    });
+    // Shape x, y are the room's x, z; the slab is extruded downward from the counter height.
+    slabGeo.rotateX(Math.PI / 2);
+    slabGeo.translate(0, H - r, 0);
+    const uv = slabGeo.getAttribute("uv");
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / TILE.marble, uv.getY(i) / TILE.marble);
+    const top = [slabGeo];
+    // The bar well: a stainless working ledge along the inside of the U and a dark mat (R02).
+    const ledge = 0.38;
+    const well = [
+      boxGeo(x0 + leg, 0.82, z0 + 0.15, x0 + leg + ledge, 0.85, z1 - front),
+      boxGeo(x1 - leg - ledge, 0.82, z0 + 0.15, x1 - leg, 0.85, z1 - front),
+      boxGeo(x0 + leg, 0.82, z1 - front - ledge, x1 - leg, 0.85, z1 - front),
+      boxGeo(x0 + leg, 0, z0 + 0.15, x0 + leg + ledge - 0.02, 0.82, z1 - front),
+      boxGeo(x1 - leg - ledge + 0.02, 0, z0 + 0.15, x1 - leg, 0.82, z1 - front),
+      boxGeo(x0 + leg, 0, z1 - front - ledge + 0.02, x1 - leg, 0.82, z1 - front),
     ];
+    const mat = boxGeo(x0 + leg + ledge, 0, z0 + 0.3, x1 - leg - ledge, 0.012, z1 - front - ledge);
     // A round black foot rail on brackets along the west side and the front (R03).
     const rail: THREE.BufferGeometry[] = [];
     const tube = (a: THREE.Vector3, b: THREE.Vector3) => {
@@ -249,6 +286,9 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     return {
       base: merge(base),
       top: merge(top),
+      well: merge(well.slice(0, 3)),
+      wellBase: merge(well.slice(3)),
+      mat,
       rail: merge(rail),
       stools: stoolGeos.length ? merge(stoolGeos) : null,
       seats: seatGeos.length ? merge(seatGeos) : null,
@@ -258,6 +298,9 @@ export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools:
     <group name="bar">
       <mesh geometry={parts.base} material={m.barBase} castShadow receiveShadow />
       <mesh geometry={parts.top} material={m.marble} castShadow receiveShadow />
+      <mesh geometry={parts.well} material={m.stainless} />
+      <mesh geometry={parts.wellBase} material={m.barBase} />
+      <mesh geometry={parts.mat} material={m.blackMetal} />
       <mesh geometry={parts.rail} material={m.blackMetal} />
       {parts.stools && <mesh geometry={parts.stools} material={m.blackMetal} castShadow />}
       {parts.seats && <mesh geometry={parts.seats} material={m.timber} castShadow />}

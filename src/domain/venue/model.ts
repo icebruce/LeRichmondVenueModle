@@ -55,7 +55,12 @@ function railingRuns(d: VenueData, width: number, depth: number): [Vec2, Vec2][]
     d.stair.flight,
     { from: [ux0, uz0], to: [ux1, uz1] },
   ];
+  // No post inside the bar or under its top's overhang (the run meets the bar's south-east corner).
+  const [bx0, bz0, , bz1] = d.bar.outer.value;
+  const atBar = (x: number, z: number) =>
+    x >= bx0 - 0.1 && x <= bx1 + 0.1 && z >= bz0 - 0.1 && z <= bz1 + 0.1;
   const inGap = (x: number, z: number) =>
+    atBar(x, z) ||
     gaps.some(
       (g) =>
         x >= Math.min(g.from[0], g.to[0]) - 0.05 &&

@@ -35,9 +35,10 @@ export const DEFAULT_THRESHOLDS: Scenario["thresholds"] = {
 
 /**
  * Where the bar flowers stand (VEN-06), as shares of the bar top's length: from the north end of
- * its west side, round the front, to the north end of its east side. Both on the west half, as in R02.
+ * its west side, round the front, to the north end of its east side: one on the west side near the
+ * front, one along the front, as in R02.
  */
-export const DEFAULT_BAR_FLOWERS: Scenario["venueToggles"]["barFlowers"] = { shown: true, at: [0.2, 0.42] };
+export const DEFAULT_BAR_FLOWERS: Scenario["venueToggles"]["barFlowers"] = { shown: true, at: [0.32, 0.56] };
 
 export function newScenario(id: string, name: string, now: string, items: Item[] = []): Scenario {
   return {

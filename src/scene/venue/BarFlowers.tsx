@@ -6,19 +6,19 @@ import { barTopPlace } from "../../domain/venue/model";
 import { seededRandom } from "../../domain/random";
 import type { Materials } from "../materials";
 
-const VASE_H = 0.55;
-const BRANCHES = 7;
+const VASE_H = 0.68;
+const BRANCHES = 9;
 /** Florets per branch, clustered toward its tip and along its side twig. */
-const BLOOMS = 46;
+const BLOOMS = 60;
 
 /** A tall glass cylinder vase, flared at the lip (R02). */
 const vaseGeo = new THREE.LatheGeometry(
   [
     [0, 0],
-    [0.085, 0],
-    [0.09, 0.02],
-    [0.075, VASE_H * 0.55],
-    [0.095, VASE_H],
+    [0.06, 0],
+    [0.062, 0.02],
+    [0.058, VASE_H * 0.6],
+    [0.064, VASE_H],
   ].map(([x, y]) => new THREE.Vector2(x, y)),
   20,
 );
@@ -57,10 +57,10 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
         blooms.push(t.matrix.clone());
       };
       for (let b = 0; b < BRANCHES; b++) {
-        // Tall, uneven sprays (R02): mostly upright branches at irregular turns, bending outward.
-        const yaw = rand() * Math.PI * 2;
-        const lean = 0.1 + rand() * 0.3;
-        const length = 0.8 + rand() * 0.55;
+        // A dense, rounded crown (R02): branches at irregular turns, leaning out and bending further.
+        const yaw = (b / BRANCHES) * Math.PI * 2 + rand() * 0.9;
+        const lean = 0.5 + rand() * 0.6;
+        const length = 0.45 + rand() * 0.3;
         const base = new THREE.Vector3(x, top + VASE_H - 0.05, z);
         const out = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
         const dir = new THREE.Vector3(0, Math.cos(lean), 0).addScaledVector(out, Math.sin(lean));
@@ -81,13 +81,13 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
         stem(knee, twig, 0.004);
         for (let i = 0; i < BLOOMS; i++) {
           const onTwig = i % 4 === 0;
-          const k = 0.45 + rand() * 0.55;
-          floret(onTwig ? knee.clone().lerp(twig, 0.4 + rand() * 0.6) : knee.clone().lerp(tip, k), 0.05);
+          const k = 0.4 + rand() * 0.6;
+          floret(onTwig ? knee.clone().lerp(twig, 0.4 + rand() * 0.6) : knee.clone().lerp(tip, k), 0.035);
         }
       }
     });
     const blossom = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(0.017, 0),
+      new THREE.IcosahedronGeometry(0.02, 1).scale(1, 0.55, 1),
       m.blossom,
       blooms.length,
     );
