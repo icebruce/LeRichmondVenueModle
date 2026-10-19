@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const g = mergeGeometries(geos.map((x) => (x.index ? x.toNonIndexed() : x)));
@@ -119,4 +120,42 @@ export function chairGeometry(style: string, low: boolean) {
   if (style === "crossback") return crossbackChair(low);
   if (style === "chiavari") return chiavariChair(low);
   return ovalBackChair(low);
+}
+
+/** A chair style's full-quality model (V4): frame and seat geometry, a grey detail map and normals. */
+export type ChairModel = {
+  frame: THREE.BufferGeometry;
+  fabric: THREE.BufferGeometry;
+  detail: THREE.Texture | null;
+  normalMap: THREE.Texture | null;
+};
+/** The detail map holds the surface at half strength (0.5 = the part's own colour), so tints double. */
+export const CHAIR_DETAIL_GAIN = 2;
+
+const chairModels = new Map<string, Promise<ChairModel>>();
+
+/** Loads a chair model file once (`tools/blender/chair_from_meshy.py` writes them); shared, never disposed. */
+export function loadChairModel(file: string): Promise<ChairModel> {
+  let p = chairModels.get(file);
+  if (!p) {
+    p = new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${file}`).then((gltf) => {
+      const part = (name: string) => {
+        const mesh = gltf.scene.getObjectByName(name);
+        if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no ${name} mesh`);
+        return mesh as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+      };
+      const frame = part("frame");
+      const detail = frame.material.map;
+      // The detail map is data, not colour.
+      if (detail) detail.colorSpace = THREE.NoColorSpace;
+      return {
+        frame: frame.geometry,
+        fabric: part("seat").geometry,
+        detail,
+        normalMap: frame.material.normalMap,
+      };
+    });
+    chairModels.set(file, p);
+  }
+  return p;
 }

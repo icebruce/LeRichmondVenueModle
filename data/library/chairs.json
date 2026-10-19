@@ -19,7 +19,8 @@
           "style": "oval",
           "frame": "#8a8076",
           "seat": "#77726d"
-        }
+        },
+        "file": "assets/models/chairs/oval.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -40,7 +41,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1500,
+        "triangles": 3200,
         "phoneTriangles": 375,
         "drawCalls": 3
       }
@@ -63,7 +64,8 @@
           "style": "crossback",
           "frame": "#6b4a30",
           "seat": "#b89a6a"
-        }
+        },
+        "file": "assets/models/chairs/crossback.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -84,7 +86,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1800,
+        "triangles": 3200,
         "phoneTriangles": 450,
         "drawCalls": 3
       }
@@ -108,7 +110,8 @@
           "frame": "#c8a45c",
           "seat": "#f2efe8",
           "metal": true
-        }
+        },
+        "file": "assets/models/chairs/oval.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -130,7 +133,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1800,
+        "triangles": 3200,
         "phoneTriangles": 450,
         "drawCalls": 3
       }
@@ -154,7 +157,8 @@
           "frame": "#c9a55e",
           "seat": "#f2efe8",
           "metal": true
-        }
+        },
+        "file": "assets/models/chairs/chiavari.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -176,7 +180,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1800,
+        "triangles": 3200,
         "phoneTriangles": 450,
         "drawCalls": 3
       }
@@ -200,7 +204,8 @@
           "frame": "#c4c6c8",
           "seat": "#f2efe8",
           "metal": true
-        }
+        },
+        "file": "assets/models/chairs/chiavari.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -222,7 +227,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1800,
+        "triangles": 3200,
         "phoneTriangles": 450,
         "drawCalls": 3
       }
@@ -246,7 +251,8 @@
           "frame": "#e8f0f2",
           "seat": "#f2efe8",
           "clear": true
-        }
+        },
+        "file": "assets/models/chairs/chiavari.glb"
       },
       "lowModel": {
         "kind": "parametric",
@@ -268,7 +274,7 @@
         "licence": "Project"
       },
       "budget": {
-        "triangles": 1800,
+        "triangles": 3200,
         "phoneTriangles": 450,
         "drawCalls": 3
       }

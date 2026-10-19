@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
 import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
@@ -9,7 +9,7 @@ import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { chairGeometry } from "./geometry";
+import { type ChairModel, CHAIR_DETAIL_GAIN, chairGeometry, loadChairModel } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -66,12 +66,42 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
     () => [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort(),
     [placed, scenario.style],
   );
+  // Full quality draws each style's model file once it has loaded; until then, and on the light
+  // tiers, the generator's own chair (V4).
+  const files = useMemo(
+    () =>
+      low
+        ? []
+        : [
+            ...new Set(
+              used.flatMap((id) => {
+                const model = catalog.get(id)?.model;
+                return model?.kind === "parametric" && model.file ? [model.file] : [];
+              }),
+            ),
+          ],
+    [used, catalog, low],
+  );
+  const [models, setModels] = useState<ReadonlyMap<string, ChairModel>>(new Map());
+  useEffect(() => {
+    let live = true;
+    for (const file of files)
+      if (!models.has(file))
+        loadChairModel(file).then(
+          (m) => live && setModels((prev) => new Map(prev).set(file, m)),
+          (e: unknown) => console.error(e),
+        );
+    return () => {
+      live = false;
+    };
+  }, [files, models]);
   const kinds = useMemo(
     () =>
       used.map((id) => {
         const model = catalog.get(id)?.model;
         const params = model?.kind === "parametric" ? model.params : {};
-        const geo = chairGeometry(String(params.style ?? "oval"), low);
+        const full = !low && model?.kind === "parametric" && model.file ? models.get(model.file) : undefined;
+        const geo = full ?? chairGeometry(String(params.style ?? "oval"), low);
         const metal = params.metal === true;
         const clear = params.clear === true;
         const frameMat = clear
@@ -90,18 +120,25 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
           color: String(params.seat ?? "#e9e1d3"),
           roughness: 0.8,
         });
+        if (full)
+          for (const mat of [frameMat, seatMat]) {
+            mat.map = full.detail;
+            mat.normalMap = full.normalMap;
+            mat.color.multiplyScalar(CHAIR_DETAIL_GAIN);
+          }
         const frame = new THREE.InstancedMesh(geo.frame, frameMat, CHAIR_CAPACITY);
         const seat = new THREE.InstancedMesh(geo.fabric, seatMat, CHAIR_CAPACITY);
         frame.castShadow = seat.castShadow = true;
-        return { id, frame, seat };
+        return { id, frame, seat, shared: !!full };
       }),
-    [used, catalog, low],
+    [used, catalog, low, models],
   );
   useEffect(
     () => () => {
       for (const k of kinds)
         for (const m of [k.frame, k.seat]) {
-          m.geometry.dispose();
+          // A loaded model's geometry is shared by every chair entry of its style.
+          if (!k.shared) m.geometry.dispose();
           (m.material as THREE.Material).dispose();
           m.dispose();
         }

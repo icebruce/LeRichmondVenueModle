@@ -32,7 +32,7 @@ function uses(): Map<string, Use[]> {
         [e.model, false],
         [e.lowModel, true],
       ] as const) {
-        if (model?.kind !== "glb") continue;
+        if (model?.kind !== "glb" && !model?.file) continue;
         const triangles = phone ? (e.budget?.phoneTriangles ?? e.budget?.triangles) : e.budget?.triangles;
         const list = out.get(model.file) ?? [];
         list.push({ id: e.id, phone, triangles, placement: e.placement });

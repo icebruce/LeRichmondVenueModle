@@ -58,6 +58,8 @@ const modelSchema = z.discriminatedUnion("kind", [
     generator: z.string(),
     /** Fixed generator inputs for this entry, e.g. `{ "finish": "wood" }` or `{ "colour": "#eee3cb" }`. */
     params: z.record(z.string(), paramValue).default({}),
+    /** A model file the generator draws at full quality, tinted by `params` (chairs, visual stage V4). */
+    file: z.string().optional(),
   }),
   z.object({ kind: z.literal("glb"), file: z.string() }),
 ]);
