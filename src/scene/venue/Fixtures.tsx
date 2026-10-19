@@ -261,10 +261,10 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     // cup-warmer with cups, two group heads with black handles, a steam wand, the drip tray.
     const ex = (rc[0] + rc[2]) / 2 + 0.3;
     const ez = (rc[1] + rc[3]) / 2;
-    const chrome: THREE.BufferGeometry[] = [
+    steel.push(
       bevelGeo(ex - 0.48, 1.0, ez - 0.25, ex + 0.48, 1.42, ez + 0.08, 0.035),
       boxGeo(ex - 0.46, 1.44, ez - 0.22, ex + 0.46, 1.46, ez + 0.06),
-    ];
+    );
     const cups: THREE.BufferGeometry[] = [];
     for (let cx = ex - 0.38; cx <= ex + 0.38; cx += 0.095)
       for (const cz of [ez - 0.14, ez - 0.02]) {
@@ -276,19 +276,18 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
     const wand = new THREE.CylinderGeometry(0.009, 0.009, 0.28, 6);
     wand.rotateX(0.35);
     wand.translate(ex + 0.4, 1.12, ez + 0.14);
-    chrome.push(wand);
+    steel.push(wand);
     for (const dx of [-0.2, 0.2]) {
       const head = new THREE.CylinderGeometry(0.05, 0.055, 0.08, 14);
       head.translate(ex + dx, 1.06, ez + 0.13);
-      chrome.push(head);
+      steel.push(head);
       const handle = new THREE.CylinderGeometry(0.018, 0.018, 0.22, 6);
       handle.rotateX(Math.PI / 2 - 0.3);
       handle.translate(ex + dx, 1.05, ez + 0.25);
       dark.push(handle);
     }
-    // Frame: plain dark posts between the bays, a stepped crown moulding with a brass line (R02, R14).
+    // Frame: plain dark posts between the bays, a stepped crown moulding (R02, R14).
     const frame: THREE.BufferGeometry[] = [];
-    const brass: THREE.BufferGeometry[] = [];
     const bay = (x1 - x0) / BAYS;
     for (let i = 0; i <= BAYS; i++) {
       const x = x0 + i * bay;
@@ -301,7 +300,6 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       [top + 0.03, 0.06],
     ] as const)
       frame.push(bevelGeo(x0 - out, y, z0, x1 + out, y + 0.09, z1 + out, 0.01));
-    brass.push(boxGeo(x0 - 0.03, top - 0.05, z1 + 0.03, x1 + 0.03, top - 0.035, z1 + 0.04));
     const mirror = card(x1 - x0 - 0.08, top - 0.12 - 0.95, [0, 0, 1, 1], BAYS);
     mirror.translate((x0 + x1) / 2, (0.95 + top - 0.12) / 2, z0 + 0.045);
     const strips: THREE.BufferGeometry[] = [];
@@ -355,11 +353,9 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       counterTop,
       fridges: merge(fridges),
       steel: merge(steel),
-      chrome: merge(chrome),
       cups: merge(cups),
       dark: merge(dark),
       frame: merge(frame),
-      brass: merge(brass),
       mirror,
       strips: merge(strips),
       cards: merge(cards),
@@ -377,15 +373,13 @@ export function BackBar({ venue, m }: Omit<P, "evening">) {
       <mesh geometry={g.counterTop} material={m.stainless} />
       {g.fridges && <mesh geometry={g.fridges} material={m.fridgeGlass} />}
       {g.steel && <mesh geometry={g.steel} material={m.stainless} />}
-      {g.chrome && <mesh geometry={g.chrome} material={m.chrome} />}
-      {g.cups && <mesh geometry={g.cups} material={m.cap} />}
+      {g.cups && <mesh geometry={g.cups} material={m.marble} />}
       {g.dark && <mesh geometry={g.dark} material={m.blackMetal} />}
       {g.frame && <mesh geometry={g.frame} material={m.backBarWood} />}
-      {g.brass && <mesh geometry={g.brass} material={m.brass} />}
       <mesh geometry={g.mirror} material={m.antiqueMirror} />
       {g.strips && <mesh geometry={g.strips} material={m.shelfGlow} />}
       {g.cards && <mesh geometry={g.cards} material={m.cards} />}
-      {g.pots && <mesh geometry={g.pots} material={m.cap} />}
+      {g.pots && <mesh geometry={g.pots} material={m.marble} />}
       <mesh geometry={g.canopy} material={m.stainless} />
       {g.downlights && <mesh geometry={g.downlights} material={m.bulb} />}
       <mesh geometry={g.neonBack} material={m.blackMetal} />

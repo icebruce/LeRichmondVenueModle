@@ -276,10 +276,9 @@ export function useMaterials(quality: Quality) {
         metalness: 0.3,
         roughness: 0.6,
       }),
-      // The canopy over the back bar: brushed stainless, lighter than the black steel (R02, R03).
-      stainless: std({ color: "#9a9c9b", metalness: 0.8, roughness: 0.4 }),
-      // Polished chrome (the espresso machine) and the fridges' dark glass doors, dimly lit inside.
-      chrome: std({ color: "#d0d3d3", metalness: 0.95, roughness: 0.18 }),
+      // The back bar's canopy, counter and espresso machine: bright stainless, lighter than the
+      // black steel (R02, R03). The fridges' dark glass doors are dimly lit inside.
+      stainless: std({ color: "#b9bcbc", metalness: 0.9, roughness: 0.28 }),
       fridgeGlass: std({ color: "#1c2422", emissive: "#9fb5ad", emissiveIntensity: 0.14, roughness: 0.08 }),
       // The bar flowers' white blossom and dark branches (R02, VEN-06).
       blossom: std({ color: "#f3eee6", roughness: 0.85 }),
