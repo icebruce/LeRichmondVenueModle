@@ -19,3 +19,16 @@ Gotchas in the rigged GLB: an extra `Icosphere` object and a bundled action (del
 armature carries rotation and 0.01 scale (convert world directions into armature space); the hand
 bones' tails are unusable (take hand direction from the mesh); the mesh is split along UV seams
 (weld before any smoothing or simplifying; check with `blender/mesh_audit.py`).
+
+## Chairs (V4, 2026-10-19)
+
+Previews at 3,000 triangles (`preview <name> <prompt> 3000 prop`), refined with PBR, then
+`blender/chair_from_meshy.py`. The first previews were rejected (carved back pad; a solid panel
+under the cross-back's seat; a grid back on the Chiavari); the prompts were tightened once.
+Credits after: 839.
+
+| Chair | Preview | Refine | Fitted size (w × d × h, m) |
+|---|---|---|---|
+| Oval-back | 01a15213-bab2-75f1-94ed-1763f0ce65e9 | 01a15215-1d15-74fc-ad1a-ea953e65a32a | 0.47 × 0.48 × 1.00 |
+| Cross-back | 01a15213-c34a-7759-8631-94e9972dcc87 | 01a15215-24e5-715f-9f11-6f0a449dc391 | 0.44 × 0.46 × 0.92 |
+| Chiavari | 01a15213-cb96-705d-8575-168e2fda0c24 | 01a15215-2c9a-75e3-81fb-ea14b3582ed7 | 0.41 × 0.46 × 0.92 |
