@@ -3,6 +3,10 @@
  * and runners keep clear of.
  */
 
+/** Table-top height of linen-covered tables. */
+export const TABLE_TOP = 0.765;
+/** A lap-length cloth hangs this far below the table top. */
+export const LAP_DROP = 0.3;
 /** Where the cloth stands off the table edge at the top. */
 export const CLOTH_GAP = 0.012;
 /** How much further out the cloth hangs at the hem than at the top. */
@@ -12,6 +16,8 @@ export const CLOTH_FOLD = 0.018;
 export const CORNER_GATHER = 1.5;
 /** A floor-length hem floats this far above the floor. */
 export const HEM_LIFT = 0.012;
+/** How far a cloth hangs below the top, by length. */
+export const clothDrop = (lap: boolean) => (lap ? LAP_DROP : TABLE_TOP - HEM_LIFT);
 /**
  * The furthest a cloth reaches beyond the table edge, at its hem. Chair-gap rule: a tucked chair's
  * front stays outside this, so it never pierces a floor-length cloth.

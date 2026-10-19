@@ -163,3 +163,17 @@ export function drapeVertexCount(outline: Outline, segments = 64): number {
   const cols = outline.kind === "round" ? segments : Math.max(segments, Math.round(perimeter / 0.05));
   return 1 + (EDGE_ROWS + DRAPE_ROWS + 1) * (cols + 1);
 }
+
+const shared = new Map<string, THREE.BufferGeometry>();
+
+/**
+ * `drapeGeometry`, shared by every table of the same size and length. The cache lives as long as the
+ * page: there are only as many entries as table sizes in use.
+ */
+export function sharedDrape(outline: Outline, top: number, drop: number, segments: number) {
+  const size = outline.kind === "round" ? `${outline.radius}` : `${outline.length}x${outline.width}`;
+  const key = `${outline.kind}:${size}:${top}:${drop}:${segments}`;
+  let g = shared.get(key);
+  if (!g) shared.set(key, (g = drapeGeometry(outline, top, drop, segments)));
+  return g;
+}

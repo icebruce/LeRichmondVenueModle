@@ -8,6 +8,7 @@ import {
   stylePatch,
   tableDecor,
 } from "../../src/domain/layout/decor";
+import { clothDrop, clothReachAt } from "../../src/domain/layout/cloth";
 import { type Item, shapeOf } from "../../src/domain/layout/items";
 import {
   DEFAULT_BAR_FLOWERS,
@@ -84,11 +85,12 @@ describe("décor", () => {
   test("[LIB-03] runners: velvet lies flat and drops over the ends; chiffon is wider and sheer", () => {
     const velvet = decor({ runner: "runner-velvet-emerald" });
     expect(velvet.filter((p) => p.slot === "fabric")).toHaveLength(3);
-    // The ends hang outside the floor-length cloth (radius + 0.03 at the top, + 0.07 at the floor).
+    // The ends hang outside the floor-length drape, as far as it reaches at their hem (V4).
     const radius = shape.kind === "roundTable" ? shape.diameter / 2 : 0;
     const drops = velvet.filter((p) => p.y < 0);
     expect(drops).toHaveLength(2);
-    for (const d of drops) expect(Math.abs(d.x) - d.sx / 2).toBeGreaterThan(radius + 0.07);
+    for (const d of drops)
+      expect(Math.abs(d.x) - d.sx / 2).toBeGreaterThan(radius + clothReachAt(d.sy / clothDrop(false)));
     const chiffon = decor({ runner: "runner-chiffon-blush" });
     expect(chiffon.every((p) => p.slot === "sheer")).toBe(true);
     expect(Math.max(...chiffon.map((p) => p.sz))).toBeGreaterThan(Math.max(...velvet.map((p) => p.sz)));
