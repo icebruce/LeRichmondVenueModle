@@ -1,7 +1,7 @@
 // `npm run check:assets` (VISUAL_STATUS.md, asset quality bar): every GLB the app loads is checked
 // as one welded mesh — no open or non-manifold edges beyond its source's, no zero-area or flipped
 // triangles, triangle lists with normals only, triangle and texture budgets from its library entry,
-// and contact with the floor or table it stands on. Seat contact comes with the first chair GLB (V4).
+// and contact with the floor or table it stands on. Seat contact comes with the people (V7).
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { NodeIO, type Primitive } from "@gltf-transform/core";
@@ -11,8 +11,8 @@ import { type TriMesh, bottom, edges, faces } from "./checks.ts";
 
 const root = new URL("../..", import.meta.url).pathname;
 const modelsDir = join(root, "public/assets/models");
-/** Open edges each model's source already had (a processed model may not add any). */
-const sources: Record<string, { openEdges: number }> = JSON.parse(
+/** Open and non-manifold edges each model's source already had (a processed model may not add any). */
+const sources: Record<string, { openEdges: number; nonManifoldEdges: number }> = JSON.parse(
   readFileSync(join(root, "tools/assets/sources.json"), "utf8"),
 );
 /** Largest texture side: 2K desktop, 1K for a phone (`lowModel`) version. */
@@ -119,9 +119,11 @@ for (const file of files) {
   const e = edges(m);
   const f = faces(m);
   const triangles = m.indices.length / 3;
-  const allowed = sources[file]?.openEdges ?? 0;
-  if (e.open > allowed) problems.push(`${file}: ${e.open} open edges (its source has ${allowed})`);
-  if (e.nonManifold) problems.push(`${file}: ${e.nonManifold} non-manifold edges`);
+  const source = sources[file] ?? { openEdges: 0, nonManifoldEdges: 0 };
+  if (e.open > source.openEdges)
+    problems.push(`${file}: ${e.open} open edges (its source has ${source.openEdges})`);
+  if (e.nonManifold > source.nonManifoldEdges)
+    problems.push(`${file}: ${e.nonManifold} non-manifold edges (its source has ${source.nonManifoldEdges})`);
   if (f.zeroArea) problems.push(`${file}: ${f.zeroArea} zero-area triangles`);
   if (f.flipped) problems.push(`${file}: ${f.flipped} flipped triangles`);
   const used = byFile.get(file) ?? byFile.get(`/${file}`) ?? [];

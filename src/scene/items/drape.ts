@@ -7,7 +7,7 @@ import {
 } from "../../domain/layout/cloth";
 
 /** One fold every this many metres of edge. */
-const FOLD_PITCH = 0.22;
+const FOLD_PITCH = 0.28;
 
 export type Outline = { kind: "round"; radius: number } | { kind: "rect"; length: number; width: number };
 
@@ -122,7 +122,7 @@ export function drapeGeometry(
       const u = c / cols;
       const { p, n, corner } = ring(u, t);
       const gather = 1 + (CORNER_GATHER - 1) * corner;
-      const fold = FOLD * gather * Math.pow(t, 1.5) * (0.5 + 0.5 * Math.sin(u * folds * Math.PI * 2));
+      const fold = FOLD * gather * Math.pow(t, 1.5) * 0.5 * Math.sin(u * folds * Math.PI * 2);
       const out = row === 0 ? GAP - 0.012 : GAP + FLARE * Math.pow(t, 1.3) + fold;
       const y = row === 0 ? top + 0.003 : row === 1 ? top - 0.006 : top - 0.006 - (drop - 0.006) * t;
       pos.push(p.x + n.x * out, y, p.y + n.y * out);

@@ -17,8 +17,8 @@
         "generator": "chair",
         "params": {
           "style": "oval",
-          "frame": "#8a8076",
-          "seat": "#77726d"
+          "frame": "#a59a8a",
+          "seat": "#6c6c6e"
         },
         "file": "assets/models/chairs/oval.glb"
       },
@@ -27,8 +27,8 @@
         "generator": "chair",
         "params": {
           "style": "oval",
-          "frame": "#8a8076",
-          "seat": "#77726d",
+          "frame": "#a59a8a",
+          "seat": "#6c6c6e",
           "quality": "low"
         }
       },
