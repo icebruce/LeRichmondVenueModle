@@ -53,7 +53,7 @@ export function ContactShadows({ list, m }: { list: Contact[]; m: Materials }) {
 const REACH = { table: 0.3, chair: 0.12, decor: 0.05 } as const;
 const EDGE = { table: 0.75, chair: 0.5, decor: 0.45 } as const;
 /** Points round a circular footprint, by size. */
-const SEGMENTS = { table: 40, chair: 40, decor: 12 } as const;
+const SEGMENTS = { table: 40, chair: 40, decor: 8 } as const;
 /** Décor that casts no contact shadow: light, and what lies flat on the cloth. */
 const FLAT: ReadonlySet<Slot> = new Set(["flame", "glow", "beam", "bulb", "fabric", "sheer", "paper"]);
 const UP = new THREE.Vector3(0, 1, 0);
