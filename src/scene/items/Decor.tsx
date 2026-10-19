@@ -9,7 +9,7 @@ import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { type ChairModel, CHAIR_DETAIL_GAIN, chairGeometry, loadChairModel } from "./geometry";
+import { type ChairModel, chairGeometry, loadChairModel } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -56,7 +56,47 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
   };
 }
 
-/** Chairs grouped by library chair (DEC-04): one frame and one seat mesh per chair type in use. */
+const SEAT_ROUGHNESS = 0.8;
+
+/**
+ * A loaded chair's material (V4): `frame` finishes the frame; where the model's mask is white the
+ * seat colour, fabric roughness, no metal and full opacity take over. The detail map holds the
+ * surface at half strength, so the colour is doubled.
+ */
+function masked(
+  frame: THREE.MeshStandardMaterial,
+  model: ChairModel,
+  seat: string,
+): THREE.MeshStandardMaterial {
+  frame.map = model.detail;
+  frame.onBeforeCompile = (shader) => {
+    shader.uniforms.seatMask = { value: model.mask };
+    shader.uniforms.seatColour = { value: new THREE.Color(seat) };
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nuniform sampler2D seatMask;\nuniform vec3 seatColour;\nfloat seatShare;",
+      )
+      .replace(
+        "#include <map_fragment>",
+        `seatShare = texture2D(seatMask, vMapUv).r;
+diffuseColor.rgb = mix(diffuseColor.rgb, seatColour, seatShare) * texture2D(map, vMapUv).r * 2.0;
+diffuseColor.a = mix(diffuseColor.a, 1.0, seatShare);`,
+      )
+      .replace(
+        "#include <metalnessmap_fragment>",
+        "#include <metalnessmap_fragment>\nmetalnessFactor *= 1.0 - seatShare;",
+      )
+      .replace(
+        "#include <roughnessmap_fragment>",
+        `#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, ${SEAT_ROUGHNESS.toFixed(2)}, seatShare);`,
+      );
+  };
+  frame.customProgramCacheKey = () => "chair-masked";
+  return frame;
+}
+
+/** Chairs grouped by library chair (DEC-04): per chair type in use, one mesh (a loaded model) or a frame and a seat mesh. */
 export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: Scenario; low: boolean }) {
   const { catalog } = useStudio();
   const drag = useView((s) => s.drag);
@@ -101,7 +141,6 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
         const model = catalog.get(id)?.model;
         const params = model?.kind === "parametric" ? model.params : {};
         const full = !low && model?.kind === "parametric" && model.file ? models.get(model.file) : undefined;
-        const geo = full ?? chairGeometry(String(params.style ?? "oval"), low);
         const metal = params.metal === true;
         const clear = params.clear === true;
         const frameMat = clear
@@ -116,27 +155,30 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
               metalness: metal ? 0.85 : 0,
               roughness: metal ? 0.3 : 0.55,
             });
-        const seatMat = new THREE.MeshStandardMaterial({
-          color: String(params.seat ?? "#e9e1d3"),
-          roughness: 0.8,
-        });
+        const seatColour = String(params.seat ?? "#e9e1d3");
+        const instanced = (g: THREE.BufferGeometry, m: THREE.Material) => {
+          const mesh = new THREE.InstancedMesh(g, m, CHAIR_CAPACITY);
+          mesh.castShadow = true;
+          return mesh;
+        };
+        // A loaded model is one mesh, finished as frame or seat by its mask; the generator's chair
+        // is a frame mesh and a seat mesh.
         if (full)
-          for (const mat of [frameMat, seatMat]) {
-            mat.map = full.detail;
-            mat.normalMap = full.normalMap;
-            mat.color.multiplyScalar(CHAIR_DETAIL_GAIN);
-          }
-        const frame = new THREE.InstancedMesh(geo.frame, frameMat, CHAIR_CAPACITY);
-        const seat = new THREE.InstancedMesh(geo.fabric, seatMat, CHAIR_CAPACITY);
-        frame.castShadow = seat.castShadow = true;
-        return { id, frame, seat, shared: !!full };
+          return { id, shared: true, meshes: [instanced(full.geometry, masked(frameMat, full, seatColour))] };
+        const geo = chairGeometry(String(params.style ?? "oval"), low);
+        const seatMat = new THREE.MeshStandardMaterial({ color: seatColour, roughness: SEAT_ROUGHNESS });
+        return {
+          id,
+          shared: false,
+          meshes: [instanced(geo.frame, frameMat), instanced(geo.fabric, seatMat)],
+        };
       }),
     [used, catalog, low, models],
   );
   useEffect(
     () => () => {
       for (const k of kinds)
-        for (const m of [k.frame, k.seat]) {
+        for (const m of k.meshes) {
           // A loaded model's geometry is shared by every chair entry of its style.
           if (!k.shared) m.geometry.dispose();
           (m.material as THREE.Material).dispose();
@@ -160,15 +202,14 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
         t.position.set(ch.x, p.y + lift, ch.z);
         t.rotation.set(0, ch.rotY, 0);
         t.updateMatrix();
-        k.frame.setMatrixAt(n, t.matrix);
-        k.seat.setMatrixAt(n, t.matrix);
+        for (const m of k.meshes) m.setMatrixAt(n, t.matrix);
         n++;
       }
       counts.set(id, n);
     }
     for (const k of kinds) {
       const n = counts.get(k.id) ?? 0;
-      for (const m of [k.frame, k.seat]) {
+      for (const m of k.meshes) {
         m.count = n;
         m.instanceMatrix.needsUpdate = true;
         m.computeBoundingSphere();
@@ -180,8 +221,9 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
     <group name="chairs">
       {kinds.map((k) => (
         <group key={k.id}>
-          <primitive object={k.frame} />
-          <primitive object={k.seat} />
+          {k.meshes.map((m) => (
+            <primitive key={m.uuid} object={m} />
+          ))}
         </group>
       ))}
     </group>

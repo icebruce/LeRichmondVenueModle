@@ -122,38 +122,31 @@ export function chairGeometry(style: string, low: boolean) {
   return ovalBackChair(low);
 }
 
-/** A chair style's full-quality model (V4): frame and seat geometry, a grey detail map and normals. */
-export type ChairModel = {
-  frame: THREE.BufferGeometry;
-  fabric: THREE.BufferGeometry;
-  detail: THREE.Texture | null;
-  normalMap: THREE.Texture | null;
-};
-/** The detail map holds the surface at half strength (0.5 = the part's own colour), so tints double. */
-export const CHAIR_DETAIL_GAIN = 2;
+/**
+ * A chair style's full-quality model (V4, `tools/blender/chair_from_meshy.py`): one mesh, a grey
+ * detail map at half strength (0.5 = the part's own colour) and a mask, white where the seat is.
+ */
+export type ChairModel = { geometry: THREE.BufferGeometry; detail: THREE.Texture; mask: THREE.Texture };
 
 const chairModels = new Map<string, Promise<ChairModel>>();
 
-/** Loads a chair model file once (`tools/blender/chair_from_meshy.py` writes them); shared, never disposed. */
+/** Loads a chair model file and its `-mask.png` once; shared by every entry of the style, never disposed. */
 export function loadChairModel(file: string): Promise<ChairModel> {
   let p = chairModels.get(file);
   if (!p) {
-    p = new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${file}`).then((gltf) => {
-      const part = (name: string) => {
-        const mesh = gltf.scene.getObjectByName(name);
-        if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no ${name} mesh`);
-        return mesh as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-      };
-      const frame = part("frame");
-      const detail = frame.material.map;
-      // The detail map is data, not colour.
-      if (detail) detail.colorSpace = THREE.NoColorSpace;
-      return {
-        frame: frame.geometry,
-        fabric: part("seat").geometry,
-        detail,
-        normalMap: frame.material.normalMap,
-      };
+    const url = `${import.meta.env.BASE_URL}${file}`;
+    p = Promise.all([
+      new GLTFLoader().loadAsync(url),
+      new THREE.TextureLoader().loadAsync(url.replace(/\.glb$/, "-mask.png")),
+    ]).then(([gltf, mask]) => {
+      const mesh = gltf.scene.getObjectByName("chair");
+      if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no chair mesh`);
+      const detail = (mesh.material as THREE.MeshStandardMaterial).map;
+      if (!detail) throw new Error(`${file}: no detail map`);
+      // Both maps are data, not colour, and share the glTF texture orientation.
+      detail.colorSpace = mask.colorSpace = THREE.NoColorSpace;
+      mask.flipY = false;
+      return { geometry: mesh.geometry as THREE.BufferGeometry, detail, mask };
     });
     chairModels.set(file, p);
   }
