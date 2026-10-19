@@ -244,14 +244,22 @@ export function useMaterials(quality: Quality) {
       // the room's soft shadow on the backdrop.
       // Its evening glow (set with the lighting) keeps it the lightest frame of the model.
       cap: std({ color: "#e6dfd3", emissive: "#e6dfd3", emissiveIntensity: 0, roughness: 0.8 }),
-      // Soft contact shadows under tables, chairs and standing guests (V2, Grounded): the baked
-      // floor takes no live shadow, so these ground what stands on it.
+      // Soft contact shadows under standing guests (V2, Grounded).
       contact: new THREE.MeshBasicMaterial({
         color: "#000000",
         map: softShadowTexture(CONTACT_SPREAD, 0.3),
         transparent: true,
         opacity: 0.7,
         depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+      }),
+      // Contact shadows that follow a footprint's outline (tables, chairs): darkness per vertex.
+      footprint: new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
         polygonOffset: true,
         polygonOffsetFactor: -2,
       }),

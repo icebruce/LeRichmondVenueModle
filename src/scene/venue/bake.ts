@@ -108,6 +108,8 @@ export type BakeManifest = {
   inputsHash: string;
   scriptHash: string;
   samples: number;
+  /** The contact occlusion map, shared by both sets (grey, linear, 1K). */
+  occlusion: string;
   sets: Record<BakeSet, { scale: number; files: { "2k": string; "1k": string } }>;
 };
 
@@ -135,22 +137,36 @@ const LIVE_SHARE = 0.25;
 /**
  * A receiver's material with the light map: its diffuse light comes mostly from the map, with
  * `LIVE_SHARE` of the live lights' and `BAKED_AMBIENT` of the sky's; live highlights and reflections
- * stay. Any shader patch the source has (`vary`) is kept.
+ * stay. The baked contact occlusion (`occlusion`, also in the map) dims what the map does not hold
+ * (the live lights, highlights and reflections), so a glossy floor stays dark where it meets a wall, the
+ * bar or the raised floor (owner 2026-10-19). Any shader patch the source has (`vary`) is kept.
  */
 export function bakedMaterial(
   src: THREE.MeshStandardMaterial,
   lightMap: THREE.Texture,
+  occlusion: THREE.Texture,
 ): THREE.MeshStandardMaterial {
   const b = src.clone();
   b.lightMap = lightMap;
   b.lightMap.channel = 1;
+  // Sampled by the patch below; three's own ambient occlusion is off (the map already holds it).
+  b.aoMap = occlusion;
+  b.aoMapIntensity = 0;
   const key = src.customProgramCacheKey();
   b.customProgramCacheKey = () => `${key}|baked`;
   b.onBeforeCompile = (s, r) => {
     src.onBeforeCompile(s, r);
     s.fragmentShader = s.fragmentShader.replace(
       "#include <lights_fragment_maps>",
-      `irradiance *= ${BAKED_AMBIENT.toFixed(2)};\nreflectedLight.directDiffuse *= ${LIVE_SHARE.toFixed(2)};\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);`,
+      `float bakedAO = texture2D(aoMap, vAoMapUv).r;
+irradiance *= ${BAKED_AMBIENT.toFixed(2)} * bakedAO;
+reflectedLight.directDiffuse *= ${LIVE_SHARE.toFixed(2)} * bakedAO;
+reflectedLight.directSpecular *= bakedAO;
+#include <lights_fragment_maps>
+iblIrradiance = vec3(0.0);
+#if defined( RE_IndirectSpecular )
+radiance *= bakedAO;
+#endif`,
     );
   };
   return b;

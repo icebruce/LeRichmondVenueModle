@@ -4,7 +4,9 @@ Usage: python bake_room.py <room.glb> <venue_geometry.json> <out.f32> <size> <sa
 
 The GLB comes from the app (`?bake-export`, run by `npm run bake`): receivers named "R:..." carry
 the light-map UVs as their second UV set; everything else is an occluder or, where it glows, an
-emitter. Writes <size>x<size> RGB float32 irradiance, top row first, to <out.f32>.
+emitter. Writes <size>x<size> RGBA float32, top row first, to <out.f32>: irradiance with contact
+occlusion in RGB, the occlusion alone in A (the app applies it to the light the map does not hold:
+reflections and the live lights).
 Venue (x, up, z) maps to Blender (x, -z, up).
 """
 import json
@@ -130,19 +132,19 @@ px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :3]
 # Contact darkening the light alone leaves too faint at this texel size (owner 2026-10-19): ambient
 # occlusion within AO_REACH, sharpened by AO_POWER, where walls meet the floor and the ceiling, in
 # corners, at the feet of the bar, back bar, banquettes and stair, and along the raised floor.
-AO_REACH, AO_POWER = 0.6, 1.5
+AO_REACH, AO_POWER = 0.8, 2.2
 sc.world.light_settings.distance = AO_REACH
 sc.cycles.samples = 64
 ao_img = bpy.data.images.new("ao", SIZE, SIZE, alpha=False, float_buffer=True)
 for slot in room.material_slots:
     slot.material.node_tree.nodes.active.image = ao_img
 bpy.ops.object.bake(type="AO", uv_layer=lightmap_uv, margin=2)
-ao = np.array(ao_img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :1]
-px *= ao**AO_POWER
+ao = np.array(ao_img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :1] ** AO_POWER
+px = np.concatenate([px * ao, ao], axis=2)
 print("ambient occlusion", round(time.time() - t0), "s")
 
 # Denoise lightly: a masked blur that never mixes in empty texels (another island, or none).
-mask = (px.sum(axis=2) > 0).astype(np.float32)[:, :, None]
+mask = (px[:, :, :3].sum(axis=2) > 0).astype(np.float32)[:, :, None]
 acc = np.zeros_like(px)
 weight = np.zeros_like(mask)
 for dy in (-1, 0, 1):

@@ -129,7 +129,8 @@ async function islandTexels(room: Export): Promise<number[][]> {
 async function encode(px: Float32Array, room: Export, mode: string) {
   const { size } = room.atlas;
   // Rows run top first in both the bake and the light-map UVs (the app loads the map unflipped).
-  const peak = (t: number) => Math.max(px[t * 3] as number, px[t * 3 + 1] as number, px[t * 3 + 2] as number);
+  // RGBA per texel: light in RGB, contact occlusion alone in A.
+  const peak = (t: number) => Math.max(px[t * 4] as number, px[t * 4 + 1] as number, px[t * 4 + 2] as number);
   const near = (t: number) => [t - 1, t + 1, t - size, t + size].filter((n) => n >= 0 && n < size * size);
   // Fill single unlit texels (too few samples in a dim corner) from their lit neighbours.
   const islands = await islandTexels(room);
@@ -138,8 +139,8 @@ async function encode(px: Float32Array, room: Export, mode: string) {
       if (peak(t) > 0) continue;
       const lit = near(t).filter((n) => peak(n) > 0);
       if (lit.length < 3) continue;
-      for (let c = 0; c < 3; c++)
-        px[t * 3 + c] = lit.reduce((a, n) => a + (px[n * 3 + c] as number), 0) / lit.length;
+      for (let c = 0; c < 4; c++)
+        px[t * 4 + c] = lit.reduce((a, n) => a + (px[n * 4 + c] as number), 0) / lit.length;
     }
   // Faces buried in the model (a wall's end inside the next wall) get no light and are never seen;
   // faces something rests on (the floor under the raised platform) are dark too. What must hold:
@@ -167,8 +168,9 @@ async function encode(px: Float32Array, room: Export, mode: string) {
   const scale = peaks[Math.floor(peaks.length * CLIP)] as number;
   // 8-bit with a 2.2 gamma (loaded as sRGB, decoded to linear on the GPU), so the dark end keeps its steps.
   const rgb = new Uint8Array(size * size * 3);
-  for (let i = 0; i < rgb.length; i++)
-    rgb[i] = Math.round(255 * Math.pow(Math.min(1, (px[i] as number) / scale), 1 / 2.2));
+  for (let t = 0; t < size * size; t++)
+    for (let c = 0; c < 3; c++)
+      rgb[t * 3 + c] = Math.round(255 * Math.pow(Math.min(1, (px[t * 4 + c] as number) / scale), 1 / 2.2));
   const files: Record<string, string> = {};
   for (const s of [size, size / 2]) {
     // Lossless: a light map's smooth gradients band under lossy compression.
@@ -196,13 +198,42 @@ writeFileSync(join(cache, "coverage.png"), Buffer.from(room.coverage, "base64"))
 console.log(
   `exported: ${room.atlas.islands.length} islands at ${room.atlas.texelsPerMetre.toFixed(1)} texels/m`,
 );
+/**
+ * The contact occlusion alone (the bake's alpha), the same for both sets: one 1K grey map, linear,
+ * which the app applies to the light the maps do not hold (live lights, highlights, reflections).
+ */
+async function encodeOcclusion(px: Float32Array, size: number): Promise<string> {
+  const grey = new Uint8Array(size * size);
+  for (let t = 0; t < size * size; t++)
+    grey[t] = Math.round(255 * Math.min(1, Math.max(0, px[t * 4 + 3] as number)));
+  const webp = await sharp(grey, { raw: { width: size, height: size, channels: 1 } })
+    .resize(size / 2, size / 2)
+    .toColourspace("b-w")
+    .webp({ lossless: true })
+    .toBuffer();
+  writeFileSync(join(out, "occlusion_1k.webp"), webp);
+  console.log("occlusion_1k.webp", `${Math.round(webp.length / 1024)} KB`);
+  return "occlusion_1k.webp";
+}
+
 const sets: Record<string, { scale: number; files: Record<string, string> }> = {};
-for (const mode of ["evening", "day"])
-  sets[mode] = await encode(bake(glb, mode, room.atlas.size), room, mode);
+let occlusion = "";
+for (const mode of ["evening", "day"]) {
+  const px = bake(glb, mode, room.atlas.size);
+  if (mode === "evening") occlusion = await encodeOcclusion(px, room.atlas.size);
+  sets[mode] = await encode(px, room, mode);
+}
 const scriptHash = createHash("sha256")
   .update(readFileSync(join(root, "tools/blender/bake_room.py")))
   .digest("hex");
-const manifest = { geometryHash: room.geometryHash, inputsHash: room.inputsHash, scriptHash, samples, sets };
+const manifest = {
+  geometryHash: room.geometryHash,
+  inputsHash: room.inputsHash,
+  scriptHash,
+  samples,
+  occlusion,
+  sets,
+};
 mkdirSync(join(root, "data/bake"), { recursive: true });
 writeFileSync(join(root, "data/bake/manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log("manifest written");

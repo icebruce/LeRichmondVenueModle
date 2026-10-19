@@ -1,11 +1,12 @@
 {
   "geometryHash": "67a07309",
   "inputsHash": "ce1595f0",
-  "scriptHash": "4f2ed9730aaa5895745cba6e70001dff60ace673c5c0d96840baecc5c13fc0e0",
+  "scriptHash": "1fe59bb0ef6029cc73c9c2b86d9427386a5894fc456547c80bf25a288f32b49a",
   "samples": 256,
+  "occlusion": "occlusion_1k.webp",
   "sets": {
     "evening": {
-      "scale": 2.694597005844116,
+      "scale": 2.497011423110962,
       "files": {
         "2k": "evening_2k.webp",
         "1k": "evening_1k.webp"
