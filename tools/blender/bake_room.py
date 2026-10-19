@@ -1,4 +1,4 @@
-"""Bake the fixed room's light (direct + bounced) into its light map (visual stage V2, ADR-2).
+"""Bake the fixed room's light (direct + bounced, with contact occlusion) into its light map (V2, ADR-2).
 
 Usage: python bake_room.py <room.glb> <venue_geometry.json> <out.f32> <size> <samples> <evening|day>
 
@@ -44,8 +44,8 @@ room = bpy.context.active_object
 lightmap_uv = room.data.uv_layers[1].name
 print("receivers joined", len(room.data.polygons), "faces;", round(time.time() - t0), "s")
 
-# About 2700 K: the venue at night is amber, not neutral (R06, R08; V2b).
-warm = (1.0, 0.78, 0.55)
+# About 2400 K: the venue at night is amber, not neutral (R06, R08; owner 2026-10-19).
+warm = (1.0, 0.72, 0.44)
 
 
 def add_light(name, kind, loc, watts, color=warm, radius=0.2, target=None, angle=None, blend=0.6):
@@ -97,7 +97,7 @@ if MODE == "evening":
         add_light("uplight", "SPOT", B(W - 0.25, 0.15, z), 200, target=B(W, 2.5, z), angle=36, blend=0.7)
     bb = V["backBar"]["rect"]["value"]
     # The lit back bar, brighter than the brick (R01 R03 R08): a soft source facing its shelves.
-    back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 420, color=(1.0, 0.8, 0.58))
+    back = add_light("backbar", "AREA", B((bb[0] + bb[2]) / 2, 2.0, bb[3] + 0.15), 420, color=(1.0, 0.76, 0.5))
     back.shape = "RECTANGLE"
     back.size, back.size_y = bb[2] - bb[0], 1.6
     bpy.data.objects["backbar"].rotation_euler = (math.radians(90), 0, 0)
@@ -125,9 +125,23 @@ room.select_set(True)
 bpy.context.view_layer.objects.active = room
 bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer=lightmap_uv, margin=2)
 print("baked", MODE, round(time.time() - t0), "s")
+px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :3]
+
+# Contact darkening the light alone leaves too faint at this texel size (owner 2026-10-19): ambient
+# occlusion within AO_REACH, sharpened by AO_POWER, where walls meet the floor and the ceiling, in
+# corners, at the feet of the bar, back bar, banquettes and stair, and along the raised floor.
+AO_REACH, AO_POWER = 0.6, 1.5
+sc.world.light_settings.distance = AO_REACH
+sc.cycles.samples = 64
+ao_img = bpy.data.images.new("ao", SIZE, SIZE, alpha=False, float_buffer=True)
+for slot in room.material_slots:
+    slot.material.node_tree.nodes.active.image = ao_img
+bpy.ops.object.bake(type="AO", uv_layer=lightmap_uv, margin=2)
+ao = np.array(ao_img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :1]
+px *= ao**AO_POWER
+print("ambient occlusion", round(time.time() - t0), "s")
 
 # Denoise lightly: a masked blur that never mixes in empty texels (another island, or none).
-px = np.array(img.pixels[:], dtype=np.float32).reshape(SIZE, SIZE, 4)[:, :, :3]
 mask = (px.sum(axis=2) > 0).astype(np.float32)[:, :, None]
 acc = np.zeros_like(px)
 weight = np.zeros_like(mask)

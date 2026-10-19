@@ -72,6 +72,43 @@ function prep(t: THREE.Texture, colour: boolean) {
   return t;
 }
 
+/** Fixed furniture darkens over this height above the floor, to `GROUND_MIN` of its colour at it. */
+const GROUND_REACH = 0.35;
+const GROUND_MIN = 0.5;
+
+/**
+ * Contact darkening for the bar, back bar, counter, banquettes, stair and rails, which the room's
+ * baked occlusion does not cover (owner 2026-10-19): the surface darkens toward the floor, as
+ * ambient occlusion would, on every tier. Keeps any shader change the material already has.
+ */
+function grounded<T extends THREE.MeshStandardMaterial>(mat: T): T {
+  const prev = mat.onBeforeCompile.bind(mat);
+  const key = mat.customProgramCacheKey();
+  mat.customProgramCacheKey = () => `${key}|ground`;
+  mat.onBeforeCompile = (s, r) => {
+    prev(s, r);
+    s.vertexShader = s.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying float vGroundY;")
+      .replace(
+        "#include <project_vertex>",
+        `#include <project_vertex>
+vec4 groundAt = vec4(transformed, 1.0);
+#ifdef USE_INSTANCING
+groundAt = instanceMatrix * groundAt;
+#endif
+vGroundY = (modelMatrix * groundAt).y;`,
+      );
+    s.fragmentShader = s.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vGroundY;")
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+diffuseColor.rgb *= mix(${GROUND_MIN.toFixed(2)}, 1.0, smoothstep(0.0, ${GROUND_REACH.toFixed(2)}, vGroundY));`,
+      );
+  };
+  return mat;
+}
+
 /**
  * Breaks up a repeating surface by world position (V1): `cell` gives each square of that size (m,
  * on the floor plane) its own tone, the way real tiles differ; otherwise soft patches about `size`
@@ -123,7 +160,7 @@ export const CONTACT_SPREAD = 1.6;
  * The buff brick's tint by day and in the evening (V2b): under the venue's warm light at night it
  * reads orange-brown in R06 and R08, not pale beige.
  */
-export const BRICK_TINT = { day: "#f4ebdd", evening: "#efd2b4" } as const;
+export const BRICK_TINT = { day: "#f4ebdd", evening: "#f2c49a" } as const;
 
 /** The plinth's shadow plane is this many times its size (`softShadowTexture`). */
 export const SHADOW_SPREAD = 1.25;
@@ -197,11 +234,11 @@ export function useMaterials(quality: Quality) {
       }),
       // Honey pine deck with darker beams (R02).
       ceiling: std({ map: tex.ceilingDiff, normalMap: tex.ceilingNor, color: "#f6e6c2", roughness: 0.85 }),
-      timber: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
+      timber: grounded(std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 })),
       // The same timber on the ceiling beams and the raised floor's sides, which carry the baked
       // light (V2), kept apart from the stair's live-lit timber.
       beam: std({ map: tex.timberDiff, color: "#b5874f", roughness: 0.8 }),
-      steel: std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 }),
+      steel: grounded(std({ color: "#1c1e1f", metalness: 0.55, roughness: 0.55 })),
       girder: std({ map: rivetTexture(), color: "#ffffff", metalness: 0.55, roughness: 0.55 }),
       // The model's presentation (REFERENCE_NOTES §1, Presented): light wall caps and plinth, and
       // the room's soft shadow on the backdrop.
@@ -224,8 +261,8 @@ export function useMaterials(quality: Quality) {
         depthWrite: false,
       }),
       marble: std({ map: marble, roughness: 0.3, metalness: 0 }),
-      barBase: std({ color: "#18191a", roughness: 0.55, metalness: 0.2 }),
-      backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
+      barBase: grounded(std({ color: "#18191a", roughness: 0.55, metalness: 0.2 })),
+      backBarWood: grounded(std({ color: "#3a2b21", roughness: 0.6 })),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
       shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 3, roughness: 0.5 }),
       fridge: std({ color: "#c9d7cf", emissive: "#e8f2ea", emissiveIntensity: 0.35, roughness: 0.2 }),
@@ -233,7 +270,7 @@ export function useMaterials(quality: Quality) {
       windowFrame: std({ color: "#e4e1d9", roughness: 0.6 }),
       // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
       kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
-      blackMetal: std({ color: "#121314", metalness: 0.7, roughness: 0.45 }),
+      blackMetal: grounded(std({ color: "#121314", metalness: 0.7, roughness: 0.45 })),
       bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 1.8, roughness: 0.3 }),
       crystal: new THREE.MeshPhysicalMaterial({
         color: "#fff6e8",
@@ -252,15 +289,17 @@ export function useMaterials(quality: Quality) {
         opacity: 0.16,
         envMapIntensity: 1.5,
       }),
-      velvet: new THREE.MeshPhysicalMaterial({
-        color: "#8a6a3e",
-        roughness: 0.75,
-        sheen: 1,
-        sheenColor: new THREE.Color("#e2c28a"),
-        sheenRoughness: 0.45,
-        side: THREE.DoubleSide,
-      }),
-      leather: std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 }),
+      velvet: grounded(
+        new THREE.MeshPhysicalMaterial({
+          color: "#8a6a3e",
+          roughness: 0.75,
+          sheen: 1,
+          sheenColor: new THREE.Color("#e2c28a"),
+          sheenRoughness: 0.45,
+          side: THREE.DoubleSide,
+        }),
+      ),
+      leather: grounded(std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 })),
       // The back bar's card sheet: backlit bottles and glasses, rack, plants, instruments (V3).
       cards: std({
         map: cards.map,
@@ -283,7 +322,7 @@ export function useMaterials(quality: Quality) {
       }),
       // The back bar's canopy, counter and espresso machine: bright stainless, lighter than the
       // black steel (R02, R03). The fridges' dark glass doors are dimly lit inside.
-      stainless: std({ color: "#b9bcbc", metalness: 0.9, roughness: 0.28 }),
+      stainless: grounded(std({ color: "#b9bcbc", metalness: 0.9, roughness: 0.28 })),
       fridgeGlass: std({ color: "#1c2422", emissive: "#9fb5ad", emissiveIntensity: 0.14, roughness: 0.08 }),
       // The bar flowers' white blossom and dark branches (R02, VEN-06).
       blossom: std({ color: "#f3eee6", roughness: 0.85 }),
@@ -304,16 +343,18 @@ export function useMaterials(quality: Quality) {
       // Its glow follows the lighting (set in the scene): off in daylight.
       led: std({ color: "#b8b85a", emissive: "#e2e23a", emissiveIntensity: LED_GLOW, roughness: 0.6 }),
       exitSign: std({ color: "#3a0b0b", emissive: "#ff2a2a", emissiveIntensity: 1.6 }),
-      wineFrame: std({
-        color: "#5c1717",
-        roughness: 0.45,
-        metalness: 0.2,
-        emissive: "#3a0c08",
-        emissiveIntensity: 0.4,
-      }),
+      wineFrame: grounded(
+        std({
+          color: "#5c1717",
+          roughness: 0.45,
+          metalness: 0.2,
+          emissive: "#3a0c08",
+          emissiveIntensity: 0.4,
+        }),
+      ),
       darkVoid: std({ color: "#0e0f10", roughness: 1 }),
       // The closed side under the second flight and the turn landing (owner photo 4).
-      stairWall: std({ color: "#262b28", roughness: 0.9 }),
+      stairWall: grounded(std({ color: "#262b28", roughness: 0.9 })),
       // The mezzanine's underside, which carries the baked light (V2).
       soffit: std({ color: "#262b28", roughness: 0.9 }),
       // The terrace through the garage doors by day: a bright, slightly green-grey backdrop, unlit
