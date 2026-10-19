@@ -100,6 +100,11 @@ if MODE == "evening":
     back.shape = "RECTANGLE"
     back.size, back.size_y = bb[2] - bb[0], 1.6
     bpy.data.objects["backbar"].rotation_euler = (math.radians(90), 0, 0)
+    # The canopy's row of downlights over the counter and the bar well (R02, R03).
+    x = bb[0] + 0.3
+    while x < bb[2]:
+        add_light("downlight", "SPOT", B(x, V["backBar"]["canopyHeight"] - 0.05, bb[3] + 0.45), 25, target=B(x, 0, bb[3] + 0.6), angle=50, blend=0.8)
+        x += 0.6
 else:
     # Daylight: soft sky through the garage doors and street windows, low sun from the terrace (west).
     bg.inputs["Color"].default_value = (0.8, 0.85, 0.95, 1)

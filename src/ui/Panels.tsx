@@ -15,6 +15,7 @@ import {
 } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
+import { type VenueModel, barTopLength, barTopPlace } from "../domain/venue/model";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
@@ -197,6 +198,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.currentTarget.value))}
+        aria-valuetext={format(value)}
         data-testid={testId}
       />
     </label>
@@ -1762,7 +1764,11 @@ const VIEWS: { key: string; label: string; detail: string }[] = [
 ];
 
 /** Room (VEN-05, LAY-05, LAY-08, LAY-12): views, the restaurant's own furniture and art, the layout rules. */
-export function RoomPanel({ open }: { open: (page: "rules" | "paintings" | "graphics") => void }) {
+export function RoomPanel({
+  open,
+}: {
+  open: (page: "rules" | "paintings" | "flowers" | "graphics") => void;
+}) {
   const { editor, venue } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const snapping = useEditor((s) => s.snapping);
@@ -1807,6 +1813,12 @@ export function RoomPanel({ open }: { open: (page: "rules" | "paintings" | "grap
           value={changed ? `${changed} changed` : "Current art"}
           onClick={() => open("paintings")}
           testId="room-paintings"
+        />
+        <NavRow
+          label="Bar flowers"
+          value={scenario.venueToggles.barFlowers.shown ? "Shown" : "Hidden"}
+          onClick={() => open("flowers")}
+          testId="room-flowers"
         />
       </div>
       <h3 className="group-title">Layout</h3>
@@ -1888,6 +1900,71 @@ export function GraphicsPage({ onBack }: { onBack: () => void }) {
         ))}
       </div>
       <p className="hint">Saved on this device. Lighting and furniture are the same in every choice.</p>
+    </div>
+  );
+}
+
+/** Two vases keep at least this far apart along the bar top (VEN-06). */
+const VASE_GAP_M = 0.3;
+
+/** Where a bar flower stands, in words the couple use in the room (VEN-06). */
+function barPlace(venue: VenueModel, t: number): string {
+  const { run, along } = barTopPlace(venue.data, t);
+  const m = (v: number) => `${v.toFixed(1)} m`;
+  if (run === "front") return `Front, ${m(along)} from the garage-door end`;
+  if (run === "west") return `Garage-door side, ${m(along)} from the back`;
+  const east = barTopPlace(venue.data, 1).along;
+  return `Raised side, ${m(east - along)} from the back`;
+}
+
+/** Room › Bar flowers (VEN-06): show or hide the two vases, and slide each along the bar top. */
+export function BarFlowersPage({ onBack }: { onBack: () => void }) {
+  const { editor, venue } = useStudio();
+  const flowers = useEditor((s) => s.scenarios[s.activeId]?.venueToggles.barFlowers);
+  // The bar in view while the vases move.
+  useEffect(() => {
+    editor.setCamera("dollhouse");
+    requestAnimationFrame(() => requestCamera("R03"));
+  }, [editor]);
+  if (!flowers) return null;
+  const [a, b] = flowers.at;
+  const gap = VASE_GAP_M / barTopLength(venue.data);
+  return (
+    <div className="panel-body" data-testid="bar-flowers">
+      <PageHead title="Bar flowers" back="Room" onBack={onBack} />
+      <div className="list">
+        <Toggle
+          label="Show the bar flowers"
+          sub="Two tall vases of white blossom on the bar"
+          checked={flowers.shown}
+          onChange={(v) => editor.setBarFlowers({ shown: v })}
+          testId="toggle-flowers"
+        />
+      </div>
+      {flowers.shown && (
+        <>
+          <Slider
+            label="First vase"
+            value={a}
+            min={0}
+            max={Math.max(0, b - gap)}
+            step={0.005}
+            format={(t) => barPlace(venue, t)}
+            onChange={(v) => editor.setBarFlowers({ at: [v, b] })}
+            testId="flower-a"
+          />
+          <Slider
+            label="Second vase"
+            value={b}
+            min={Math.min(1, a + gap)}
+            max={1}
+            step={0.005}
+            format={(t) => barPlace(venue, t)}
+            onChange={(v) => editor.setBarFlowers({ at: [a, v] })}
+            testId="flower-b"
+          />
+        </>
+      )}
     </div>
   );
 }

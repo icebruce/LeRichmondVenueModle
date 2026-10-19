@@ -72,7 +72,7 @@
       "from": [0, 0],
       "to": [16, 0],
       "finish": "brick",
-      "dado": 1.3,
+      "dado": 1.2,
       "openings": [
         {
           "id": "restroom-corridor",
@@ -80,7 +80,7 @@
           "start": 5.2,
           "end": 6.15,
           "sill": 0,
-          "head": 2.4
+          "head": 2.1
         }
       ],
       "confidence": "H",
@@ -91,7 +91,7 @@
       "from": [0, 12.9],
       "to": [0, 0],
       "finish": "brick",
-      "dado": 1.3,
+      "dado": 1.2,
       "openings": [
         {
           "id": "garage-north",
@@ -296,14 +296,14 @@
         "x1": 4.35,
         "z": 0,
         "depth": 0.6,
-        "backHeight": 1.35
+        "backHeight": 1.45
       },
       {
         "x0": 11.8,
         "x1": 15.9,
         "z": 0,
         "depth": 0.6,
-        "backHeight": 1.35
+        "backHeight": 1.45
       },
       {
         "wall": "west",
@@ -311,7 +311,7 @@
         "z1": 0.6,
         "x": 0,
         "depth": 0.6,
-        "backHeight": 1.35,
+        "backHeight": 1.45,
         "disabled": true
       }
     ],
@@ -320,10 +320,10 @@
         "id": "horseman",
         "label": "Horseman painting (left of the bar)",
         "wall": "north",
-        "x0": 1.3,
-        "x1": 4.3,
-        "y0": 2.0,
-        "y1": 4.5,
+        "x0": 1.8,
+        "x1": 3.25,
+        "y0": 1.6,
+        "y1": 3.6,
         "palette": ["#2B1E1A", "#8E2B22", "#C79A3B", "#2F4E8C", "#E8D7B0"]
       },
       {
@@ -459,6 +459,12 @@
       "target": [8, 1.2, 5.5],
       "fov": 78,
       "reference": "R01"
+    },
+    "R02": {
+      "position": [13.6, 5.3, 11.6],
+      "target": [7.6, 1.2, 3.4],
+      "fov": 62,
+      "reference": "R02"
     },
     "R03": {
       "position": [9.4, 1.45, 9.0],

@@ -48,6 +48,7 @@ import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
 import { BackBar, BackBarBottles, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
+import { BarFlowers } from "./venue/BarFlowers";
 
 /** The hidden performance overlay is on (`?perf`, V0). */
 const PERF = new URLSearchParams(window.location.search).has("perf");
@@ -445,6 +446,9 @@ function Scene({
         <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
       </StaticMerge>
       <BackBarBottles venue={venue} />
+      {scenario.venueToggles.barFlowers.shown && (
+        <BarFlowers venue={venue} m={m} at={scenario.venueToggles.barFlowers.at} />
+      )}
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       <group visible={mode !== "plan"}>
         <Plinth venue={venue} m={m} />

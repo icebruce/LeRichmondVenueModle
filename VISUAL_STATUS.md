@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 built (PR #16, 2026-10-18, CI green), waiting on the owner: read `?perf` on the three devices, merge. V1 and V2 built on top, one PR each once #16 is merged, then a stop for owner approval; V7 waits for the owner before any Meshy spend (owner, 2026-10-18). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17) and V2 (#18) merged; the owner approved V2 (2026-10-18) and asked for V3 to V6, one PR each, stopping before V7 (no Meshy spend). V3 built. Owner's review of the V2 evening (2026-10-19): too flat (uniform light brick, no warm bounce, missing bar shadows and ambient occlusion, night tone off R06/R08) and the graphics setting shows no difference; a light rework (V2b) comes next, before V4. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -50,10 +50,10 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 
 | Stage | Delivers (summary) | Priority | State |
 |---|---|---|---|
-| V0 | Performance foundation, measurement, asset pipeline and checks | Must | Built (PR #16), waiting on the owner: device readings, merge |
-| V1 | Room model and surfaces | Must | Built, PR #17; owner tested it (2026-10-18): corridor and lens settled, changes go in V2; merge |
-| V2 | Light: hybrid bake, evening calibration, grounding | Must | Built, PR after V1; owner: evening and daylight look on the preview |
-| V3 | Bar and back bar | Should | Not started |
+| V0 | Performance foundation, measurement, asset pipeline and checks | Must | Merged (PR #16); owner: device readings |
+| V1 | Room model and surfaces | Must | Merged (PR #17) |
+| V2 | Light: hybrid bake, evening calibration, grounding | Must | Merged (PR #18), approved by the owner |
+| V3 | Bar and back bar | Should | Built, PR next |
 | V4 | Linens and chairs | Must | Not started |
 | V5 | Table décor and Photo mode | Must | Not started |
 | V6 | Remaining fixtures | If time allows | Not started |
@@ -242,6 +242,17 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Review:** `fidelity-reviewer` vs R02, R03, R11, R14 and R15.
 
 **Gate:** the owner approves on the preview.
+
+**Built (2026-10-18):**
+
+- Owner's heights from the V2 review: dado 1.2 m (north and west), banquette backs 1.45 m, restroom corridor head 2.1 m, the horseman painting portrait (1.45 × 2.0 m) over the banquettes.
+- Bar: one U-shaped 8 cm marble slab with an eased edge and a 12 cm overhang on the guest side, a black base with raised stiles and rails framing panels, a round black foot rail on brackets; inside, a stainless working ledge and a dark mat.
+- Bar flowers (VEN-06, schema v6): two tall slim glass vases of white blossom on the bar top, one on the west side near the front, one along the front (R02). Room › Bar flowers shows or hides them and slides each along the bar; the readout names the side in room words (garage-door side, front, raised side) with its distance; the vases keep 15 cm off the ends and 30 cm apart; opening the page frames the bar; one undo step per vase. Not done: moving a vase by dragging it in the room.
+- Back bar (R02, R03, R14): four wide dark-wood bays with plain posts, a stepped crown with a brass line; four wood shelves 0.40 m apart above a clear zone over the counter, each with a warm strip under its front edge; a front row of real bottles (two instanced shapes, every bottle clear of the shelf above), backlit bottle and glass cards behind; an antique-mirror back panel; a brushed stainless canopy with downlights (in the bake too); dark glass-door fridges in stainless frames; a stainless counter top; a wide chrome espresso machine near the middle with cups on its warmer; ferns and dried branches in white pots at the canopy's front edge; violins and guitars hung tilted on the brick.
+- Wine wall: a lit glass case of upright bottles on glass shelves, on its two faces toward the room, with crates at its foot. One card sheet (`backBarAtlas`) serves every card; cut-out cards stay out of the bake.
+- A stored R02 camera (the main back-bar reference); the raised-floor railing no longer puts a post through the bar top.
+- Reviews: `ux-reviewer` (7 majors) and `fidelity-reviewer` (bottles through shelves, back bar read as coolers, wine wall not a lit case, railing post, fridges, counter top, espresso, plants, slab seams) addressed.
+- Not done: the neon stays the V1 ring (R02 shows a sunburst sign); Meshy models for the espresso machine, stools and flowers come with their stages.
 
 ### V4: Linens and chairs
 
@@ -571,10 +582,10 @@ Stop the visual track when any of these holds:
 
 ## Open items
 
-- **Meshy credits:** 989 left. Planned: people ≈ 150 (the woman, rigs, about 10 poses at 3 credits each, retries); décor through library requests at ~30 each when the owner asks; ≥ 300 kept in reserve.
+- **Meshy credits:** 989 left. Owner (2026-10-19): Meshy approved before V7 for the three chair styles, flowers and plants, the chandeliers, and anything else that raises quality, each cleaned up in Blender to the asset rules; text prompts or the owner's own photos only (no third-party photos uploaded). Planned: people ≈ 150; ≥ 300 kept in reserve.
 - **People reference image:** the owner attaches it to a custom request in the app ("Guest figures"), so it stays private and Claude can read it with the requests token.
 - **New spec rows and budgets when built:**
   - Spec rows: bar flowers (VEN) and Photo mode (EXP) (the graphics setting is PLT-05).
   - `ARCHITECTURE.md` §7 rows: GPU memory, view-switch freeze, idle frames, light maps, people.
-- **V2 (owner):** is the red dado on the north and west walls ≈ 1.3 m, or nearer 1.0–1.1 m (it looks below the banquette tops in the owner's 2026-10-18 photo)? Is the passage behind the back bar ≈ 0.9 m?
+- **Decided (owner, 2026-10-18, after V2):** the fidelity review's heights apply (dado ≈ 1.2 m, banquette backs ≈ 1.45 m, corridor head ≈ 2.1 m, horseman painting portrait ≈ 1.45 × 2.0 m); the doorway and back bar stay where they are; the passage stays ≈ 0.9 m.
 - **V0 gate (owner):** open `?perf&bench=sample` and `?perf&bench=ppl03` on the laptop, iPhone 16 and Galaxy S24, orbit and drag at the dollhouse and eye-level cameras, press Copy and paste the numbers back; decide the phone draw-call budget for Balanced's still frame (≈ 155 against 150); set the GPU memory budget from the readings.

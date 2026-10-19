@@ -49,7 +49,7 @@ export type EditorDeps = { venue: VenueModel; catalog: Catalog; now: () => strin
 
 const HISTORY_LIMIT = 100;
 /** Steps with these labels made within MERGE_MS of each other undo together. */
-const MERGED = new Set(["Guests", "Check settings"]);
+const MERGED = new Set(["Guests", "Check settings", "First vase moved", "Second vase moved"]);
 const MERGE_MS = 800;
 export const GRID = 0.1;
 /** One rotate step. Positive rotY turns counter-clockwise seen from above, so "+15°" (clockwise) is −ROTATE_STEP. */
@@ -407,6 +407,15 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         d.venueToggles[key] = value;
       });
       return true;
+    },
+
+    /** Show or hide the bar flowers, or slide one along the bar top (VEN-06). */
+    setBarFlowers(patch: { shown?: boolean; at?: [number, number] }) {
+      const [a] = active().venueToggles.barFlowers.at;
+      const label = !patch.at ? "Bar flowers" : patch.at[0] !== a ? "First vase moved" : "Second vase moved";
+      commit(label, (d) => {
+        Object.assign(d.venueToggles.barFlowers, patch);
+      });
     },
 
     /** Show the current artwork (null), hide it ("hidden") or swap it for another (VEN-05). */

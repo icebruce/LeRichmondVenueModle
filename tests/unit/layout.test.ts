@@ -8,6 +8,8 @@ import { venueSampleItems } from "../../src/domain/scenario/scenario";
 import { area, polygonInside } from "../../src/domain/geometry";
 import { alignSnap } from "../../src/domain/layout/align";
 import { walkArea } from "../../src/domain/layout/walk";
+import { barTopLength, barTopPlace } from "../../src/domain/venue/model";
+import type { Vec2 } from "../../src/domain/geometry";
 
 const table = (over: Partial<Item> = {}): Item => ({
   id: "x",
@@ -349,5 +351,31 @@ describe("walking", () => {
     for (const s of venue.data.levels.raised.steps.value) {
       expect(free([(s.from[0] + s.to[0]) / 2, (s.from[1] + s.to[1]) / 2])).toBe(true);
     }
+  });
+});
+
+describe("bar flowers", () => {
+  test("[VEN-06] a bar flower stands on the middle of the bar top, from the west side round the front to the east side, never over an end", () => {
+    const d = venue.data;
+    const [x0, z0, x1, z1] = d.bar.outer.value;
+    const near = (p: Vec2, q: Vec2) => {
+      expect(p[0]).toBeCloseTo(q[0], 6);
+      expect(p[1]).toBeCloseTo(q[1], 6);
+    };
+    const start = barTopPlace(d, 0);
+    expect(start.run).toBe("west");
+    near(start.point, [x0 + d.bar.legWidth / 2, z0 + 0.15]);
+    const end = barTopPlace(d, 1);
+    expect(end.run).toBe("east");
+    near(end.point, [x1 - d.bar.legWidth / 2, z0 + 0.15]);
+    const mid = barTopPlace(d, 0.5);
+    expect(mid.run).toBe("front");
+    near(mid.point, [(x0 + x1) / 2, z1 - d.bar.frontDepth / 2]);
+    for (const t of [0.1, 0.3, 0.7, 0.9]) {
+      const [x, z] = barTopPlace(d, t).point;
+      expect(x > x0 && x < x1 && z > z0 && z < z1).toBe(true);
+    }
+    expect(barTopPlace(d, -1)).toEqual(barTopPlace(d, 0));
+    expect(barTopLength(d)).toBeGreaterThan(x1 - x0);
   });
 });

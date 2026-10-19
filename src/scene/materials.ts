@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import { useLoader } from "@react-three/fiber";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
+  antiqueMirrorTexture,
+  backBarAtlas,
   glowTexture,
   marbleTexture,
   nailheadTexture,
@@ -146,6 +148,8 @@ export function useMaterials(quality: Quality) {
     const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
     const marble = marbleTexture();
     const glow = glowTexture();
+    const cards = backBarAtlas();
+    const mirror = antiqueMirrorTexture();
     return {
       glow,
       brick: vary(
@@ -219,13 +223,6 @@ export function useMaterials(quality: Quality) {
       backBarWood: std({ color: "#3a2b21", roughness: 0.6 }),
       // Backlit bottle shelves read bright in every bar photo (R02, R03, UV01).
       shelfGlow: std({ color: "#3a2a18", emissive: "#ffb46b", emissiveIntensity: 3, roughness: 0.5 }),
-      bottles: std({
-        color: "#5b3a1e",
-        emissive: "#c27a2c",
-        emissiveIntensity: 0.75,
-        roughness: 0.2,
-        metalness: 0.1,
-      }),
       fridge: std({ color: "#c9d7cf", emissive: "#e8f2ea", emissiveIntensity: 0.35, roughness: 0.2 }),
       brass: std({ color: "#b8955f", metalness: 1, roughness: 0.32 }),
       windowFrame: std({ color: "#e4e1d9", roughness: 0.6 }),
@@ -259,6 +256,33 @@ export function useMaterials(quality: Quality) {
         side: THREE.DoubleSide,
       }),
       leather: std({ map: tuftedTexture("#2a2b2d"), color: "#ffffff", roughness: 0.55 }),
+      // The back bar's card sheet: backlit bottles and glasses, rack, plants, instruments (V3).
+      cards: std({
+        map: cards.map,
+        emissiveMap: cards.glow,
+        emissive: "#ffffff",
+        emissiveIntensity: 0.55,
+        alphaTest: 0.5,
+        // Softer cut-out edges where multisampling is on (High).
+        alphaToCoverage: true,
+        side: THREE.DoubleSide,
+        roughness: 0.4,
+      }),
+      antiqueMirror: std({
+        map: mirror,
+        emissiveMap: mirror,
+        emissive: "#ffffff",
+        emissiveIntensity: 0.18,
+        metalness: 0.3,
+        roughness: 0.6,
+      }),
+      // The back bar's canopy, counter and espresso machine: bright stainless, lighter than the
+      // black steel (R02, R03). The fridges' dark glass doors are dimly lit inside.
+      stainless: std({ color: "#b9bcbc", metalness: 0.9, roughness: 0.28 }),
+      fridgeGlass: std({ color: "#1c2422", emissive: "#9fb5ad", emissiveIntensity: 0.14, roughness: 0.08 }),
+      // The bar flowers' white blossom and dark branches (R02, VEN-06).
+      blossom: std({ color: "#f3eee6", roughness: 0.85 }),
+      branch: std({ color: "#3b2c22", roughness: 0.9 }),
       // The banquettes' nail-head trim: a strip with one brass nail every 5 cm (trim sheet).
       nailTrim: std({ map: nailheadTexture("#2a2b2d"), color: "#ffffff", metalness: 0.4, roughness: 0.45 }),
       // Sheer curtains behind the velvet at the street windows (R10).
