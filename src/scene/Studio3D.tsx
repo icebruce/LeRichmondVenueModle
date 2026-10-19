@@ -191,12 +191,11 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
   const moving = useStore(graphicsStore, (s) => s.moving);
   if (levers.direct) return null;
   const high = quality === "high";
-  // High smooths edges (V2b: the setting shows on a still picture, not only in motion); changing it
-  // rebuilds the effect passes once. Ambient occlusion stays at half resolution on every tier: a
-  // switch would compile its passes again at the next camera change, and corners are baked anyway.
-  const best = tier === "high" && high;
+  // The effect chain depends on the device only: a tier change that rebuilt it (multisampling or
+  // ambient occlusion resolution per tier, tried in V2b) compiled its passes again at the next
+  // camera change, a visible hitch ([PLT-03]).
   return (
-    <EffectComposer multisampling={best ? 4 : 0}>
+    <EffectComposer multisampling={high ? 4 : 0}>
       <N8AO
         enabled={levers.ao === "live" || !moving}
         aoRadius={0.55}
