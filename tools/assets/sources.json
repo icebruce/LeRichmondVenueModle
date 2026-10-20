@@ -15,10 +15,6 @@
     "openEdges": 37,
     "nonManifoldEdges": 33
   },
-  "assets/models/blooms/peony.glb": {
-    "openEdges": 165,
-    "nonManifoldEdges": 131
-  },
   "assets/models/blooms/ranunculus.glb": {
     "openEdges": 94,
     "nonManifoldEdges": 76

@@ -72,7 +72,7 @@ export type Part = {
 };
 
 /** The bloom models (V5, `Part.model`), in `public/assets/models/blooms/`. */
-export const BLOOM_MODELS = ["rose", "peony", "ranunculus", "pampas", "blossom", "eucalyptus"] as const;
+export const BLOOM_MODELS = ["rose", "ranunculus", "pampas", "blossom", "eucalyptus"] as const;
 
 /** Floral generators built from a mound of blooms: the ones whose flower type can be chosen. */
 export const FLOWER_TYPE_GENERATORS: readonly string[] = ["lowMound", "tallArrangement", "compote"];
@@ -89,7 +89,8 @@ export const FLORAL_PALETTES: Record<string, { label: string; colours: string[] 
  * Flower types (LIB-06): bloom size, how many blooms an arrangement holds (× the base count), and
  * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable. `model`
  * names its blooms' model (V5; leaves are all the leaf sprig); baby's breath has none (its florets
- * are too fine for one) and neither has hydrangea (its model came out as shards).
+ * are too fine for one) and neither has hydrangea (its model came out as shards); peonies draw the
+ * ranunculus, larger (owner: the peony models came out torn).
  */
 export const FLOWER_TYPES: Record<
   string,
@@ -104,7 +105,7 @@ export const FLOWER_TYPES: Record<
   }
 > = {
   rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3, model: "rose" },
-  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4, model: "peony" },
+  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4, model: "ranunculus" },
   hydrangea: { label: "Hydrangea", bloom: [0.065, 0.085], count: 0.55, leafEvery: 5 },
   ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3, model: "ranunculus" },
   babysBreath: { label: "Baby’s breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },

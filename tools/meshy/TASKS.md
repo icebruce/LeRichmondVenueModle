@@ -46,7 +46,7 @@ creases into the vertex colour); plants are refined with PBR and keep only the c
 | Bloom | Used | Rejected |
 |---|---|---|
 | Rose | 01a15756-52aa-7798-8c5e-683d64209d9d (580 tri, `front-up`) | — |
-| Peony | remesh to 600 (5 credits) 01a15778-9524-7349-9eeb-d07886ff5550 of 01a15773-fc8e-74f7-91ac-89be57e07964 | 01a15757-f19d-714d-8092-e1388d604e17 (stray spike), 01a1575a-a881-744e-9864-229c86aa3c62 (spiky); the 1,345-triangle preview put a table of peonies at 1.2 M triangles |
+| Peony | none: peonies draw the ranunculus, larger (owner 2026-10-20) | 01a15778-9524-7349-9eeb-d07886ff5550 (remesh to 600 of 01a15773-fc8e-74f7-91ac-89be57e07964: torn petals at eye level), 01a15757-f19d-714d-8092-e1388d604e17 (stray spike), 01a1575a-a881-744e-9864-229c86aa3c62 (spiky); the 1,345-triangle preview put a table of peonies at 1.2 M triangles |
 | Ranunculus | remesh to 600 01a15778-9639-7350-931c-44298d93ec52 of 01a15774-0472-706c-a4c1-b8472e3d1107 (`stem`) | 01a15758-060c-74d7-b087-845e5949738b (a dahlia), 01a1575a-b1c5-7449-a50c-8abbbb9fcca2 (spiky) |
 | Pampas plume | 01a15758-15d3-709f-9096-9d704ee57c1c | — |
 | Blossom cluster | 01a15758-1d29-75f0-b177-bf1311d7c926 | — |
