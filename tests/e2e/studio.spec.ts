@@ -694,6 +694,8 @@ test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current vie
 test("[EXP-02] Photo mode: hides the interface, blurs, saves twice the window, and Close returns to the same view and selection", async ({
   page,
 }) => {
+  // High quality and a 2880 × 1800 image take minutes on CI's software renderer.
+  test.slow();
   await openStudio(page, "fresh&quality=high");
   type Pose = { __pose: () => number[] };
   await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
