@@ -7,7 +7,7 @@ import {
 } from "../../domain/layout/cloth";
 
 /** One fold every this many metres of edge. */
-const FOLD_PITCH = 0.28;
+const FOLD_PITCH = 0.2;
 
 export type Outline = { kind: "round"; radius: number } | { kind: "rect"; length: number; width: number };
 

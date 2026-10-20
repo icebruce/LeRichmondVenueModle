@@ -32,16 +32,13 @@ obj = next(o for o in bpy.context.scene.objects if o.type == "MESH")
 bpy.context.view_layer.objects.active = obj
 obj.select_set(True)
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-# Normals are computed from the repaired surface, not carried over from the source.
-bpy.ops.mesh.customdata_custom_splitnormals_clear()
 mat = obj.data.materials[0]
 nodes = mat.node_tree.nodes
 bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
 colour_img = bsdf.inputs["Base Color"].links[0].from_node.image
 
-obj.data.polygons.foreach_set("use_smooth", [True] * len(obj.data.polygons))
-# Edges sharper than 60° stay hard (rails, slats, seat edges); the rest is smooth.
-obj.data.set_sharp_from_angle(angle=math.radians(60))
+# Meshy's own smooth normals are kept: with its topology unchanged they match it, and a low-poly
+# back pad shaded from its faces alone reads faceted.
 me = obj.data
 
 # Fit: width and height first, then depth so the seat runs from the front to the backrest.
@@ -120,7 +117,7 @@ def pad(values, mask, rounds=16):
 # Detail map: each texel against its part's average, softened and clamped, at half strength.
 detail = np.empty_like(lum)
 for m in (seat, ~seat):
-    detail[m] = np.clip((lum[m] / max(lum[m].mean(), 1e-3)) ** 0.7, 0.15, 1.25)
+    detail[m] = np.clip((lum[m] / max(lum[m].mean(), 1e-3)) ** 0.5, 0.45, 1.2)
 
 
 def image(name, values, side, data=False):
@@ -145,16 +142,7 @@ mat.node_tree.links.new(tex.outputs["Color"], mat.node_tree.nodes["Principled BS
 me.materials.clear()
 me.materials.append(mat)
 obj.name = me.name = "chair"
-# Last resort for what folding left: a face its smooth normals point away from is drawn flat.
-flat = 0
-for _ in range(4):
-    cn = me.corner_normals
-    for p in me.polygons:
-        if p.use_smooth and min(cn[i].vector.dot(p.normal) for i in p.loop_indices) <= 0:
-            p.use_smooth = False
-            flat += 1
-    me.update()
-print("triangles", len(me.polygons), "flat", flat, "seat share", round(float(seat.mean()), 3), "split", round(float(split), 3))
+print("triangles", len(me.polygons), "seat share", round(float(seat.mean()), 3), "split", round(float(split), 3))
 bpy.ops.export_scene.gltf(
     filepath=out,
     export_format="GLB",

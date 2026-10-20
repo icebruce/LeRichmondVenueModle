@@ -18,7 +18,7 @@
         "params": {
           "style": "oval",
           "frame": "#a59a8a",
-          "seat": "#6c6c6e"
+          "seat": "#7d7b78"
         },
         "file": "assets/models/chairs/oval.glb"
       },
@@ -28,7 +28,7 @@
         "params": {
           "style": "oval",
           "frame": "#a59a8a",
-          "seat": "#6c6c6e",
+          "seat": "#7d7b78",
           "quality": "low"
         }
       },

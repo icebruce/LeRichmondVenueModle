@@ -15,7 +15,7 @@ export const CLOTH_FLARE = 0.035;
  * Depth of the folds at the hem, crest to trough, centred on the hem line; a rectangle's corners
  * gather up to `CORNER_GATHER` times deeper.
  */
-export const CLOTH_FOLD = 0.04;
+export const CLOTH_FOLD = 0.05;
 export const CORNER_GATHER = 1.5;
 /** A floor-length hem floats this far above the floor. */
 export const HEM_LIFT = 0.012;
