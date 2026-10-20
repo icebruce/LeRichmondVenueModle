@@ -147,7 +147,7 @@ export function railingParts(venue: VenueModel) {
   const scrollGeos: THREE.BufferGeometry[] = [];
   const railGeos: THREE.BufferGeometry[] = [];
   for (const [a, b] of venue.railing) {
-    const g = guard(a, b, h);
+    const g = guard(a, b, h, SCROLL.raised);
     ironGeos.push(...g.steel);
     scrollGeos.push(...g.scroll);
     railGeos.push(g.rail);
@@ -488,11 +488,16 @@ export function mezzanineParts(venue: VenueModel) {
   const street = boxGeo(venue.width, 0, z.edgeZ, venue.width + 0.35, venue.ceiling, z1, TILE.brick);
   // The floor stops at the stairwell (R09): the balustrade runs along the edge, then back along the well.
   const edge = [
-    guard([z.xFrom, z0 + 0.06], [xp - 0.06, z0 + 0.06], H),
-    guard([xp - 0.06, z0 + 0.06], [xp - 0.06, zw + 0.06], H),
-    guard([xp - 0.06, zw + 0.06], [z.xTo, zw + 0.06], H),
+    guard([z.xFrom, z0 + 0.06], [xp - 0.06, z0 + 0.06], H, SCROLL.mezzanine),
+    guard([xp - 0.06, z0 + 0.06], [xp - 0.06, zw + 0.06], H, SCROLL.mezzanine),
+    guard([xp - 0.06, zw + 0.06], [z.xTo, zw + 0.06], H, SCROLL.mezzanine),
   ];
-  const well = guard([z.xTo - 0.06, zw + 0.06], [z.xTo - 0.06, venue.data.stair.topLanding[1]], H);
+  const well = guard(
+    [z.xTo - 0.06, zw + 0.06],
+    [z.xTo - 0.06, venue.data.stair.topLanding[1]],
+    H,
+    SCROLL.mezzanine,
+  );
   // Kitchen and corridor below the mezzanine: dark volumes seen through the openings.
   const below = boxGeo(0, 0, z.edgeZ + 0.36, z.xTo, H - z.fasciaDepth, z1);
   return {
@@ -534,13 +539,26 @@ export function Mezzanine({ venue, m, bake }: Pick<Props, "venue" | "m" | "bake"
   );
 }
 
-/** Scroll panels (R09, R11): one about every 1.1 m of railing, 2:3 like their texture. */
-const SCROLL = { every: 1.1, width: 0.48 };
+/** Scroll panels per railing (m): one about `every` along it, at most `width` wide. */
+type Scroll = { every: number; width: number };
+const SCROLL = {
+  /** Cast scrollwork the whole length under the handrail (R02, R11, R09's right edge). */
+  raised: { every: 0.48, width: 0.48 },
+  /** Wide panels between plain balusters (R09). */
+  mezzanine: { every: 1.7, width: 0.8 },
+  /** One panel on the stair's turn-landing guard (R09); the flights are plain balusters. */
+  landing: { every: 1.1, width: 0.48 },
+} satisfies Record<string, Scroll>;
+/** Every panel's height (m), above the bottom bar. */
+const SCROLL_HEIGHT = 0.72;
 
-/** Centres of the scroll panels along a run of `len` m: evenly spaced, one on any run that fits it. */
-const panelCentres = (len: number) => {
-  const n = len < SCROLL.width + 0.3 ? 0 : Math.max(1, Math.round(len / SCROLL.every));
-  return Array.from({ length: n }, (_, i) => ((i + 0.5) * len) / n);
+/** The scroll panels along a run of `len` m: their centres and width, evenly spaced. */
+const panelsAlong = (len: number, s: Scroll) => {
+  const n = len < Math.min(s.width, 0.5) + 0.3 ? 0 : Math.max(1, Math.round(len / s.every));
+  return {
+    centres: Array.from({ length: n }, (_, i) => ((i + 0.5) * len) / n),
+    width: Math.min(s.width, len / n),
+  };
 };
 
 /** An upright scroll-panel card `w` × `h` m, centred at (x, y, z), turned by `ang` about y. */
@@ -551,26 +569,25 @@ const panel = (w: number, h: number, x: number, y: number, z: number, ang: numbe
  * A level balustrade from `a` to `b` on a floor at height y: iron balusters (every eighth a post)
  * with scroll panels between them, and a bottom bar under a timber handrail at 0.95 m.
  */
-function guard(a: Vec2, b: Vec2, y: number) {
+function guard(a: Vec2, b: Vec2, y: number, scrolls: Scroll) {
   const top = y + 0.95;
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
   const ang = -Math.atan2(b[1] - a[1], b[0] - a[0]);
   const along = (g: THREE.BufferGeometry, at: number) =>
     g.rotateY(ang).translate((a[0] + b[0]) / 2, at, (a[1] + b[1]) / 2);
   const steel: THREE.BufferGeometry[] = [along(new THREE.BoxGeometry(len, 0.03, 0.03), y + 0.1)];
-  const centres = panelCentres(len);
+  const { centres, width } = panelsAlong(len, scrolls);
   const at = (d: number): Vec2 => [a[0] + ((b[0] - a[0]) * d) / len, a[1] + ((b[1] - a[1]) * d) / len];
-  const h = SCROLL.width * 1.5;
   const scroll = centres.map((d) => {
     const [x, z] = at(d);
-    return panel(SCROLL.width, h, x, y + 0.13 + h / 2, z, ang);
+    return panel(width, SCROLL_HEIGHT, x, y + 0.13 + SCROLL_HEIGHT / 2, z, ang);
   });
   const n = Math.max(1, Math.round(len / 0.12));
   for (let k = 0; k <= n; k++) {
     const d = (len * k) / n;
     const post = k % 8 === 0;
     // A panel takes the place of the balusters across its width; posts stay.
-    if (!post && centres.some((c) => Math.abs(d - c) < SCROLL.width / 2)) continue;
+    if (!post && centres.some((c) => Math.abs(d - c) < width / 2)) continue;
     const [x, z] = at(d);
     const thick = post ? 0.035 : 0.014;
     steel.push(boxGeo(x - thick, y, z - thick, x + thick, top - 0.05, z + thick));
@@ -630,28 +647,16 @@ function flightGeo(
     return alongX ? g.translate(mid, y, rail) : g.translate(rail, y, mid);
   };
   const handrails: THREE.BufferGeometry[] = [];
-  // Scroll panels between the balusters, upright, clear of the stringer and under the handrail.
-  const centres = panelCentres(Math.abs(du)).map((d) => ua + Math.sign(du) * d);
-  const slope = (u: number) => y0 + ((u - ua) / du) * (top - y0);
-  const pw = SCROLL.width * 0.75;
-  const rise = (pw / 2) * Math.abs((top - y0) / du);
-  const scroll: THREE.BufferGeometry[] = [];
   for (const rail of shown ? rails : []) {
     steel.push(sloped(new THREE.BoxGeometry(len + 0.3, 0.28, 0.06), (y0 + top) / 2 - 0.12, rail));
     handrails.push(sloped(new THREE.BoxGeometry(len + 0.2, 0.06, 0.08), (y0 + top) / 2 + 0.95, rail));
-    for (const c of centres) {
-      const [up, down] = [slope(c) - rise + 0.9, slope(c) + rise + 0.06];
-      const [x, z] = alongX ? [c, rail] : [rail, c];
-      scroll.push(panel(pw, up - down, x, (up + down) / 2, z, alongX ? 0 : -Math.PI / 2));
-    }
     for (let i = 0; i <= shown * 2; i++) {
       const u = ua + (run / 2) * i;
-      if (centres.some((c) => Math.abs(u - c) < pw / 2)) continue;
       const y = y0 + Math.min(top - y0, step * Math.ceil(i / 2));
       steel.push(box(u - 0.01, y, rail - 0.01, u + 0.01, y + 0.9, rail + 0.01));
     }
   }
-  return { wood, led, base, steel, scroll, rail: handrails };
+  return { wood, led, base, steel, rail: handrails };
 }
 
 /**
@@ -677,7 +682,7 @@ export function stairParts(venue: VenueModel, inRoom: boolean) {
   });
   const [ux0, uz0, ux1, uz1] = s.upperLanding;
   const [tx0, tz0, tx1, tz1] = s.topLanding;
-  const landing = guard([ux0 + 0.03, uz0 + 0.03], [ux1 - 0.03, uz0 + 0.03], rise);
+  const landing = guard([ux0 + 0.03, uz0 + 0.03], [ux1 - 0.03, uz0 + 0.03], rise, SCROLL.landing);
   return {
     wood: merge([
       ...lower.wood,
@@ -688,7 +693,7 @@ export function stairParts(venue: VenueModel, inRoom: boolean) {
     base: merge([...upper.base, boxGeo(ux0, 0, uz0, ux1, rise - 0.05, uz1)]),
     led: merge([...lower.led, ...upper.led]),
     steel: merge([...lower.steel, ...upper.steel, ...landing.steel]),
-    scroll: merge([...lower.scroll, ...upper.scroll, ...landing.scroll]),
+    scroll: merge(landing.scroll),
     rail: merge([...lower.rail, ...upper.rail, landing.rail]),
   };
 }

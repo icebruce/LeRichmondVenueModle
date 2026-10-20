@@ -156,6 +156,16 @@ describe("placement", () => {
     expect(!r.ok && r.reason).toMatch(/Overlaps table [12]/);
   });
 
+  test("[VEN-02] [LAY-04] a table dropped on one of the room's figs is refused and names it", () => {
+    // The fig by the west garage doors; the 2.8 m table's end reaches over its pot.
+    const fig = venue.data.fixtures.plants.floor[0];
+    if (!fig) throw new Error("no fig");
+    expect(checkPlacement(table({ x: fig.x + 1.45, z: fig.z }), [], venue, catalog)).toEqual({
+      ok: false,
+      reason: "Overlaps the fig",
+    });
+  });
+
   test("[VEN-03] items outside the main room are refused", () => {
     expect(checkPlacement(table({ x: 8, z: 14.1 }), [], venue, catalog)).toEqual({
       ok: false,

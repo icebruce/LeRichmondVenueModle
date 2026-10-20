@@ -451,9 +451,6 @@ export function TableDecor({
         roughness: 0.8,
         vertexColors: true,
         side: THREE.DoubleSide,
-        // Shadows from the back faces, like every other mesh: a two-sided shadow pass would be a
-        // shader of its own, compiled the first time eye level showed a bloom.
-        shadowSide: THREE.BackSide,
       }),
     [],
   );
@@ -590,8 +587,12 @@ export function TableDecor({
           Math.max(1, g.parts.length),
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
+        // Nor do the bloom models: a bloom's own shadow is too small to see, and a table of them in
+        // the shadow pass doubled their triangles (the far shapes and the contact shadows stay).
         mesh.castShadow =
-          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow", "pool"].includes(g.slot);
+          !low &&
+          !g.model &&
+          !["flame", "glass", "water", "sheer", "bulb", "beam", "glow", "pool"].includes(g.slot);
         // Coloured instances get their colour buffer now, even with none drawn yet: made later (when
         // eye level first fills a bloom mesh) it would change the shader and compile it then.
         if (g.solid || g.parts.some(({ part }) => part.colour || part.slot === "leaf"))

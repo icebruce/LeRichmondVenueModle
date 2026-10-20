@@ -120,6 +120,7 @@ export function rivetTexture(): THREE.CanvasTexture {
 /**
  * A wrought-iron scroll panel, black on clear (railings, R09, R11): a frame, an oval medallion and
  * C-scrolls curling in at their ends, one quarter drawn and mirrored into the other three. 2:3.
+ * Few, bold strokes: finer work breaks into noise once the card is a few pixels across.
  */
 export function scrollPanelTexture(): THREE.CanvasTexture {
   const [W, H] = [256, 384];
@@ -131,8 +132,8 @@ export function scrollPanelTexture(): THREE.CanvasTexture {
   ctx.strokeStyle = "#141516";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.lineWidth = 9;
-  ctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  ctx.lineWidth = 17;
+  ctx.strokeRect(8.5, 8.5, W - 17, H - 17);
   ctx.beginPath();
   ctx.ellipse(W / 2, H / 2, 30, 46, 0, 0, Math.PI * 2);
   ctx.stroke();
@@ -164,18 +165,10 @@ export function scrollPanelTexture(): THREE.CanvasTexture {
     ctx.bezierCurveTo(-62, 4, -104, -8, -100, -34);
     spiral(-84, -34, 16, Math.PI, 1.2, 1);
     ctx.stroke();
-    // The stem up to the frame, a leaf on it, and a curl in the corner.
+    // The stem up to the frame.
     ctx.beginPath();
     ctx.moveTo(0, -46);
     ctx.lineTo(0, -188);
-    ctx.moveTo(0, -140);
-    ctx.quadraticCurveTo(-30, -150, -40, -176);
-    ctx.quadraticCurveTo(-14, -168, 0, -140);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-122, -186);
-    ctx.quadraticCurveTo(-112, -150, -86, -150);
-    spiral(-86, -164, 14, Math.PI / 2, 1.2, -1);
     ctx.stroke();
     ctx.restore();
   }

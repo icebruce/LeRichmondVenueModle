@@ -289,8 +289,9 @@ export function useMaterials(quality: Quality) {
       // Wrought-iron scroll panels between the balusters (R09, R11): cut out of a card.
       scroll: std({
         map: scrollPanelTexture(),
-        metalness: 0.7,
-        roughness: 0.45,
+        // Matt: a sheen on the flat card would read as a grey plate, not iron bars.
+        metalness: 0.2,
+        roughness: 0.7,
         alphaTest: 0.5,
         alphaToCoverage: true,
         side: THREE.DoubleSide,
