@@ -2,7 +2,15 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
-import { BLOOM_MODELS, type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
+import {
+  BLOOM_MODELS,
+  CARD_NUMBERS,
+  type Part,
+  type Prim,
+  type Slot,
+  tableDecor,
+} from "../../domain/layout/decor";
+import { tableLabels } from "../../domain/layout/counts";
 import { makePiece } from "../../domain/layout/pieces";
 import { styleOf } from "../../domain/scenario/scenario";
 import type { Scenario } from "../../domain/scenario/schema";
@@ -276,6 +284,63 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
   );
 }
 
+/** The shared card sheet (V5): 8 × 4 cells of paper, the first blank, then table numbers 1 to 31. */
+const SHEET = { cols: 8, rows: 4 };
+/** Paper's colour: the sheet's ground, and a phone batch's paper. */
+const PAPER = "#f4efe4";
+const cardSheet = (() => {
+  if (typeof document === "undefined") return null;
+  const cell = 128;
+  const c = document.createElement("canvas");
+  c.width = SHEET.cols * cell;
+  c.height = SHEET.rows * cell;
+  const g = c.getContext("2d") as CanvasRenderingContext2D;
+  g.fillStyle = PAPER;
+  g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#3b3129";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  for (let n = 1; n <= CARD_NUMBERS; n++) {
+    const x = (n % SHEET.cols) * cell + cell / 2;
+    const y = Math.floor(n / SHEET.cols) * cell + cell / 2;
+    // A card is 10 × 7 cm and each face takes a square cell: the type is drawn narrow to match.
+    g.save();
+    g.translate(x, y);
+    g.scale(0.7, 1);
+    g.font = `500 ${cell * 0.55}px "Iowan Old Style", "Palatino Linotype", Georgia, serif`;
+    g.fillText(String(n), 0, cell * 0.04);
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+})();
+
+/** Paper that shows its instance's cell of the card sheet (`cell`, from `Part.card`). */
+function printed(m: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float cell;")
+      .replace(
+        "#include <uv_vertex>",
+        `#include <uv_vertex>
+#ifdef USE_MAP
+vMapUv = (vMapUv + vec2(mod(cell, ${SHEET.cols}.0), ${SHEET.rows - 1}.0 - floor(cell / ${SHEET.cols}.0))) / vec2(${SHEET.cols}.0, ${SHEET.rows}.0);
+#endif`,
+      );
+  };
+  m.customProgramCacheKey = () => "printed-paper";
+  return m;
+}
+
+/** A copy of a primitive with a per-instance `cell` attribute for `capacity` instances. */
+function withCells(g: THREE.BufferGeometry, capacity: number): THREE.BufferGeometry {
+  const copy = g.clone();
+  copy.setAttribute("cell", new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1));
+  return copy;
+}
+
 /** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
 /** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
 type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string };
@@ -308,6 +373,17 @@ export type DecorParts = { p: Placed; base: number; parts: Part[] }[];
 
 export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean): DecorParts {
   const { catalog } = useStudio();
+  // Table numbers for the cards (V5), as the plan labels them.
+  const labelKey = placed.map((p) => `${p.item.id}:${p.item.label ?? ""}`).join("|");
+  const labels = useMemo(
+    () =>
+      tableLabels(
+        placed.map((p) => p.item),
+        catalog,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelKey, catalog],
+  );
   // Parts per table depend only on its shape and style; a drag just moves them.
   return useMemo(
     () =>
@@ -323,9 +399,16 @@ export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean
                 p.shape.options,
                 p.shape.size,
               ).parts
-            : tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
+            : tableDecor(
+                p.shape,
+                styleOf(p.item, scenario.style),
+                catalog,
+                scenario.style,
+                i * 97 + 13,
+                labels.get(p.item.id),
+              ),
       })),
-    [placed, scenario.style, catalog, low],
+    [placed, scenario.style, catalog, low, labels],
   );
 }
 
@@ -390,7 +473,7 @@ export function TableDecor({
       silver: new THREE.MeshStandardMaterial({ color: "#c9cbcc", metalness: 0.9, roughness: 0.25 }),
       black: m.blackMetal,
       ceramic: new THREE.MeshStandardMaterial({ color: "#f7f5f0", roughness: 0.35 }),
-      paper: new THREE.MeshStandardMaterial({ color: "#f4efe4", roughness: 0.9 }),
+      paper: printed(new THREE.MeshStandardMaterial({ map: cardSheet, roughness: 0.9 })),
       flower: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.8 }),
       leaf: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 }),
       fabric: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.95 }),
@@ -494,8 +577,11 @@ export function TableDecor({
   const meshes = useMemo(
     () =>
       groups.map((g) => {
+        // Paper takes its printed cell per instance (table numbers; 0 is blank paper).
+        const geometry = (g.model && blooms.get(g.model)) || prims[g.prim];
+        const paper = g.slot === "paper" && !g.solid;
         const mesh = new THREE.InstancedMesh(
-          (g.model && blooms.get(g.model)) || prims[g.prim],
+          paper ? withCells(geometry, Math.max(1, g.parts.length)) : geometry,
           g.model ? bloomMaterial : g.solid ? solidMaterial : materials[g.slot],
           Math.max(1, g.parts.length),
         );
@@ -508,7 +594,10 @@ export function TableDecor({
   );
   useEffect(
     () => () => {
-      for (const { mesh } of meshes) mesh.dispose();
+      for (const { g, mesh } of meshes) {
+        if (g.slot === "paper" && !g.solid) mesh.geometry.dispose();
+        mesh.dispose();
+      }
     },
     [meshes],
   );
@@ -562,16 +651,24 @@ export function TableDecor({
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
         mesh.setMatrixAt(n, out);
+        mesh.geometry.getAttribute("cell")?.setX(n, part.card ?? 0);
         // A part's own colour (flowers, napkins, eucalyptus); else foliage green on leaves and, in a
         // phone batch, the colour of the slot's own material.
         const own = part.colour ?? (part.slot === "leaf" ? LEAF : null);
         if (own) mesh.setColorAt(n, colour.set(own));
         else if (g.solid)
-          mesh.setColorAt(n, colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color));
+          mesh.setColorAt(
+            n,
+            part.slot === "paper"
+              ? colour.set(PAPER)
+              : colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color),
+          );
         n++;
       }
       mesh.count = n;
       mesh.instanceMatrix.needsUpdate = true;
+      const cells = mesh.geometry.getAttribute("cell");
+      if (cells) cells.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
       // Flames, beams, glows and pools show only in the evening.

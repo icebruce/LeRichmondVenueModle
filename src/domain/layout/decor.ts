@@ -62,6 +62,8 @@ export type Part = {
   rz?: number;
   /** Per-part colour (flowers, chargers). */
   colour?: string;
+  /** A paper part printed with this table number (V5): its cell on the shared sheet, 0 = blank. */
+  card?: number;
   /**
    * A bloom model drawn in place of the primitive where models load (V5): `public/assets/models/
    * blooms/<model>.glb`, scaled by the part's largest size and turned by its rotation.
@@ -601,12 +603,17 @@ function setting(ch: Chair, edge: number, charger: string, napkin: string | null
   return parts;
 }
 
-/** Brass table-number holder with its card, standing beside the centrepiece (LIB-04). */
-function numberHolder(x: number, z: number): Part[] {
+/** Table numbers printed on the shared card sheet (V5); other labels leave the card blank. */
+export const CARD_NUMBERS = 31;
+
+/** Brass table-number holder with its card, printed with the table's number, beside the centrepiece (LIB-04). */
+function numberHolder(x: number, z: number, label: string | undefined): Part[] {
+  const n = Number(label);
+  const card = Number.isInteger(n) && n >= 1 && n <= CARD_NUMBERS ? n : 0;
   return [
     cyl("brass", x, 0, z, 0.035, 0.008),
     cyl("brass", x, 0.008, z, 0.004, 0.12),
-    { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003 },
+    { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003, card },
   ];
 }
 
@@ -855,8 +862,10 @@ export function tableDecor(
   catalog: Catalog,
   extras: Extras,
   seed: number,
+  /** The table's label (`tableLabels`), printed on its number card. */
+  label?: string,
 ): Part[] {
-  return dress(shape, style, catalog, extras, seed).parts;
+  return dress(shape, style, catalog, extras, seed, label).parts;
 }
 
 /**
@@ -874,7 +883,14 @@ export function candleLayout(
 
 type Dressed = { parts: Part[]; candles: { parts: Part[]; placed: number; wanted: number } };
 
-function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras, seed: number): Dressed {
+function dress(
+  shape: Shape,
+  style: TableStyle,
+  catalog: Catalog,
+  extras: Extras,
+  seed: number,
+  label?: string,
+): Dressed {
   if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail")
     return { parts: [], candles: { parts: [], placed: 0, wanted: 0 } };
   const rand = seededRandom(seed);
@@ -936,7 +952,7 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
   if (extras.tableNumbers && shape.kind !== "cocktail") {
     const [x, z] =
       shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
-    fixed.push(...numberHolder(x, z));
+    fixed.push(...numberHolder(x, z, label));
     plates.push({ x, z, r: 0.06 });
   }
   // Candles keep their base clear of the plates and the table number (glasses and cutlery tuck in

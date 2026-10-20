@@ -39,6 +39,23 @@ const decor = (
   );
 
 describe("décor", () => {
+  test("[LIB-04] the table-number card is printed with the table's number; other labels leave it blank", () => {
+    const card = (label?: string) =>
+      tableDecor(
+        shape,
+        { ...styleOf(round, DEFAULT_STYLE), candles: [] },
+        catalog,
+        { settings: false, menus: false, tableNumbers: true, linenLength: "floor" },
+        1,
+        label,
+      ).find((p) => p.slot === "paper")?.card;
+    expect(card("7")).toBe(7);
+    expect(card("31")).toBe(31);
+    expect(card("32")).toBe(0);
+    expect(card("Head table")).toBe(0);
+    expect(card()).toBe(0);
+  });
+
   test("[DEC-02] every flame throws a warm pool on the cloth under it, drawn flat on the table top", () => {
     const parts = decor({ candles: [{ id: "candle-votives", n: 3 }], florals: "none" });
     const flames = parts.filter((p) => p.slot === "flame");
