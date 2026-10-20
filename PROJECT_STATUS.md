@@ -128,7 +128,7 @@ See `references/venue_evidence_matrix.md` (§2 features, §4 dimension ranges, �
 - Request req-f6462824 was sent with 60 × 130 cm; owner chose 20 / 25 / 30 cm cylinders with greenery as part of the piece (2026-10-16).
 - Videos V01/V02 and the Google Maps 360 tour remain uninspected (blocked from the cloud session).
 - Cloud setup done by the owner (2026-10-16): Upstash, APP_PASSWORD, SESSION_SECRET, LIBRARY_REQUESTS_TOKEN. Token read verified from here; the first shared save and an import seen on the second device are owner checks (Claude cannot sign in).
-- Phone draw calls in the dressed-room test: 140 of 150 (re-measured in 3b). Each piece with words or a photo adds one draw call; watch it if many prints or photo previews are placed.
+- Phone draw calls in the dressed-room test: 151 of 155 (V5; the budget was 150 until the owner moved the Meshy plants onto phones, 2026-10-20). Each piece with words or a photo, and each plant type, adds one draw call; watch it if many are placed.
 - Manual gates for step 3: IMP-01 paste, drag-and-drop and the iOS Safari camera (only the file picker is tested in Chromium); REQ-03 one real request delivered through a PR; the owner's photo on a placed print seen on the preview (LIB-09 is tested at domain level and through a placed photo preview).
 - Crop frame (DESIGN_GUIDE §4) pending owner approval.
 - Owner checks on a real phone after step 4: no pull-to-refresh, system back steps out of menus, sheet swiping.

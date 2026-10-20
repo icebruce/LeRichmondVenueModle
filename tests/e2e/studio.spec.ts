@@ -308,8 +308,8 @@ for (const [bench, items] of [
 ] as const)
   for (const [quality, tier, calls, triangles] of [
     ["high", "high", 250, 2_000_000],
-    ["low", "balanced", 150, 600_000],
-    ["low", "battery", 150, 600_000],
+    ["low", "balanced", 155, 600_000],
+    ["low", "battery", 155, 600_000],
   ] as const)
     test(`[PLT-03] [PPL-03] [LIB-04] [LIB-05] [LIB-08] benchmark ${bench} on ${tier} stays inside the draw-call and triangle budgets`, async ({
       page,

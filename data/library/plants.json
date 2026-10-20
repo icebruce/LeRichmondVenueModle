@@ -32,7 +32,8 @@
           "leaves": 40,
           "leaf": 0.1,
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/fiddle.glb"
       },
       "options": [],
       "seats": false,
@@ -44,7 +45,7 @@
       },
       "budget": {
         "triangles": 9000,
-        "phoneTriangles": 950,
+        "phoneTriangles": 8400,
         "drawCalls": 2
       }
     },
@@ -81,7 +82,8 @@
           "leaf": 0.045,
           "colour": "#a3ae94",
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/olive.glb"
       },
       "options": [],
       "seats": false,
@@ -93,7 +95,7 @@
       },
       "budget": {
         "triangles": 11400,
-        "phoneTriangles": 2000,
+        "phoneTriangles": 6600,
         "drawCalls": 2
       }
     },
@@ -130,7 +132,8 @@
           "leaf": 0.09,
           "look": "fronds",
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/kentia.glb"
       },
       "options": [],
       "seats": false,
@@ -142,7 +145,7 @@
       },
       "budget": {
         "triangles": 9700,
-        "phoneTriangles": 2350,
+        "phoneTriangles": 6900,
         "drawCalls": 2
       }
     },
@@ -179,7 +182,8 @@
           "leaf": 0.17,
           "colour": "#3f6b3a",
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/monstera.glb"
       },
       "options": [],
       "seats": false,
@@ -191,7 +195,7 @@
       },
       "budget": {
         "triangles": 9000,
-        "phoneTriangles": 450,
+        "phoneTriangles": 8100,
         "drawCalls": 2
       }
     },
@@ -228,7 +232,8 @@
           "leaf": 0.05,
           "colour": "#6f8f4e",
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/fern.glb"
       },
       "options": [],
       "seats": false,
@@ -240,7 +245,7 @@
       },
       "budget": {
         "triangles": 9000,
-        "phoneTriangles": 1550,
+        "phoneTriangles": 4700,
         "drawCalls": 2
       }
     },
@@ -277,7 +282,8 @@
           "leaf": 0.04,
           "look": "blossom",
           "quality": "low"
-        }
+        },
+        "file": "assets/models/plants/blossom.glb"
       },
       "options": [],
       "seats": false,
@@ -289,7 +295,7 @@
       },
       "budget": {
         "triangles": 15100,
-        "phoneTriangles": 2600,
+        "phoneTriangles": 8100,
         "drawCalls": 2
       }
     }

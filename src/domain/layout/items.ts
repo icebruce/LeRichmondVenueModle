@@ -56,7 +56,7 @@ export type Shape =
       height: number;
       /** Only floor pieces block the floor; hanging, ceiling, wall and flat (projected) ones never do. */
       blocks: boolean;
-      /** A model file drawn in place of the generator's parts at full quality (plants, V5). */
+      /** A model file drawn in place of the generator's parts, phones too (plants, V5). */
       file?: string;
     };
 

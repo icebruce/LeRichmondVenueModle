@@ -546,8 +546,8 @@ export function TableDecor({
       group.parts.push(entry);
     };
     for (const { p, parts, base } of perItem) {
-      // A piece with a model file draws that instead at full quality (`PieceModels`).
-      if (!low && p.shape.kind === "piece" && p.shape.file) continue;
+      // A piece with a model file draws that instead, phones too (`PieceModels`).
+      if (p.shape.kind === "piece" && p.shape.file) continue;
       for (const part of parts) {
         const solid = low && SOLID_SLOTS.has(part.slot);
         const slotKey = solid ? "solid" : part.slot;
@@ -696,17 +696,17 @@ export function TableDecor({
 }
 
 /**
- * Floor pieces with a model file (Meshy plants, V5) at full quality: one mesh per file, scaled to
- * the piece's height. The phone tier draws the generator's parts (`TableDecor`).
+ * Floor pieces with a model file (Meshy plants, V5), on every tier so what is placed matches its
+ * thumbnail (owner, 2026-10-20): one mesh per file, scaled to the piece's height.
  */
 export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean }) {
   const drag = useView((s) => s.drag);
   const invalidate = useThree((s) => s.invalidate);
-  const key = low
-    ? ""
-    : [...new Set(decor.flatMap(({ p }) => (p.shape.kind === "piece" && p.shape.file ? [p.shape.file] : [])))]
-        .sort()
-        .join("|");
+  const key = [
+    ...new Set(decor.flatMap(({ p }) => (p.shape.kind === "piece" && p.shape.file ? [p.shape.file] : []))),
+  ]
+    .sort()
+    .join("|");
   const files = useMemo(() => (key ? key.split("|") : []), [key]);
   const loaded = useLoader(PieceModelLoader, files) as PieceModel[];
   // Room for every placement of each model (a new mesh when that count grows past it).
@@ -716,10 +716,10 @@ export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean })
       files.map((file, i) => {
         const model = loaded[i] as PieceModel;
         const mesh = new THREE.InstancedMesh(model.geometry, model.material, capacity);
-        mesh.castShadow = true;
+        mesh.castShadow = !low; // Phone tier: no shadow, as small décor (draw-call budget)
         return { file, model, mesh };
       }),
-    [files, loaded, capacity],
+    [files, loaded, capacity, low],
   );
   useEffect(
     () => () => {
