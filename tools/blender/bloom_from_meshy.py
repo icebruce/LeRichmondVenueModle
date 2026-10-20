@@ -8,7 +8,7 @@ venv/bin/python bloom_from_meshy.py <meshy.glb> <out.glb> [stem] [front-up]
   cut away, so the topology stays the source's (`check:assets`).
 - Fits the bloom into the box -1..1 by its largest side, centred on every axis, so the app scales it
   by the part's largest size (a sphere's radius) and keeps its own proportions.
-- Faces turned outward (petals are thin shells; the app draws both sides), smooth normals throughout
+- Seams welded, faces turned outward (petals are thin shells; the app draws both sides), smooth normals throughout
   (at 300–600 triangles, any crease left reads as a facet) and ambient occlusion baked into the vertex colour (linear 0.6 deep in a
   crease, 1 in the open), so a tinted bloom still shows its petals. No
   texture: the app tints each bloom with its arrangement's colour.
@@ -62,12 +62,28 @@ co = (co - (lo + hi) / 2) * (2 / (hi - lo).max())
 me.vertices.foreach_set("co", co.ravel())
 me.update()
 
+# Meshy splits every vertex along its seams: welded first, or smoothing has nothing to average.
 # Petals are thin shells: point every face outward, so none shades as if lit from behind.
 bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.select_all(action="SELECT")
+bpy.ops.mesh.remove_doubles(threshold=1e-5)
+bpy.ops.mesh.quads_convert_to_tris()  # the fold check below is per triangle, as exported
 bpy.ops.mesh.normals_make_consistent(inside=False)
 bpy.ops.object.mode_set(mode="OBJECT")
+if me.has_custom_normals:
+    bpy.ops.mesh.customdata_custom_splitnormals_clear()  # the source's normals, per split vertex
 bpy.ops.object.shade_smooth()
+# Where a petal folds back on itself the smoothed normal can point against its face: those faces
+# keep their own normal (their edges sharp).
+for _ in range(5):
+    corner = me.corner_normals
+    folded = [p for p in me.polygons if sum(p.normal.dot(corner[i].vector) for i in p.loop_indices) < 0]
+    if not folded:
+        break
+    for p in folded:
+        for i in p.loop_indices:
+            me.edges[me.loops[i].edge_index].use_edge_sharp = True
+    me.update()
 
 # Ambient occlusion into the vertex colour (Cycles bake, a short reach for the bloom's size).
 scene = bpy.context.scene
