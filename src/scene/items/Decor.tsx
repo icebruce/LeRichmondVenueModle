@@ -364,6 +364,8 @@ const SOLID_SLOTS: ReadonlySet<Slot> = new Set([
   "leaf",
   "fabric",
 ]);
+const WHITE = new THREE.Color("#ffffff");
+
 /** Foliage green; a part's own colour (eucalyptus) replaces it. */
 const LEAF = "#56704a";
 
@@ -444,7 +446,15 @@ export function TableDecor({
   // Bloom models: their creases' shade in the vertex colour, tinted per instance; petals are thin
   // shells, seen from both sides.
   const bloomMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ roughness: 0.8, vertexColors: true, side: THREE.DoubleSide }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        roughness: 0.8,
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        // Shadows from the back faces, like every other mesh: a two-sided shadow pass would be a
+        // shader of its own, compiled the first time eye level showed a bloom.
+        shadowSide: THREE.BackSide,
+      }),
     [],
   );
   useEffect(() => () => bloomMaterial.dispose(), [bloomMaterial]);
@@ -582,6 +592,10 @@ export function TableDecor({
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
         mesh.castShadow =
           !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow", "pool"].includes(g.slot);
+        // Coloured instances get their colour buffer now, even with none drawn yet: made later (when
+        // eye level first fills a bloom mesh) it would change the shader and compile it then.
+        if (g.solid || g.parts.some(({ part }) => part.colour || part.slot === "leaf"))
+          mesh.setColorAt(0, WHITE);
         return { g, mesh };
       }),
     [groups, prims, materials, solidMaterial, bloomMaterial, blooms, low],
