@@ -355,6 +355,47 @@ for (const [bench, items] of [
       expect(info.triangles).toBeLessThan(triangles);
     });
 
+// Eye level draws the detailed décor (V5: bloom models, turned plates and glasses) the dollhouse
+// benchmarks don't: the venue sample with a low mound of the heaviest flower on every table, from
+// a reference view among the tables, held to High's budget.
+test("[PLT-03] [LIB-04] [LIB-06] eye level with flowers on every table and full settings stays inside High's budget", async ({
+  page,
+}) => {
+  type Hooks = { __worstFrame: () => { calls: number; triangles: number }; __redraw: () => void };
+  await page.goto("/?bench=sample&quality=high&tier=high");
+  await page.waitForFunction(() => (window as unknown as { __redraw?: unknown }).__redraw, null, {
+    timeout: 60_000,
+  });
+  await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
+  await page.evaluate(() => {
+    const ed = (window as unknown as W).__studio.editor as unknown as {
+      setStyle: (k: string, v: unknown) => void;
+    };
+    // Candles take the centre the flowers need: none, so every table gets its mound.
+    ed.setStyle("candles", []);
+    ed.setStyle("florals", "floral-low");
+    ed.setStyle("flowerType", "ranunculus");
+    (window as unknown as { __camera: (k: string) => void }).__camera("R09");
+  });
+  await settle(page);
+  const read = () =>
+    page.evaluate(() => {
+      const w = window as unknown as Hooks;
+      w.__redraw();
+      return w.__worstFrame();
+    });
+  let info = await read();
+  for (let i = 0; i < 20; i++) {
+    const next = await read();
+    const same = next.calls === info.calls && next.triangles === info.triangles;
+    info = next;
+    if (same) break;
+  }
+  console.log(`sample eye level with flowers: ${info.calls} draw calls, ${info.triangles} triangles`);
+  expect(info.calls).toBeLessThan(250);
+  expect(info.triangles).toBeLessThan(2_000_000);
+});
+
 // Everything the studio downloads until the room is drawn: app, transcoder, textures (ARCHITECTURE §7;
 // served uncompressed here, so a ceiling on what the deployed site sends compressed).
 for (const [quality, limitMb] of [
