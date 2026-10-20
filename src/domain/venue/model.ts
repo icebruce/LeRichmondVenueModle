@@ -152,9 +152,6 @@ function barObstacles(d: VenueData): Obstacle[] {
   ];
 }
 
-/** Half the width a room fig blocks on the floor (m): its pot and lowest leaves. */
-const FIG_POT = 0.3;
-
 export function buildVenue(d: VenueData): VenueModel {
   const width = d.room.width.value;
   const depth = d.room.depth.value;
@@ -200,12 +197,6 @@ export function buildVenue(d: VenueData): VenueModel {
         label: "the banquette",
         polygon: rect(b.x0 as number, 0, b.x1 as number, b.depth),
       })),
-    // The room's potted figs (V6): their pots' footprint.
-    ...d.fixtures.plants.floor.map((p, i) => ({
-      id: `plant-${i}`,
-      label: "the fig",
-      polygon: rect(p.x - FIG_POT, p.z - FIG_POT, p.x + FIG_POT, p.z + FIG_POT),
-    })),
   ];
 
   return {

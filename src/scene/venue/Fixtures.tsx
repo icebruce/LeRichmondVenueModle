@@ -87,7 +87,7 @@ function trim(x0: number, x1: number, y: number, z: number): THREE.BufferGeometr
 }
 
 /** One wall's glazing, curtains, doors and openings, in world space. */
-function buildOpenings(wall: WallData, sill: VenueModel["data"]["fixtures"]["plants"]["sill"]) {
+function buildOpenings(wall: WallData, sill: VenueModel["data"]["fixtures"]["sillPlants"]) {
   const frames: THREE.BufferGeometry[] = [];
   const lightFrames: THREE.BufferGeometry[] = [];
   const kitchen: THREE.BufferGeometry[] = [];
@@ -198,7 +198,7 @@ function buildOpenings(wall: WallData, sill: VenueModel["data"]["fixtures"]["pla
 export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: ReadonlySet<string> }) {
   const perWall = useMemo(
     () =>
-      venue.data.walls.map((w) => ({ id: w.id, built: buildOpenings(w, venue.data.fixtures.plants.sill) })),
+      venue.data.walls.map((w) => ({ id: w.id, built: buildOpenings(w, venue.data.fixtures.sillPlants) })),
     [venue],
   );
   return (
@@ -810,60 +810,6 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
       </group>
       {built.wires && <mesh geometry={built.wires} material={m.blackMetal} />}
     </group>
-  );
-}
-
-/** Where one of the room's plants stands: base point, height and turn. */
-type PlantSpot = { file: string; at: THREE.Vector3; height: number; rotY: number };
-
-/** The room's own potted plants (V6): fiddle-leaf figs, loaded with the room, one mesh per model. */
-export function VenuePlants({ venue, low }: { venue: VenueModel; low: boolean }) {
-  const spots = useMemo(
-    () =>
-      venue.data.fixtures.plants.floor.map((p, i) => ({
-        file: p.file,
-        at: new THREE.Vector3(p.x, 0, p.z),
-        height: p.height,
-        rotY: i * 2.1,
-      })),
-    [venue],
-  );
-  return (
-    <Suspense fallback={null}>
-      {/* No shadow on phones, as for placed plants (draw-call budget). */}
-      <PlantModels spots={spots} shadows={!low} />
-    </Suspense>
-  );
-}
-
-function PlantModels({ spots, shadows }: { spots: PlantSpot[]; shadows: boolean }) {
-  const files = useMemo(() => [...new Set(spots.map((s) => s.file))].sort(), [spots]);
-  const loaded = useLoader(PieceModelLoader, files) as PieceModel[];
-  const meshes = useMemo(() => {
-    const t = new THREE.Object3D();
-    return files.map((file, i) => {
-      const model = loaded[i] as PieceModel;
-      const mine = spots.filter((s) => s.file === file);
-      const mesh = new THREE.InstancedMesh(model.geometry, model.material, mine.length);
-      mine.forEach((s, k) => {
-        t.position.copy(s.at);
-        t.rotation.set(0, s.rotY, 0);
-        t.scale.setScalar(s.height / model.height);
-        t.updateMatrix();
-        mesh.setMatrixAt(k, t.matrix);
-      });
-      mesh.castShadow = shadows;
-      return mesh;
-    });
-  }, [files, loaded, spots, shadows]);
-  // Made after the first frames: compiled now, not when a view first shows them (PLT-03).
-  useEffect(() => requestWarmup(), [meshes]);
-  return (
-    <>
-      {meshes.map((mesh, i) => (
-        <primitive key={files[i]} object={mesh} />
-      ))}
-    </>
   );
 }
 

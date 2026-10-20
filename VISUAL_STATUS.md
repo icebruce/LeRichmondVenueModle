@@ -338,7 +338,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 - Ornate iron scroll railings as cut-out panels (stair, raised floor, mezzanine; R09, R11).
 - East curtains: deep pleats, sheen.
-- Plants: fiddle-leaf figs by the green wall and the west garage door; planters on the east window sills.
+- Plants: planters on the east window sills (the fixed figs dropped, owner 2026-10-20).
 - Chandelier polish, then a re-bake if fixtures change.
 - Dropped (owner, 2026-10-20): the terrace string-light canopy; the terrace stays a dark backdrop at night, never modelled.
 
@@ -351,10 +351,10 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Chandeliers (Meshy for both, owner):** the birdcages are a dense 32-bar wire cage on a base band with a bell dome (code), 1.65 m tall (about 1.8 × their width, R02, R03, R05, R10), the east two on a thick rope; inside, a Meshy crystal candle chandelier (6.6 k triangles, a 1K colour map whose pale crystal and ivory sleeves glow faintly; one instanced mesh for the four). The brass cluster stays in code after three Meshy attempts came out as other chandeliers: a broad, rough oval (top 5.1, radius 0.78) of eight tiers of nine arms, each at its own height and reach, ending in a chunky brass cylinder with a small bulb under it (R02, R03, R11). The bake reads them as lights and occluders: re-baked.
 - **Railings:** wrought-iron scrollwork (a drawn cut-out card, `scrollPanelTexture`, bold strokes, matt) under the handrail along the whole raised-floor railing (R02, R11); wide panels between plain balusters on the mezzanine (R09); one panel on the stair's turn landing, the flights plain (R01, R09). No shadow (thin cards).
 - **Curtains:** rounded folds with V valleys, eight to a panel, each a little different, hanging straight (R05, R10).
-- **Plants:** fiddle-leaf figs (the Meshy fig) at the west garage doors' pier and on the green south wall between the corridor door and the kitchen pass, positions estimated (confidence L); obstacles like the banquettes ("Overlaps the fig"). Greenery cards in planters outside the street windows' sills (R05, R09). No fig shadow on phones.
-- **Reviews (2026-10-20):** `ux-reviewer` (scroll panels noisy at night → bold, matt; figs not obstacles → obstacles; bulbs too bright → smaller; birdcage glow copper → near white) and `fidelity-reviewer` (cluster read as rings → irregular oval; curtains like blinds → rounded folds; birdcages too squat → taller, bell dome, rope; panels misplaced → per railing) addressed. Open: the west fig may stand at the south end of the west glazing in a black planter (R01, R02), where DJ option 1 is; the cages' candle tips do not sparkle separately (R11).
+- **Plants:** greenery cards in planters outside the street windows' sills (R05, R09). The planned fixed fiddle-leaf figs were built, then removed (owner, 2026-10-20: the couple places plants from the library where they want them).
+- **Reviews (2026-10-20):** `ux-reviewer` (scroll panels noisy at night → bold, matt; figs not obstacles → obstacles; bulbs too bright → smaller; birdcage glow copper → near white) and `fidelity-reviewer` (cluster read as rings → irregular oval; curtains like blinds → rounded folds; birdcages too squat → taller, bell dome, rope; panels misplaced → per railing) addressed. Open: the cages' candle tips do not sparkle separately (R11). The terrace's faint string-light points stay in the night view through the garage doors (owner, 2026-10-20, as R11; no terrace geometry).
 - **Bloom models cast no shadow** (a bloom's own is too small to see; the far shapes and the contact shadows stay): the sample at eye level with a mound on every table drops from 1.98 M triangles (main, 23 k under High's 2.0 M) to 1.48 M with V6's fixtures.
-- **Budgets:** ppl03 on Balanced 154 of 155 draw calls (151 before V6), 0.53 M of 0.6 M triangles; the initial download 11.0 of 12 MB (High) and 5.5 of 6 MB (phones). Balanced's still frame (ambient occlusion, logged, not held) is 182 on ppl03, 180 before V6: well past the ≈ 155 noted at the V0 gate.
+- **Budgets:** ppl03 on Balanced 153 of 155 draw calls (151 before V6), 0.53 M of 0.6 M triangles; the initial download 11.0 of 12 MB (High) and 5.5 of 6 MB (phones). Balanced's still frame (ambient occlusion, logged, not held) is 182 on ppl03, 180 before V6: well past the ≈ 155 noted at the V0 gate.
 
 ### V7: People (last)
 
