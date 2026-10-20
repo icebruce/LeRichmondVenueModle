@@ -152,3 +152,15 @@ export function loadChairModel(file: string): Promise<ChairModel> {
   }
   return p;
 }
+
+/** `loadChairModel` as a three loader, so the scene's loading step waits for the chairs (`useLoader`). */
+export class ChairModelLoader extends THREE.Loader<ChairModel> {
+  override load(
+    file: string,
+    onLoad: (model: ChairModel) => void,
+    _: unknown,
+    onError?: (e: unknown) => void,
+  ) {
+    loadChairModel(file).then(onLoad, onError);
+  }
+}

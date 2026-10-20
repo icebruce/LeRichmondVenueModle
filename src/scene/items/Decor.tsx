@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { useEffect, useMemo, useState } from "react";
-import { useThree } from "@react-three/fiber";
+import { useEffect, useMemo } from "react";
+import { useLoader, useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
 import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
 import { makePiece } from "../../domain/layout/pieces";
@@ -9,7 +9,7 @@ import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { type ChairModel, chairGeometry, loadChairModel } from "./geometry";
+import { type ChairModel, ChairModelLoader, chairGeometry } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -102,39 +102,27 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
   const drag = useView((s) => s.drag);
   // Instances are written in place below, so each write asks for a frame (frames are on demand).
   const invalidate = useThree((s) => s.invalidate);
-  const used = useMemo(
-    () => [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort(),
-    [placed, scenario.style],
-  );
-  // Full quality draws each style's model file once it has loaded; until then, and on the light
-  // tiers, the generator's own chair (V4).
+  // Keyed by content: new materials for the same chair types would compile their shader again.
+  const usedKey = [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort().join("|");
+  const used = useMemo(() => (usedKey ? usedKey.split("|") : []), [usedKey]);
+  // Full quality draws each style's model file; the light tiers, the generator's own chair (V4).
+  // Full quality loads every chair style's model with the room (its loading step waits for them),
+  // so they compile with it and never swap in later or compile on a view change ([PLT-03]).
   const files = useMemo(
     () =>
       low
         ? []
         : [
             ...new Set(
-              used.flatMap((id) => {
-                const model = catalog.get(id)?.model;
-                return model?.kind === "parametric" && model.file ? [model.file] : [];
-              }),
+              [...catalog.values()].flatMap(({ model }) =>
+                model.kind === "parametric" && model.generator === "chair" && model.file ? [model.file] : [],
+              ),
             ),
-          ],
-    [used, catalog, low],
+          ].sort(),
+    [catalog, low],
   );
-  const [models, setModels] = useState<ReadonlyMap<string, ChairModel>>(new Map());
-  useEffect(() => {
-    let live = true;
-    for (const file of files)
-      if (!models.has(file))
-        loadChairModel(file).then(
-          (m) => live && setModels((prev) => new Map(prev).set(file, m)),
-          (e: unknown) => console.error(e),
-        );
-    return () => {
-      live = false;
-    };
-  }, [files, models]);
+  const loaded = useLoader(ChairModelLoader, files) as ChairModel[];
+  const models = useMemo(() => new Map(files.map((f, i) => [f, loaded[i] as ChairModel])), [files, loaded]);
   const kinds = useMemo(
     () =>
       used.map((id) => {
