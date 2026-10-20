@@ -138,27 +138,40 @@ export function openingMatrix(wall: WallData, start: number): THREE.Matrix4 {
 }
 
 /**
- * A wall's faces split by which way they look: `inner`, the face toward the room (it carries the
- * baked light, V2), and `outer`, everything else (its back, ends and top, seen from the dollhouse
- * and lit live). Geometry must be non-indexed, in world space.
+ * A wall's faces split by which way they look: `inner`, the face toward the room and the reveals of
+ * its openings (their sides, sill and head: they carry the baked light, V2, and its contact
+ * occlusion where they meet the frames and the floor), and `outer`, everything else (its back, ends
+ * and top, seen from the dollhouse and lit live). Geometry must be non-indexed, in world space.
  */
 export function splitFacing(
   g: THREE.BufferGeometry,
   wall: WallData,
 ): { inner: THREE.BufferGeometry; outer: THREE.BufferGeometry } {
-  const { normal } = wallFrame(wall);
+  const { normal, dir } = wallFrame(wall);
   const pos = g.getAttribute("position");
   const names = Object.keys(g.attributes);
   const parts = { inner: [] as number[], outer: [] as number[] };
   const a = new THREE.Vector3();
   const b = new THREE.Vector3();
   const c = new THREE.Vector3();
+  const mid = new THREE.Vector3();
+  const e = 0.02;
+  // A face across the wall (no part of its room face or back) inside an opening's frame.
+  const reveal = (n: THREE.Vector3, at: THREE.Vector3) => {
+    if (Math.abs(n.x * normal[0] + n.z * normal[1]) > 0.1) return false;
+    const s = (at.x - wall.from[0]) * dir[0] + (at.z - wall.from[1]) * dir[1];
+    return wall.openings.some(
+      (o) => s > o.start - e && s < o.end + e && at.y > o.sill - e && at.y < o.head + e,
+    );
+  };
   for (let i = 0; i < pos.count; i += 3) {
     a.fromBufferAttribute(pos, i);
     b.fromBufferAttribute(pos, i + 1);
     c.fromBufferAttribute(pos, i + 2);
+    mid.copy(a).add(b).add(c).divideScalar(3);
     const n = c.sub(b).cross(a.sub(b)).normalize();
-    (n.x * normal[0] + n.z * normal[1] > 0.9 ? parts.inner : parts.outer).push(i, i + 1, i + 2);
+    const facing = n.x * normal[0] + n.z * normal[1] > 0.9 || reveal(n, mid);
+    (facing ? parts.inner : parts.outer).push(i, i + 1, i + 2);
   }
   const pick = (list: number[]) => {
     const out = new THREE.BufferGeometry();

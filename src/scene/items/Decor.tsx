@@ -173,29 +173,13 @@ const SOLID_SLOTS: ReadonlySet<Slot> = new Set([
 /** Foliage green; a part's own colour (eucalyptus) replaces it. */
 const LEAF = "#56704a";
 
-/**
- * Candles, florals and place settings on every table (DEC-02..03, LIB-04..06): world-space
- * instances, one mesh per primitive and material. Flames show only in the evening.
- */
-export function TableDecor({
-  placed,
-  scenario,
-  m,
-  evening,
-  low,
-}: {
-  placed: Placed[];
-  scenario: Scenario;
-  m: Materials;
-  evening: boolean;
-  low: boolean;
-}) {
+/** Each placed piece's décor parts and the height they stand on: one layout for the décor and its contact shadows. */
+export type DecorParts = { p: Placed; base: number; parts: Part[] }[];
+
+export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean): DecorParts {
   const { catalog } = useStudio();
-  const drag = useView((s) => s.drag);
-  // Instances are written in place below, so each write asks for a frame (frames are on demand).
-  const invalidate = useThree((s) => s.invalidate);
   // Parts per table depend only on its shape and style; a drag just moves them.
-  const perItem = useMemo(
+  return useMemo(
     () =>
       placed.map((p, i) => ({
         p,
@@ -213,6 +197,26 @@ export function TableDecor({
       })),
     [placed, scenario.style, catalog, low],
   );
+}
+
+/**
+ * Candles, florals and place settings on every table (DEC-02..03, LIB-04..06): world-space
+ * instances, one mesh per primitive and material. Flames show only in the evening.
+ */
+export function TableDecor({
+  decor: perItem,
+  m,
+  evening,
+  low,
+}: {
+  decor: DecorParts;
+  m: Materials;
+  evening: boolean;
+  low: boolean;
+}) {
+  const drag = useView((s) => s.drag);
+  // Instances are written in place below, so each write asks for a frame (frames are on demand).
+  const invalidate = useThree((s) => s.invalidate);
   const prims = useMemo(() => primitives(low), [low]);
   const solidMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.15 }),

@@ -19,9 +19,9 @@ type Props = {
 };
 
 /** A receiver's geometry with its light-map UVs when the room has a bake. */
-const mapped = (g: THREE.BufferGeometry, bake: Bake | null) => (bake ? applyAtlas(g, bake.atlas) : g);
+export const mapped = (g: THREE.BufferGeometry, bake: Bake | null) => (bake ? applyAtlas(g, bake.atlas) : g);
 /** A receiver's material: light-mapped when the room has a bake. */
-const lit = (m: Materials, bake: Bake | null, key: keyof Materials) =>
+export const lit = (m: Materials, bake: Bake | null, key: keyof Materials) =>
   (bake?.materials[key] ?? m[key]) as THREE.Material;
 
 function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
@@ -138,168 +138,182 @@ export function Floors({ venue, m, bake }: Pick<Props, "venue" | "m" | "bake">) 
 }
 
 /** Wrought-iron railing with a timber handrail along the raised floor edge, open at the steps. */
-export function Railing({ venue, m }: Pick<Props, "venue" | "m">) {
+/** The raised floor's guard rails and its step down to the main floor. */
+export function railingParts(venue: VenueModel) {
+  const d = venue.data;
+  const h = venue.raised.height;
+  const gaps = d.levels.raised.steps.value;
+  const ironGeos: THREE.BufferGeometry[] = [];
+  const railGeos: THREE.BufferGeometry[] = [];
+  for (const [a, b] of venue.railing) {
+    const g = guard(a, b, h);
+    ironGeos.push(...g.steel);
+    railGeos.push(g.rail);
+  }
+  const stepGeos = gaps.map((g) => {
+    const cx = (g.from[0] + g.to[0]) / 2;
+    const cz = (g.from[1] + g.to[1]) / 2;
+    const len = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]);
+    const ang = -Math.atan2(g.to[1] - g.from[1], g.to[0] - g.from[0]);
+    const s = new THREE.BoxGeometry(len, h / 2, 0.32);
+    s.rotateY(ang);
+    // Push the tread out of the raised edge, toward the main floor (+z side of the edge here).
+    const nx = Math.sin(-ang) * -0.16;
+    const nz = Math.cos(-ang) * 0.16;
+    s.translate(cx + nx, h / 4, cz + nz);
+    return s;
+  });
+  return { iron: merge(ironGeos), rail: merge(railGeos), steps: stepGeos.length ? merge(stepGeos) : null };
+}
+
+export function Railing({ venue, m, bake }: Pick<Props, "venue" | "m" | "bake">) {
   const { iron, rail, steps } = useMemo(() => {
-    const d = venue.data;
-    const h = venue.raised.height;
-    const gaps = d.levels.raised.steps.value;
-    const ironGeos: THREE.BufferGeometry[] = [];
-    const railGeos: THREE.BufferGeometry[] = [];
-    for (const [a, b] of venue.railing) {
-      const g = guard(a, b, h);
-      ironGeos.push(...g.steel);
-      railGeos.push(g.rail);
-    }
-    const stepGeos = gaps.map((g) => {
-      const cx = (g.from[0] + g.to[0]) / 2;
-      const cz = (g.from[1] + g.to[1]) / 2;
-      const len = Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]);
-      const ang = -Math.atan2(g.to[1] - g.from[1], g.to[0] - g.from[0]);
-      const s = new THREE.BoxGeometry(len, h / 2, 0.32);
-      s.rotateY(ang);
-      // Push the tread out of the raised edge, toward the main floor (+z side of the edge here).
-      const nx = Math.sin(-ang) * -0.16;
-      const nz = Math.cos(-ang) * 0.16;
-      s.translate(cx + nx, h / 4, cz + nz);
-      return s;
-    });
-    return { iron: merge(ironGeos), rail: merge(railGeos), steps: stepGeos.length ? merge(stepGeos) : null };
-  }, [venue]);
+    const r = railingParts(venue);
+    return { ...r, steps: r.steps && mapped(r.steps, bake) };
+  }, [venue, bake]);
   return (
     <group name="railing">
       <mesh geometry={iron} material={m.blackMetal} castShadow />
       <mesh geometry={rail} material={m.timber} castShadow />
-      {steps && <mesh geometry={steps} material={m.woodFloor} receiveShadow />}
+      {steps && <mesh geometry={steps} material={lit(m, bake, "woodFloor")} receiveShadow />}
     </group>
   );
 }
 
-export function Bar({ venue, m, stools }: Pick<Props, "venue" | "m"> & { stools: boolean }) {
+/** The bar: base, slab, well, foot rail and (when shown) stools. */
+export function barParts(venue: VenueModel, stools: boolean) {
+  const d = venue.data.bar;
+  const [x0, z0, x1, z1] = d.outer.value;
+  const H = d.counterHeight.value;
+  const leg = d.legWidth;
+  const front = d.frontDepth;
+  // A thick marble slab with an eased edge over a panelled black base (R02, R03).
+  const slab = 0.08;
+  const base = [
+    boxGeo(x0, 0, z0, x0 + leg, H - slab, z1),
+    boxGeo(x1 - leg, 0, z0, x1, H - slab, z1),
+    boxGeo(x0 + leg, 0, z1 - front, x1 - leg, H - slab, z1),
+  ];
+  // Raised stiles and rails framing the panels on the guest faces: west side and front.
+  const PANEL = 0.9;
+  const stile = (a: number, b: number, horizontal: boolean, at: number) =>
+    horizontal
+      ? boxGeo(a, at - 0.03, z1, b, at + 0.03, z1 + 0.02)
+      : boxGeo(x0 - 0.02, at - 0.03, a, x0, at + 0.03, b);
+  for (const y of [0.12, H - slab - 0.06]) {
+    base.push(stile(x0, x1, true, y), stile(z0, z1, false, y));
+  }
+  for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / Math.round((x1 - x0) / PANEL))
+    base.push(boxGeo(x - 0.03, 0.09, z1, x + 0.03, H - slab - 0.03, z1 + 0.02));
+  for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / Math.round((z1 - z0) / PANEL))
+    base.push(boxGeo(x0 - 0.02, 0.09, z - 0.03, x0, H - slab - 0.03, z + 0.03));
+  // One U-shaped slab, overhanging the guest side, with an eased edge all round (R02, R03).
+  const o = 0.12;
+  const r = 0.02;
+  const [ix0, ix1, iz] = [x0 + leg + 0.02, x1 - leg - 0.02, z1 - front - 0.02];
+  // The bevel grows the outline by `r`, so it is drawn `r` inside the slab's true edge.
+  const outline = new THREE.Shape(
+    (
+      [
+        [x0 - o + r, z0 + r],
+        [x0 - o + r, z1 + o - r],
+        [x1 + o - r, z1 + o - r],
+        [x1 + o - r, z0 + r],
+        [ix1 + r, z0 + r],
+        [ix1 + r, iz + r],
+        [ix0 - r, iz + r],
+        [ix0 - r, z0 + r],
+      ] as const
+    ).map(([x, z]) => new THREE.Vector2(x, z)),
+  );
+  const slabGeo = new THREE.ExtrudeGeometry(outline, {
+    depth: slab - 2 * r,
+    bevelEnabled: true,
+    bevelThickness: r,
+    bevelSize: r,
+    bevelSegments: 3,
+    curveSegments: 4,
+  });
+  // Shape x, y are the room's x, z; the slab is extruded downward from the counter height.
+  slabGeo.rotateX(Math.PI / 2);
+  slabGeo.translate(0, H - r, 0);
+  const uv = slabGeo.getAttribute("uv");
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / TILE.marble, uv.getY(i) / TILE.marble);
+  const top = [slabGeo];
+  // The bar well: a stainless working ledge along the inside of the U and a dark mat (R02).
+  const ledge = 0.38;
+  const well = [
+    boxGeo(x0 + leg, 0.82, z0 + 0.15, x0 + leg + ledge, 0.85, z1 - front),
+    boxGeo(x1 - leg - ledge, 0.82, z0 + 0.15, x1 - leg, 0.85, z1 - front),
+    boxGeo(x0 + leg, 0.82, z1 - front - ledge, x1 - leg, 0.85, z1 - front),
+    boxGeo(x0 + leg, 0, z0 + 0.15, x0 + leg + ledge - 0.02, 0.82, z1 - front),
+    boxGeo(x1 - leg - ledge + 0.02, 0, z0 + 0.15, x1 - leg, 0.82, z1 - front),
+    boxGeo(x0 + leg, 0, z1 - front - ledge + 0.02, x1 - leg, 0.82, z1 - front),
+  ];
+  const mat = boxGeo(x0 + leg + ledge, 0, z0 + 0.3, x1 - leg - ledge, 0.012, z1 - front - ledge);
+  // A round black foot rail on brackets along the west side and the front (R03).
+  const rail: THREE.BufferGeometry[] = [];
+  const tube = (a: THREE.Vector3, b: THREE.Vector3) => {
+    const g = new THREE.CylinderGeometry(0.022, 0.022, a.distanceTo(b), 10);
+    g.rotateZ(Math.PI / 2);
+    if (a.x === b.x) g.rotateY(Math.PI / 2);
+    g.translate((a.x + b.x) / 2, a.y, (a.z + b.z) / 2);
+    rail.push(g);
+  };
+  const RY = 0.22;
+  const RO = 0.2;
+  tube(new THREE.Vector3(x0 - RO, RY, z0 + 0.2), new THREE.Vector3(x0 - RO, RY, z1 + RO));
+  tube(new THREE.Vector3(x0 - RO, RY, z1 + RO), new THREE.Vector3(x1, RY, z1 + RO));
+  for (let x = x0 + 0.4; x < x1; x += 1.1) rail.push(boxGeo(x - 0.012, 0.02, z1, x + 0.012, RY, z1 + RO));
+  for (let z = z0 + 0.4; z < z1; z += 1.1) rail.push(boxGeo(x0 - RO, 0.02, z - 0.012, x0, RY, z + 0.012));
+  const stoolGeos: THREE.BufferGeometry[] = [];
+  const seatGeos: THREE.BufferGeometry[] = [];
+  if (stools) {
+    // Evenly along the front and both sides (owner, 2026-10-17); the east side stands on the raised
+    // floor, so its stools are shorter and every seat sits at the same height under the counter.
+    const { front: nf, side: ns } = venue.data.fixtures.venueFurniture.barStools;
+    const spots: [number, number, number][] = [];
+    for (let i = 0; i < nf; i++) spots.push([x0 + ((i + 0.5) * (x1 - x0)) / nf, z1 + 0.45, 0]);
+    for (let i = 0; i < ns; i++) {
+      const z = z0 + ((i + 0.5) * (z1 - z0)) / ns;
+      spots.push([x0 - 0.45, z, 0], [x1 + 0.45, z, venue.raised.height]);
+    }
+    for (const [x, z, floor] of spots) {
+      const post = new THREE.CylinderGeometry(0.025, 0.04, 0.72 - floor, 8);
+      post.translate(x, (0.72 + floor) / 2, z);
+      const foot = new THREE.CylinderGeometry(0.2, 0.22, 0.03, 12);
+      foot.translate(x, floor + 0.015, z);
+      stoolGeos.push(post, foot);
+      const seat = new THREE.CylinderGeometry(0.19, 0.18, 0.07, 16);
+      seat.translate(x, 0.76, z);
+      seatGeos.push(seat);
+    }
+  }
+  return {
+    base: merge(base),
+    top: merge(top),
+    well: merge(well.slice(0, 3)),
+    wellBase: merge(well.slice(3)),
+    mat,
+    rail: merge(rail),
+    stools: stoolGeos.length ? merge(stoolGeos) : null,
+    seats: seatGeos.length ? merge(seatGeos) : null,
+  };
+}
+
+export function Bar({ venue, m, stools, bake }: Pick<Props, "venue" | "m" | "bake"> & { stools: boolean }) {
   const parts = useMemo(() => {
-    const d = venue.data.bar;
-    const [x0, z0, x1, z1] = d.outer.value;
-    const H = d.counterHeight.value;
-    const leg = d.legWidth;
-    const front = d.frontDepth;
-    // A thick marble slab with an eased edge over a panelled black base (R02, R03).
-    const slab = 0.08;
-    const base = [
-      boxGeo(x0, 0, z0, x0 + leg, H - slab, z1),
-      boxGeo(x1 - leg, 0, z0, x1, H - slab, z1),
-      boxGeo(x0 + leg, 0, z1 - front, x1 - leg, H - slab, z1),
-    ];
-    // Raised stiles and rails framing the panels on the guest faces: west side and front.
-    const PANEL = 0.9;
-    const stile = (a: number, b: number, horizontal: boolean, at: number) =>
-      horizontal
-        ? boxGeo(a, at - 0.03, z1, b, at + 0.03, z1 + 0.02)
-        : boxGeo(x0 - 0.02, at - 0.03, a, x0, at + 0.03, b);
-    for (const y of [0.12, H - slab - 0.06]) {
-      base.push(stile(x0, x1, true, y), stile(z0, z1, false, y));
-    }
-    for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / Math.round((x1 - x0) / PANEL))
-      base.push(boxGeo(x - 0.03, 0.09, z1, x + 0.03, H - slab - 0.03, z1 + 0.02));
-    for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / Math.round((z1 - z0) / PANEL))
-      base.push(boxGeo(x0 - 0.02, 0.09, z - 0.03, x0, H - slab - 0.03, z + 0.03));
-    // One U-shaped slab, overhanging the guest side, with an eased edge all round (R02, R03).
-    const o = 0.12;
-    const r = 0.02;
-    const [ix0, ix1, iz] = [x0 + leg + 0.02, x1 - leg - 0.02, z1 - front - 0.02];
-    // The bevel grows the outline by `r`, so it is drawn `r` inside the slab's true edge.
-    const outline = new THREE.Shape(
-      (
-        [
-          [x0 - o + r, z0 + r],
-          [x0 - o + r, z1 + o - r],
-          [x1 + o - r, z1 + o - r],
-          [x1 + o - r, z0 + r],
-          [ix1 + r, z0 + r],
-          [ix1 + r, iz + r],
-          [ix0 - r, iz + r],
-          [ix0 - r, z0 + r],
-        ] as const
-      ).map(([x, z]) => new THREE.Vector2(x, z)),
-    );
-    const slabGeo = new THREE.ExtrudeGeometry(outline, {
-      depth: slab - 2 * r,
-      bevelEnabled: true,
-      bevelThickness: r,
-      bevelSize: r,
-      bevelSegments: 3,
-      curveSegments: 4,
-    });
-    // Shape x, y are the room's x, z; the slab is extruded downward from the counter height.
-    slabGeo.rotateX(Math.PI / 2);
-    slabGeo.translate(0, H - r, 0);
-    const uv = slabGeo.getAttribute("uv");
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / TILE.marble, uv.getY(i) / TILE.marble);
-    const top = [slabGeo];
-    // The bar well: a stainless working ledge along the inside of the U and a dark mat (R02).
-    const ledge = 0.38;
-    const well = [
-      boxGeo(x0 + leg, 0.82, z0 + 0.15, x0 + leg + ledge, 0.85, z1 - front),
-      boxGeo(x1 - leg - ledge, 0.82, z0 + 0.15, x1 - leg, 0.85, z1 - front),
-      boxGeo(x0 + leg, 0.82, z1 - front - ledge, x1 - leg, 0.85, z1 - front),
-      boxGeo(x0 + leg, 0, z0 + 0.15, x0 + leg + ledge - 0.02, 0.82, z1 - front),
-      boxGeo(x1 - leg - ledge + 0.02, 0, z0 + 0.15, x1 - leg, 0.82, z1 - front),
-      boxGeo(x0 + leg, 0, z1 - front - ledge + 0.02, x1 - leg, 0.82, z1 - front),
-    ];
-    const mat = boxGeo(x0 + leg + ledge, 0, z0 + 0.3, x1 - leg - ledge, 0.012, z1 - front - ledge);
-    // A round black foot rail on brackets along the west side and the front (R03).
-    const rail: THREE.BufferGeometry[] = [];
-    const tube = (a: THREE.Vector3, b: THREE.Vector3) => {
-      const g = new THREE.CylinderGeometry(0.022, 0.022, a.distanceTo(b), 10);
-      g.rotateZ(Math.PI / 2);
-      if (a.x === b.x) g.rotateY(Math.PI / 2);
-      g.translate((a.x + b.x) / 2, a.y, (a.z + b.z) / 2);
-      rail.push(g);
-    };
-    const RY = 0.22;
-    const RO = 0.2;
-    tube(new THREE.Vector3(x0 - RO, RY, z0 + 0.2), new THREE.Vector3(x0 - RO, RY, z1 + RO));
-    tube(new THREE.Vector3(x0 - RO, RY, z1 + RO), new THREE.Vector3(x1, RY, z1 + RO));
-    for (let x = x0 + 0.4; x < x1; x += 1.1) rail.push(boxGeo(x - 0.012, 0.02, z1, x + 0.012, RY, z1 + RO));
-    for (let z = z0 + 0.4; z < z1; z += 1.1) rail.push(boxGeo(x0 - RO, 0.02, z - 0.012, x0, RY, z + 0.012));
-    const stoolGeos: THREE.BufferGeometry[] = [];
-    const seatGeos: THREE.BufferGeometry[] = [];
-    if (stools) {
-      // Evenly along the front and both sides (owner, 2026-10-17); the east side stands on the raised
-      // floor, so its stools are shorter and every seat sits at the same height under the counter.
-      const { front: nf, side: ns } = venue.data.fixtures.venueFurniture.barStools;
-      const spots: [number, number, number][] = [];
-      for (let i = 0; i < nf; i++) spots.push([x0 + ((i + 0.5) * (x1 - x0)) / nf, z1 + 0.45, 0]);
-      for (let i = 0; i < ns; i++) {
-        const z = z0 + ((i + 0.5) * (z1 - z0)) / ns;
-        spots.push([x0 - 0.45, z, 0], [x1 + 0.45, z, venue.raised.height]);
-      }
-      for (const [x, z, floor] of spots) {
-        const post = new THREE.CylinderGeometry(0.025, 0.04, 0.72 - floor, 8);
-        post.translate(x, (0.72 + floor) / 2, z);
-        const foot = new THREE.CylinderGeometry(0.2, 0.22, 0.03, 12);
-        foot.translate(x, floor + 0.015, z);
-        stoolGeos.push(post, foot);
-        const seat = new THREE.CylinderGeometry(0.19, 0.18, 0.07, 16);
-        seat.translate(x, 0.76, z);
-        seatGeos.push(seat);
-      }
-    }
-    return {
-      base: merge(base),
-      top: merge(top),
-      well: merge(well.slice(0, 3)),
-      wellBase: merge(well.slice(3)),
-      mat,
-      rail: merge(rail),
-      stools: stoolGeos.length ? merge(stoolGeos) : null,
-      seats: seatGeos.length ? merge(seatGeos) : null,
-    };
-  }, [venue, stools]);
+    const b = barParts(venue, stools);
+    // The base and the well's sides carry the bake (V2b): contact occlusion under the slab's
+    // overhang, at the foot and inside the well.
+    return { ...b, base: mapped(b.base, bake), wellBase: mapped(b.wellBase, bake) };
+  }, [venue, stools, bake]);
   return (
     <group name="bar">
-      <mesh geometry={parts.base} material={m.barBase} castShadow receiveShadow />
+      <mesh geometry={parts.base} material={lit(m, bake, "barBase")} castShadow receiveShadow />
       <mesh geometry={parts.top} material={m.marble} castShadow receiveShadow />
       <mesh geometry={parts.well} material={m.stainless} />
-      <mesh geometry={parts.wellBase} material={m.barBase} />
+      <mesh geometry={parts.wellBase} material={lit(m, bake, "barBase")} />
       <mesh geometry={parts.mat} material={m.blackMetal} />
       <mesh geometry={parts.rail} material={m.blackMetal} />
       {parts.stools && <mesh geometry={parts.stools} material={m.blackMetal} castShadow />}
@@ -602,41 +616,47 @@ function flightGeo(
  * flight's room side; the landing and the second flight are closed down to the floor (owner photo 4).
  * `inRoom`: when the south wall is cut away, only the part inside the room is built.
  */
-export function Stair({ venue, m, inRoom }: Pick<Props, "venue" | "m"> & { inRoom: boolean }) {
+export function stairParts(venue: VenueModel, inRoom: boolean) {
+  const s = venue.data.stair;
+  const H = venue.mezzanineHeight;
+  const { rise } = s.flight;
+  const f1 = s.flight;
+  const lower = flightGeo(f1.from, f1.to, 0, rise, f1.treads, [
+    Math.min(f1.from[1], f1.to[1]) + 0.03,
+    Math.max(f1.from[1], f1.to[1]) - 0.03,
+  ]);
+  const f2 = s.upperFlight;
+  const upper = flightGeo(f2.from, f2.to, rise, H, f2.treads, [Math.min(f2.from[0], f2.to[0]) + 0.03], {
+    solid: true,
+    stopAt: inRoom ? venue.depth : undefined,
+  });
+  const [ux0, uz0, ux1, uz1] = s.upperLanding;
+  const [tx0, tz0, tx1, tz1] = s.topLanding;
+  const landing = guard([ux0 + 0.03, uz0 + 0.03], [ux1 - 0.03, uz0 + 0.03], rise);
+  return {
+    wood: merge([
+      ...lower.wood,
+      ...upper.wood,
+      boxGeo(ux0, rise - 0.05, uz0, ux1, rise, uz1, TILE.floor),
+      ...(inRoom ? [] : [boxGeo(tx0, H - 0.05, tz0, tx1, H, tz1, TILE.floor)]),
+    ]),
+    base: merge([...upper.base, boxGeo(ux0, 0, uz0, ux1, rise - 0.05, uz1)]),
+    led: merge([...lower.led, ...upper.led]),
+    steel: merge([...lower.steel, ...upper.steel, ...landing.steel]),
+    rail: merge([...lower.rail, ...upper.rail, landing.rail]),
+  };
+}
+
+export function Stair({ venue, m, inRoom, bake }: Pick<Props, "venue" | "m" | "bake"> & { inRoom: boolean }) {
   const g = useMemo(() => {
-    const s = venue.data.stair;
-    const H = venue.mezzanineHeight;
-    const { rise } = s.flight;
-    const f1 = s.flight;
-    const lower = flightGeo(f1.from, f1.to, 0, rise, f1.treads, [
-      Math.min(f1.from[1], f1.to[1]) + 0.03,
-      Math.max(f1.from[1], f1.to[1]) - 0.03,
-    ]);
-    const f2 = s.upperFlight;
-    const upper = flightGeo(f2.from, f2.to, rise, H, f2.treads, [Math.min(f2.from[0], f2.to[0]) + 0.03], {
-      solid: true,
-      stopAt: inRoom ? venue.depth : undefined,
-    });
-    const [ux0, uz0, ux1, uz1] = s.upperLanding;
-    const [tx0, tz0, tx1, tz1] = s.topLanding;
-    const landing = guard([ux0 + 0.03, uz0 + 0.03], [ux1 - 0.03, uz0 + 0.03], rise);
-    return {
-      wood: merge([
-        ...lower.wood,
-        ...upper.wood,
-        boxGeo(ux0, rise - 0.05, uz0, ux1, rise, uz1, TILE.floor),
-        ...(inRoom ? [] : [boxGeo(tx0, H - 0.05, tz0, tx1, H, tz1, TILE.floor)]),
-      ]),
-      base: merge([...upper.base, boxGeo(ux0, 0, uz0, ux1, rise - 0.05, uz1)]),
-      led: merge([...lower.led, ...upper.led]),
-      steel: merge([...lower.steel, ...upper.steel, ...landing.steel]),
-      rail: merge([...lower.rail, ...upper.rail, landing.rail]),
-    };
-  }, [venue, inRoom]);
+    const p = stairParts(venue, inRoom);
+    // Treads, landings and the closed sides carry the bake (V2b): their creases and the floor's.
+    return { ...p, wood: mapped(p.wood, bake), base: mapped(p.base, bake) };
+  }, [venue, inRoom, bake]);
   return (
     <group name="stair">
-      <mesh geometry={g.wood} material={m.timber} castShadow receiveShadow />
-      <mesh geometry={g.base} material={m.stairWall} receiveShadow />
+      <mesh geometry={g.wood} material={lit(m, bake, "stairWood")} castShadow receiveShadow />
+      <mesh geometry={g.base} material={lit(m, bake, "stairWall")} receiveShadow />
       <mesh geometry={g.led} material={m.led} />
       <mesh geometry={g.steel} material={m.blackMetal} castShadow />
       <mesh geometry={g.rail} material={m.timber} />

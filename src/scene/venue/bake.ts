@@ -2,7 +2,8 @@ import * as THREE from "three";
 import type { VenueModel } from "../../domain/venue/model";
 import type { Materials } from "../materials";
 import { type Atlas, buildAtlas, geometryHash } from "./lightmap";
-import { ceilingParts, floorParts, mezzanineParts } from "./Architecture";
+import { barParts, ceilingParts, floorParts, mezzanineParts, railingParts, stairParts } from "./Architecture";
+import { backBarParts, furnishingParts } from "./Fixtures";
 import { buildWall, splitFacing } from "./walls";
 
 /**
@@ -22,8 +23,11 @@ export type Receiver = {
 };
 
 /**
- * The receivers, uncut and in a fixed order: walls, floors, ceiling, the mezzanine edge. The stair,
- * bar, fixtures and everything movable stay live-lit.
+ * The receivers, uncut and in a fixed order: walls (with their openings' reveals), floors, ceiling,
+ * the mezzanine edge, then the fixed furniture (the raised floor's step, the bar's base and well, the
+ * back bar's cabinet, counter, frame and shelves, the banquettes, the wine case, the stair's treads,
+ * landings and closed sides). Everything movable, and the furniture's metal, glass and trim, stay
+ * live-lit.
  */
 export function roomReceivers(venue: VenueModel): Receiver[] {
   const t = venue.data.room.wallThickness.value;
@@ -55,6 +59,25 @@ export function roomReceivers(venue: VenueModel): Receiver[] {
     { name: "mezzanine-soffit", material: "soffit", geometry: z.soffit },
     { name: "mezzanine-floor", material: "woodFloor", geometry: z.floor },
   );
+  // The fixed furniture (owner 2026-10-19): its own creases, and the floor's, in the bake.
+  const steps = railingParts(venue).steps;
+  if (steps) out.push({ name: "raised-step", material: "woodFloor", geometry: steps });
+  const bar = barParts(venue, false);
+  const back = backBarParts(venue);
+  const furn = furnishingParts(venue);
+  const stair = stairParts(venue, false);
+  out.push(
+    { name: "bar-base", material: "barBase", geometry: bar.base },
+    { name: "bar-well", material: "barBase", geometry: bar.wellBase },
+    { name: "back-counter", material: "barBase", geometry: back.counter },
+    { name: "back-cabinet", material: "backBarWood", geometry: back.cabinet },
+    ...(back.frame ? [{ name: "back-frame", material: "backBarWood" as const, geometry: back.frame }] : []),
+    ...(furn.seats ? [{ name: "banquette-seats", material: "leather" as const, geometry: furn.seats }] : []),
+    ...(furn.backs ? [{ name: "banquette-backs", material: "leather" as const, geometry: furn.backs }] : []),
+    { name: "wine-case", material: "wineFrame", geometry: furn.wine },
+    { name: "stair-wood", material: "stairWood", geometry: stair.wood },
+    { name: "stair-sides", material: "stairWall", geometry: stair.base },
+  );
   return out;
 }
 
@@ -72,6 +95,12 @@ export const ALBEDO: Partial<Record<keyof Materials, string>> = {
   ceiling: "#7a5230",
   greenPanel: "#28352e",
   soffit: "#262b28",
+  barBase: "#18191a",
+  backBarWood: "#3a2b21",
+  leather: "#2a2b2d",
+  wineFrame: "#5c1717",
+  stairWood: "#602b07",
+  stairWall: "#262b28",
 };
 
 /** FNV-1a of the venue data the bake script reads for its lights and sky. */
@@ -108,6 +137,8 @@ export type BakeManifest = {
   inputsHash: string;
   scriptHash: string;
   samples: number;
+  /** The contact occlusion map, shared by both sets (grey, linear, 1K). */
+  occlusion: string;
   sets: Record<BakeSet, { scale: number; files: { "2k": string; "1k": string } }>;
 };
 
@@ -121,30 +152,52 @@ export function bakeAtlas(
 }
 
 /**
- * Share of the live ambient (sky) light a baked surface keeps: faces the bake leaves dark (a cut
- * wall's outer face, seen from the dollhouse) never turn into black pockets.
+ * Share of the live ambient (sky) light a baked surface keeps: just enough that faces the bake leaves
+ * dark (a cut wall's outer face, seen from the dollhouse) are not black, without flattening the
+ * bake's own falloff (V2b).
  */
-const BAKED_AMBIENT = 0.35;
+const BAKED_AMBIENT = 0.08;
+/**
+ * Share of the live lights' direct light a baked surface keeps (V2b): live shadows and the couple's
+ * placed lights show on the floor and walls, and the graphics tiers' shadows show there too.
+ */
+const LIVE_SHARE = 0.25;
 
 /**
- * A receiver's material with the light map: its diffuse light comes from the map (the live lights'
- * direct diffuse is dropped, as the bake holds it, and only `BAKED_AMBIENT` of the sky's), while live
- * highlights and reflections stay. Any shader patch the source has (`vary`) is kept.
+ * A receiver's material with the light map: its diffuse light comes mostly from the map, with
+ * `LIVE_SHARE` of the live lights' and `BAKED_AMBIENT` of the sky's; live highlights and reflections
+ * stay. The baked contact occlusion (`occlusion`, also in the map) dims what the map does not hold
+ * (the live lights, highlights and reflections), so a glossy floor stays dark where it meets a wall, the
+ * bar or the raised floor (owner 2026-10-19). Any shader patch the source has (`vary`) is kept.
  */
 export function bakedMaterial(
   src: THREE.MeshStandardMaterial,
   lightMap: THREE.Texture,
+  occlusion: THREE.Texture,
 ): THREE.MeshStandardMaterial {
   const b = src.clone();
   b.lightMap = lightMap;
   b.lightMap.channel = 1;
+  // Sampled by the patch below; three's own ambient occlusion is off (the map already holds it).
+  b.aoMap = occlusion;
+  b.aoMapIntensity = 0;
   const key = src.customProgramCacheKey();
   b.customProgramCacheKey = () => `${key}|baked`;
+  // Any shader patch the source has, without its floor darkening (`grounded`): the bake has it.
+  const patch = (src.userData.ungrounded as typeof src.onBeforeCompile | undefined) ?? src.onBeforeCompile;
   b.onBeforeCompile = (s, r) => {
-    src.onBeforeCompile(s, r);
+    patch.call(src, s, r);
     s.fragmentShader = s.fragmentShader.replace(
       "#include <lights_fragment_maps>",
-      `irradiance *= ${BAKED_AMBIENT.toFixed(2)};\nreflectedLight.directDiffuse = vec3(0.0);\n#include <lights_fragment_maps>\niblIrradiance = vec3(0.0);`,
+      `float bakedAO = texture2D(aoMap, vAoMapUv).r;
+irradiance *= ${BAKED_AMBIENT.toFixed(2)} * bakedAO;
+reflectedLight.directDiffuse *= ${LIVE_SHARE.toFixed(2)} * bakedAO;
+reflectedLight.directSpecular *= bakedAO;
+#include <lights_fragment_maps>
+iblIrradiance = vec3(0.0);
+#if defined( RE_IndirectSpecular )
+radiance *= bakedAO;
+#endif`,
     );
   };
   return b;

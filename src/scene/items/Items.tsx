@@ -25,7 +25,7 @@ import { useEditor, useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import type { Quality } from "../quality";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { Chairs, TableDecor } from "./Decor";
+import { Chairs, TableDecor, useDecorParts } from "./Decor";
 import { TableContacts } from "./Contact";
 import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
@@ -600,6 +600,7 @@ export function Items({
   const drag = useView((s) => s.drag);
   const hover = useView((s) => s.hover);
   const placed = usePlaced(scenario);
+  const decor = useDecorParts(placed, scenario, quality === "low");
   const blocking = useMemo(
     () => new Set(placed.filter((p) => blocksFloor(p.shape)).map((p) => p.item.id)),
     [placed],
@@ -915,8 +916,8 @@ export function Items({
         );
       })}
       <Chairs placed={placed} scenario={scenario} low={quality === "low"} />
-      <TableContacts placed={placed} m={m} />
-      <TableDecor placed={placed} scenario={scenario} m={m} evening={evening} low={quality === "low"} />
+      <TableContacts placed={placed} decor={decor} m={m} />
+      <TableDecor decor={decor} m={m} evening={evening} low={quality === "low"} />
       {/* Touch rotates with the inspector buttons; a 3D handle is too small a target there. */}
       {single && camera !== "walk" && !coarse && !spotFor(single.item, venue) && !drag && (
         <RotateHandle

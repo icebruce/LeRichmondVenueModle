@@ -27,7 +27,7 @@ import {
   shadowDraws,
   uncapNextFrame,
 } from "./frames";
-import { BACKDROP, LED_GLOW, useMaterials } from "./materials";
+import { BACKDROP, BRICK_TINT, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
 import { BakeExport } from "./BakeExport";
 import { useBake } from "./useBake";
@@ -113,13 +113,15 @@ function Lighting({
   return (
     <>
       {/* Evening warmth kept calm, so white linen reads white or ivory, not beige (V2 colour check). */}
-      <hemisphereLight args={evening ? ["#615a50", "#1f1b16", 0.75] : ["#e9eef2", "#a48d72", 1.25]} />
+      <hemisphereLight args={evening ? ["#6b5438", "#1e1710", 0.4] : ["#e9eef2", "#a48d72", 1.25]} />
       <directionalLight
         // A new tier's shadow size needs a new shadow map.
         key={shadowSize}
-        position={evening ? [W / 2 + 4, 14, D / 2 - 6] : [-12, 13, D / 2 - 3]}
-        intensity={evening ? 0.35 : 2.4}
-        color={evening ? "#ffdfc0" : "#fff4e6"}
+        // Evening: a warm light from nearly overhead, standing in for the chandeliers and track
+        // spots, so the bar and tables cast their shadows straight down (R06, R08).
+        position={evening ? [W / 2 + 1.5, 14, D / 2 - 1.5] : [-12, 13, D / 2 - 3]}
+        intensity={evening ? 1.1 : 2.4}
+        color={evening ? "#ffdcb5" : "#fff4e6"}
         castShadow={shadowSize > 0}
         // Plan view is flat and high-contrast: no shadows (DESIGN_GUIDE §9).
         shadow-intensity={plan ? 0 : 1}
@@ -142,7 +144,7 @@ function Lighting({
           intensity={(c.kind === "brassCluster" ? 26 : 9) * (evening ? 1 : 0.25)}
           distance={c.kind === "brassCluster" ? 14 : 8}
           decay={1.6}
-          color="#ffdcb8"
+          color="#ffd8aa"
         />
       ))}
       {/* The back bar's glow, under its canopy (R01, R03). */}
@@ -153,9 +155,9 @@ function Lighting({
         decay={1.6}
         color="#ffc98e"
       />
-      <pointLight position={[13.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
-      <pointLight position={[3.5, 1.6, 6]} intensity={6 * glow} distance={9} decay={1.6} color="#ffd0a0" />
-      <pointLight position={[5.6, 2, 11]} intensity={6 * glow} distance={8} decay={1.6} color="#ffd0a0" />
+      <pointLight position={[13.5, 1.6, 6]} intensity={3 * glow} distance={9} decay={1.6} color="#ffd4a0" />
+      <pointLight position={[3.5, 1.6, 6]} intensity={3 * glow} distance={9} decay={1.6} color="#ffd4a0" />
+      <pointLight position={[5.6, 2, 11]} intensity={3 * glow} distance={8} decay={1.6} color="#ffd4a0" />
       <Environment resolution={128} frames={1}>
         <Lightformer
           form="rect"
@@ -189,13 +191,15 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
   const moving = useStore(graphicsStore, (s) => s.moving);
   if (levers.direct) return null;
   const high = quality === "high";
+  // The effect chain depends on the device only: a tier change that rebuilt it (multisampling or
+  // ambient occlusion resolution per tier, tried in V2b) compiled its passes again at the next
+  // camera change, a visible hitch ([PLT-03]).
   return (
-    // Multisampling by device too: changing it rebuilds every effect pass.
     <EffectComposer multisampling={high ? 4 : 0}>
       <N8AO
         enabled={levers.ao === "live" || !moving}
-        aoRadius={0.7}
-        intensity={evening ? 2.2 : 1.6}
+        aoRadius={0.55}
+        intensity={evening ? 3.2 : 2.2}
         distanceFalloff={0.6}
         halfRes
       />
@@ -205,7 +209,7 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
         luminanceSmoothing={high ? 0.2 : 0.03}
         mipmapBlur
       />
-      <ToneMapping mode={ToneMappingMode.AGX} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       <Vignette darkness={evening ? 0.42 : 0.2} offset={0.3} opacity={high ? 1 : 0} />
     </EffectComposer>
   );
@@ -425,11 +429,15 @@ function Scene({
   useEffect(() => {
     m.led.emissiveIntensity = evening ? LED_GLOW : 0;
     m.cap.emissiveIntensity = evening ? 0.12 : 0;
+    for (const brick of [m.brick, bake?.materials.brick])
+      (brick as THREE.MeshStandardMaterial | undefined)?.color.set(
+        evening ? BRICK_TINT.evening : BRICK_TINT.day,
+      );
     // Street sheers at night are lit only from inside: dimmer.
     m.sheer.opacity = evening ? 0.1 : 0.2;
     scene.backgroundIntensity = (evening ? BACKDROP.evening : BACKDROP.day).intensity;
     invalidate();
-  }, [m, scene, evening, invalidate]);
+  }, [m, bake, scene, evening, invalidate]);
   return (
     <>
       <primitive attach="background" object={background} />
@@ -440,10 +448,16 @@ function Scene({
         version={`${scenario.venueToggles.barStools}|${mode === "plan"}|${JSON.stringify(scenario.venueToggles.paintings)}`}
       >
         <Floors venue={venue} m={m} bake={bake} />
-        <Railing venue={venue} m={m} />
-        <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} />
-        <BackBar venue={venue} m={m} />
-        <Furnishings venue={venue} m={m} art={mode !== "plan"} choices={scenario.venueToggles.paintings} />
+        <Railing venue={venue} m={m} bake={bake} />
+        <Bar venue={venue} m={m} stools={scenario.venueToggles.barStools} bake={bake} />
+        <BackBar venue={venue} m={m} bake={bake} />
+        <Furnishings
+          venue={venue}
+          m={m}
+          art={mode !== "plan"}
+          choices={scenario.venueToggles.paintings}
+          bake={bake}
+        />
       </StaticMerge>
       <BackBarBottles venue={venue} />
       {scenario.venueToggles.barFlowers.shown && (
@@ -460,7 +474,7 @@ function Scene({
       <group visible={!cut.has("south")}>
         <Mezzanine venue={venue} m={m} bake={bake} />
       </group>
-      <Stair venue={venue} m={m} inRoom={cut.has("south")} />
+      <Stair venue={venue} m={m} inRoom={cut.has("south")} bake={bake} />
       <group visible={mode !== "plan"}>
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>

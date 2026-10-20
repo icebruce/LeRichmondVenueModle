@@ -13,13 +13,13 @@ const BAKE_OFF = ((q) => q.get("bake") === "stale" || q.has("bake-export"))(
 );
 
 /** The receivers' light-mapped materials and their light-map UVs, when the bake matches the room. */
-export type Bake = { atlas: Atlas; materials: Partial<Materials> };
+export type Bake = { atlas: Atlas; materials: Partial<Materials>; occlusion: THREE.Texture };
 
 /**
  * Brightness of each set on top of the bake's own scale: the evening and daylight calibration
  * against the reference photos (V2).
  */
-const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.3, day: 2.6 };
+const EXPOSURE: Record<(typeof BAKE_SETS)[number], number> = { evening: 0.16, day: 3.4 };
 
 /**
  * Plan view is flat (DESIGN_GUIDE §9): an even light map in place of the bake, still bound, so
@@ -49,34 +49,44 @@ export function useBake(
   const invalidate = useThree((s) => s.invalidate);
   const atlas = useMemo(() => (!manifest || BAKE_OFF ? null : bakeAtlas(venue, manifest)), [venue, manifest]);
   const size = quality === "high" ? "2k" : "1k";
+  // The two light-map sets, then the occlusion map they share.
   const urls =
     atlas && manifest
-      ? BAKE_SETS.map((k) => `${import.meta.env.BASE_URL}assets/bake/${manifest.sets[k].files[size]}`)
+      ? [...BAKE_SETS.map((k) => manifest.sets[k].files[size]), manifest.occlusion].map(
+          (f) => `${import.meta.env.BASE_URL}assets/bake/${f}`,
+        )
       : [];
-  const maps = useLoader(THREE.TextureLoader, urls) as THREE.Texture[];
+  const loaded = useLoader(THREE.TextureLoader, urls) as THREE.Texture[];
+  const maps = useMemo(() => loaded.slice(0, BAKE_SETS.length), [loaded]);
   const bake = useMemo(() => {
     const [map] = maps;
-    if (!atlas || !map) return null;
-    // Before first use: the bake's rows run top first, as the light-map UVs do; 8-bit, 2.2 gamma.
-    for (const t of maps) {
+    const occlusion = loaded[BAKE_SETS.length];
+    if (!atlas || !map || !occlusion) return null;
+    // Before first use: the bake's rows run top first, as the light-map UVs do; the light 8-bit with
+    // a 2.2 gamma, the occlusion linear.
+    for (const t of loaded) {
       t.flipY = false;
-      t.colorSpace = THREE.SRGBColorSpace;
+      t.colorSpace = t === occlusion ? THREE.NoColorSpace : THREE.SRGBColorSpace;
       t.channel = 1;
     }
     const materials: Partial<Materials> = {};
     for (const r of roomReceivers(venue)) {
       const key = r.material;
       if (!materials[key])
-        Object.assign(materials, { [key]: bakedMaterial(m[key] as THREE.MeshStandardMaterial, map) });
+        Object.assign(materials, {
+          [key]: bakedMaterial(m[key] as THREE.MeshStandardMaterial, map, occlusion),
+        });
     }
-    return { atlas, materials };
-  }, [atlas, maps, venue, m]);
+    return { atlas, materials, occlusion };
+  }, [atlas, maps, loaded, venue, m]);
   useEffect(() => {
     if (!bake || !manifest) return;
     const set = evening ? "evening" : "day";
     const map = plan ? FLAT : (maps[BAKE_SETS.indexOf(set)] as THREE.Texture);
     for (const mat of Object.values(bake.materials) as THREE.MeshStandardMaterial[]) {
       mat.lightMap = map;
+      // The plan view is flat (V2): no contact darkening either.
+      mat.aoMap = plan ? FLAT : bake.occlusion;
       // The bake holds irradiance over π (Cycles' diffuse colour pass is left out), scaled into 8 bits.
       mat.lightMapIntensity = plan ? FLAT_INTENSITY : Math.PI * manifest.sets[set].scale * EXPOSURE[set];
     }
