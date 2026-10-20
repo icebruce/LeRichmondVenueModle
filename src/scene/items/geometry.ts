@@ -213,8 +213,11 @@ function loadPieceModel(file: string): Promise<PieceModel> {
       if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no mesh`);
       const geometry = mesh.geometry as THREE.BufferGeometry;
       const material = mesh.material as THREE.MeshStandardMaterial;
-      // Leaves and a chandelier's bars are thin shells, seen from both sides.
+      // Leaves and a chandelier's bars are thin shells, seen from both sides; shadows from the back
+      // faces like every other mesh (a two-sided shadow pass is a shader of its own, compiled the
+      // first time the lighting changed, PLT-03).
       material.side = THREE.DoubleSide;
+      material.shadowSide = THREE.BackSide;
       geometry.computeBoundingBox();
       return { geometry, material, height: geometry.boundingBox?.max.y ?? 1 };
     });
