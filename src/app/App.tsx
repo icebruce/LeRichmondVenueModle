@@ -117,7 +117,12 @@ export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
       viewFile: (image) =>
         new File([image], fileName(`${studio.editor.active().name} view`, "png"), { type: "image/png" }),
       saveFile: async (file, share) => {
-        if (share) await navigator.share({ files: [file] }).catch(() => {});
+        // Closing the share sheet is no failure; anything else is said.
+        if (share)
+          await navigator.share({ files: [file] }).catch((e: unknown) => {
+            if (!(e instanceof DOMException && e.name === "AbortError"))
+              studio.editor.notify("Couldn't share the image. Try Save image on a computer.");
+          });
         else downloadBlob(file, file.name);
       },
     }),

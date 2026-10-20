@@ -530,13 +530,16 @@ for (const quality of ["low", "high"] as const)
   }) => {
     type Hooks = { __frames: () => number; __programs: () => number[] };
     await openStudio(page, `fresh&quality=${quality}`);
-    // A pinspot adds the evening-only beams and glows (LIB-08).
+    // A pinspot adds the evening-only beams and glows (LIB-08); flowers chosen after the room loaded
+    // add bloom models that only eye level shows (V5).
     await page.evaluate(() => {
       const ed = (window as unknown as W).__studio.editor as unknown as {
         addItem: (id: string, at: [number, number]) => string | null;
         select: (ids: string[]) => void;
+        setStyle: (k: string, v: unknown) => void;
       };
       ed.addItem("light-pinspot", [8, 6]);
+      ed.setStyle("florals", "floral-low");
       ed.select([]);
     });
     await page.waitForTimeout(1500);

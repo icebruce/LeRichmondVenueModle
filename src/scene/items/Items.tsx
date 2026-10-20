@@ -606,12 +606,12 @@ export function Items({
   const drag = useView((s) => s.drag);
   const hover = useView((s) => s.hover);
   const placed = usePlaced(scenario);
-  const decor = useDecorParts(placed, scenario, quality === "low");
+  const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
+  const decor = useDecorParts(placed, scenario, quality === "low", labels);
   const blocking = useMemo(
     () => new Set(placed.filter((p) => blocksFloor(p.shape)).map((p) => p.item.id)),
     [placed],
   );
-  const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const toPlane = useFloorPointer();
   const getThree = useThree((s) => s.get);
   const press = useRef<{ x: number; y: number; timer: number | null; started: boolean } | null>(null);

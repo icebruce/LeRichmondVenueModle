@@ -59,6 +59,20 @@ export const importKind = (id: ImportType): ImportKind =>
   IMPORT_TYPES.find((k) => k.id === id) ?? (IMPORT_TYPES[IMPORT_TYPES.length - 1] as ImportKind);
 
 /** Short label shown on every imported item (DESIGN_GUIDE §1.6); a photo preview is never "3D". */
+/**
+ * How Photo mode's image names an approximate imported item (EXP-02): its name and fidelity label in
+ * the label's exact words, once when the name is the label.
+ */
+export function approximateName(name: string, result: Imported["result"]): string {
+  const label = RESULT_LABELS[result];
+  return name.toLowerCase() === label.toLowerCase() ? label : `${name} (${label})`;
+}
+
+/** The image's footnote for the approximate items in view (each named once), or null with none. */
+export function photoFootnote(names: readonly string[]): string | null {
+  return names.length ? `Approximate: ${[...new Set(names)].join(", ")}` : null;
+}
+
 export const RESULT_LABELS: Record<Imported["result"], string> = {
   material: "Material",
   approximate: "Approximate 3D",

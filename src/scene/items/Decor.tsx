@@ -10,11 +10,11 @@ import {
   type Slot,
   tableDecor,
 } from "../../domain/layout/decor";
-import { tableLabels } from "../../domain/layout/counts";
 import { makePiece } from "../../domain/layout/pieces";
 import { styleOf } from "../../domain/scenario/scenario";
 import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
+import { requestWarmup } from "../frames";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
 import {
@@ -342,7 +342,6 @@ function withCells(g: THREE.BufferGeometry, capacity: number): THREE.BufferGeome
 }
 
 /** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
-/** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
 type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string };
 
 /** Turned shapes and the primitive drawn for them away from eye level and on phones (V5). */
@@ -371,19 +370,14 @@ const LEAF = "#56704a";
 /** Each placed piece's décor parts and the height they stand on: one layout for the décor and its contact shadows. */
 export type DecorParts = { p: Placed; base: number; parts: Part[] }[];
 
-export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean): DecorParts {
+export function useDecorParts(
+  placed: Placed[],
+  scenario: Scenario,
+  low: boolean,
+  /** The plan's table labels (`tableLabels`), printed on the number cards. */
+  labels: ReadonlyMap<string, string>,
+): DecorParts {
   const { catalog } = useStudio();
-  // Table numbers for the cards (V5), as the plan labels them.
-  const labelKey = placed.map((p) => `${p.item.id}:${p.item.label ?? ""}`).join("|");
-  const labels = useMemo(
-    () =>
-      tableLabels(
-        placed.map((p) => p.item),
-        catalog,
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [labelKey, catalog],
-  );
   // Parts per table depend only on its shape and style; a drag just moves them.
   return useMemo(
     () =>
@@ -592,6 +586,8 @@ export function TableDecor({
       }),
     [groups, prims, materials, solidMaterial, bloomMaterial, blooms, low],
   );
+  // Meshes made hidden (the detail away from eye level, flames by day) compile now, not when shown.
+  useEffect(() => requestWarmup(), [meshes]);
   useEffect(
     () => () => {
       for (const { g, mesh } of meshes) {
@@ -699,15 +695,17 @@ export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean })
         .join("|");
   const files = useMemo(() => (key ? key.split("|") : []), [key]);
   const loaded = useLoader(PieceModelLoader, files) as PieceModel[];
+  // Room for every placement of each model (a new mesh when that count grows past it).
+  const capacity = Math.max(1, decor.length);
   const meshes = useMemo(
     () =>
       files.map((file, i) => {
         const model = loaded[i] as PieceModel;
-        const mesh = new THREE.InstancedMesh(model.geometry, model.material, PIECE_CAPACITY);
+        const mesh = new THREE.InstancedMesh(model.geometry, model.material, capacity);
         mesh.castShadow = true;
         return { file, model, mesh };
       }),
-    [files, loaded],
+    [files, loaded, capacity],
   );
   useEffect(
     () => () => {
@@ -720,7 +718,7 @@ export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean })
     for (const { file, model, mesh } of meshes) {
       let n = 0;
       for (const { p } of decor) {
-        if (p.shape.kind !== "piece" || p.shape.file !== file || n >= PIECE_CAPACITY) continue;
+        if (p.shape.kind !== "piece" || p.shape.file !== file) continue;
         const item = moved(p.item, drag);
         const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
         t.position.set(item.x, p.y + lift, item.z);
@@ -743,6 +741,3 @@ export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean })
     </group>
   );
 }
-
-/** Placements of one piece model drawn at most (more of one plant than this would be a mistake). */
-const PIECE_CAPACITY = 64;

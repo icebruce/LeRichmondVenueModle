@@ -212,7 +212,7 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
     } else if (f.form === "branch" && i % 5 === 0) {
       // Blossom: thin branches leaning out, small flowers along them.
       const lean = (ctx.rand() - 0.5) * 0.9;
-      parts.push({ ...cyl("black", px, py, pz, 0.004, 0.22), rz: lean });
+      parts.push({ ...cyl("wood", px, py, pz, 0.0025, 0.22), rz: lean });
       // Flowers along the leaning branch (it tilts about z, so its tip moves in x and y).
       for (let j = 1; j <= 3; j++)
         parts.push(
@@ -612,7 +612,8 @@ function numberHolder(x: number, z: number, label: string | undefined): Part[] {
   const card = Number.isInteger(n) && n >= 1 && n <= CARD_NUMBERS ? n : 0;
   return [
     cyl("brass", x, 0, z, 0.035, 0.008),
-    cyl("brass", x, 0.008, z, 0.004, 0.12),
+    // The pole stands just behind the card, which it holds by its lower edge.
+    cyl("brass", x, 0.008, z - 0.004, 0.003, 0.11),
     { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003, card },
   ];
 }
@@ -951,7 +952,7 @@ function dress(
   }
   if (extras.tableNumbers && shape.kind !== "cocktail") {
     const [x, z] =
-      shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
+      shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.1] : [0.24, -0.16];
     fixed.push(...numberHolder(x, z, label));
     plates.push({ x, z, r: 0.06 });
   }

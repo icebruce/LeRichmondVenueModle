@@ -4,7 +4,7 @@ import { useThree } from "@react-three/fiber";
 import { DepthOfField } from "@react-three/postprocessing";
 import type { DepthOfFieldEffect } from "postprocessing";
 import { useStore } from "zustand";
-import { RESULT_LABELS } from "../domain/library/imported";
+import { approximateName, photoFootnote } from "../domain/library/imported";
 import { graphicsStore } from "../state/graphics";
 import { type Photo, photoRenderer } from "../state/view";
 import { useStudio } from "./context";
@@ -78,7 +78,7 @@ function footnote(camera: THREE.Camera, items: { x: number; z: number; name: str
     v.set(x, 0.5, z).project(camera);
     return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1;
   });
-  return seen.length ? `Approximate: ${[...new Set(seen.map((s) => s.name))].join(", ")}` : null;
+  return photoFootnote(seen.map((s) => s.name));
 }
 
 /**
@@ -109,11 +109,7 @@ export function PhotoCapture() {
         ctx.drawImage(src, 0, 0);
         const items = editor.active().items.flatMap((i) => {
           const e = catalog.get(i.libraryId);
-          if (!e?.imported) return [];
-          // The fidelity label in its exact words (DESIGN_GUIDE §8), once when it is the name too.
-          const label = RESULT_LABELS[e.imported.result];
-          const same = e.name.toLowerCase() === label.toLowerCase();
-          return [{ x: i.x, z: i.z, name: same ? label : `${e.name} (${label})` }];
+          return e?.imported ? [{ x: i.x, z: i.z, name: approximateName(e.name, e.imported.result) }] : [];
         });
         const note = footnote(state.camera, items);
         if (note) {

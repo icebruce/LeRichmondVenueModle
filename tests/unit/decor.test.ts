@@ -168,9 +168,8 @@ describe("décor", () => {
     const size = (ps: { sx: number }[]) => ps.reduce((a, p) => a + p.sx, 0) / ps.length;
     expect(size(blooms("peony"))).toBeGreaterThan(size(blooms("rose")));
     expect(blooms("babysBreath").length).toBeGreaterThan(blooms("rose").length * 2);
-    expect(decor({ florals: "floral-low", flowerType: "blossom" }).some((p) => p.slot === "black")).toBe(
-      true,
-    );
+    // Blossom comes on thin brown branches.
+    expect(decor({ florals: "floral-low", flowerType: "blossom" }).some((p) => p.slot === "wood")).toBe(true);
   });
 
   test("[LIB-03] [LIB-04] [LIB-05] [LIB-06] every table-top entry uses a known décor generator", () => {

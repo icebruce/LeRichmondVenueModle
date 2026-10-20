@@ -8,7 +8,8 @@ venv/bin/python bloom_from_meshy.py <meshy.glb> <out.glb> [stem] [front-up]
   cut away, so the topology stays the source's (`check:assets`).
 - Fits the bloom into the box -1..1 by its largest side, centred on every axis, so the app scales it
   by the part's largest size (a sphere's radius) and keeps its own proportions.
-- Faces turned outward (petals are thin shells; the app draws both sides), smooth normals within 80° and ambient occlusion baked into the vertex colour (linear 0.6 deep in a
+- Faces turned outward (petals are thin shells; the app draws both sides), smooth normals throughout
+  (at 300–600 triangles, any crease left reads as a facet) and ambient occlusion baked into the vertex colour (linear 0.6 deep in a
   crease, 1 in the open), so a tinted bloom still shows its petals. No
   texture: the app tints each bloom with its arrangement's colour.
 """
@@ -66,7 +67,7 @@ bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.select_all(action="SELECT")
 bpy.ops.mesh.normals_make_consistent(inside=False)
 bpy.ops.object.mode_set(mode="OBJECT")
-bpy.ops.object.shade_smooth_by_angle(angle=np.radians(80))
+bpy.ops.object.shade_smooth()
 
 # Ambient occlusion into the vertex colour (Cycles bake, a short reach for the bloom's size).
 scene = bpy.context.scene

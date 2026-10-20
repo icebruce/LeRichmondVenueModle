@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Editor } from "../state/editor";
+import type { CameraMode, Editor } from "../state/editor";
 import { type Photo, photoRenderer, viewStore } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
 import { useBackLayer } from "./back";
@@ -16,10 +16,12 @@ const BLURS: { value: Photo["blur"]; label: string }[] = [
 ];
 
 /** Photo mode works in Dollhouse and Walk, not in Plan or while comparing. */
+const allowed = (camera: CameraMode, compare: string | null) => camera !== "plan" && !compare;
+
 export function usePhotoAllowed(): boolean {
-  const plan = useEditor((s) => s.camera === "plan");
+  const camera = useEditor((s) => s.camera);
   const compare = useView((s) => s.compare);
-  return !plan && !compare;
+  return allowed(camera, compare);
 }
 
 export const PHOTO_UNAVAILABLE = "Works in Dollhouse and Walk";
@@ -28,7 +30,7 @@ export const PHOTO_UNAVAILABLE = "Works in Dollhouse and Walk";
 export function openPhoto(editor: Editor) {
   const st = editor.store.getState();
   const v = viewStore.getState();
-  if (st.camera === "plan" || v.compare || v.photo) return;
+  if (!allowed(st.camera, v.compare) || v.photo) return;
   viewStore.setState({
     photo: { blur: "soft", focus: null, selection: st.selection, busy: false },
     pickSeat: null,

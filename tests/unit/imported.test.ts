@@ -4,10 +4,12 @@ import { route } from "../../api/_lib/router";
 import { resetMemoryStore } from "../../api/_lib/store";
 import {
   RESULT_LABELS,
+  approximateName,
   dominantColours,
   importAdjusts,
   importParams,
   importedEntry,
+  photoFootnote,
   requestStatus,
   suggest,
   withImported,
@@ -335,5 +337,18 @@ describe("custom requests and honest results", () => {
     expect(of("candle-tapers", ["#ffffff"])).toEqual({ size: true, colour: false });
     expect(of("chair-oval", ["#222222"])).toEqual({ size: false, colour: true });
     expect(of("floral-low", ["#ef9fb8"])).toEqual({ size: true, colour: true });
+  });
+});
+
+describe("Photo mode footnote", () => {
+  test("[EXP-02] names each approximate item once with its fidelity label in its exact words", () => {
+    expect(approximateName("Welcome sign", "photo")).toBe("Welcome sign (Photo preview)");
+    expect(approximateName("Lounge sofa", "approximate")).toBe("Lounge sofa (Approximate 3D)");
+    // An item named after its label is named once.
+    expect(approximateName("photo preview", "photo")).toBe("Photo preview");
+    expect(
+      photoFootnote(["Welcome sign (Photo preview)", "Welcome sign (Photo preview)", "Arch (Material)"]),
+    ).toBe("Approximate: Welcome sign (Photo preview), Arch (Material)");
+    expect(photoFootnote([])).toBeNull();
   });
 });
