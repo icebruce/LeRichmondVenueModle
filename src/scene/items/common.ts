@@ -1,8 +1,7 @@
 import type { Item, Shape } from "../../domain/layout/items";
 import type { Drag } from "../../state/view";
 
-/** Table-top height of linen-covered tables (m). */
-export const TOP = 0.765;
+export { TABLE_TOP as TOP } from "../../domain/layout/cloth";
 /** Picked-up items float this much, so the drag reads as lifting (DESIGN_GUIDE §5). */
 export const LIFT = 0.02;
 

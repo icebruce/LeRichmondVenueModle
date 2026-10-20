@@ -307,7 +307,7 @@ for (const [bench, items] of [
   ["ppl03", 27],
 ] as const)
   for (const [quality, tier, calls, triangles] of [
-    ["high", "high", 250, 1_500_000],
+    ["high", "high", 250, 2_000_000],
     ["low", "balanced", 150, 600_000],
     ["low", "battery", 150, 600_000],
   ] as const)

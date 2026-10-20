@@ -29,6 +29,8 @@ import { Chairs, TableDecor, useDecorParts } from "./Decor";
 import { TableContacts } from "./Contact";
 import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
+import { sharedDrape } from "./drape";
+import { clothDrop } from "../../domain/layout/cloth";
 import { Line } from "./Line";
 
 /** The item an intersected mesh belongs to (its `item-<id>` group), if any. */
@@ -38,8 +40,6 @@ function itemIdOf(o: THREE.Object3D | null): string | null {
 }
 
 const coarse = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
-/** A lap-length cloth hangs this far below the table top (LIB-03). */
-const LAP_DROP = 0.3;
 
 /** Colours come from the design tokens (tokens.css), so the 3D outline matches the interface. */
 function token(name: string, fallback: string): string {
@@ -98,9 +98,16 @@ function TableBody({
   segments: number;
   evening: boolean;
 }) {
-  // Floor length reaches the floor; lap length stops LAP_DROP below the top and shows the legs.
-  const clothH = lap ? LAP_DROP : TOP;
-  const clothY = TOP - clothH / 2;
+  // Floor length stops just above the floor; lap length stops LAP_DROP below the top, a rectangle's
+  // corners in points, and shows the legs. The drape's top lies on the table top, under the décor (LIB-03).
+  const drape = (outline: Parameters<typeof sharedDrape>[0], cloth: THREE.Material) => (
+    <mesh
+      geometry={sharedDrape(outline, TOP - 0.003, clothDrop(lap) - 0.003, segments, lap)}
+      material={cloth}
+      castShadow
+      receiveShadow
+    />
+  );
   if (shape.kind === "rectTable") {
     if (shape.farm || !linen) {
       const legs = [-1, 1].flatMap((sx) =>
@@ -123,9 +130,7 @@ function TableBody({
     const lz = shape.width / 2 - 0.1;
     return (
       <group>
-        <mesh position={[0, clothY, 0]} material={linen} castShadow receiveShadow>
-          <boxGeometry args={[shape.length + 0.06, clothH, shape.width + 0.06]} />
-        </mesh>
+        {drape({ kind: "rect", length: shape.length, width: shape.width }, linen)}
         {lap && (
           <Legs
             pts={[
@@ -155,9 +160,7 @@ function TableBody({
       );
     return (
       <group>
-        <mesh position={[0, clothY, 0]} material={linen} castShadow receiveShadow>
-          <cylinderGeometry args={[r + 0.03, r + (lap ? 0.05 : 0.07), clothH, segments]} />
-        </mesh>
+        {drape({ kind: "round", radius: r }, linen)}
         {lap && (
           <mesh position={[0, (TOP - 0.03) / 2, 0]} material={m.blackMetal} castShadow>
             <cylinderGeometry args={[0.05, 0.05, TOP - 0.03, 8]} />

@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17) and V2 (#18) merged; the owner approved V2 (2026-10-18) and asked for V3 to V6, one PR each, stopping before V7 (no Meshy spend). V3 built. Owner's review of the V2 evening (2026-10-19): too flat (uniform light brick, no warm bounce, missing bar shadows and ambient occlusion, night tone off R06/R08) and the graphics setting shows no difference; a light rework (V2b) comes next, before V4. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) built, in review; V5 next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -53,8 +53,8 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V0 | Performance foundation, measurement, asset pipeline and checks | Must | Merged (PR #16); owner: device readings |
 | V1 | Room model and surfaces | Must | Merged (PR #17) |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Merged (PR #18), approved by the owner |
-| V3 | Bar and back bar | Should | Built, PR next |
-| V4 | Linens and chairs | Must | Not started |
+| V3 | Bar and back bar | Should | Merged (PR #19) |
+| V4 | Linens and chairs | Must | Built, in review |
 | V5 | Table décor and Photo mode | Must | Not started |
 | V6 | Remaining fixtures | If time allows | Not started |
 | V7 | People | Should | Not started |
@@ -293,6 +293,13 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Review:** `fidelity-reviewer` vs R04, R09 and R10; finish checklist item Soft goods.
 
 **Gate:** the owner approves on the preview.
+
+**Built (2026-10-19):**
+
+- **Linens:** every table wears a procedural drape (`scene/items/drape.ts`): an eased top edge, folds 4 cm deep at the hem round its line, a rectangle's corners crisp at the top and gathered round at the hem, a 3.5 cm flare; floor length stops 12 mm above the floor, lap length 0.30 m below the top, a rectangle's corners hanging in points to about 0.42 m, as a flat cloth's do (R04; owner, 2026-10-20). One geometry per table size, shared. Runner ends hang just outside the cloth's reach at their own hem (`domain/layout/cloth.ts`).
+- **Chair-gap rule:** a tucked chair's front stays outside the cloth's furthest reach, for every chair style and table size (unit test).
+- **Chairs (Meshy, approved 2026-10-19):** oval-back, cross-back and Chiavari, made with Meshy (about 3,000 triangles each; task ids in `tools/meshy/TASKS.md`) and prepared by `tools/blender/chair_from_meshy.py`: the remesher's topology kept (its few fins and pin holes do not show; refilling them made jagged patches), width and height fitted, the backrest placed where a seated guest's back rests, a grey detail map and a frame/seat mask, so each library entry tints frame and seat and every chair type is one draw call. About 320 KB each, uncompressed (the site's CSP has no `wasm-unsafe-eval` for meshopt). High only, loaded with the room so no chair shader compiles on a later switch; Balanced and phones keep the parametric chairs. The venue chair: grey-oak frame, grey velvet (R04).
+- **Budgets:** High's triangle budget is 2.0 M (owner, 2026-10-19; was 1.5 M), for the Meshy chairs, flowers and chandeliers.
 
 ### V5: Table décor and Photo mode
 

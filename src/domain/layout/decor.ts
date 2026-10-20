@@ -3,6 +3,7 @@ import type { Catalog } from "../library/catalog";
 import type { LibraryEntry } from "../library/schema";
 import type { CandleKind, TableStyle } from "../scenario/schema";
 import type { Chair, Shape } from "./items";
+import { clothDrop, clothReachAt } from "./cloth";
 
 /** Which table style an item fills when used on every table, if any (DEC-01). */
 export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
@@ -256,16 +257,22 @@ const centrepieces: Record<string, Gen> = {
 /** Generators that run the table's length instead of sitting at centre spots. */
 const runners: Record<
   string,
-  (length: number, ctx: Ctx, p: Record<string, number | string | boolean>, overhang: number) => Part[]
+  (
+    length: number,
+    ctx: Ctx,
+    p: Record<string, number | string | boolean>,
+    overhang: (drop: number) => number,
+  ) => Part[]
 > = {
   // Velvet lies flat and drops over both ends, outside the tablecloth; chiffon is wider, sheer and
   // hangs longer (LIB-03).
-  runner: (length, _ctx, p, overhang) => {
+  runner: (length, _ctx, p, overhangAt) => {
     const sheer = p.fabric === "chiffon";
     const slot: Slot = sheer ? "sheer" : "fabric";
     const colour = String(p.colour ?? "#ffffff");
     const w = sheer ? 0.5 : 0.36;
     const drop = sheer ? 0.45 : 0.28;
+    const overhang = overhangAt(drop);
     const parts: Part[] = [
       { prim: "box", slot, x: 0, y: 0.002, z: 0, sx: length + 2 * overhang, sy: 0.004, sz: w, colour },
     ];
@@ -815,18 +822,13 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
   };
   const parts: Part[] = [];
   const pieces = [style.runner, style.florals];
-  // How far past the table edge the cloth hangs, so a runner's ends drop outside it (Items.tsx).
+  // How far past the table edge the cloth reaches at a runner's hem, so its ends drop outside it.
   const cloth = catalog.get(style.linen)?.model;
   const bare =
     (shape.kind === "rectTable" && shape.farm) ||
     (cloth?.kind === "parametric" && cloth.params.bare === true);
-  const overhang = bare
-    ? 0.004
-    : shape.kind === "rectTable"
-      ? 0.04
-      : extras.linenLength === "lap"
-        ? 0.065
-        : 0.085;
+  const overhang = (drop: number) =>
+    bare ? 0.004 : clothReachAt(drop / clothDrop(extras.linenLength === "lap")) + 0.004;
   const at = spots(shape);
   const flowers: { x: number; z: number; parts: Part[] }[] = [];
   for (const id of pieces) {

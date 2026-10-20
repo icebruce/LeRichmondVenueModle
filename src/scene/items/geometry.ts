@@ -1,11 +1,18 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 function merge(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const g = mergeGeometries(geos.map((x) => (x.index ? x.toNonIndexed() : x)));
   if (!g) throw new Error("merge failed");
   return g;
 }
+
+/**
+ * How far any chair style reaches in front of its centre (its seat front, the oval chair's being the
+ * deepest), for the chair-gap rule with floor-length cloths (V4).
+ */
+export const CHAIR_FRONT_REACH = 0.21;
 
 /**
  * Venue oval-back chair (Louis style, R04/R12). Faces +z; the backrest is at -z.
@@ -113,4 +120,47 @@ export function chairGeometry(style: string, low: boolean) {
   if (style === "crossback") return crossbackChair(low);
   if (style === "chiavari") return chiavariChair(low);
   return ovalBackChair(low);
+}
+
+/**
+ * A chair style's full-quality model (V4, `tools/blender/chair_from_meshy.py`): one mesh, a grey
+ * detail map at half strength (0.5 = the part's own colour) and a mask, white where the seat is.
+ */
+export type ChairModel = { geometry: THREE.BufferGeometry; detail: THREE.Texture; mask: THREE.Texture };
+
+const chairModels = new Map<string, Promise<ChairModel>>();
+
+/** Loads a chair model file and its `-mask.png` once; shared by every entry of the style, never disposed. */
+export function loadChairModel(file: string): Promise<ChairModel> {
+  let p = chairModels.get(file);
+  if (!p) {
+    const url = `${import.meta.env.BASE_URL}${file}`;
+    p = Promise.all([
+      new GLTFLoader().loadAsync(url),
+      new THREE.TextureLoader().loadAsync(url.replace(/\.glb$/, "-mask.png")),
+    ]).then(([gltf, mask]) => {
+      const mesh = gltf.scene.getObjectByName("chair");
+      if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no chair mesh`);
+      const detail = (mesh.material as THREE.MeshStandardMaterial).map;
+      if (!detail) throw new Error(`${file}: no detail map`);
+      // Both maps are data, not colour, and share the glTF texture orientation.
+      detail.colorSpace = mask.colorSpace = THREE.NoColorSpace;
+      mask.flipY = false;
+      return { geometry: mesh.geometry as THREE.BufferGeometry, detail, mask };
+    });
+    chairModels.set(file, p);
+  }
+  return p;
+}
+
+/** `loadChairModel` as a three loader, so the scene's loading step waits for the chairs (`useLoader`). */
+export class ChairModelLoader extends THREE.Loader<ChairModel> {
+  override load(
+    file: string,
+    onLoad: (model: ChairModel) => void,
+    _: unknown,
+    onError?: (e: unknown) => void,
+  ) {
+    loadChairModel(file).then(onLoad, onError);
+  }
 }

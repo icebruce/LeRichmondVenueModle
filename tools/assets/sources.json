@@ -1,1 +1,5 @@
-{}
+{
+  "assets/models/chairs/oval.glb": { "openEdges": 57, "nonManifoldEdges": 70 },
+  "assets/models/chairs/crossback.glb": { "openEdges": 4, "nonManifoldEdges": 5 },
+  "assets/models/chairs/chiavari.glb": { "openEdges": 10, "nonManifoldEdges": 5 }
+}

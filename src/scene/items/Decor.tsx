@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { useEffect, useMemo } from "react";
-import { useThree } from "@react-three/fiber";
+import { useLoader, useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
 import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
 import { makePiece } from "../../domain/layout/pieces";
@@ -9,7 +9,7 @@ import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { chairGeometry } from "./geometry";
+import { type ChairModel, ChairModelLoader, chairGeometry } from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -56,22 +56,79 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
   };
 }
 
-/** Chairs grouped by library chair (DEC-04): one frame and one seat mesh per chair type in use. */
+const SEAT_ROUGHNESS = 0.8;
+
+/**
+ * A loaded chair's material (V4): `frame` finishes the frame; where the model's mask is white the
+ * seat colour, fabric roughness, no metal and full opacity take over. The detail map holds the
+ * surface at half strength, so the colour is doubled.
+ */
+function masked(
+  frame: THREE.MeshStandardMaterial,
+  model: ChairModel,
+  seat: string,
+): THREE.MeshStandardMaterial {
+  frame.map = model.detail;
+  frame.onBeforeCompile = (shader) => {
+    shader.uniforms.seatMask = { value: model.mask };
+    shader.uniforms.seatColour = { value: new THREE.Color(seat) };
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nuniform sampler2D seatMask;\nuniform vec3 seatColour;\nfloat seatShare;",
+      )
+      .replace(
+        "#include <map_fragment>",
+        `seatShare = texture2D(seatMask, vMapUv).r;
+diffuseColor.rgb = mix(diffuseColor.rgb, seatColour, seatShare) * texture2D(map, vMapUv).r * 2.0;
+diffuseColor.a = mix(diffuseColor.a, 1.0, seatShare);`,
+      )
+      .replace(
+        "#include <metalnessmap_fragment>",
+        "#include <metalnessmap_fragment>\nmetalnessFactor *= 1.0 - seatShare;",
+      )
+      .replace(
+        "#include <roughnessmap_fragment>",
+        `#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, ${SEAT_ROUGHNESS.toFixed(2)}, seatShare);`,
+      );
+  };
+  frame.customProgramCacheKey = () => "chair-masked";
+  return frame;
+}
+
+/** Chairs grouped by library chair (DEC-04): per chair type in use, one mesh (a loaded model) or a frame and a seat mesh. */
 export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: Scenario; low: boolean }) {
   const { catalog } = useStudio();
   const drag = useView((s) => s.drag);
   // Instances are written in place below, so each write asks for a frame (frames are on demand).
   const invalidate = useThree((s) => s.invalidate);
-  const used = useMemo(
-    () => [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort(),
-    [placed, scenario.style],
+  // Keyed by content: new materials for the same chair types would compile their shader again.
+  const usedKey = [...new Set(placed.map((p) => styleOf(p.item, scenario.style).chair))].sort().join("|");
+  const used = useMemo(() => (usedKey ? usedKey.split("|") : []), [usedKey]);
+  // Full quality draws each style's model file; the light tiers, the generator's own chair (V4).
+  // Full quality loads every chair style's model with the room (its loading step waits for them),
+  // so they compile with it and never swap in later or compile on a view change ([PLT-03]).
+  const files = useMemo(
+    () =>
+      low
+        ? []
+        : [
+            ...new Set(
+              [...catalog.values()].flatMap(({ model }) =>
+                model.kind === "parametric" && model.generator === "chair" && model.file ? [model.file] : [],
+              ),
+            ),
+          ].sort(),
+    [catalog, low],
   );
+  const loaded = useLoader(ChairModelLoader, files) as ChairModel[];
+  const models = useMemo(() => new Map(files.map((f, i) => [f, loaded[i] as ChairModel])), [files, loaded]);
   const kinds = useMemo(
     () =>
       used.map((id) => {
         const model = catalog.get(id)?.model;
         const params = model?.kind === "parametric" ? model.params : {};
-        const geo = chairGeometry(String(params.style ?? "oval"), low);
+        const full = !low && model?.kind === "parametric" && model.file ? models.get(model.file) : undefined;
         const metal = params.metal === true;
         const clear = params.clear === true;
         const frameMat = clear
@@ -86,22 +143,32 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
               metalness: metal ? 0.85 : 0,
               roughness: metal ? 0.3 : 0.55,
             });
-        const seatMat = new THREE.MeshStandardMaterial({
-          color: String(params.seat ?? "#e9e1d3"),
-          roughness: 0.8,
-        });
-        const frame = new THREE.InstancedMesh(geo.frame, frameMat, CHAIR_CAPACITY);
-        const seat = new THREE.InstancedMesh(geo.fabric, seatMat, CHAIR_CAPACITY);
-        frame.castShadow = seat.castShadow = true;
-        return { id, frame, seat };
+        const seatColour = String(params.seat ?? "#e9e1d3");
+        const instanced = (g: THREE.BufferGeometry, m: THREE.Material) => {
+          const mesh = new THREE.InstancedMesh(g, m, CHAIR_CAPACITY);
+          mesh.castShadow = true;
+          return mesh;
+        };
+        // A loaded model is one mesh, finished as frame or seat by its mask; the generator's chair
+        // is a frame mesh and a seat mesh.
+        if (full)
+          return { id, shared: true, meshes: [instanced(full.geometry, masked(frameMat, full, seatColour))] };
+        const geo = chairGeometry(String(params.style ?? "oval"), low);
+        const seatMat = new THREE.MeshStandardMaterial({ color: seatColour, roughness: SEAT_ROUGHNESS });
+        return {
+          id,
+          shared: false,
+          meshes: [instanced(geo.frame, frameMat), instanced(geo.fabric, seatMat)],
+        };
       }),
-    [used, catalog, low],
+    [used, catalog, low, models],
   );
   useEffect(
     () => () => {
       for (const k of kinds)
-        for (const m of [k.frame, k.seat]) {
-          m.geometry.dispose();
+        for (const m of k.meshes) {
+          // A loaded model's geometry is shared by every chair entry of its style.
+          if (!k.shared) m.geometry.dispose();
           (m.material as THREE.Material).dispose();
           m.dispose();
         }
@@ -123,15 +190,14 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
         t.position.set(ch.x, p.y + lift, ch.z);
         t.rotation.set(0, ch.rotY, 0);
         t.updateMatrix();
-        k.frame.setMatrixAt(n, t.matrix);
-        k.seat.setMatrixAt(n, t.matrix);
+        for (const m of k.meshes) m.setMatrixAt(n, t.matrix);
         n++;
       }
       counts.set(id, n);
     }
     for (const k of kinds) {
       const n = counts.get(k.id) ?? 0;
-      for (const m of [k.frame, k.seat]) {
+      for (const m of k.meshes) {
         m.count = n;
         m.instanceMatrix.needsUpdate = true;
         m.computeBoundingSphere();
@@ -143,8 +209,9 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
     <group name="chairs">
       {kinds.map((k) => (
         <group key={k.id}>
-          <primitive object={k.frame} />
-          <primitive object={k.seat} />
+          {k.meshes.map((m) => (
+            <primitive key={m.uuid} object={m} />
+          ))}
         </group>
       ))}
     </group>

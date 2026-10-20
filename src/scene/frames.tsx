@@ -76,6 +76,9 @@ export function Warmup({ direct }: { direct: boolean }) {
     frame.current++;
     if (frame.current === 1) invalidate();
     if (frame.current !== 2) return;
+    // The first frame drew the shadows before its lights were set up, which shadow shaders are keyed
+    // on: draw them again now so the next redraw (a view or lighting switch) finds them compiled.
+    gl.shadowMap.needsUpdate = true;
     // With effects the scene is drawn into their linear buffer, not the screen: compile for that.
     if (direct) return void gl.compile(scene, camera);
     const target = new WebGLRenderTarget(1, 1);
