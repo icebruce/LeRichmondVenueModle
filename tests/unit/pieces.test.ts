@@ -10,8 +10,8 @@ import { hangingLight, resolveOptions } from "../../src/domain/library/catalog";
 
 /** Triangles per unit primitive, as the scene builds them (Decor.tsx `primitives`). */
 const TRIS: Record<"high" | "low", Record<Prim, number>> = {
-  high: { cylinder: 56, sphere: 108, box: 12, cone: 28, bowl: 28, plane: 2 },
-  low: { cylinder: 32, sphere: 36, box: 12, cone: 16, bowl: 16, plane: 2 },
+  high: { cylinder: 56, sphere: 108, box: 12, cone: 28, bowl: 28, plane: 2, drop: 96 },
+  low: { cylinder: 32, sphere: 36, box: 12, cone: 16, bowl: 16, plane: 2, drop: 36 },
 };
 const triangles = (parts: Part[], q: "high" | "low") => parts.reduce((n, p) => n + TRIS[q][p.prim], 0);
 
@@ -23,8 +23,17 @@ const UNIT: Record<Prim, [number, number]> = {
   cone: [0, 1],
   bowl: [0, 1],
   plane: [0, 1],
+  drop: [-1, 1],
 };
-const HALF: Record<Prim, number> = { cylinder: 1, sphere: 1, box: 0.5, cone: 1, bowl: 1, plane: 0.5 };
+const HALF: Record<Prim, number> = {
+  cylinder: 1,
+  sphere: 1,
+  box: 0.5,
+  cone: 1,
+  bowl: 1,
+  plane: 0.5,
+  drop: 1,
+};
 /** World bounds of the solid parts (light beams, glows and floor spots are light, not objects). */
 function bounds(parts: Part[]): THREE.Box3 {
   const box = new THREE.Box3();

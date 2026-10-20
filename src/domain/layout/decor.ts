@@ -24,7 +24,7 @@ export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
  * cube, base at y 0 · `cone` radius 1, height 1, base at y 0, point up · `bowl` the same cone
  * point down (vase bowls) · `plane` 1 m square facing +z, base at y 0 (glows, washes of light).
  */
-export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane";
+export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane" | "drop";
 export type Slot =
   | "wax"
   | "flame"
@@ -43,6 +43,8 @@ export type Slot =
   | "bulb"
   | "beam"
   | "glow"
+  /** Candlelight on the cloth (V5): a warm tint, multiplied in. */
+  | "pool"
   | "mirror";
 export type Part = {
   prim: Prim;
@@ -157,7 +159,7 @@ const ball = (slot: Slot, x: number, y: number, z: number, r: number, colour?: s
 /** A candle: wax column and its flame. */
 const candle = (x: number, y: number, z: number, r: number, h: number): Part[] => [
   cyl("wax", x, y, z, r, h),
-  { ...ball("flame", x, y + h + 0.018, z, 0.011), sy: 0.022 },
+  { ...ball("flame", x, y + h + 0.018, z, 0.011), prim: "drop", sy: 0.022 },
 ];
 
 /** A leaf: a flattened ball, tinted for silvery foliage (eucalyptus). */
@@ -249,7 +251,7 @@ const centrepieces: Record<string, Gen> = {
     ).flatMap(([x, z, h]) => [
       cyl("glass", x, 0, z, 0.045, h),
       cyl("wax", x, 0.004, z, 0.041, h - 0.035),
-      { ...ball("flame", x, h - 0.035 + 0.018, z, 0.011), sy: 0.022 },
+      { ...ball("flame", x, h - 0.035 + 0.018, z, 0.011), prim: "drop" as const, sy: 0.022 },
     ]);
     // Eucalyptus: round, slightly domed leaves (flat cones, light on phones) tilted every way,
     // mounded around the glass; baby's breath as small white florets among them.
@@ -947,8 +949,30 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
     ctx,
   );
   parts.push(...candles.parts, ...fixed);
+  parts.push(...parts.filter((p) => p.slot === "flame").map(pool));
   return { parts, candles };
 }
+
+/**
+ * The warm light a candle throws on the cloth (V5): a tint multiplied into it (on a white cloth,
+ * candlelight shows as warmth, not brightness), strongest under the flame.
+ */
+const POOL = { r: 0.26, colour: "#ffdcb4" };
+
+/** A flame's pool on the table top under it, drawn in the evening like every glow. */
+const pool = (flame: Part): Part => ({
+  prim: "plane",
+  slot: "pool",
+  x: flame.x,
+  y: 0.004,
+  // The plane stands on its lower edge; laid flat it reaches from here to -z, so it centres at +r.
+  z: flame.z + POOL.r,
+  sx: POOL.r * 2,
+  sy: POOL.r * 2,
+  sz: 1,
+  rx: -Math.PI / 2,
+  colour: POOL.colour,
+});
 
 /**
  * An imported centrepiece's own look (IMP-05): the photo's colours in place of the table's palette,
@@ -992,9 +1016,15 @@ export function centrepieceHeight(
   return heightOf(gen(params, ctx));
 }
 
-/** Highest point of a set of parts above the table top (m), for realistic-height checks (DEC-03). */
+/**
+ * Highest point of a set of parts above the table top (m), for realistic-height checks (DEC-03);
+ * the light they cast (beams, glows) does not count.
+ */
 export function heightOf(parts: readonly Part[]): number {
-  return parts.reduce((m, p) => Math.max(m, p.y + p.sy), 0);
+  return parts.reduce(
+    (m, p) => (p.slot === "beam" || p.slot === "glow" || p.slot === "pool" ? m : Math.max(m, p.y + p.sy)),
+    0,
+  );
 }
 
 /**
@@ -1004,7 +1034,9 @@ export function heightOf(parts: readonly Part[]): number {
 export function bottomOf(parts: readonly Part[]): number {
   return parts.reduce(
     (m, p) =>
-      p.slot === "beam" || p.slot === "glow" ? m : Math.min(m, p.prim === "sphere" ? p.y - p.sy : p.y),
+      p.slot === "beam" || p.slot === "glow" || p.slot === "pool"
+        ? m
+        : Math.min(m, p.prim === "sphere" ? p.y - p.sy : p.y),
     Infinity,
   );
 }

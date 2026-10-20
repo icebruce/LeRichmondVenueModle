@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Editor } from "../state/editor";
 import { type Photo, photoRenderer, viewStore } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
@@ -43,6 +43,10 @@ export function closePhoto(editor: Editor) {
   viewStore.setState({ photo: null });
   const ids = new Set(editor.active().items.map((i) => i.id));
   editor.select(photo.selection.filter((id) => ids.has(id)));
+  // Keyboard focus goes back to what opened it: the camera button, or the phone's camera menu.
+  requestAnimationFrame(() =>
+    document.querySelector<HTMLElement>("[data-testid=photo-mode], [data-testid=camera-menu]")?.focus(),
+  );
 }
 
 const setPhoto = (patch: Partial<Photo>) =>
@@ -123,6 +127,19 @@ export function PhotoLayer({ phone }: { phone: boolean }) {
   }, [focus]);
   const ring = focus && faded !== focus ? focus : null;
   useBackLayer(phone, () => closePhoto(editor));
+  // The bar's height, so the toast sits clear above it.
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const watch = new ResizeObserver(() => root.style.setProperty("--photo-bar", `${el.offsetHeight}px`));
+    watch.observe(el);
+    return () => {
+      watch.disconnect();
+      root.style.removeProperty("--photo-bar");
+    };
+  }, []);
 
   // A tap or click on the room (not a drag) sets the focus there; any first touch fades the hint.
   useEffect(() => {
@@ -207,12 +224,11 @@ export function PhotoLayer({ phone }: { phone: boolean }) {
   );
   return (
     <div className="photo-layer" data-testid="photo-layer">
-      {!touched && !focus && (
-        <p className="photo-hint glass">
-          <span className="desktop-only">Drag to frame · click to focus</span>
-          <span className="touch-only">Drag to frame · tap to focus</span>
-        </p>
-      )}
+      {/* The hint fades out at the first touch or focus. */}
+      <p className={`photo-hint glass${touched || focus ? " gone" : ""}`} aria-hidden={touched || !!focus}>
+        <span className="desktop-only">Drag to frame · click to focus</span>
+        <span className="touch-only">Drag to frame · tap to focus</span>
+      </p>
       <div className="photo-close glass">
         <button
           type="button"
@@ -225,8 +241,15 @@ export function PhotoLayer({ phone }: { phone: boolean }) {
           <Icon name="close" />
         </button>
       </div>
-      {ring && <div className="focus-ring" style={{ left: ring[0], top: ring[1] }} aria-hidden="true" />}
-      <div className="photo-bar glass" role="toolbar" aria-label="Photo">
+      {ring && (
+        <div
+          key={`${ring[0]},${ring[1]}`}
+          className="focus-ring"
+          style={{ left: ring[0], top: ring[1] }}
+          aria-hidden="true"
+        />
+      )}
+      <div className="photo-bar glass" role="toolbar" aria-label="Photo" ref={bar}>
         {phone ? (
           <>
             <div className="photo-line">

@@ -60,7 +60,21 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
     cone: new THREE.ConeGeometry(1, 1, r).translate(0, 0.5, 0),
     bowl: new THREE.ConeGeometry(1, 1, r).rotateX(Math.PI).translate(0, 0.5, 0),
     plane: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
+    drop: low ? teardrop(6, 3) : teardrop(8, 6),
   };
+}
+
+/**
+ * A candle flame (V5): round at the bottom, drawn to a point at the top, within -1..1 like the
+ * sphere it replaces (x = sin t · sin(t/2), y = cos t, scaled to a unit radius); as many triangles as
+ * that sphere or fewer.
+ */
+function teardrop(segments: number, steps: number): THREE.BufferGeometry {
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = Math.PI * (1 - i / steps);
+    return new THREE.Vector2(Math.sin(t) * Math.sin(t / 2) * 1.3, Math.cos(t));
+  });
+  return new THREE.LatheGeometry(points, segments);
 }
 
 const SEAT_ROUGHNESS = 0.8;
@@ -374,6 +388,18 @@ export function TableDecor({
         side: THREE.DoubleSide,
         toneMapped: false,
       }),
+      // Candlelight: the cloth times the pool's colour, faded out from the centre (dst · (c·a + 1 − a)).
+      pool: new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        alphaMap: fades.glow,
+        transparent: true,
+        premultipliedAlpha: true,
+        blending: THREE.CustomBlending,
+        blendSrc: THREE.DstColorFactor,
+        blendDst: THREE.OneMinusSrcAlphaFactor,
+        depthWrite: false,
+        toneMapped: false,
+      }),
       mirror: new THREE.MeshStandardMaterial({
         color: "#e6e8ea",
         metalness: 1,
@@ -434,7 +460,7 @@ export function TableDecor({
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
         mesh.castShadow =
-          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow"].includes(g.slot);
+          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow", "pool"].includes(g.slot);
         return { g, mesh };
       }),
     [groups, prims, materials, solidMaterial, bloomMaterial, blooms, low],
@@ -467,6 +493,7 @@ export function TableDecor({
         "bulb",
         "beam",
         "glow",
+        "pool",
         "mirror",
       ] as const)
         materials[k].dispose();
@@ -504,7 +531,7 @@ export function TableDecor({
       mesh.computeBoundingSphere();
       // Flames, beams and glows show only in the evening.
       mesh.visible =
-        (evening || !["flame", "beam", "glow"].includes(g.slot)) &&
+        (evening || !["flame", "beam", "glow", "pool"].includes(g.slot)) &&
         (g.lod === undefined || (g.lod === "near") === detail);
     }
     invalidate();

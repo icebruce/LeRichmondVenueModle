@@ -32,8 +32,14 @@ function surfaceAt(
 ): THREE.Vector3 | null {
   const ray = new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2((at[0] / size.width) * 2 - 1, 1 - (at[1] / size.height) * 2), camera);
+  // Only what is drawn: hidden objects and invisible pick targets (an item's click box) don't count.
   const shown = (o: THREE.Object3D | null): boolean => !o || (o.visible && shown(o.parent));
-  return ray.intersectObjects(scene.children, true).find((h) => shown(h.object))?.point ?? null;
+  const drawn = (m: THREE.Material | THREE.Material[]) => (Array.isArray(m) ? m : [m]).some((x) => x.visible);
+  return (
+    ray
+      .intersectObjects(scene.children, true)
+      .find((h) => shown(h.object) && drawn((h.object as THREE.Mesh).material ?? []))?.point ?? null
+  );
 }
 
 /**
@@ -52,12 +58,15 @@ export function PhotoDepth({ photo, stillOnly }: { photo: Photo; stillOnly: bool
     const hit = surfaceAt(scene, camera, size, photo.focus ?? [size.width / 2, size.height / 2]);
     if (!hit) return;
     effect.target.copy(hit);
-    effect.cocMaterial.focusRange = hit.distanceTo(camera.position) * blur.share;
+    effect.cocMaterial.focusRange = Math.max(MIN_RANGE, hit.distanceTo(camera.position) * blur.share);
     invalidate();
   }, [photo.focus, blur.share, moving, scene, camera, size, invalidate]);
   // Battery saver blurs only once the view is still (the saved image is the same).
   return <DepthOfField ref={dof} target={ORIGIN} bokehScale={stillOnly && moving ? 0 : blur.bokeh} />;
 }
+
+/** The sharp band is never shallower than this (m): at eye level a table stays sharp. */
+const MIN_RANGE = 1;
 
 /** The blur's first target, before the first surface is found (a constant: the effect keeps its own). */
 const ORIGIN: [number, number, number] = [0, 0, 0];
@@ -103,17 +112,21 @@ export function PhotoCapture() {
           if (!e?.imported) return [];
           // The fidelity label in its exact words (DESIGN_GUIDE §8), once when it is the name too.
           const label = RESULT_LABELS[e.imported.result];
-          return [{ x: i.x, z: i.z, name: e.name === label ? label : `${e.name} (${label})` }];
+          const same = e.name.toLowerCase() === label.toLowerCase();
+          return [{ x: i.x, z: i.z, name: same ? label : `${e.name} (${label})` }];
         });
         const note = footnote(state.camera, items);
         if (note) {
+          // Set like a toast: the interface's font and its dark toast colours (tokens.css).
+          const token = (name: string) =>
+            getComputedStyle(document.documentElement).getPropertyValue(name).trim();
           const px = Math.round(out.height * 0.018);
-          ctx.font = `500 ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif`;
+          ctx.font = `500 ${px}px ${token("--font-ui")}`;
           const pad = Math.round(px * 0.6);
           const w = Math.min(ctx.measureText(note).width, out.width - 4 * pad);
-          ctx.fillStyle = "rgba(20, 18, 16, 0.6)";
+          ctx.fillStyle = token("--toast-bg");
           ctx.fillRect(pad, out.height - pad - px - 2 * pad, w + 2 * pad, px + 2 * pad);
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = token("--on-dark");
           ctx.textBaseline = "top";
           ctx.fillText(note, 2 * pad, out.height - 2 * pad - px, w);
         }

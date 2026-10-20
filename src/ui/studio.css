@@ -2173,12 +2173,16 @@ textarea.text-input {
   color: var(--ink);
   white-space: nowrap;
   pointer-events: none;
+  transition: opacity var(--m-slow);
+}
+.photo-hint.gone {
+  opacity: 0;
 }
 .photo-close {
   position: absolute;
   top: var(--top);
   right: var(--s-4);
-  padding: 2px;
+  overflow: hidden;
 }
 .photo-bar {
   position: absolute;
@@ -2207,13 +2211,24 @@ textarea.text-input {
   margin: calc(var(--target) / -2) 0 0 calc(var(--target) / -2);
   border: 2px solid var(--on-dark);
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+  box-shadow: var(--shadow-control);
   pointer-events: none;
-  animation: rise var(--m-base);
+  /* Fades in, holds, fades out over the second it shows. */
+  animation: focus-ring 1s linear forwards;
+}
+@keyframes focus-ring {
+  from,
+  to {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
 }
 .ui.photo .toast {
   left: 50%;
-  bottom: calc(var(--s-4) + var(--target) + var(--s-5));
+  bottom: calc(var(--s-4) + var(--photo-bar, var(--target)) + var(--s-3));
   max-width: calc(100% - 2 * var(--s-4));
 }
 .menu-sep {
@@ -2257,6 +2272,8 @@ textarea.text-input {
     width: 100%;
   }
   .ui.photo .toast {
-    bottom: calc(var(--s-3) + 168px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      var(--s-3) + var(--photo-bar, var(--target)) + var(--s-3) + env(safe-area-inset-bottom, 0px)
+    );
   }
 }
