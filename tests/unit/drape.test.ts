@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import * as THREE from "three";
 import { type Outline, drapeGeometry, drapeVertexCount } from "../../src/scene/items/drape";
-import { CLOTH_REACH, HEM_LIFT } from "../../src/domain/layout/cloth";
+import { CLOTH_REACH, HEM_LIFT, LAP_DROP } from "../../src/domain/layout/cloth";
 import { CHAIR_FRONT_REACH } from "../../src/scene/items/geometry";
 import { rectTable, roundTable } from "../../src/domain/library/sizing";
 import { shapeOf } from "../../src/domain/layout/items";
@@ -71,6 +71,23 @@ describe("table drapes", () => {
     };
     expect(cornerGap(TOP - 0.006)).toBeLessThan(0.04);
     expect(cornerGap(HEM_LIFT)).toBeGreaterThan(0.06);
+  });
+
+  test("[LIB-03] a lap-length cloth hangs in points at a rectangle's corners, level round a round table", () => {
+    const lowest = (o: Outline) => {
+      const g = drapeGeometry(o, TOP, LAP_DROP, 64, true);
+      g.computeBoundingBox();
+      return TOP - (g.boundingBox?.min.y ?? 0);
+    };
+    const rect: Outline = { kind: "rect", length: 2.1, width: 0.9 };
+    // About √2 × the drop (the nearest column to the corner lies a little off it).
+    expect(lowest(rect)).toBeGreaterThan(LAP_DROP * 1.33);
+    expect(lowest(rect)).toBeLessThanOrEqual(LAP_DROP * Math.SQRT2 + 1e-6);
+    expect(lowest({ kind: "round", radius: 0.75 })).toBeCloseTo(LAP_DROP, 3);
+    // Mid-edge the hem stays at the lap drop.
+    const pos = drapeGeometry(rect, TOP, LAP_DROP, 64, true).getAttribute("position");
+    for (let i = 0; i < pos.count; i++)
+      if (Math.abs(pos.getX(i)) < 0.5) expect(pos.getY(i)).toBeGreaterThan(TOP - LAP_DROP - 1e-6);
   });
 
   test("[LIB-03] the hem never reaches further than CLOTH_REACH, and folds deepen toward it", () => {

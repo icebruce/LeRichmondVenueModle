@@ -5,7 +5,10 @@
 
 /** Table-top height of linen-covered tables. */
 export const TABLE_TOP = 0.765;
-/** A lap-length cloth hangs this far below the table top. */
+/**
+ * A lap-length cloth hangs this far below the table top; on a rectangle its corners hang in points,
+ * `Math.SQRT2` times as far (a flat cloth's corner is that far from the table's).
+ */
 export const LAP_DROP = 0.3;
 /** Where the cloth stands off the table edge at the top. */
 export const CLOTH_GAP = 0.012;

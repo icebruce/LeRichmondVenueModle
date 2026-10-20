@@ -90,13 +90,16 @@ function roundedRect(
 /**
  * A tablecloth hung on a table of `outline`, its top at `top` and its hem `drop` below (V4, LIB-03):
  * an eased top edge, folds that deepen toward the hem, the corners of a rectangle gathered round, and
- * the hem flaring a little. Columns round the edge and rows down; the top is one fan.
+ * the hem flaring a little. With `points` (a lap-length cloth), a rectangle's corners hang in points:
+ * the cloth within `drop` of a corner hangs from the table's corner, so its hem drops to `drop` × √2
+ * at the cloth's own corner. Columns round the edge and rows down; the top is one fan.
  */
 export function drapeGeometry(
   outline: Outline,
   top: number,
   drop: number,
   segments = 64,
+  points = false,
 ): THREE.BufferGeometry {
   const perimeter =
     outline.kind === "round" ? 2 * Math.PI * outline.radius : 2 * (outline.length + outline.width);
@@ -109,9 +112,18 @@ export function drapeGeometry(
       const n = new THREE.Vector2(Math.cos(a), Math.sin(a));
       return { p: n.clone().multiplyScalar(outline.radius), n, corner: 0 };
     }
-    // The corner rounds out as it falls: crisp at the top, gathered at the hem.
-    const r = 0.02 + 0.13 * Math.pow(t, 1.2);
+    // The corner rounds out as it falls: crisp at the top, gathered at the hem (less where it
+    // hangs in a point).
+    const r = 0.02 + (points ? 0.06 : 0.13) * Math.pow(t, 1.2);
     return roundedRect(outline.length / 2, outline.width / 2, r, u);
+  };
+  // Extra drop per column: a hem point `d` along the edge from the cloth's corner hangs from the
+  // table's corner, sqrt(drop² + (drop - d)²) below it.
+  const extra = (u: number) => {
+    if (!points || outline.kind !== "rect") return 0;
+    const { p } = ring(u, 0);
+    const d = Math.max(outline.length / 2 - Math.abs(p.x), outline.width / 2 - Math.abs(p.y));
+    return d < drop ? Math.hypot(drop, drop - d) - drop : 0;
   };
   const pos: number[] = [0, top + 0.003, 0];
   const uv: number[] = [0, 0];
@@ -124,7 +136,8 @@ export function drapeGeometry(
       const gather = 1 + (CORNER_GATHER - 1) * corner;
       const fold = FOLD * gather * Math.pow(t, 1.5) * 0.5 * Math.sin(u * folds * Math.PI * 2);
       const out = row === 0 ? GAP - 0.012 : GAP + FLARE * Math.pow(t, 1.3) + fold;
-      const y = row === 0 ? top + 0.003 : row === 1 ? top - 0.006 : top - 0.006 - (drop - 0.006) * t;
+      const y =
+        row === 0 ? top + 0.003 : row === 1 ? top - 0.006 : top - 0.006 - (drop - 0.006 + extra(u)) * t;
       pos.push(p.x + n.x * out, y, p.y + n.y * out);
       uv.push(u * perimeter, top - y);
     }
@@ -170,10 +183,10 @@ const shared = new Map<string, THREE.BufferGeometry>();
  * `drapeGeometry`, shared by every table of the same size and length. The cache lives as long as the
  * page: there are only as many entries as table sizes in use.
  */
-export function sharedDrape(outline: Outline, top: number, drop: number, segments: number) {
+export function sharedDrape(outline: Outline, top: number, drop: number, segments: number, points: boolean) {
   const size = outline.kind === "round" ? `${outline.radius}` : `${outline.length}x${outline.width}`;
-  const key = `${outline.kind}:${size}:${top}:${drop}:${segments}`;
+  const key = `${outline.kind}:${size}:${top}:${drop}:${segments}:${points}`;
   let g = shared.get(key);
-  if (!g) shared.set(key, (g = drapeGeometry(outline, top, drop, segments)));
+  if (!g) shared.set(key, (g = drapeGeometry(outline, top, drop, segments, points)));
   return g;
 }

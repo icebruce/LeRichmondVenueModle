@@ -98,11 +98,11 @@ function TableBody({
   segments: number;
   evening: boolean;
 }) {
-  // Floor length stops just above the floor; lap length stops LAP_DROP below the top and shows the
-  // legs. The drape's top lies on the table top, under the décor (LIB-03).
+  // Floor length stops just above the floor; lap length stops LAP_DROP below the top, a rectangle's
+  // corners in points, and shows the legs. The drape's top lies on the table top, under the décor (LIB-03).
   const drape = (outline: Parameters<typeof sharedDrape>[0], cloth: THREE.Material) => (
     <mesh
-      geometry={sharedDrape(outline, TOP - 0.003, clothDrop(lap) - 0.003, segments)}
+      geometry={sharedDrape(outline, TOP - 0.003, clothDrop(lap) - 0.003, segments, lap)}
       material={cloth}
       castShadow
       receiveShadow
