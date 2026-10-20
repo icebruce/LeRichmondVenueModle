@@ -9,6 +9,7 @@ import {
   marbleTexture,
   nailheadTexture,
   rivetTexture,
+  scrollPanelTexture,
   softShadowTexture,
   tuftedTexture,
 } from "./textures";
@@ -285,16 +286,16 @@ export function useMaterials(quality: Quality) {
       // Lit kitchen seen through the pass: bright, but under the room's highlights (UV02).
       kitchen: std({ color: "#c9cfcc", emissive: "#e9ede6", emissiveIntensity: 0.22, roughness: 0.3 }),
       blackMetal: grounded(std({ color: "#121314", metalness: 0.7, roughness: 0.45 })),
-      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 1.8, roughness: 0.3 }),
-      crystal: new THREE.MeshPhysicalMaterial({
-        color: "#fff6e8",
-        emissive: "#ffd9a0",
-        emissiveIntensity: 0.6,
-        roughness: 0.05,
-        metalness: 0,
-        transparent: true,
-        opacity: 0.85,
+      // Wrought-iron scroll panels between the balusters (R09, R11): cut out of a card.
+      scroll: std({
+        map: scrollPanelTexture(),
+        metalness: 0.7,
+        roughness: 0.45,
+        alphaTest: 0.5,
+        alphaToCoverage: true,
+        side: THREE.DoubleSide,
       }),
+      bulb: std({ color: "#fff3d6", emissive: "#ffcf8a", emissiveIntensity: 1.8, roughness: 0.3 }),
       glass: new THREE.MeshPhysicalMaterial({
         color: "#a9c0cc",
         roughness: 0.05,

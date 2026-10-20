@@ -24,6 +24,8 @@ type Use = { id: string; phone: boolean; triangles: number; placement: string };
 
 /** Bloom models (V5) are parts of table décor, not library entries: each holds this budget. */
 const BLOOMS = { dir: "assets/models/blooms/", triangles: 1000 };
+/** The room's own models (V6, `chandelierModels`): drawn on phones too, each within this budget. */
+const FIXTURES = { triangles: 20000 };
 
 /** Which library entries load each GLB, with the budget and placement that applies. */
 function uses(): Map<string, Use[]> {
@@ -31,6 +33,11 @@ function uses(): Map<string, Use[]> {
   for (const f of glbs(join(modelsDir, "blooms")))
     out.set(relative(join(root, "public"), f), [
       { id: "table décor", phone: false, triangles: BLOOMS.triangles, placement: "part" },
+    ]);
+  const venue = JSON.parse(readFileSync(join(root, "data/venue_geometry.json"), "utf8"));
+  for (const file of Object.values(venue.fixtures.chandelierModels) as string[])
+    out.set(file, [
+      { id: "venue chandelier", phone: true, triangles: FIXTURES.triangles, placement: "part" },
     ]);
   const dir = join(root, "data/library");
   for (const f of readdirSync(dir).filter((n) => n.endsWith(".json"))) {

@@ -118,6 +118,74 @@ export function rivetTexture(): THREE.CanvasTexture {
 }
 
 /**
+ * A wrought-iron scroll panel, black on clear (railings, R09, R11): a frame, an oval medallion and
+ * C-scrolls curling in at their ends, one quarter drawn and mirrored into the other three. 2:3.
+ */
+export function scrollPanelTexture(): THREE.CanvasTexture {
+  const [W, H] = [256, 384];
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("2D canvas unavailable");
+  ctx.strokeStyle = "#141516";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 9;
+  ctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  ctx.beginPath();
+  ctx.ellipse(W / 2, H / 2, 30, 46, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // A spiral from radius r at angle `start`, tightening to a quarter of it over `turns`.
+  const spiral = (cx: number, cy: number, r: number, start: number, turns: number, dir: number) => {
+    for (let i = 0; i <= 40; i++) {
+      const a = start + (dir * i * turns * Math.PI * 2) / 40;
+      const rr = r * (1 - (0.75 * i) / 40);
+      ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+  };
+  for (const [sx, sy] of [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
+  ] as const) {
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(sx, sy);
+    // The upper C-scroll from the medallion's top, and the side scroll from its flank.
+    ctx.beginPath();
+    ctx.moveTo(0, -46);
+    ctx.bezierCurveTo(-8, -110, -100, -125, -98, -72);
+    spiral(-78, -72, 20, Math.PI, 1.3, -1);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-30, 0);
+    ctx.bezierCurveTo(-62, 4, -104, -8, -100, -34);
+    spiral(-84, -34, 16, Math.PI, 1.2, 1);
+    ctx.stroke();
+    // The stem up to the frame, a leaf on it, and a curl in the corner.
+    ctx.beginPath();
+    ctx.moveTo(0, -46);
+    ctx.lineTo(0, -188);
+    ctx.moveTo(0, -140);
+    ctx.quadraticCurveTo(-30, -150, -40, -176);
+    ctx.quadraticCurveTo(-14, -168, 0, -140);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-122, -186);
+    ctx.quadraticCurveTo(-112, -150, -86, -150);
+    spiral(-86, -164, 14, Math.PI / 2, 1.2, -1);
+    ctx.stroke();
+    ctx.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+/**
  * Generic stand-in artwork from a palette. The venue's real paintings are copyrighted and change
  * over time; these only echo their colour and energy (DESIGN_GUIDE §9).
  */

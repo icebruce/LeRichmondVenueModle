@@ -47,7 +47,15 @@ import {
 } from "../state/graphics";
 import { useStore } from "zustand";
 import { Bar, Ceiling, Floors, Mezzanine, Plinth, Railing, Stair, Walls } from "./venue/Architecture";
-import { BackBar, BackBarBottles, Backdrops, Furnishings, Lights, Openings } from "./venue/Fixtures";
+import {
+  BackBar,
+  BackBarBottles,
+  Backdrops,
+  Furnishings,
+  Lights,
+  Openings,
+  VenuePlants,
+} from "./venue/Fixtures";
 import { StaticMerge } from "./venue/merge";
 import { BarFlowers } from "./venue/BarFlowers";
 
@@ -479,6 +487,7 @@ function Scene({
         <BarFlowers venue={venue} m={m} at={scenario.venueToggles.barFlowers.at} />
       )}
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
+      <VenuePlants venue={venue} low={quality === "low"} />
       <group visible={mode !== "plan"}>
         <Plinth venue={venue} m={m} />
       </group>

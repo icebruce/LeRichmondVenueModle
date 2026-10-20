@@ -383,6 +383,14 @@
         "radius": 0.45
       }
     ],
+    "chandelierModels": { "birdcage": "assets/models/fixtures/birdcage.glb" },
+    "plants": {
+      "floor": [
+        { "file": "assets/models/plants/fiddle.glb", "x": 0.45, "z": 6.1, "height": 1.9, "confidence": "L" },
+        { "file": "assets/models/plants/fiddle.glb", "x": 9.05, "z": 12.45, "height": 1.8, "confidence": "L" }
+      ],
+      "sill": { "height": 0.45, "perWindow": 3 }
+    },
     "pendantRows": [
       {
         "z": 2.0,

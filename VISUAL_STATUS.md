@@ -339,12 +339,20 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - Ornate iron scroll railings as cut-out panels (stair, raised floor, mezzanine; R09, R11).
 - East curtains: deep pleats, sheen.
 - Plants: fiddle-leaf figs by the green wall and the west garage door; planters on the east window sills.
-- The terrace string-light canopy through the garage doors at night (R11, R16).
 - Chandelier polish, then a re-bake if fixtures change.
+- Dropped (owner, 2026-10-20): the terrace string-light canopy; the terrace stays a dark backdrop at night, never modelled.
 
 **Validation:** as V3.
 
 **Gate:** the owner approves on the preview.
+
+**In progress (2026-10-20):**
+
+- **Chandeliers (Meshy for both, owner):** the birdcages are a dense 32-bar wire cage with a dome (code) around a Meshy crystal candle chandelier (6.6 k triangles, a 1K colour map whose pale crystal and ivory sleeves glow faintly; one instanced mesh for the four). The brass cluster stays in code after three Meshy attempts came out as other chandeliers: five tiers of arms off the stem, widest at the top, each ending in a short brass cylinder with a bare bulb under it (R02, R03, R11). Their positions and the bake are unchanged (the bake reads the chandeliers only as lights).
+- **Railings:** wrought-iron scroll panels (a drawn cut-out card, `scrollPanelTexture`) between the balusters about every 1.1 m on the raised floor, the stair and its landing, and the mezzanine (R09, R11); no shadow (thin cards).
+- **Curtains:** deeper pleats, each a little different, opening toward the hem.
+- **Plants:** fiddle-leaf figs (the Meshy fig) at the west garage doors' pier and on the green south wall between the corridor door and the kitchen pass, positions estimated (confidence L); greenery cards in planters outside the street windows' sills (R05, R09). No fig shadow on phones.
+- **Budgets:** ppl03 on Balanced 154 of 155 draw calls (151 before V6), 0.53 M of 0.6 M triangles; the initial download 11.0 of 12 MB (High) and 5.5 of 6 MB (phones). Balanced's still frame (ambient occlusion, logged, not held) is 182 on ppl03, 180 before V6: well past the ≈ 155 noted at the V0 gate.
 
 ### V7: People (last)
 

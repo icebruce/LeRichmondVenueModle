@@ -195,7 +195,7 @@ export class BloomLoader extends THREE.Loader<THREE.BufferGeometry> {
   }
 }
 
-/** A floor piece's model (V5): its geometry and its own textured material, and its height. */
+/** A floor piece's or the room's model (V5, V6): its geometry, its own textured material, its height. */
 export type PieceModel = {
   geometry: THREE.BufferGeometry;
   material: THREE.MeshStandardMaterial;
@@ -209,11 +209,11 @@ function loadPieceModel(file: string): Promise<PieceModel> {
   let p = pieceModels.get(file);
   if (!p) {
     p = new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${file}`).then((gltf) => {
-      const mesh = gltf.scene.getObjectByName("plant");
-      if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no plant mesh`);
+      const mesh = gltf.scene.getObjectByProperty("isMesh", true);
+      if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no mesh`);
       const geometry = mesh.geometry as THREE.BufferGeometry;
       const material = mesh.material as THREE.MeshStandardMaterial;
-      // Leaves are thin shells, seen from both sides.
+      // Leaves and a chandelier's bars are thin shells, seen from both sides.
       material.side = THREE.DoubleSide;
       geometry.computeBoundingBox();
       return { geometry, material, height: geometry.boundingBox?.max.y ?? 1 };

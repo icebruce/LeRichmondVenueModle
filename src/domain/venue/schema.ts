@@ -160,6 +160,18 @@ export const venueSchema = z.object({
         radius: z.number(),
       }),
     ),
+    /** The crystal chandelier hung inside each birdcage (V6): a model file in `public/`. */
+    chandelierModels: z.object({ birdcage: z.string() }),
+    /**
+     * Plants that belong to the room (V6): potted models (a file in `public/`) standing on the floor,
+     * and greenery `height` m tall in the planters outside the street windows' sills, `perWindow` each.
+     */
+    plants: z.object({
+      floor: z.array(
+        z.object({ file: z.string(), x: z.number(), z: z.number(), height: z.number(), confidence }),
+      ),
+      sill: z.object({ height: z.number(), perWindow: z.number().int().positive() }),
+    }),
     pendantRows: z.array(
       z.object({
         z: z.number(),
