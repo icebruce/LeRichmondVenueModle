@@ -24,7 +24,8 @@ export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
  * cube, base at y 0 · `cone` radius 1, height 1, base at y 0, point up · `bowl` the same cone
  * point down (vase bowls) · `plane` 1 m square facing +z, base at y 0 (glows, washes of light).
  */
-export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane";
+/** Unit shapes the scene draws (Decor.tsx `primitives`); `plate` and `goblet` are turned (V5). */
+export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane" | "drop" | "plate" | "goblet";
 export type Slot =
   | "wax"
   | "flame"
@@ -43,6 +44,8 @@ export type Slot =
   | "bulb"
   | "beam"
   | "glow"
+  /** Candlelight on the cloth (V5): a warm tint, multiplied in. */
+  | "pool"
   | "mirror";
 export type Part = {
   prim: Prim;
@@ -59,7 +62,17 @@ export type Part = {
   rz?: number;
   /** Per-part colour (flowers, chargers). */
   colour?: string;
+  /** A paper part printed with this table number (V5): its cell on the shared sheet, 0 = blank. */
+  card?: number;
+  /**
+   * A bloom model drawn in place of the primitive where models load (V5): `public/assets/models/
+   * blooms/<model>.glb`, scaled by the part's largest size and turned by its rotation.
+   */
+  model?: string;
 };
+
+/** The bloom models (V5, `Part.model`), in `public/assets/models/blooms/`. */
+export const BLOOM_MODELS = ["rose", "ranunculus", "pampas", "blossom", "eucalyptus"] as const;
 
 /** Floral generators built from a mound of blooms: the ones whose flower type can be chosen. */
 export const FLOWER_TYPE_GENERATORS: readonly string[] = ["lowMound", "tallArrangement", "compote"];
@@ -74,7 +87,10 @@ export const FLORAL_PALETTES: Record<string, { label: string; colours: string[] 
 
 /**
  * Flower types (LIB-06): bloom size, how many blooms an arrangement holds (× the base count), and
- * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable.
+ * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable. `model`
+ * names its blooms' model (V5; leaves are all the leaf sprig); baby's breath has none (its florets
+ * are too fine for one) and neither has hydrangea (its model came out as shards); peonies draw the
+ * ranunculus, larger (owner: the peony models came out torn).
  */
 export const FLOWER_TYPES: Record<
   string,
@@ -85,16 +101,31 @@ export const FLOWER_TYPES: Record<
     leafEvery: number;
     leaf?: string;
     form?: "plume" | "branch";
+    model?: string;
   }
 > = {
-  rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3 },
-  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4 },
+  rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3, model: "rose" },
+  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4, model: "ranunculus" },
   hydrangea: { label: "Hydrangea", bloom: [0.065, 0.085], count: 0.55, leafEvery: 5 },
-  ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3 },
+  ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3, model: "ranunculus" },
   babysBreath: { label: "Baby’s breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },
-  eucalyptus: { label: "Eucalyptus", bloom: [0.03, 0.04], count: 1, leafEvery: 1.4, leaf: "#9fb5a8" },
-  pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume" },
-  blossom: { label: "Blossom branches", bloom: [0.016, 0.022], count: 1.6, leafEvery: 8, form: "branch" },
+  eucalyptus: {
+    label: "Eucalyptus",
+    bloom: [0.03, 0.04],
+    count: 1,
+    leafEvery: 1.4,
+    leaf: "#9fb5a8",
+    model: "rose",
+  },
+  pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume", model: "rose" },
+  blossom: {
+    label: "Blossom branches",
+    bloom: [0.016, 0.022],
+    count: 1.6,
+    leafEvery: 8,
+    form: "branch",
+    model: "blossom",
+  },
 };
 
 const CHARGERS: Record<string, Slot> = { gold: "brass", silver: "silver", glass: "glass" };
@@ -132,13 +163,26 @@ const ball = (slot: Slot, x: number, y: number, z: number, r: number, colour?: s
 /** A candle: wax column and its flame. */
 const candle = (x: number, y: number, z: number, r: number, h: number): Part[] => [
   cyl("wax", x, y, z, r, h),
-  { ...ball("flame", x, y + h + 0.018, z, 0.011), sy: 0.022 },
+  { ...ball("flame", x, y + h + 0.018, z, 0.011), prim: "drop", sy: 0.022 },
 ];
 
 /** A leaf: a flattened ball, tinted for silvery foliage (eucalyptus). */
 const leaf = (x: number, y: number, z: number, r: number, ctx: Ctx): Part => ({
   ...ball("leaf", x, y, z, r, ctx.flower.leaf),
   sy: r / 2,
+  // A sprig of round leaves (V5), tinted foliage green or the type's own leaf colour.
+  model: "eucalyptus",
+});
+
+/**
+ * Turns a part on a mound outward by `t` (radians) toward angle `a`, and some way round its own axis
+ * (from `a`, so the arrangement's random colours stay as they were).
+ */
+const tilt = (part: Part, a: number, t: number): Part => ({
+  ...part,
+  rx: Math.sin(a) * t,
+  ry: a * 3.7,
+  rz: -Math.cos(a) * t,
 });
 
 /**
@@ -157,22 +201,41 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
     const pz = z + Math.sin(a) * r * k;
     const py = y + h * (1 - k * k) * 0.75 + 0.02;
     const colour = ctx.colours[Math.floor(ctx.rand() * ctx.colours.length)] ?? "#ffffff";
+    // Blooms and leaves face outward more the further out they sit.
+    const out = k * 0.9;
     if (i % f.leafEvery < 1 && i > 0) {
-      parts.push(leaf(px, py - 0.01, pz, 0.04, ctx));
+      parts.push(tilt(leaf(px, py - 0.01, pz, 0.04, ctx), a, out));
     } else if (f.form === "plume" && i % 3 === 0) {
       // Pampas: tall soft plumes rising out of the mound.
-      parts.push({ ...ball("flower", px, py + 0.12, pz, 0.03, colour), sy: 0.13 });
+      parts.push(
+        tilt({ ...ball("flower", px, py + 0.12, pz, 0.03, colour), sy: 0.13, model: "pampas" }, a, k * 0.3),
+      );
     } else if (f.form === "branch" && i % 5 === 0) {
       // Blossom: thin branches leaning out, small flowers along them.
       const lean = (ctx.rand() - 0.5) * 0.9;
-      parts.push({ ...cyl("black", px, py, pz, 0.004, 0.22), rz: lean });
+      parts.push({ ...cyl("wood", px, py, pz, 0.0025, 0.22), rz: lean });
       // Flowers along the leaning branch (it tilts about z, so its tip moves in x and y).
       for (let j = 1; j <= 3; j++)
         parts.push(
-          ball("flower", px - Math.sin(lean) * 0.07 * j, py + Math.cos(lean) * 0.07 * j, pz, b1, colour),
+          tilt(
+            {
+              ...ball(
+                "flower",
+                px - Math.sin(lean) * 0.07 * j,
+                py + Math.cos(lean) * 0.07 * j,
+                pz,
+                b1,
+                colour,
+              ),
+              model: "blossom",
+            },
+            a,
+            out,
+          ),
         );
     } else {
-      parts.push(ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour));
+      const bloom = ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour);
+      parts.push(tilt(f.model ? { ...bloom, model: f.model } : bloom, a, out));
     }
   }
   return parts;
@@ -192,7 +255,7 @@ const centrepieces: Record<string, Gen> = {
     ).flatMap(([x, z, h]) => [
       cyl("glass", x, 0, z, 0.045, h),
       cyl("wax", x, 0.004, z, 0.041, h - 0.035),
-      { ...ball("flame", x, h - 0.035 + 0.018, z, 0.011), sy: 0.022 },
+      { ...ball("flame", x, h - 0.035 + 0.018, z, 0.011), prim: "drop" as const, sy: 0.022 },
     ]);
     // Eucalyptus: round, slightly domed leaves (flat cones, light on phones) tilted every way,
     // mounded around the glass; baby's breath as small white florets among them.
@@ -237,7 +300,7 @@ const centrepieces: Record<string, Gen> = {
           sy: 0.08,
           sz: 0.003,
         },
-        ball("flower", x, h + 0.09, 0.02 * (i - 1), 0.03, colour),
+        { ...ball("flower", x, h + 0.09, 0.02 * (i - 1), 0.03, colour), model: "rose" },
       ];
     }),
   tallArrangement: (_p, ctx) => [
@@ -298,7 +361,11 @@ const runners: Record<
       const z = Math.sin(i * 0.9) * 0.05;
       parts.push({ ...ball("leaf", x, 0.025, z, 0.05 + ctx.rand() * 0.015), sy: 0.025 });
       if (i % 4 === 0)
-        parts.push(ball("flower", x, 0.05, z, 0.03, ctx.colours[(i / 4) % ctx.colours.length] ?? "#ffffff"));
+        parts.push({
+          ...ball("flower", x, 0.05, z, 0.03, ctx.colours[(i / 4) % ctx.colours.length] ?? "#ffffff"),
+          model: "rose",
+          ry: i,
+        });
     }
     return parts;
   },
@@ -470,7 +537,7 @@ function spots(shape: Shape): [number, number][] {
 type Extras = { settings: boolean; menus: boolean; tableNumbers: boolean; linenLength: "lap" | "floor" };
 
 /**
- * One place setting in front of a chair: charger, plate, two glasses, fork, knife; a folded napkin
+ * One place setting in front of a chair: charger, plate, two stemmed glasses, fork, knife; a folded napkin
  * and a menu card on the plate when chosen (LIB-03, LIB-04).
  */
 function setting(ch: Chair, edge: number, charger: string, napkin: string | null, menu: boolean): Part[] {
@@ -483,15 +550,15 @@ function setting(ch: Chair, edge: number, charger: string, napkin: string | null
   const rz = -Math.sin(ch.rotY);
   const parts: Part[] = [];
   const c = CHARGERS[charger];
-  if (c) parts.push(cyl(c, cx, 0, cz, 0.165, 0.008));
-  parts.push(cyl("ceramic", cx, 0.008, cz, 0.135, 0.012));
+  if (c) parts.push({ ...cyl(c, cx, 0, cz, 0.165, 0.008), prim: "plate" });
+  parts.push({ ...cyl("ceramic", cx, 0.008, cz, 0.135, 0.018), prim: "plate" });
   for (const [dx, h] of [
     [0.13, 0.17],
     [0.2, 0.13],
   ] as const) {
     const gx = cx + rx * dx + fx * 0.14;
     const gz = cz + rz * dx + fz * 0.14;
-    parts.push(cyl("glass", gx, 0, gz, 0.035, h));
+    parts.push({ ...cyl("glass", gx, 0, gz, 0.035, h), prim: "goblet" });
   }
   for (const s of [-1, 1]) {
     parts.push({
@@ -537,12 +604,18 @@ function setting(ch: Chair, edge: number, charger: string, napkin: string | null
   return parts;
 }
 
-/** Brass table-number holder with its card, standing beside the centrepiece (LIB-04). */
-function numberHolder(x: number, z: number): Part[] {
+/** Table numbers printed on the shared card sheet (V5); other labels leave the card blank. */
+export const CARD_NUMBERS = 31;
+
+/** Brass table-number holder with its card, printed with the table's number, beside the centrepiece (LIB-04). */
+function numberHolder(x: number, z: number, label: string | undefined): Part[] {
+  const n = Number(label);
+  const card = Number.isInteger(n) && n >= 1 && n <= CARD_NUMBERS ? n : 0;
   return [
     cyl("brass", x, 0, z, 0.035, 0.008),
-    cyl("brass", x, 0.008, z, 0.004, 0.12),
-    { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003 },
+    // The pole stands just behind the card, which it holds by its lower edge.
+    cyl("brass", x, 0.008, z - 0.004, 0.003, 0.11),
+    { prim: "box", slot: "paper", x, y: 0.1, z, sx: 0.1, sy: 0.07, sz: 0.003, card },
   ];
 }
 
@@ -791,8 +864,10 @@ export function tableDecor(
   catalog: Catalog,
   extras: Extras,
   seed: number,
+  /** The table's label (`tableLabels`), printed on its number card. */
+  label?: string,
 ): Part[] {
-  return dress(shape, style, catalog, extras, seed).parts;
+  return dress(shape, style, catalog, extras, seed, label).parts;
 }
 
 /**
@@ -810,7 +885,14 @@ export function candleLayout(
 
 type Dressed = { parts: Part[]; candles: { parts: Part[]; placed: number; wanted: number } };
 
-function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras, seed: number): Dressed {
+function dress(
+  shape: Shape,
+  style: TableStyle,
+  catalog: Catalog,
+  extras: Extras,
+  seed: number,
+  label?: string,
+): Dressed {
   if (shape.kind !== "rectTable" && shape.kind !== "roundTable" && shape.kind !== "cocktail")
     return { parts: [], candles: { parts: [], placed: 0, wanted: 0 } };
   const rand = seededRandom(seed);
@@ -871,8 +953,8 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
   }
   if (extras.tableNumbers && shape.kind !== "cocktail") {
     const [x, z] =
-      shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.18] : [0.24, -0.16];
-    fixed.push(...numberHolder(x, z));
+      shape.kind === "rectTable" ? [Math.min(0.45, shape.length / 2 - 0.25), -0.1] : [0.24, -0.16];
+    fixed.push(...numberHolder(x, z, label));
     plates.push({ x, z, r: 0.06 });
   }
   // Candles keep their base clear of the plates and the table number (glasses and cutlery tuck in
@@ -886,8 +968,30 @@ function dress(shape: Shape, style: TableStyle, catalog: Catalog, extras: Extras
     ctx,
   );
   parts.push(...candles.parts, ...fixed);
+  parts.push(...parts.filter((p) => p.slot === "flame").map(pool));
   return { parts, candles };
 }
+
+/**
+ * The warm light a candle throws on the cloth (V5): a tint multiplied into it (on a white cloth,
+ * candlelight shows as warmth, not brightness), strongest under the flame.
+ */
+const POOL = { r: 0.26, colour: "#ffdcb4" };
+
+/** A flame's pool on the table top under it, drawn in the evening like every glow. */
+const pool = (flame: Part): Part => ({
+  prim: "plane",
+  slot: "pool",
+  x: flame.x,
+  y: 0.004,
+  // The plane stands on its lower edge; laid flat it reaches from here to -z, so it centres at +r.
+  z: flame.z + POOL.r,
+  sx: POOL.r * 2,
+  sy: POOL.r * 2,
+  sz: 1,
+  rx: -Math.PI / 2,
+  colour: POOL.colour,
+});
 
 /**
  * An imported centrepiece's own look (IMP-05): the photo's colours in place of the table's palette,
@@ -931,9 +1035,15 @@ export function centrepieceHeight(
   return heightOf(gen(params, ctx));
 }
 
-/** Highest point of a set of parts above the table top (m), for realistic-height checks (DEC-03). */
+/**
+ * Highest point of a set of parts above the table top (m), for realistic-height checks (DEC-03);
+ * the light they cast (beams, glows) does not count.
+ */
 export function heightOf(parts: readonly Part[]): number {
-  return parts.reduce((m, p) => Math.max(m, p.y + p.sy), 0);
+  return parts.reduce(
+    (m, p) => (p.slot === "beam" || p.slot === "glow" || p.slot === "pool" ? m : Math.max(m, p.y + p.sy)),
+    0,
+  );
 }
 
 /**
@@ -943,7 +1053,9 @@ export function heightOf(parts: readonly Part[]): number {
 export function bottomOf(parts: readonly Part[]): number {
   return parts.reduce(
     (m, p) =>
-      p.slot === "beam" || p.slot === "glow" ? m : Math.min(m, p.prim === "sphere" ? p.y - p.sy : p.y),
+      p.slot === "beam" || p.slot === "glow" || p.slot === "pool"
+        ? m
+        : Math.min(m, p.prim === "sphere" ? p.y - p.sy : p.y),
     Infinity,
   );
 }

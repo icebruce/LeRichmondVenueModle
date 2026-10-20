@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
 import {
+  BLOOM_MODELS,
   DECOR_GENERATORS,
+  FLOWER_TYPES,
   type Part,
   candleLayout,
   heightOf,
@@ -37,6 +39,55 @@ const decor = (
   );
 
 describe("décor", () => {
+  test("[LIB-04] the table-number card is printed with the table's number; other labels leave it blank", () => {
+    const card = (label?: string) =>
+      tableDecor(
+        shape,
+        { ...styleOf(round, DEFAULT_STYLE), candles: [] },
+        catalog,
+        { settings: false, menus: false, tableNumbers: true, linenLength: "floor" },
+        1,
+        label,
+      ).find((p) => p.slot === "paper")?.card;
+    expect(card("7")).toBe(7);
+    expect(card("31")).toBe(31);
+    expect(card("32")).toBe(0);
+    expect(card("Head table")).toBe(0);
+    expect(card()).toBe(0);
+  });
+
+  test("[DEC-02] every flame throws a warm pool on the cloth under it, drawn flat on the table top", () => {
+    const parts = decor({ candles: [{ id: "candle-votives", n: 3 }], florals: "none" });
+    const flames = parts.filter((p) => p.slot === "flame");
+    const pools = parts.filter((p) => p.slot === "pool");
+    expect(flames.length).toBeGreaterThan(0);
+    expect(pools).toHaveLength(flames.length);
+    for (const p of pools) {
+      expect(p.prim).toBe("plane");
+      expect(p.rx).toBeCloseTo(-Math.PI / 2);
+      expect(p.y).toBeLessThan(0.01);
+    }
+    // Light, not an object: it does not count in the arrangement's height.
+    expect(heightOf(pools)).toBe(0);
+  });
+
+  test("[LIB-06] blooms name their flower type's model, leaves the leaf sprig; baby's breath and hydrangea stay primitives", () => {
+    for (const [type, f] of Object.entries(FLOWER_TYPES)) {
+      const parts = decor({ florals: "floral-low", flowerType: type });
+      const blooms = parts.filter((p) => p.slot === "flower");
+      const leaves = parts.filter((p) => p.slot === "leaf");
+      expect(blooms.length).toBeGreaterThan(0);
+      // Pampas' plumes are their own model; every other bloom is the type's.
+      for (const b of blooms) expect([f.model, ...(f.form === "plume" ? ["pampas"] : [])]).toContain(b.model);
+      for (const l of leaves) expect(l.model).toBe("eucalyptus");
+    }
+    expect(FLOWER_TYPES.babysBreath?.model).toBeUndefined();
+    expect(FLOWER_TYPES.hydrangea?.model).toBeUndefined();
+    // Every model named has a file (`check:assets` checks the files themselves).
+    const named = Object.values(FLOWER_TYPES).flatMap((f) => (f.model ? [f.model] : []));
+    for (const m of [...named, "pampas", "blossom", "eucalyptus"]) expect(BLOOM_MODELS).toContain(m);
+  });
+
   test("[DEC-03] florals have realistic heights: low ≤ 30 cm, tall 80–120 cm", () => {
     expect(heightOf(decor({ florals: "floral-low" }))).toBeLessThanOrEqual(0.3);
     expect(heightOf(decor({ florals: "floral-bud" }))).toBeLessThanOrEqual(0.3);
@@ -62,14 +113,16 @@ describe("décor", () => {
     expect(parts.filter((p) => p.slot === "flame")).toHaveLength(3);
     expect(parts.some((p) => p.slot === "leaf") && parts.some((p) => p.slot === "flower")).toBe(true);
     expect(Math.abs(heightOf(parts) - (e?.sizeM.h ?? 0))).toBeLessThanOrEqual(0.01);
-    const reach = Math.max(...parts.map((p) => Math.max(Math.abs(p.x) + p.sx, Math.abs(p.z) + p.sz)));
+    // The candles' light on the cloth (pool) is not part of the object.
+    const solid = parts.filter((p) => p.slot !== "pool");
+    const reach = Math.max(...solid.map((p) => Math.max(Math.abs(p.x) + p.sx, Math.abs(p.z) + p.sz)));
     expect(2 * reach).toBeLessThanOrEqual((e?.sizeM.w ?? 0) + 0.01);
     // Triangles per primitive as Decor.tsx builds them, desktop and phone.
     const tris = (q: Record<string, number>) => parts.reduce((n, p) => n + (q[p.prim] ?? 0), 0);
-    expect(tris({ cylinder: 56, sphere: 108, cone: 28, box: 12 })).toBeLessThanOrEqual(
+    expect(tris({ cylinder: 56, sphere: 108, cone: 28, box: 12, drop: 96 })).toBeLessThanOrEqual(
       e?.budget.triangles ?? 0,
     );
-    expect(tris({ cylinder: 32, sphere: 36, cone: 16, box: 12 })).toBeLessThanOrEqual(
+    expect(tris({ cylinder: 32, sphere: 36, cone: 16, box: 12, drop: 36 })).toBeLessThanOrEqual(
       e?.budget.phoneTriangles ?? 0,
     );
   });
@@ -115,9 +168,8 @@ describe("décor", () => {
     const size = (ps: { sx: number }[]) => ps.reduce((a, p) => a + p.sx, 0) / ps.length;
     expect(size(blooms("peony"))).toBeGreaterThan(size(blooms("rose")));
     expect(blooms("babysBreath").length).toBeGreaterThan(blooms("rose").length * 2);
-    expect(decor({ florals: "floral-low", flowerType: "blossom" }).some((p) => p.slot === "black")).toBe(
-      true,
-    );
+    // Blossom comes on thin brown branches.
+    expect(decor({ florals: "floral-low", flowerType: "blossom" }).some((p) => p.slot === "wood")).toBe(true);
   });
 
   test("[LIB-03] [LIB-04] [LIB-05] [LIB-06] every table-top entry uses a known décor generator", () => {

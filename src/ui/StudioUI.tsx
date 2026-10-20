@@ -31,6 +31,7 @@ import {
 } from "./Panels";
 import { PlansPanel, SaveState } from "./Plans";
 import { Actions, CameraSwitch, PhoneControls } from "./TopBar";
+import { PhotoLayer, openPhoto } from "./Photo";
 import { ConflictDialog, LeaveDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
 import { backStore, useBackLayer } from "./back";
 import { InspirationPanel } from "./Inspiration";
@@ -198,7 +199,7 @@ function Toast() {
   const toast = useEditor((s) => s.toast);
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => editor.dismissToast(), toast.undo ? 10000 : 4000);
+    const t = window.setTimeout(() => editor.dismissToast(), toast.undo || toast.action ? 10000 : 4000);
     return () => window.clearTimeout(t);
   }, [toast, editor]);
   if (!toast) return null;
@@ -215,6 +216,19 @@ function Toast() {
           }}
         >
           Undo
+        </button>
+      )}
+      {toast.action && (
+        <button
+          type="button"
+          className="plain-btn on-dark"
+          onClick={() => {
+            toast.action?.run();
+            editor.dismissToast();
+          }}
+          data-testid="toast-action"
+        >
+          {toast.action.label}
         </button>
       )}
     </div>
@@ -320,6 +334,8 @@ function useShortcuts() {
         const [dx, dz] = nudge[e.key] ?? [0, 0];
         const items = editor.active().items.filter((i) => sel.includes(i.id));
         editor.moveItems(items.map((i) => ({ id: i.id, x: i.x + dx, z: i.z + dz })));
+      } else if (!mod && (e.key === "p" || e.key === "P")) {
+        openPhoto(editor);
       } else if (!mod && ["1", "2", "3"].includes(e.key)) {
         editor.setCamera((["dollhouse", "plan", "walk"] as const)[Number(e.key) - 1] ?? "dollhouse");
       }
@@ -521,9 +537,11 @@ export function StudioUI() {
   );
 
   const compare = useView((s) => s.compare);
+  // Photo mode hides everything but the room and its own bar (EXP-02).
+  const photo = useView((s) => !!s.photo);
   // Phone side by side needs the screen: the half-height sheet stays at its peek (full still opens).
   const detent: Sheet = phone && compare && sheet === "half" ? "peek" : sheet;
-  const panelShown = camera !== "walk" && (phone ? detent !== "closed" : panelOpen);
+  const panelShown = camera !== "walk" && !photo && (phone ? detent !== "closed" : panelOpen);
 
   // The layers the back gesture closes, top first (DESIGN_GUIDE §3).
   // Phones only: on desktop the browser's Back keeps its usual meaning.
@@ -559,11 +577,11 @@ export function StudioUI() {
   );
 
   // Desktop: the camera frames the room beside the rail and the panel (DESIGN_GUIDE §3.1).
-  const insetLeft = phone ? 0 : RAIL + (panelShown ? width : 0);
-  const insetRight = phone ? PHONE_COLUMN : 0;
+  const insetLeft = phone || photo ? 0 : RAIL + (panelShown ? width : 0);
+  const insetRight = phone && !photo ? PHONE_COLUMN : 0;
   // The width the couple set is remembered on this device.
   useEffect(() => saveWidth(width), [width]);
-  const insetTop = phone ? 0 : TOOLBAR_INSET;
+  const insetTop = phone || photo ? 0 : TOOLBAR_INSET;
   useEffect(() => {
     viewStore.setState({ insetLeft, insetRight, insetTop });
   }, [insetLeft, insetRight, insetTop]);
@@ -573,7 +591,7 @@ export function StudioUI() {
   const ui = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = ui.current;
-    if (!phone || camera === "walk" || !root) {
+    if (!phone || camera === "walk" || photo || !root) {
       viewStore.setState({ insetBottom: 0, insetColumn: 0 });
       return;
     }
@@ -596,7 +614,7 @@ export function StudioUI() {
       root.removeEventListener("transitionend", measure);
       window.removeEventListener("resize", measure);
     };
-  }, [phone, camera, panelShown, detent, phoneSelection]);
+  }, [phone, camera, photo, panelShown, detent, phoneSelection]);
 
   // Shows a section, whatever was open.
   const show = (id: Section) => {
@@ -729,16 +747,17 @@ export function StudioUI() {
     setSheet(SHEET_ORDER[Math.max(0, Math.min(SHEET_ORDER.length - 1, i))] ?? detent);
   };
 
-  const showCounts = !phone && !compare;
+  const showCounts = !phone && !compare && !photo;
   return (
     <div
-      className={`ui cam-${camera}`}
+      className={`ui cam-${camera}${photo ? " photo" : ""}`}
       data-sheet={phone && panelShown ? detent : "none"}
       ref={ui}
       style={{ "--inset-left": `${insetLeft}px` } as CSSProperties}
     >
       {PERF && <PerfOverlay />}
-      {!phone && (
+      {photo && <PhotoLayer phone={phone} />}
+      {!phone && !photo && (
         <>
           <nav className="rail" aria-label="Sections">
             {SECTIONS.map((s) => (
@@ -774,7 +793,7 @@ export function StudioUI() {
           </header>
         </>
       )}
-      {phone && <PhoneControls />}
+      {phone && !photo && <PhoneControls />}
 
       {panelShown && (
         <aside
@@ -842,12 +861,12 @@ export function StudioUI() {
       )}
 
       {showCounts && <Counts onAdvisories={openChecks} />}
-      {!phone && checks && (
+      {!phone && checks && !photo && (
         <div className="checks-pop" role="dialog" aria-label="Checks">
           <ChecksList onAdjust={adjustRules} onClose={() => setChecks(false)} phone={false} />
         </div>
       )}
-      {!phone && !compare && camera !== "walk" && !pickSeat && (
+      {!phone && !compare && !photo && camera !== "walk" && !pickSeat && (
         <SelectionBar
           onDetails={() => {
             setDetails(true);
@@ -863,7 +882,7 @@ export function StudioUI() {
           </button>
         </div>
       )}
-      {camera === "walk" && seat && (
+      {camera === "walk" && seat && !photo && (
         <div className="walk-hint glass seated" data-testid="seated">
           <span>Seated · {seated} · drag to look around</span>
           <button
@@ -875,7 +894,7 @@ export function StudioUI() {
           </button>
         </div>
       )}
-      {camera === "walk" && !seat && (
+      {camera === "walk" && !seat && !photo && (
         <>
           <p className="walk-hint glass">
             <span className="desktop-only">Click to look around · WASD or arrows to move · Esc to stop</span>
@@ -885,7 +904,7 @@ export function StudioUI() {
         </>
       )}
 
-      {phone && (
+      {phone && !photo && (
         <nav className="tabbar" aria-label="Sections">
           {SECTIONS.map((s) => (
             <button

@@ -2150,3 +2150,130 @@ textarea.text-input {
   color: var(--accent);
   flex: none;
 }
+
+/* ---------- Photo mode (EXP-02, docs/mockups/photo.html) ---------- */
+/* Over the whole room; only its controls take the pointer, so the room still frames and focuses. */
+.photo-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.photo-close,
+.photo-bar {
+  pointer-events: auto;
+}
+.photo-hint {
+  position: absolute;
+  top: var(--top);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  font: var(--t-footnote);
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity var(--m-slow);
+}
+.photo-hint.gone {
+  opacity: 0;
+}
+.photo-close {
+  position: absolute;
+  top: var(--top);
+  right: var(--s-4);
+  overflow: hidden;
+}
+.photo-bar {
+  position: absolute;
+  left: 50%;
+  bottom: var(--s-4);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--s-4));
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-3);
+}
+.photo-label {
+  font: var(--t-footnote);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.photo-blur button {
+  min-width: 56px;
+}
+.focus-ring {
+  position: absolute;
+  width: var(--target);
+  height: var(--target);
+  margin: calc(var(--target) / -2) 0 0 calc(var(--target) / -2);
+  border: 2px solid var(--on-dark);
+  border-radius: 50%;
+  box-shadow: var(--shadow-control);
+  pointer-events: none;
+  /* Fades in, holds, fades out over the second it shows. */
+  animation: focus-ring 1s linear forwards;
+}
+@keyframes focus-ring {
+  from,
+  to {
+    opacity: 0;
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+}
+.ui.photo .toast {
+  left: 50%;
+  bottom: calc(var(--s-4) + var(--photo-bar, var(--target)) + var(--s-3));
+  max-width: calc(100% - 2 * var(--s-4));
+}
+.menu-sep {
+  height: 1px;
+  margin: var(--s-1) var(--s-2);
+  background: var(--line);
+}
+.menu-note {
+  display: block;
+  font: var(--t-footnote);
+  color: var(--ink-2);
+}
+.menu-item:disabled {
+  color: var(--ink-3);
+}
+@media (max-width: 767px) {
+  .photo-close {
+    right: var(--s-3);
+  }
+  .photo-bar {
+    left: var(--s-3);
+    right: var(--s-3);
+    bottom: calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+    transform: none;
+    width: auto;
+    max-width: none;
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-3);
+  }
+  .photo-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .photo-blur {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .photo-bar .btn.primary {
+    width: 100%;
+  }
+  .ui.photo .toast {
+    bottom: calc(
+      var(--s-3) + var(--photo-bar, var(--target)) + var(--s-3) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+}

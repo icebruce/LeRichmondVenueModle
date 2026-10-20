@@ -10,7 +10,7 @@ import { pointInPolygon } from "../domain/geometry";
 import { footprint, shapeOf } from "../domain/layout/items";
 import type { Scenario } from "../domain/scenario/schema";
 import type { CameraMode } from "../state/editor";
-import { LIBRARY_DRAG, requestCamera, viewStore } from "../state/view";
+import { LIBRARY_DRAG, type Photo, requestCamera, viewStore } from "../state/view";
 import { CameraRig, rig } from "./cameras";
 import { StudioContext, type Studio, useEditor, useStudio, useView } from "./context";
 import { Items, Outline, useFloorPointer } from "./items/Items";
@@ -31,6 +31,7 @@ import { BACKDROP, BRICK_TINT, LED_GLOW, useMaterials } from "./materials";
 import { gradientTexture } from "./textures";
 import { BakeExport } from "./BakeExport";
 import { useBake } from "./useBake";
+import { PhotoCapture, PhotoDepth } from "./Photo";
 
 /** `?bake-export`: the bake tool's export of the fixed room (visual stage V2, `npm run bake`). */
 const BAKE_EXPORT = new URLSearchParams(window.location.search).has("bake-export");
@@ -186,10 +187,21 @@ function Lighting({
  * (`DirectRender`). The look (bloom strength, vignette) follows the device, as before tiers, so a
  * tier change never changes it.
  */
-function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; quality: Quality }) {
+function Effects({
+  evening,
+  tier,
+  quality,
+  photo,
+}: {
+  evening: boolean;
+  tier: Tier;
+  quality: Quality;
+  photo: Photo | null;
+}) {
   const levers = LEVERS[tier];
   const moving = useStore(graphicsStore, (s) => s.moving);
-  if (levers.direct) return null;
+  // Battery saver draws directly, except in Photo mode, whose blur needs the chain.
+  if (levers.direct && !photo) return null;
   const high = quality === "high";
   // The effect chain depends on the device only: a tier change that rebuilt it (multisampling or
   // ambient occlusion resolution per tier, tried in V2b) compiled its passes again at the next
@@ -203,6 +215,8 @@ function Effects({ evening, tier, quality }: { evening: boolean; tier: Tier; qua
         distanceFalloff={0.6}
         halfRes
       />
+      {/* Photo mode's blur (EXP-02): opening and closing it rebuilds the chain once. */}
+      {photo && <PhotoDepth photo={photo} stillOnly={levers.direct} />}
       <Bloom
         intensity={evening ? (high ? 0.75 : 0.7) : 0.15}
         luminanceThreshold={high ? 0.85 : 0.9}
@@ -408,6 +422,7 @@ function Scene({
   const evening = scenario.style.lighting === "evening" && mode !== "plan";
   const bake = useBake(venue, manifest, m, quality, evening, mode === "plan");
   const view = useView((s) => s.view);
+  const photo = useView((s) => s.photo);
   const { cut, below } = useCutaway(mode, view);
   // The ceiling shows only from below it (walk, reference views, a dollhouse camera zoomed in low);
   // from above it would hide the room.
@@ -479,10 +494,10 @@ function Scene({
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
-      <Items m={m} evening={evening} quality={quality} />
+      <Items m={m} evening={evening} quality={quality} detail={eyeLevel || !!photo} />
       {BAKE_EXPORT && <BakeExport m={m} />}
       <People low={quality === "low"} m={m} />
-      <Advisories hidden={mode === "walk"} />
+      <Advisories hidden={mode === "walk" || !!photo} />
       <ShaderKeepers />
       <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}|${LEVERS[tier].shadow}`} />
       <CameraRig follow={follow} />
@@ -490,8 +505,9 @@ function Scene({
       {!follow && PERF && <PerfProbe />}
       {!follow && <SelectionAnchor />}
       {!follow && <LibraryDrop evening={evening} />}
-      <Effects evening={evening} tier={tier} quality={quality} />
-      {LEVERS[tier].direct && <DirectRender />}
+      <Effects evening={evening} tier={tier} quality={quality} photo={photo} />
+      {LEVERS[tier].direct && !photo && <DirectRender />}
+      {!follow && <PhotoCapture />}
       {/* The main view keeps time and paces; the compare halves follow its camera. */}
       {!follow && <FrameClock fps={LEVERS[tier].direct ? LEVERS[tier].fps : Infinity} />}
       {!follow && <Pacing tier={tier} auto={auto} onTier={onTier} />}

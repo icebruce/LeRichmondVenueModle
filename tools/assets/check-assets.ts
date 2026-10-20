@@ -22,9 +22,16 @@ const CONTACT = 0.005;
 
 type Use = { id: string; phone: boolean; triangles: number; placement: string };
 
+/** Bloom models (V5) are parts of table décor, not library entries: each holds this budget. */
+const BLOOMS = { dir: "assets/models/blooms/", triangles: 1000 };
+
 /** Which library entries load each GLB, with the budget and placement that applies. */
 function uses(): Map<string, Use[]> {
   const out = new Map<string, Use[]>();
+  for (const f of glbs(join(modelsDir, "blooms")))
+    out.set(relative(join(root, "public"), f), [
+      { id: "table décor", phone: false, triangles: BLOOMS.triangles, placement: "part" },
+    ]);
   const dir = join(root, "data/library");
   for (const f of readdirSync(dir).filter((n) => n.endsWith(".json"))) {
     for (const e of JSON.parse(readFileSync(join(dir, f), "utf8")).items ?? []) {

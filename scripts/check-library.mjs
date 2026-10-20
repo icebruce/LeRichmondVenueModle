@@ -32,6 +32,8 @@ const maxTriangles = {
   sign: 5000,
   photo: 500,
 };
+/** Phone budget per item: a quarter of the family's, except plants, whose Meshy models phones draw too (owner, 2026-10-20). */
+const maxPhoneTriangles = { plant: 9000 };
 const problems = [];
 const seen = new Set();
 
@@ -63,8 +65,9 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
       problems.push(`${where} budget ${e.budget.triangles} > ${t} triangles`);
     if (e.budget && !(e.budget.phoneTriangles <= e.budget.triangles))
       problems.push(`${where} phone budget missing or above the desktop budget`);
-    if (e.budget && t && e.budget.phoneTriangles > t / 4)
-      problems.push(`${where} phone budget ${e.budget.phoneTriangles} > ${t / 4} triangles`);
+    const phoneMax = maxPhoneTriangles[e.family] ?? (t ? t / 4 : undefined);
+    if (e.budget && phoneMax && e.budget.phoneTriangles > phoneMax)
+      problems.push(`${where} phone budget ${e.budget.phoneTriangles} > ${phoneMax} triangles`);
     for (const m of [e.model, e.lowModel]) {
       if (m?.kind === "glb" && !existsSync(join(root, "public/assets", m.file)))
         problems.push(`${where} model file ${m.file} missing`);

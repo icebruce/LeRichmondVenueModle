@@ -1,0 +1,710 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Photo Mode Mock-up</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* An annotated sheet: Photo mode (V5, EXP-02) on a desktop and a phone. Screens use Richmond
+   Studio's own tokens (src/ui/tokens.css); the app is light-only. The room is a drawn stand-in. */
+  :root {
+    --bg: #f7f7f4;
+    --surface: #ffffff;
+    --surface-glass: rgba(255, 255, 255, 0.88);
+    --sunk: #eeede8;
+    --shadow-control: 0 1px 3px rgba(32, 37, 34, 0.14);
+    --ink: #202522;
+    --ink-2: #5c605b;
+    --ink-3: #7e817b;
+    --line: #e5e5df;
+    --line-2: #d3d2ca;
+    --accent: #98775b;
+    --accent-soft: #efe6dc;
+    --accent-ink: #ffffff;
+    --new: #3f7d58;
+    --new-soft: #e6f0ea;
+    --toast-bg: rgba(32, 37, 34, 0.92);
+    --device: #1b1d1a;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+    --t-headline: 600 17px/22px var(--font-ui);
+    --t-body: 400 15px/20px var(--font-ui);
+    --t-callout: 400 14px/19px var(--font-ui);
+    --t-footnote: 400 13px/18px var(--font-ui);
+    --t-caption: 500 12px/16px var(--font-ui);
+    --r-control: 8px;
+    --r-card: 12px;
+    --shadow: 0 8px 24px rgba(32, 37, 34, 0.12);
+    --target: 44px;
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: var(--t-body);
+    padding: 32px 16px 64px;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    gap: 40px;
+  }
+  .intro {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+    max-width: 68ch;
+  }
+  .intro h1 {
+    font: 600 28px/34px var(--font-ui);
+    margin: 0;
+  }
+  .intro p,
+  .note {
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .eyebrow {
+    font: var(--t-caption);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .row-of {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+  }
+  figure {
+    margin: 0;
+    display: grid;
+    gap: 12px;
+    max-width: 100%;
+  }
+  figcaption {
+    font: var(--t-footnote);
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+  figcaption b {
+    color: var(--ink);
+  }
+  .tag {
+    font: var(--t-caption);
+    color: var(--new);
+    background: var(--new-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .new {
+    outline: 2px dashed var(--new);
+    outline-offset: 2px;
+  }
+  svg.i {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    display: block;
+  }
+  /* The room: a drawn evening stand-in (dark brick, warm lamps, a dressed table). */
+  .room {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 30% 22% at 30% 30%, rgba(255, 196, 120, 0.35), transparent 70%),
+      radial-gradient(ellipse 26% 20% at 72% 26%, rgba(255, 190, 110, 0.3), transparent 70%),
+      linear-gradient(180deg, #3a2a20 0%, #2a1e17 55%, #1c1511 100%);
+  }
+  .room .table {
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: 18%;
+    height: 22%;
+    background: linear-gradient(180deg, #e9dcc6, #c9b79b);
+    border-radius: 6px 6px 3px 3px;
+  }
+  .room .table::before {
+    /* centrepiece and candles */
+    content: "";
+    position: absolute;
+    left: 42%;
+    width: 16%;
+    bottom: 100%;
+    height: 70%;
+    border-radius: 50% 50% 10% 10%;
+    background: radial-gradient(circle at 40% 40%, #e8b7b0, #a86b66 60%, #4b5d4a 100%);
+  }
+  .room .far {
+    position: absolute;
+    left: 6%;
+    right: 50%;
+    bottom: 46%;
+    height: 9%;
+    background: #b9a88d;
+    border-radius: 4px;
+  }
+  .room.blur .far,
+  .room.blur::after {
+    filter: blur(3px);
+  }
+  .room .focus {
+    position: absolute;
+    left: calc(50% - 22px);
+    bottom: calc(18% + 22% + 8%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  }
+  .glass {
+    background: var(--surface-glass);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow);
+  }
+  .btn {
+    min-height: var(--target);
+    min-width: var(--target);
+    border-radius: var(--r-control);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    font: 600 15px/20px var(--font-ui);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .btn.icon {
+    padding: 0;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn.secondary {
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .btn.busy {
+    opacity: 0.75;
+  }
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    background: var(--sunk);
+    border-radius: var(--r-card);
+    padding: 2px;
+  }
+  .seg span {
+    min-height: var(--target);
+    min-width: 56px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: var(--t-callout);
+    border-radius: var(--r-control);
+    color: var(--ink-2);
+  }
+  .seg span.on {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: var(--shadow-control);
+  }
+  .label {
+    font: var(--t-footnote);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  /* Desktop */
+  .desk {
+    width: min(760px, calc(100vw - 32px));
+    max-width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    border: 1px solid var(--line-2);
+  }
+  .desk .topbar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+  }
+  .desk .photobar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 4px 12px;
+    width: max-content;
+    max-width: calc(100% - 20px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .desk .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 3px;
+  }
+  .desk .hintpill {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    font: var(--t-footnote);
+    color: var(--ink);
+  }
+  .toast {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 76px;
+    background: var(--toast-bg);
+    color: #fff;
+    border-radius: var(--r-control);
+    padding: 12px 16px;
+    font: var(--t-callout);
+    white-space: nowrap;
+  }
+  /* Phone */
+  .phone {
+    width: min(300px, calc(100vw - 32px));
+    max-width: 100%;
+    height: 620px;
+    border-radius: 38px;
+    border: 10px solid var(--device);
+  }
+  .phone .stack {
+    position: absolute;
+    top: 14px;
+    right: 10px;
+    display: grid;
+    gap: 2px;
+    padding: 3px;
+  }
+  .phone .photobar {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 16px;
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+  }
+  .phone .photobar .line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .phone .photobar .btn.primary {
+    width: 100%;
+  }
+  .phone .tabs {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 64px;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font: var(--t-caption);
+    color: var(--ink-2);
+  }
+  .phone .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 64px;
+    height: 140px;
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 10px 16px;
+    font: var(--t-footnote);
+    color: var(--ink-2);
+  }
+  .phone .sheet b {
+    display: block;
+    font: 600 22px/28px var(--font-ui);
+    color: var(--ink);
+    margin-top: 6px;
+  }
+  .phone .menu {
+    position: absolute;
+    top: 14px;
+    right: 62px;
+    width: 168px;
+    padding: 4px;
+    display: grid;
+  }
+  .phone .menu .item {
+    min-height: var(--target);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: var(--t-callout);
+    border-radius: var(--r-control);
+  }
+  .phone .menu .item.on {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .phone .menu .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 4px 8px;
+  }
+  table {
+    border-collapse: collapse;
+    font: var(--t-callout);
+    width: 100%;
+    max-width: 900px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  h2 {
+    font: var(--t-headline);
+    margin: 0 0 8px;
+  }
+</style>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <!-- Lucide: camera, x, moon, undo-2, redo-2 -->
+  <symbol id="camera" viewBox="0 0 24 24">
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+    <circle cx="12" cy="13" r="3" />
+  </symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></symbol>
+  <symbol id="undo" viewBox="0 0 24 24">
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </symbol>
+  <symbol id="redo" viewBox="0 0 24 24">
+    <path d="m15 14 5-5-5-5" />
+    <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+  </symbol>
+  <symbol id="frame" viewBox="0 0 24 24">
+    <path
+      d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"
+    />
+    <circle cx="12" cy="12" r="1" />
+  </symbol>
+  <symbol id="box" viewBox="0 0 24 24">
+    <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
+    <path d="m3 8 9 5 9-5M12 13v8" />
+  </symbol>
+</svg>
+<div class="page">
+  <header class="intro">
+    <span class="eyebrow">Visual stage V5 · new pattern · owner-approved 2026-10-20</span>
+    <h1>Photo mode</h1>
+    <p>
+      A camera button in the toolbar (desktop) or “Photo mode” in the camera menu (phone) opens Photo mode.
+      Plans › “Save this view as an image” opens the same mode. Inside, everything but the room and one bar is
+      hidden. You can still frame the shot by dragging, and a tap on the room sets the focus. Save image
+      renders the view at full quality and downloads it; Close returns to the same view.
+    </p>
+    <p class="note"><span class="tag">New</span> Dashed outline marks what is new on each screen.</p>
+  </header>
+
+  <div class="row-of">
+    <figure>
+      <div class="room desk" aria-label="Desktop, toolbar with the Photo button">
+        <div class="far"></div>
+        <div class="table"></div>
+        <div class="topbar glass">
+          <span class="btn icon"
+            ><svg class="i"><use href="#undo" /></svg
+          ></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#redo" /></svg
+          ></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#moon" /></svg
+          ></span>
+          <span class="btn icon new" title="Photo mode"
+            ><svg class="i"><use href="#camera" /></svg
+          ></span>
+        </div>
+      </div>
+      <figcaption>
+        <b>1 · Desktop, entry.</b> The toolbar's right group gains a camera button after the light. Its
+        tooltip and label read “Photo mode”; the keyboard shortcut is P. The panel, rail and counts stay as
+        they are until it is pressed.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="room desk blur" aria-label="Desktop, Photo mode">
+        <div class="far"></div>
+        <div class="table"></div>
+        <div class="focus new" aria-hidden="true"></div>
+        <div class="hintpill glass new">Drag to frame · click to focus</div>
+        <div class="close glass new">
+          <span class="btn icon" title="Close"
+            ><svg class="i"><use href="#x" /></svg
+          ></span>
+        </div>
+        <div class="photobar glass new">
+          <span class="label">Background blur</span>
+          <span class="seg" role="radiogroup" aria-label="Background blur"
+            ><span>Off</span><span class="on">Soft</span><span>Strong</span></span
+          >
+          <span class="btn icon" title="Switch to daylight"
+            ><svg class="i"><use href="#moon" /></svg
+          ></span>
+          <span class="btn primary">Save image</span>
+        </div>
+      </div>
+      <figcaption>
+        <b>2 · Desktop, Photo mode.</b> The panel and rail fold away, and the room takes the whole window.
+        Labels, selection, checks, the counts and the toolbar are hidden. What stays: <br />• a glass bar at
+        the bottom centre: Background blur (Off / Soft / Strong, Soft first), the light (same button and
+        labels as the toolbar's: “Switch to daylight” / “Switch to evening light”), and Save image, the one
+        primary; <br />• Close (top right, or Escape); <br />• a one-line hint at the top, which fades after
+        the first drag or tap. <br />A tap on the room puts a 44 pt focus ring there for a second; that point
+        stays sharp. Before any tap, the focus is the table at the centre of the view.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="room desk blur" aria-label="Desktop, saving">
+        <div class="far"></div>
+        <div class="table"></div>
+        <div class="close glass">
+          <span class="btn icon"
+            ><svg class="i"><use href="#x" /></svg
+          ></span>
+        </div>
+        <div class="toast new">Image saved · Venue sample view.png</div>
+        <div class="photobar glass">
+          <span class="label">Background blur</span>
+          <span class="seg"><span>Off</span><span class="on">Soft</span><span>Strong</span></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#moon" /></svg
+          ></span>
+          <span class="btn primary busy new">Making image…</span>
+        </div>
+      </div>
+      <figcaption>
+        <b>3 · Saving.</b> Save image turns into “Making image…” (not “Saving”, which the plan's save state
+        uses) and stays disabled while the image renders (target 3 s or less on the phones). The view does not
+        move. When it is done, the file downloads as “&lt;plan name&gt; view.png” and the usual toast confirms
+        it. You stay in Photo mode to take another.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="row-of">
+    <figure>
+      <div class="room phone" aria-label="Phone, entry">
+        <div class="far"></div>
+        <div class="table" style="bottom: 40%"></div>
+        <div class="stack glass" style="top: 172px">
+          <span class="btn icon"
+            ><svg class="i"><use href="#undo" /></svg
+          ></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#redo" /></svg
+          ></span>
+        </div>
+        <div class="stack glass">
+          <span class="btn icon"
+            ><svg class="i"><use href="#box" /></svg
+          ></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#moon" /></svg
+          ></span>
+          <span class="btn icon"
+            ><svg class="i"><use href="#frame" /></svg
+          ></span>
+        </div>
+        <div class="menu glass">
+          <span class="item on">Dollhouse</span><span class="item">Plan</span><span class="item">Walk</span>
+          <span class="divider"></span>
+          <span class="item new"
+            ><svg class="i"><use href="#camera" /></svg>Photo mode</span
+          >
+        </div>
+        <div class="sheet">8 tables · 72 seats · 3 without a seat<b>Room</b></div>
+        <div class="tabs">
+          <span>Room</span><span>Add</span><span>Style</span><span>Guests</span><span>Plans</span>
+        </div>
+      </div>
+      <figcaption>
+        <b>4 · Phone, entry.</b> The top-right stacks stay as they are (camera, light, Reset view; Undo /
+        Redo). The camera menu gains “Photo mode” after a divider, below Dollhouse / Plan / Walk (owner,
+        2026-10-20). In Plan or while comparing, the item is dimmed with the line “Works in Dollhouse and
+        Walk”.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="room phone blur" aria-label="Phone, Photo mode">
+        <div class="far"></div>
+        <div class="table" style="bottom: 34%"></div>
+        <div class="stack glass new">
+          <span class="btn icon"
+            ><svg class="i"><use href="#x" /></svg
+          ></span>
+        </div>
+        <div class="toast new" style="bottom: 196px">Image ready · <u>Share</u></div>
+        <div class="photobar glass new">
+          <div class="line">
+            <span class="label">Background blur</span>
+            <span class="btn icon"
+              ><svg class="i"><use href="#moon" /></svg
+            ></span>
+          </div>
+          <span class="seg" style="width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr"
+            ><span>Off</span><span class="on">Soft</span><span>Strong</span></span
+          >
+          <span class="btn primary">Save image</span>
+        </div>
+      </div>
+      <figcaption>
+        <b>5 · Phone, Photo mode.</b> The sheet and tab bar go away. A glass card at the bottom holds
+        Background blur at full width, the light and Save image. Close is alone in the top-right stack, and
+        the system back gesture also closes. One finger frames the shot, two fingers zoom, a tap sets the
+        focus. When the image is ready, the toast above the card reads “Image ready · Share”: Share opens the
+        phone's share sheet (Save to Photos). The share sheet needs a fresh tap, so it cannot open on its own
+        after the render. Where sharing is not offered, the image downloads and the toast reads “Image saved ·
+        …”.
+      </figcaption>
+    </figure>
+  </div>
+
+  <section>
+    <h2>Behaviour</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>Situation</th>
+          <th>What happens</th>
+        </tr>
+        <tr>
+          <td>Editing while in Photo mode</td>
+          <td>
+            Photo mode is a layer on top of the room. The selection is paused and every edit shortcut is off:
+            Delete, Undo / Redo, R and the 1 / 2 / 3 cameras. Escape, Close and the phone's back gesture only
+            close Photo mode, and closing brings the selection back.
+          </td>
+        </tr>
+        <tr>
+          <td>Plan view, comparing</td>
+          <td>
+            The camera button is disabled, with the label “Photo mode works in Dollhouse and Walk”, as the
+            light is in Plan. Comparing disables it too.
+          </td>
+        </tr>
+        <tr>
+          <td>Walk, Sit here</td>
+          <td>
+            The walk pad and the seated bar are hidden while the photo bar shows. Close returns to the same
+            spot or seat.
+          </td>
+        </tr>
+        <tr>
+          <td>The image fails (memory, lost graphics)</td>
+          <td>
+            One retry at screen size. If that fails too, the toast reads “Couldn't make the image. Try again,
+            or set blur to Off.” and Save image comes back. Close while making the image cancels it.
+          </td>
+        </tr>
+        <tr>
+          <td>Phones on Battery saver</td>
+          <td>The blur previews only once the view is still; the saved image is the same.</td>
+        </tr>
+        <tr>
+          <td>Keyboard and screen readers</td>
+          <td>
+            The room takes focus: Enter focuses the centre, the arrow keys move the focus ring, and a status
+            line says “Focus set”. Before any tap, the centre is the focus, so the default works without a
+            pointer.
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p class="note" style="margin-top: 12px">
+      <b>Approximate items (owner, 2026-10-20):</b> when imported items shown as approximate are in the
+      picture, the saved image carries a small footnote in its bottom-left corner, e.g. “Approximate: Welcome
+      sign (photo preview)”, in the fidelity labels' exact words. With none in view, there is no footnote.
+    </p>
+  </section>
+
+  <section>
+    <h2>What Photo mode changes in the picture</h2>
+
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>While framing</th>
+          <th>The saved image</th>
+        </tr>
+        <tr>
+          <td>
+            The device's own graphics tier while the view moves, then the full-quality frame once it is still.
+          </td>
+          <td>
+            Full quality on every device: High shading, soft shadows, live ambient occlusion, and the detailed
+            chairs, flowers and tableware.
+          </td>
+        </tr>
+        <tr>
+          <td>Candles and lamps glow as they do now.</td>
+          <td>Candles and table lamps also light the cloth and the décor around them.</td>
+        </tr>
+        <tr>
+          <td>The blur previews at screen size.</td>
+          <td>Depth of field around the focus point, at the chosen blur.</td>
+        </tr>
+        <tr>
+          <td>—</td>
+          <td>
+            Twice the screen's size on a desktop (a 1440 × 900 window gives 2880 × 1800); the screen's own
+            pixels on a phone, up to 2048 px on the long side.
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p class="note" style="margin-top: 12px">
+      The plan export (Plans › For the venue › PDF and PNG) is unchanged.
+    </p>
+  </section>
+</div>

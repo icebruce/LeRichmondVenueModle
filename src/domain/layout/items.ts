@@ -56,6 +56,8 @@ export type Shape =
       height: number;
       /** Only floor pieces block the floor; hanging, ceiling, wall and flat (projected) ones never do. */
       blocks: boolean;
+      /** A model file drawn in place of the generator's parts, phones too (plants, V5). */
+      file?: string;
     };
 
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -117,6 +119,7 @@ const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p
           depth,
           height,
           blocks,
+          ...(e.model.kind === "parametric" && e.model.file ? { file: e.model.file } : {}),
         };
       },
     ]),

@@ -72,7 +72,7 @@ function ThumbScene({ evening }: { evening: boolean }) {
       <Environment resolution={64} frames={1}>
         <Lightformer form="rect" intensity={2} position={[0, 5, 5]} scale={[10, 10, 1]} />
       </Environment>
-      <Items m={m} evening={evening} />
+      <Items m={m} evening={evening} detail />
     </>
   );
 }

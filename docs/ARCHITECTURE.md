@@ -180,7 +180,7 @@ Client resizes to ≤ 1600 px long edge, WebP/JPEG, EXIF stripped, ≤ 500 KB, b
 |---|---|---|
 | First meaningful paint (plan + counts) | < 1.5 s | < 2.5 s |
 | Initial download (JS + scene) | < 12 MB | < 6 MB |
-| Draw calls, full evening scene, 15 tables + 150 people | < 250 | < 150 (frames of motion; Balanced's one still frame, with ambient occlusion, reaches ≈ 155: owner decision at the V0 gate) |
+| Draw calls, full evening scene, 15 tables + 150 people | < 250 | < 155 (frames of motion; owner 2026-10-20, for the Meshy plants on phones; was 150. Balanced's one still frame, with ambient occlusion, reaches ≈ 155: owner decision at the V0 gate) |
 | Triangles | < 2.0 M (High; owner 2026-10-19, for the Meshy chairs, flowers and chandeliers; was 1.5 M) | < 600 k |
 | Frame rate | 60 fps target | 30 fps floor |
 | Frames drawn while the view is still | 0 | 0 |

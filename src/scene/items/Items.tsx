@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import {
@@ -25,7 +25,7 @@ import { useEditor, useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import type { Quality } from "../quality";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { Chairs, TableDecor, useDecorParts } from "./Decor";
+import { Chairs, PieceModels, TableDecor, useDecorParts } from "./Decor";
 import { TableContacts } from "./Contact";
 import { type PieceImage, type PieceText, makePiece } from "../../domain/layout/pieces";
 import { cocktailCover } from "./geometry";
@@ -591,10 +591,13 @@ export function Items({
   m,
   evening,
   quality = "high",
+  detail = false,
 }: {
   m: Materials;
   evening: boolean;
   quality?: Quality;
+  /** At eye level: the table décor's detailed blooms (V5). */
+  detail?: boolean;
 }) {
   const { venue, catalog, editor, readOnly } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
@@ -603,12 +606,12 @@ export function Items({
   const drag = useView((s) => s.drag);
   const hover = useView((s) => s.hover);
   const placed = usePlaced(scenario);
-  const decor = useDecorParts(placed, scenario, quality === "low");
+  const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
+  const decor = useDecorParts(placed, scenario, quality === "low", labels);
   const blocking = useMemo(
     () => new Set(placed.filter((p) => blocksFloor(p.shape)).map((p) => p.item.id)),
     [placed],
   );
-  const labels = useMemo(() => tableLabels(scenario.items, catalog), [scenario.items, catalog]);
   const toPlane = useFloorPointer();
   const getThree = useThree((s) => s.get);
   const press = useRef<{ x: number; y: number; timer: number | null; started: boolean } | null>(null);
@@ -920,7 +923,11 @@ export function Items({
       })}
       <Chairs placed={placed} scenario={scenario} low={quality === "low"} />
       <TableContacts placed={placed} decor={decor} m={m} />
-      <TableDecor decor={decor} m={m} evening={evening} low={quality === "low"} />
+      <TableDecor decor={decor} m={m} evening={evening} low={quality === "low"} detail={detail} />
+      {/* Its own loading step: a plant's model arrives a moment after it is placed, not with the room. */}
+      <Suspense fallback={null}>
+        <PieceModels decor={decor} low={quality === "low"} />
+      </Suspense>
       {/* Touch rotates with the inspector buttons; a 3D handle is too small a target there. */}
       {single && camera !== "walk" && !coarse && !spotFor(single.item, venue) && !drag && (
         <RotateHandle

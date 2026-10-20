@@ -20,7 +20,13 @@ import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 enablePatches();
 
 export type CameraMode = "dollhouse" | "plan" | "walk";
-export type Toast = { id: number; text: string; undo?: () => void };
+export type Toast = {
+  id: number;
+  text: string;
+  undo?: () => void;
+  /** Another action than Undo (e.g. Share on a saved image). */
+  action?: { label: string; run: () => void };
+};
 export type SaveState = "saved" | "saving" | "error" | "offline";
 /** The partner saved a newer version while this device was editing (SCN-03). */
 export type Conflict = { id: string; theirs: Scenario };
@@ -141,8 +147,8 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     return false;
   }
 
-  function toast(text: string, undo?: () => void) {
-    set({ toast: { id: ++toastSeq, text, ...(undo ? { undo } : {}) } });
+  function toast(text: string, undo?: () => void, action?: Toast["action"]) {
+    set({ toast: { id: ++toastSeq, text, ...(undo ? { undo } : {}), ...(action ? { action } : {}) } });
   }
 
   const obstacles = () => toggledObstacles(venue, active().venueToggles);
@@ -212,9 +218,9 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       set({ saveState });
     },
 
-    /** A message, with Undo when `undo` is given (e.g. putting back a removed import). */
-    notify(text: string, undo?: () => void) {
-      toast(text, undo);
+    /** A message, with Undo when `undo` is given (e.g. putting back a removed import), or another action. */
+    notify(text: string, undo?: () => void, action?: Toast["action"]) {
+      toast(text, undo, action);
     },
 
     /** Where a piece dragged from the library would land and whether it may (LIB-13); the drop agrees. */

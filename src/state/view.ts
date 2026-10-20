@@ -56,6 +56,19 @@ export type ViewState = {
     /** The camera to return to on "Stand up". */
     from: "dollhouse" | "plan" | "walk";
   } | null;
+  /** Photo mode (EXP-02, V5): open while set. */
+  photo: Photo | null;
+};
+
+/** Photo mode's settings: the background blur, the point kept sharp (null: the centre of the view). */
+export type Photo = {
+  blur: "off" | "soft" | "strong";
+  /** Screen point (px, from the canvas's top left) kept sharp; null: the centre of the view. */
+  focus: [number, number] | null;
+  /** The selection while Photo mode is open; brought back on Close. */
+  selection: string[];
+  /** Making the image. */
+  busy: boolean;
 };
 
 /** Shared by the scene (renders it) and the UI (writes panel inset, reads drag state). */
@@ -78,6 +91,7 @@ export const viewStore = createStore<ViewState>(() => ({
   pickSeat: null,
   seat: null,
   requestFor: null,
+  photo: null,
 }));
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */
@@ -104,3 +118,9 @@ export function requestCamera(key: string | null) {
 
 /** The drag-and-drop type of a library piece dragged from Add into the room (LAY-01, desktop). */
 export const LIBRARY_DRAG = "application/x-richmond-library";
+
+/**
+ * Makes the saved image (Photo mode): set by the scene, which owns the renderer. Renders the view
+ * at `pixelRatio` and returns it as a PNG, with a footnote naming approximate items in view.
+ */
+export const photoRenderer: { render: ((pixelRatio: number) => Promise<Blob>) | null } = { render: null };

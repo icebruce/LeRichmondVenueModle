@@ -2,14 +2,29 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
-import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
+import {
+  BLOOM_MODELS,
+  CARD_NUMBERS,
+  type Part,
+  type Prim,
+  type Slot,
+  tableDecor,
+} from "../../domain/layout/decor";
 import { makePiece } from "../../domain/layout/pieces";
 import { styleOf } from "../../domain/scenario/scenario";
 import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
+import { requestWarmup } from "../frames";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { type ChairModel, ChairModelLoader, chairGeometry } from "./geometry";
+import {
+  BloomLoader,
+  type ChairModel,
+  ChairModelLoader,
+  type PieceModel,
+  PieceModelLoader,
+  chairGeometry,
+} from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -53,7 +68,58 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
     cone: new THREE.ConeGeometry(1, 1, r).translate(0, 0.5, 0),
     bowl: new THREE.ConeGeometry(1, 1, r).rotateX(Math.PI).translate(0, 0.5, 0),
     plane: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
+    drop: low ? teardrop(6, 3) : teardrop(8, 6),
+    plate: turned(PLATE, low ? 12 : 32),
+    goblet: turned(GOBLET, low ? 8 : 16),
   };
+}
+
+/**
+ * Turned tableware (V5), as profiles (radius, height) within a unit cylinder from y = 0 to 1, so
+ * they scale like the cylinders they replace. A plate: a flat well rising to a rim, its top
+ * surface turned back to the centre (a solid, seen from above and below).
+ */
+const PLATE: [number, number][] = [
+  [0, 0],
+  [0.62, 0],
+  [0.7, 0.3],
+  [0.97, 0.85],
+  [1, 1],
+  [0.94, 1],
+  [0.68, 0.55],
+  [0, 0.5],
+];
+/** A stemmed glass: foot, stem, a bowl widest two thirds up, drawn to the rim (glass shows both sides). */
+const GOBLET: [number, number][] = [
+  [0, 0],
+  [0.75, 0],
+  [0.72, 0.03],
+  [0.1, 0.06],
+  [0.07, 0.42],
+  [0.25, 0.5],
+  [0.85, 0.66],
+  [0.98, 0.8],
+  [0.9, 1],
+];
+
+function turned(profile: [number, number][], segments: number): THREE.BufferGeometry {
+  return new THREE.LatheGeometry(
+    profile.map(([r, y]) => new THREE.Vector2(r, y)),
+    segments,
+  );
+}
+
+/**
+ * A candle flame (V5): round at the bottom, drawn to a point at the top, within -1..1 like the
+ * sphere it replaces (x = sin t · sin(t/2), y = cos t, scaled to a unit radius); as many triangles as
+ * that sphere or fewer.
+ */
+function teardrop(segments: number, steps: number): THREE.BufferGeometry {
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = Math.PI * (1 - i / steps);
+    return new THREE.Vector2(Math.sin(t) * Math.sin(t / 2) * 1.3, Math.cos(t));
+  });
+  return new THREE.LatheGeometry(points, segments);
 }
 
 const SEAT_ROUGHNESS = 0.8;
@@ -218,7 +284,68 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
   );
 }
 
-type Group = { key: string; prim: Prim; slot: Slot; solid: boolean };
+/** The shared card sheet (V5): 8 × 4 cells of paper, the first blank, then table numbers 1 to 31. */
+const SHEET = { cols: 8, rows: 4 };
+/** Paper's colour: the sheet's ground, and a phone batch's paper. */
+const PAPER = "#f4efe4";
+const cardSheet = (() => {
+  if (typeof document === "undefined") return null;
+  const cell = 128;
+  const c = document.createElement("canvas");
+  c.width = SHEET.cols * cell;
+  c.height = SHEET.rows * cell;
+  const g = c.getContext("2d") as CanvasRenderingContext2D;
+  g.fillStyle = PAPER;
+  g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#3b3129";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  for (let n = 1; n <= CARD_NUMBERS; n++) {
+    const x = (n % SHEET.cols) * cell + cell / 2;
+    const y = Math.floor(n / SHEET.cols) * cell + cell / 2;
+    // A card is 10 × 7 cm and each face takes a square cell: the type is drawn narrow to match.
+    g.save();
+    g.translate(x, y);
+    g.scale(0.7, 1);
+    g.font = `500 ${cell * 0.55}px "Iowan Old Style", "Palatino Linotype", Georgia, serif`;
+    g.fillText(String(n), 0, cell * 0.04);
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+})();
+
+/** Paper that shows its instance's cell of the card sheet (`cell`, from `Part.card`). */
+function printed(m: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float cell;")
+      .replace(
+        "#include <uv_vertex>",
+        `#include <uv_vertex>
+#ifdef USE_MAP
+vMapUv = (vMapUv + vec2(mod(cell, ${SHEET.cols}.0), ${SHEET.rows - 1}.0 - floor(cell / ${SHEET.cols}.0))) / vec2(${SHEET.cols}.0, ${SHEET.rows}.0);
+#endif`,
+      );
+  };
+  m.customProgramCacheKey = () => "printed-paper";
+  return m;
+}
+
+/** A copy of a primitive with a per-instance `cell` attribute for `capacity` instances. */
+function withCells(g: THREE.BufferGeometry, capacity: number): THREE.BufferGeometry {
+  const copy = g.clone();
+  copy.setAttribute("cell", new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1));
+  return copy;
+}
+
+/** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
+type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string };
+
+/** Turned shapes and the primitive drawn for them away from eye level and on phones (V5). */
+const FAR: Partial<Record<Prim, Prim>> = { plate: "cylinder", goblet: "cylinder" };
 
 /**
  * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance with its
@@ -237,13 +364,21 @@ const SOLID_SLOTS: ReadonlySet<Slot> = new Set([
   "leaf",
   "fabric",
 ]);
+const WHITE = new THREE.Color("#ffffff");
+
 /** Foliage green; a part's own colour (eucalyptus) replaces it. */
 const LEAF = "#56704a";
 
 /** Each placed piece's décor parts and the height they stand on: one layout for the décor and its contact shadows. */
 export type DecorParts = { p: Placed; base: number; parts: Part[] }[];
 
-export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean): DecorParts {
+export function useDecorParts(
+  placed: Placed[],
+  scenario: Scenario,
+  low: boolean,
+  /** The plan's table labels (`tableLabels`), printed on the number cards. */
+  labels: ReadonlyMap<string, string>,
+): DecorParts {
   const { catalog } = useStudio();
   // Parts per table depend only on its shape and style; a drag just moves them.
   return useMemo(
@@ -260,9 +395,16 @@ export function useDecorParts(placed: Placed[], scenario: Scenario, low: boolean
                 p.shape.options,
                 p.shape.size,
               ).parts
-            : tableDecor(p.shape, styleOf(p.item, scenario.style), catalog, scenario.style, i * 97 + 13),
+            : tableDecor(
+                p.shape,
+                styleOf(p.item, scenario.style),
+                catalog,
+                scenario.style,
+                i * 97 + 13,
+                labels.get(p.item.id),
+              ),
       })),
-    [placed, scenario.style, catalog, low],
+    [placed, scenario.style, catalog, low, labels],
   );
 }
 
@@ -275,21 +417,47 @@ export function TableDecor({
   m,
   evening,
   low,
+  detail,
 }: {
   decor: DecorParts;
   m: Materials;
   evening: boolean;
   low: boolean;
+  /** At eye level: blooms as models (V5); from further off, the lighter primitives. */
+  detail: boolean;
 }) {
   const drag = useView((s) => s.drag);
   // Instances are written in place below, so each write asks for a frame (frames are on demand).
   const invalidate = useThree((s) => s.invalidate);
   const prims = useMemo(() => primitives(low), [low]);
+  // Full quality loads every bloom model with the room (its loading step waits for them); the phone
+  // tier keeps the primitives (V5).
+  const bloomList = useMemo<string[]>(() => (low ? [] : [...BLOOM_MODELS]), [low]);
+  const loadedBlooms = useLoader(BloomLoader, bloomList) as THREE.BufferGeometry[];
+  const blooms = useMemo(
+    () => new Map(bloomList.map((name, i) => [name, loadedBlooms[i] as THREE.BufferGeometry])),
+    [bloomList, loadedBlooms],
+  );
   const solidMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.15 }),
     [],
   );
   useEffect(() => () => solidMaterial.dispose(), [solidMaterial]);
+  // Bloom models: their creases' shade in the vertex colour, tinted per instance; petals are thin
+  // shells, seen from both sides.
+  const bloomMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        roughness: 0.8,
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        // Shadows from the back faces, like every other mesh: a two-sided shadow pass would be a
+        // shader of its own, compiled the first time eye level showed a bloom.
+        shadowSide: THREE.BackSide,
+      }),
+    [],
+  );
+  useEffect(() => () => bloomMaterial.dispose(), [bloomMaterial]);
   const materials = useMemo<Record<Slot, THREE.Material>>(
     () => ({
       wax: new THREE.MeshStandardMaterial({
@@ -309,7 +477,7 @@ export function TableDecor({
       silver: new THREE.MeshStandardMaterial({ color: "#c9cbcc", metalness: 0.9, roughness: 0.25 }),
       black: m.blackMetal,
       ceramic: new THREE.MeshStandardMaterial({ color: "#f7f5f0", roughness: 0.35 }),
-      paper: new THREE.MeshStandardMaterial({ color: "#f4efe4", roughness: 0.9 }),
+      paper: printed(new THREE.MeshStandardMaterial({ map: cardSheet, roughness: 0.9 })),
       flower: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.8 }),
       leaf: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 }),
       fabric: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.95 }),
@@ -343,6 +511,18 @@ export function TableDecor({
         side: THREE.DoubleSide,
         toneMapped: false,
       }),
+      // Candlelight: the cloth times the pool's colour, faded out from the centre (dst · (c·a + 1 − a)).
+      pool: new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        alphaMap: fades.glow,
+        transparent: true,
+        premultipliedAlpha: true,
+        blending: THREE.CustomBlending,
+        blendSrc: THREE.DstColorFactor,
+        blendDst: THREE.OneMinusSrcAlphaFactor,
+        depthWrite: false,
+        toneMapped: false,
+      }),
       mirror: new THREE.MeshStandardMaterial({
         color: "#e6e8ea",
         metalness: 1,
@@ -358,36 +538,76 @@ export function TableDecor({
     (materials.bulb as THREE.MeshStandardMaterial).emissiveIntensity = evening ? 3 : 0.25;
   }, [materials, evening]);
   const groups = useMemo(() => {
-    const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
+    type Entry = { p: Placed; part: Part; base: number; lod?: "near" | "far" };
+    const map = new Map<string, Group & { parts: Entry[] }>();
+    const place = (key: string, g: Omit<Group, "key">, entry: Entry) => {
+      let group = map.get(key);
+      if (!group) map.set(key, (group = { key, ...g, parts: [] }));
+      group.parts.push(entry);
+    };
     for (const { p, parts, base } of perItem) {
+      // A piece with a model file draws that instead, phones too (`PieceModels`).
+      if (p.shape.kind === "piece" && p.shape.file) continue;
       for (const part of parts) {
         const solid = low && SOLID_SLOTS.has(part.slot);
-        const key = `${part.prim}:${solid ? "solid" : part.slot}`;
-        let g = map.get(key);
-        if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, solid, parts: [] }));
-        g.parts.push({ p, part, base });
+        const slotKey = solid ? "solid" : part.slot;
+        const plain = (prim: Prim, lod?: "near" | "far") =>
+          place(
+            `${prim}:${slotKey}`,
+            { prim, slot: part.slot, solid },
+            { p, part, base, ...(lod ? { lod } : {}) },
+          );
+        // Detail (V5) at eye level only: a bloom model or a turned shape near, and from further off
+        // the primitive standing in for it, in its slot's own mesh. A view switch only refills the
+        // instances: no mesh, draw call or shader is added. Phones draw the stand-ins.
+        const model = part.model && blooms.has(part.model) ? part.model : undefined;
+        const far = FAR[part.prim];
+        if (low) plain(far ?? part.prim);
+        else if (model) {
+          place(
+            `bloom:${model}`,
+            { prim: part.prim, slot: part.slot, solid, model },
+            { p, part, base, lod: "near" },
+          );
+          plain(part.prim, "far");
+        } else if (far) {
+          plain(part.prim, "near");
+          plain(far, "far");
+        } else plain(part.prim);
       }
     }
     return [...map.values()];
-  }, [perItem, low]);
+  }, [perItem, low, blooms]);
   const meshes = useMemo(
     () =>
       groups.map((g) => {
+        // Paper takes its printed cell per instance (table numbers; 0 is blank paper).
+        const geometry = (g.model && blooms.get(g.model)) || prims[g.prim];
+        const paper = g.slot === "paper" && !g.solid;
         const mesh = new THREE.InstancedMesh(
-          prims[g.prim],
-          g.solid ? solidMaterial : materials[g.slot],
+          paper ? withCells(geometry, Math.max(1, g.parts.length)) : geometry,
+          g.model ? bloomMaterial : g.solid ? solidMaterial : materials[g.slot],
           Math.max(1, g.parts.length),
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
         mesh.castShadow =
-          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow"].includes(g.slot);
+          !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow", "pool"].includes(g.slot);
+        // Coloured instances get their colour buffer now, even with none drawn yet: made later (when
+        // eye level first fills a bloom mesh) it would change the shader and compile it then.
+        if (g.solid || g.parts.some(({ part }) => part.colour || part.slot === "leaf"))
+          mesh.setColorAt(0, WHITE);
         return { g, mesh };
       }),
-    [groups, prims, materials, solidMaterial, low],
+    [groups, prims, materials, solidMaterial, bloomMaterial, blooms, low],
   );
+  // Meshes made hidden (the detail away from eye level, flames by day) compile now, not when shown.
+  useEffect(() => requestWarmup(), [meshes]);
   useEffect(
     () => () => {
-      for (const { mesh } of meshes) mesh.dispose();
+      for (const { g, mesh } of meshes) {
+        if (g.slot === "paper" && !g.solid) mesh.geometry.dispose();
+        mesh.dispose();
+      }
     },
     [meshes],
   );
@@ -413,6 +633,7 @@ export function TableDecor({
         "bulb",
         "beam",
         "glow",
+        "pool",
         "mirror",
       ] as const)
         materials[k].dispose();
@@ -425,36 +646,111 @@ export function TableDecor({
     const out = new THREE.Matrix4();
     const colour = new THREE.Color();
     for (const { g, mesh } of meshes) {
-      g.parts.forEach(({ p, part, base }, i) => {
+      // Only the parts for this distance: near ones at eye level, far ones otherwise.
+      let n = 0;
+      for (const { p, part, base, lod } of g.parts) {
+        if (lod && (lod === "near") !== detail) continue;
         const item = moved(p.item, drag);
         const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
         table.makeRotationY(item.rotY).setPosition(item.x, p.y + base + lift, item.z);
         local.position.set(part.x, part.y, part.z);
         local.rotation.set(part.rx ?? 0, part.ry ?? 0, part.rz ?? 0);
-        local.scale.set(part.sx, part.sy, part.sz);
+        // A bloom model keeps its own proportions, at the part's largest size.
+        if (g.model) local.scale.setScalar(Math.max(part.sx, part.sy, part.sz));
+        else local.scale.set(part.sx, part.sy, part.sz);
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
-        mesh.setMatrixAt(i, out);
+        mesh.setMatrixAt(n, out);
+        mesh.geometry.getAttribute("cell")?.setX(n, part.card ?? 0);
         // A part's own colour (flowers, napkins, eucalyptus); else foliage green on leaves and, in a
         // phone batch, the colour of the slot's own material.
         const own = part.colour ?? (part.slot === "leaf" ? LEAF : null);
-        if (own) mesh.setColorAt(i, colour.set(own));
+        if (own) mesh.setColorAt(n, colour.set(own));
         else if (g.solid)
-          mesh.setColorAt(i, colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color));
-      });
-      mesh.count = g.parts.length;
+          mesh.setColorAt(
+            n,
+            part.slot === "paper"
+              ? colour.set(PAPER)
+              : colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color),
+          );
+        n++;
+      }
+      mesh.count = n;
       mesh.instanceMatrix.needsUpdate = true;
+      const cells = mesh.geometry.getAttribute("cell");
+      if (cells) cells.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
-      // Flames, beams and glows show only in the evening.
-      mesh.visible = evening || !["flame", "beam", "glow"].includes(g.slot);
+      // Flames, beams, glows and pools show only in the evening.
+      mesh.visible = n > 0 && (evening || !["flame", "beam", "glow", "pool"].includes(g.slot));
     }
     invalidate();
-  }, [meshes, drag, materials, evening, invalidate]);
+  }, [meshes, drag, materials, evening, detail, invalidate]);
   return (
     <group name="table-decor">
       {meshes.map(({ g, mesh }) => (
         <primitive key={g.key} object={mesh} />
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Floor pieces with a model file (Meshy plants, V5), on every tier so what is placed matches its
+ * thumbnail (owner, 2026-10-20): one mesh per file, scaled to the piece's height.
+ */
+export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean }) {
+  const drag = useView((s) => s.drag);
+  const invalidate = useThree((s) => s.invalidate);
+  const key = [
+    ...new Set(decor.flatMap(({ p }) => (p.shape.kind === "piece" && p.shape.file ? [p.shape.file] : []))),
+  ]
+    .sort()
+    .join("|");
+  const files = useMemo(() => (key ? key.split("|") : []), [key]);
+  const loaded = useLoader(PieceModelLoader, files) as PieceModel[];
+  // Room for every placement of each model (a new mesh when that count grows past it).
+  const capacity = Math.max(1, decor.length);
+  const meshes = useMemo(
+    () =>
+      files.map((file, i) => {
+        const model = loaded[i] as PieceModel;
+        const mesh = new THREE.InstancedMesh(model.geometry, model.material, capacity);
+        mesh.castShadow = !low; // Phone tier: no shadow, as small décor (draw-call budget)
+        return { file, model, mesh };
+      }),
+    [files, loaded, capacity, low],
+  );
+  useEffect(
+    () => () => {
+      for (const { mesh } of meshes) mesh.dispose();
+    },
+    [meshes],
+  );
+  useEffect(() => {
+    const t = new THREE.Object3D();
+    for (const { file, model, mesh } of meshes) {
+      let n = 0;
+      for (const { p } of decor) {
+        if (p.shape.kind !== "piece" || p.shape.file !== file) continue;
+        const item = moved(p.item, drag);
+        const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
+        t.position.set(item.x, p.y + lift, item.z);
+        t.rotation.set(0, item.rotY, 0);
+        t.scale.setScalar(p.shape.height / model.height);
+        t.updateMatrix();
+        mesh.setMatrixAt(n++, t.matrix);
+      }
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    }
+    invalidate();
+  }, [meshes, decor, drag, invalidate]);
+  return (
+    <group name="piece-models">
+      {meshes.map(({ file, mesh }) => (
+        <primitive key={file} object={mesh} />
       ))}
     </group>
   );

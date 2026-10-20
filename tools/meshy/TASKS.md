@@ -35,3 +35,30 @@ legs). Credits after: 824.
 | Oval-back | 01a15213-bab2-75f1-94ed-1763f0ce65e9 | 01a15215-1d15-74fc-ad1a-ea953e65a32a | 0.47, -0.225, 1.00 |
 | Cross-back | 01a15213-c34a-7759-8631-94e9972dcc87 | 01a15215-24e5-715f-9f11-6f0a449dc391 | 0.44, -0.225, 0.92 |
 | Chiavari | 01a15213-cb96-705d-8575-168e2fda0c24 | 01a15215-2c9a-75e3-81fb-ea14b3582ed7 | 0.41, -0.225, 0.92 |
+
+## Blooms and plants (V5, 2026-10-20)
+
+Owner: Meshy for all eight flower types and the six plants. Blooms are untextured previews (`preview
+<name> <prompt> <polycount> prop`; the app tints them, and `blender/bloom_from_meshy.py` bakes their
+creases into the vertex colour); plants are refined with PBR and keep only the colour map
+(`blender/plant_from_meshy.py`). Credits 824 → 394.
+
+| Bloom | Used | Rejected |
+|---|---|---|
+| Rose | 01a15756-52aa-7798-8c5e-683d64209d9d (580 tri, `front-up`) | — |
+| Peony | none: peonies draw the ranunculus, larger (owner 2026-10-20) | 01a15778-9524-7349-9eeb-d07886ff5550 (remesh to 600 of 01a15773-fc8e-74f7-91ac-89be57e07964: torn petals at eye level), 01a15757-f19d-714d-8092-e1388d604e17 (stray spike), 01a1575a-a881-744e-9864-229c86aa3c62 (spiky); the 1,345-triangle preview put a table of peonies at 1.2 M triangles |
+| Ranunculus | remesh to 600 01a15778-9639-7350-931c-44298d93ec52 of 01a15774-0472-706c-a4c1-b8472e3d1107 (`stem`) | 01a15758-060c-74d7-b087-845e5949738b (a dahlia), 01a1575a-b1c5-7449-a50c-8abbbb9fcca2 (spiky) |
+| Pampas plume | 01a15758-15d3-709f-9096-9d704ee57c1c | — |
+| Blossom cluster | 01a15758-1d29-75f0-b177-bf1311d7c926 | — |
+| Eucalyptus sprig (every mound's leaves) | 01a15758-29f1-74a0-aa83-8880df56de29 | — |
+| Hydrangea | none: the app keeps its primitives | 01a15757-fe18-743f-b23d-c3f8fce71d7e (failed, too dense; no charge), 01a1575a-ba91-7506-aae9-7dd69e1dfc96 (shards) |
+| Baby's breath | none: the app keeps its primitives | 01a15758-0e62-75f1-84cc-32cf1d84c4b6 (florets broke apart) |
+
+| Plant | Preview (8,000 target) | Refine | Height (m) |
+|---|---|---|---|
+| Fiddle-leaf fig | 01a15758-9805-71f4-8290-01f3e5f570a1 | 01a1575e-b6e1-737f-890d-7c3d4333300f | 1.95 |
+| Olive tree | 01a15758-a00b-73b5-884d-abfe996c6122 | 01a1575e-bf05-766a-8c36-8611014dc51b | 2.0 |
+| Kentia palm | 01a15758-a903-70ea-ac57-b619127f29be | 01a1575e-c01d-73f3-b814-3ca593592f4f | 2.0 |
+| Monstera | 01a15758-b120-7434-91dc-000611b8a2b3 | 01a1575e-c12e-741b-865d-c3983feb1de3 | 0.9 |
+| Fern | 01a15758-bd00-779b-855a-2b3a4fa5e9c1 | 01a1575e-c252-7289-bc46-da8fe463df01 | 0.65 |
+| Blossom tree | 01a15758-c51b-7489-8a95-fb339e5513ac | 01a1575e-c36c-7104-836f-53a8e813d465 (`prompts/plant-blossom-texture.txt`) | 2.4 |

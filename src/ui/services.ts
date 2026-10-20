@@ -8,8 +8,12 @@ export type Services = {
   importScenario: (file: File) => Promise<void>;
   /** The active scenario's plan for the venue, as PNG or PDF (EXP-01). */
   exportPlan: (format: "png" | "pdf") => Promise<void>;
-  /** What the camera shows now, as a PNG (EXP-02). */
-  saveView: () => Promise<void>;
+  /**
+   * Photo mode's image (EXP-02) as a file named after the plan, and saving it: downloaded, or with
+   * `share`, handed to the phone's share sheet.
+   */
+  viewFile: (image: Blob) => File;
+  saveFile: (file: File, share?: boolean) => Promise<void>;
   /** Shared cloud saving (ACC-01, SCN-02..05). */
   cloud: CloudServices;
   /** Imported items, their photos and custom model requests (IMP, REQ). */

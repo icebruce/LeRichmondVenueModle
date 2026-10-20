@@ -8,6 +8,7 @@ import { Icon, type IconName } from "./icons";
 import { useServices } from "./services";
 import { VersionHistory } from "./Dialogs";
 import { Chips, PageHead } from "./Panels";
+import { PHOTO_UNAVAILABLE, openPhoto, usePhotoAllowed } from "./Photo";
 
 /**
  * Where the active plan is saved (DESIGN_GUIDE §7): "Saving…", "Saved · shared", or what went wrong.
@@ -50,22 +51,31 @@ function ActionRow({
   onClick,
   testId,
   danger = false,
+  disabled = false,
+  note,
 }: {
   label: string;
   icon?: IconName;
   onClick: () => void;
   testId?: string;
   danger?: boolean;
+  disabled?: boolean;
+  /** A line under the label (why it is unavailable). */
+  note?: string;
 }) {
   return (
     <button
       type="button"
       className={`nav-row ${danger ? "danger" : ""}`}
       onClick={onClick}
+      disabled={disabled}
       data-testid={testId}
     >
       {icon && <Icon name={icon} size={18} className="nav-icon" />}
-      <span className="nav-label">{label}</span>
+      <span className="nav-label">
+        {label}
+        {note && <span className="nav-sub">{note}</span>}
+      </span>
     </button>
   );
 }
@@ -81,6 +91,7 @@ export function PlansPanel() {
   const order = useEditor((s) => s.order);
   const activeId = useEditor((s) => s.activeId);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const photoAllowed = usePhotoAllowed();
   const renaming = renamingId === activeId;
   const [history, setHistory] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -181,7 +192,9 @@ export function PlansPanel() {
         <ActionRow
           label="Save this view as an image"
           icon="download"
-          onClick={() => void services.saveView()}
+          onClick={() => openPhoto(editor)}
+          disabled={!photoAllowed}
+          {...(photoAllowed ? {} : { note: PHOTO_UNAVAILABLE })}
           testId="save-view"
         />
         <ActionRow

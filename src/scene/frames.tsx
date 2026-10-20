@@ -72,6 +72,16 @@ export function Warmup({ direct }: { direct: boolean }) {
   const invalidate = useThree((s) => s.invalidate);
   // On the second frame: the environment map is drawn in the first, and shaders depend on it.
   const frame = useRef(0);
+  // Again when parts are added hidden (a view or the evening shows them later): `requestWarmup`.
+  useEffect(() => {
+    rewarm = () => {
+      frame.current = 0;
+      invalidate();
+    };
+    return () => {
+      rewarm = null;
+    };
+  }, [invalidate]);
   useFrame(() => {
     frame.current++;
     if (frame.current === 1) invalidate();
@@ -96,6 +106,17 @@ export function Warmup({ direct }: { direct: boolean }) {
     return () => document.removeEventListener("visibilitychange", wake);
   }, [invalidate]);
   return null;
+}
+
+let rewarm: (() => void) | null = null;
+
+/**
+ * Compiles the scene again after parts were added that only a later view or the evening shows
+ * (e.g. a table's detailed blooms, made while the view is the dollhouse), so showing them then
+ * compiles nothing.
+ */
+export function requestWarmup() {
+  rewarm?.();
 }
 
 /**
