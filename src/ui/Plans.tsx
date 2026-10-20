@@ -1,3 +1,4 @@
+import { openPhoto } from "./Photo";
 import { useRef, useState } from "react";
 import type { Scenario } from "../domain/scenario/schema";
 import { countLayout } from "../domain/layout/counts";
@@ -181,7 +182,7 @@ export function PlansPanel() {
         <ActionRow
           label="Save this view as an image"
           icon="download"
-          onClick={() => void services.saveView()}
+          onClick={() => openPhoto(editor)}
           testId="save-view"
         />
         <ActionRow

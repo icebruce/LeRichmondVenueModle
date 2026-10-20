@@ -114,13 +114,11 @@ export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
         imageUrl: (id) => cloud.library.imageUrl(id),
         newId,
       },
-      saveView: async () => {
-        const canvas = document.querySelector<HTMLCanvasElement>("[data-testid=studio-canvas] canvas");
-        if (!canvas) return;
-        downloadBlob(
-          await toBlob(canvas, "image/png"),
-          fileName(`${studio.editor.active().name} view`, "png"),
-        );
+      viewFile: (image) =>
+        new File([image], fileName(`${studio.editor.active().name} view`, "png"), { type: "image/png" }),
+      saveFile: async (file, share) => {
+        if (share) await navigator.share({ files: [file] }).catch(() => {});
+        else downloadBlob(file, file.name);
       },
     }),
     [studio, status, partner, cloud],

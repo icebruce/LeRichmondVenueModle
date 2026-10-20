@@ -639,9 +639,47 @@ test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current vie
   const png = await download("export-png");
   expect(png.name.endsWith(".png")).toBe(true);
   expect(png.head.subarray(1, 4).toString()).toBe("PNG");
-  const view = await download("save-view");
+  // "Save this view as an image" opens Photo mode (EXP-02), whose Save image downloads it.
+  await page.getByTestId("save-view").click();
+  await expect(page.getByTestId("photo-layer")).toBeVisible();
+  const view = await download("photo-save");
   expect(view.name).toMatch(/Venue sample view\.png$/);
   expect(view.size).toBeGreaterThan(20_000);
+});
+
+test("[EXP-02] Photo mode: hides the interface, blurs, saves twice the window, and Close returns to the same view and selection", async ({
+  page,
+}) => {
+  await openStudio(page, "fresh&quality=high");
+  type Pose = { __pose: () => number[] };
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select(["t2"]));
+  const pose = await page.evaluate(() => (window as unknown as Pose).__pose());
+  await page.getByTestId("photo-mode").click();
+  await expect(page.getByTestId("photo-layer")).toBeVisible();
+  for (const id of ["section-room", "plan-name", "selection-bar", "count-seats"])
+    await expect(page.getByTestId(id)).toHaveCount(0);
+  // Edit shortcuts are off: Delete with the paused selection removes nothing.
+  const count = (await state(page)).active?.items.length ?? 0;
+  await page.keyboard.press("Delete");
+  expect((await state(page)).active?.items.length).toBe(count);
+  await page.getByTestId("photo-blur-strong").click();
+  await expect(page.getByTestId("photo-blur-strong")).toHaveAttribute("aria-checked", "true");
+  const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId("photo-save").click()]);
+  const { readFileSync } = await import("node:fs");
+  const png = readFileSync(await d.path());
+  // Width and height from the PNG header: twice the 1440 × 900 window.
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([2880, 1800]);
+  await expect(page.getByTestId("toast")).toContainText("Image saved");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("photo-layer")).toHaveCount(0);
+  await expect(page.getByTestId("section-room")).toBeVisible();
+  expect((await state(page)).selection).toEqual(["t2"]);
+  await settle(page);
+  const after = await page.evaluate(() => (window as unknown as Pose).__pose());
+  after.forEach((v, i) => expect(v).toBeCloseTo(pose[i] ?? 0, 1));
+  // Not in Plan view.
+  await setCamera(page, "plan");
+  await expect(page.getByTestId("photo-mode")).toBeDisabled();
 });
 
 test("[SCN-06] compare two scenarios side by side from the same camera, with their counts", async ({

@@ -4,6 +4,7 @@ import type { CameraMode } from "../state/editor";
 import { requestCamera } from "../state/view";
 import { useEditor, useStudio } from "../scene/context";
 import { Icon, type IconName } from "./icons";
+import { PHOTO_UNAVAILABLE, PhotoButton, openPhoto, usePhotoAllowed } from "./Photo";
 
 const CAMERAS: { mode: CameraMode; label: string; icon: IconName; key: string }[] = [
   { mode: "dollhouse", label: "Dollhouse", icon: "cube", key: "1" },
@@ -53,13 +54,14 @@ export function CameraSwitch() {
 }
 
 /**
- * Phone: the top-right stack (DESIGN_GUIDE §3.2): the current camera, opening a menu of the three,
- * the lighting and Reset view; undo and redo in a second stack under it.
+ * Phone: the top-right stack (DESIGN_GUIDE §3.2): the current camera, opening a menu of the three and
+ * Photo mode, the lighting and Reset view; undo and redo in a second stack under it.
  */
 export function PhoneControls() {
   const { editor } = useStudio();
   const mode = useEditor((s) => s.camera);
   const [open, setOpen] = useState(false);
+  const photoAllowed = usePhotoAllowed();
   useBackLayer(open, () => setOpen(false));
   const ref = useRef<HTMLDivElement>(null);
   const current = CAMERAS.find((c) => c.mode === mode) ?? CAMERAS[0];
@@ -108,6 +110,24 @@ export function PhoneControls() {
               {c.label}
             </button>
           ))}
+          <div className="menu-sep" role="separator" />
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            disabled={!photoAllowed}
+            onClick={() => {
+              openPhoto(editor);
+              setOpen(false);
+            }}
+            data-testid="photo-mode"
+          >
+            <Icon name="camera" />
+            <span>
+              Photo mode
+              {!photoAllowed && <span className="menu-note">{PHOTO_UNAVAILABLE}</span>}
+            </span>
+          </button>
         </div>
       )}
     </div>
@@ -148,7 +168,7 @@ export function History({ className = "" }: { className?: string }) {
 }
 
 /** One button that flips evening and daylight (LGT-02). */
-function LightToggle() {
+export function LightToggle() {
   const { editor } = useStudio();
   const lighting = useEditor((s) => s.scenarios[s.activeId]?.style.lighting ?? "evening");
   const plan = useEditor((s) => s.camera === "plan");
@@ -173,13 +193,14 @@ function LightToggle() {
   );
 }
 
-/** Desktop: undo, redo and the lighting at the toolbar's right end (LAY-06, LGT-02). */
+/** Desktop: undo, redo, the lighting and Photo mode at the toolbar's right end (LAY-06, LGT-02, EXP-02). */
 export function Actions() {
   return (
     <div className="actions glass">
       <History />
       <span className="seg-sep" aria-hidden="true" />
       <LightToggle />
+      <PhotoButton />
     </div>
   );
 }

@@ -410,8 +410,9 @@ function WalkControls() {
     const down = (e: PointerEvent) => {
       if (dragging) return;
       dragging = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      // Seated is look-only: drag to look, so "Stand up" stays clickable (no pointer lock).
-      if (viewStore.getState().seat) return;
+      // Seated and Photo mode are look-only: drag to look, so their buttons stay clickable and a
+      // click sets the photo's focus (no pointer lock).
+      if (viewStore.getState().seat || viewStore.getState().photo) return;
       if (e.pointerType === "mouse" && document.pointerLockElement !== el)
         el.requestPointerLock?.()?.catch?.(() => {});
     };

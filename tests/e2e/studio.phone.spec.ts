@@ -153,3 +153,19 @@ test("[PLT-02] phone: adding a piece drops the sheet to its peek with the piece 
   await expect(page.getByTestId("inspector")).toBeVisible();
   await expect(page.getByTestId("rotate-90")).toBeInViewport();
 });
+
+test("[EXP-02] [PLT-02] phone Photo mode: from the camera menu, a card with blur and Save image; back closes it", async ({
+  page,
+}) => {
+  await openStudio(page, "fresh");
+  await page.getByTestId("camera-menu").click();
+  await page.getByRole("menuitem", { name: /Photo mode/ }).click();
+  await expect(page.getByTestId("photo-layer")).toBeVisible();
+  await expect(page.locator(".tabbar")).toHaveCount(0);
+  await expect(page.getByTestId("camera-menu")).toHaveCount(0);
+  const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId("photo-save").click()]);
+  expect(d.suggestedFilename()).toMatch(/Venue sample view\.png$/);
+  await page.goBack();
+  await expect(page.getByTestId("photo-layer")).toHaveCount(0);
+  await expect(page.locator(".tabbar")).toBeVisible();
+});
