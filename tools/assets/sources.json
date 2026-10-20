@@ -1,5 +1,62 @@
 {
-  "assets/models/chairs/oval.glb": { "openEdges": 57, "nonManifoldEdges": 70 },
-  "assets/models/chairs/crossback.glb": { "openEdges": 4, "nonManifoldEdges": 5 },
-  "assets/models/chairs/chiavari.glb": { "openEdges": 10, "nonManifoldEdges": 5 }
+  "assets/models/chairs/oval.glb": {
+    "openEdges": 57,
+    "nonManifoldEdges": 70
+  },
+  "assets/models/chairs/crossback.glb": {
+    "openEdges": 4,
+    "nonManifoldEdges": 5
+  },
+  "assets/models/chairs/chiavari.glb": {
+    "openEdges": 10,
+    "nonManifoldEdges": 5
+  },
+  "assets/models/blooms/rose.glb": {
+    "openEdges": 37,
+    "nonManifoldEdges": 33
+  },
+  "assets/models/blooms/peony.glb": {
+    "openEdges": 165,
+    "nonManifoldEdges": 131
+  },
+  "assets/models/blooms/ranunculus.glb": {
+    "openEdges": 94,
+    "nonManifoldEdges": 76
+  },
+  "assets/models/blooms/pampas.glb": {
+    "openEdges": 80,
+    "nonManifoldEdges": 92
+  },
+  "assets/models/blooms/blossom.glb": {
+    "openEdges": 53,
+    "nonManifoldEdges": 34
+  },
+  "assets/models/blooms/eucalyptus.glb": {
+    "openEdges": 39,
+    "nonManifoldEdges": 24
+  },
+  "assets/models/plants/fiddle.glb": {
+    "openEdges": 14,
+    "nonManifoldEdges": 23
+  },
+  "assets/models/plants/olive.glb": {
+    "openEdges": 821,
+    "nonManifoldEdges": 910
+  },
+  "assets/models/plants/kentia.glb": {
+    "openEdges": 1583,
+    "nonManifoldEdges": 978
+  },
+  "assets/models/plants/monstera.glb": {
+    "openEdges": 230,
+    "nonManifoldEdges": 304
+  },
+  "assets/models/plants/fern.glb": {
+    "openEdges": 2490,
+    "nonManifoldEdges": 1358
+  },
+  "assets/models/plants/blossom.glb": {
+    "openEdges": 302,
+    "nonManifoldEdges": 250
+  }
 }

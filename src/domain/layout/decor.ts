@@ -59,7 +59,15 @@ export type Part = {
   rz?: number;
   /** Per-part colour (flowers, chargers). */
   colour?: string;
+  /**
+   * A bloom model drawn in place of the primitive where models load (V5): `public/assets/models/
+   * blooms/<model>.glb`, scaled by the part's largest size and turned by its rotation.
+   */
+  model?: string;
 };
+
+/** The bloom models (V5, `Part.model`), in `public/assets/models/blooms/`. */
+export const BLOOM_MODELS = ["rose", "peony", "ranunculus", "pampas", "blossom", "eucalyptus"] as const;
 
 /** Floral generators built from a mound of blooms: the ones whose flower type can be chosen. */
 export const FLOWER_TYPE_GENERATORS: readonly string[] = ["lowMound", "tallArrangement", "compote"];
@@ -74,7 +82,9 @@ export const FLORAL_PALETTES: Record<string, { label: string; colours: string[] 
 
 /**
  * Flower types (LIB-06): bloom size, how many blooms an arrangement holds (× the base count), and
- * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable.
+ * how often a leaf replaces a bloom. Read at table distance; generic up close is acceptable. `model`
+ * names its blooms' model (V5; leaves are all the leaf sprig); baby's breath has none (its florets
+ * are too fine for one) and neither has hydrangea (its model came out as shards).
  */
 export const FLOWER_TYPES: Record<
   string,
@@ -85,16 +95,31 @@ export const FLOWER_TYPES: Record<
     leafEvery: number;
     leaf?: string;
     form?: "plume" | "branch";
+    model?: string;
   }
 > = {
-  rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3 },
-  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4 },
+  rose: { label: "Rose", bloom: [0.035, 0.05], count: 1, leafEvery: 3, model: "rose" },
+  peony: { label: "Peony", bloom: [0.05, 0.07], count: 0.7, leafEvery: 4, model: "peony" },
   hydrangea: { label: "Hydrangea", bloom: [0.065, 0.085], count: 0.55, leafEvery: 5 },
-  ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3 },
+  ranunculus: { label: "Ranunculus", bloom: [0.03, 0.042], count: 1.2, leafEvery: 3, model: "ranunculus" },
   babysBreath: { label: "Baby’s breath", bloom: [0.012, 0.018], count: 2.6, leafEvery: 7 },
-  eucalyptus: { label: "Eucalyptus", bloom: [0.03, 0.04], count: 1, leafEvery: 1.4, leaf: "#9fb5a8" },
-  pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume" },
-  blossom: { label: "Blossom branches", bloom: [0.016, 0.022], count: 1.6, leafEvery: 8, form: "branch" },
+  eucalyptus: {
+    label: "Eucalyptus",
+    bloom: [0.03, 0.04],
+    count: 1,
+    leafEvery: 1.4,
+    leaf: "#9fb5a8",
+    model: "rose",
+  },
+  pampas: { label: "Pampas", bloom: [0.03, 0.045], count: 0.6, leafEvery: 4, form: "plume", model: "rose" },
+  blossom: {
+    label: "Blossom branches",
+    bloom: [0.016, 0.022],
+    count: 1.6,
+    leafEvery: 8,
+    form: "branch",
+    model: "blossom",
+  },
 };
 
 const CHARGERS: Record<string, Slot> = { gold: "brass", silver: "silver", glass: "glass" };
@@ -139,6 +164,19 @@ const candle = (x: number, y: number, z: number, r: number, h: number): Part[] =
 const leaf = (x: number, y: number, z: number, r: number, ctx: Ctx): Part => ({
   ...ball("leaf", x, y, z, r, ctx.flower.leaf),
   sy: r / 2,
+  // A sprig of round leaves (V5), tinted foliage green or the type's own leaf colour.
+  model: "eucalyptus",
+});
+
+/**
+ * Turns a part on a mound outward by `t` (radians) toward angle `a`, and some way round its own axis
+ * (from `a`, so the arrangement's random colours stay as they were).
+ */
+const tilt = (part: Part, a: number, t: number): Part => ({
+  ...part,
+  rx: Math.sin(a) * t,
+  ry: a * 3.7,
+  rz: -Math.cos(a) * t,
 });
 
 /**
@@ -157,11 +195,15 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
     const pz = z + Math.sin(a) * r * k;
     const py = y + h * (1 - k * k) * 0.75 + 0.02;
     const colour = ctx.colours[Math.floor(ctx.rand() * ctx.colours.length)] ?? "#ffffff";
+    // Blooms and leaves face outward more the further out they sit.
+    const out = k * 0.9;
     if (i % f.leafEvery < 1 && i > 0) {
-      parts.push(leaf(px, py - 0.01, pz, 0.04, ctx));
+      parts.push(tilt(leaf(px, py - 0.01, pz, 0.04, ctx), a, out));
     } else if (f.form === "plume" && i % 3 === 0) {
       // Pampas: tall soft plumes rising out of the mound.
-      parts.push({ ...ball("flower", px, py + 0.12, pz, 0.03, colour), sy: 0.13 });
+      parts.push(
+        tilt({ ...ball("flower", px, py + 0.12, pz, 0.03, colour), sy: 0.13, model: "pampas" }, a, k * 0.3),
+      );
     } else if (f.form === "branch" && i % 5 === 0) {
       // Blossom: thin branches leaning out, small flowers along them.
       const lean = (ctx.rand() - 0.5) * 0.9;
@@ -169,10 +211,25 @@ function mound(x: number, y: number, z: number, r: number, h: number, ctx: Ctx, 
       // Flowers along the leaning branch (it tilts about z, so its tip moves in x and y).
       for (let j = 1; j <= 3; j++)
         parts.push(
-          ball("flower", px - Math.sin(lean) * 0.07 * j, py + Math.cos(lean) * 0.07 * j, pz, b1, colour),
+          tilt(
+            {
+              ...ball(
+                "flower",
+                px - Math.sin(lean) * 0.07 * j,
+                py + Math.cos(lean) * 0.07 * j,
+                pz,
+                b1,
+                colour,
+              ),
+              model: "blossom",
+            },
+            a,
+            out,
+          ),
         );
     } else {
-      parts.push(ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour));
+      const bloom = ball("flower", px, py, pz, b0 + ctx.rand() * (b1 - b0), colour);
+      parts.push(tilt(f.model ? { ...bloom, model: f.model } : bloom, a, out));
     }
   }
   return parts;
@@ -237,7 +294,7 @@ const centrepieces: Record<string, Gen> = {
           sy: 0.08,
           sz: 0.003,
         },
-        ball("flower", x, h + 0.09, 0.02 * (i - 1), 0.03, colour),
+        { ...ball("flower", x, h + 0.09, 0.02 * (i - 1), 0.03, colour), model: "rose" },
       ];
     }),
   tallArrangement: (_p, ctx) => [
@@ -298,7 +355,11 @@ const runners: Record<
       const z = Math.sin(i * 0.9) * 0.05;
       parts.push({ ...ball("leaf", x, 0.025, z, 0.05 + ctx.rand() * 0.015), sy: 0.025 });
       if (i % 4 === 0)
-        parts.push(ball("flower", x, 0.05, z, 0.03, ctx.colours[(i / 4) % ctx.colours.length] ?? "#ffffff"));
+        parts.push({
+          ...ball("flower", x, 0.05, z, 0.03, ctx.colours[(i / 4) % ctx.colours.length] ?? "#ffffff"),
+          model: "rose",
+          ry: i,
+        });
     }
     return parts;
   },

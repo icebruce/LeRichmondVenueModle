@@ -479,7 +479,7 @@ function Scene({
         <Lights venue={venue} m={m} pendants={showCeiling} />
       </group>
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
-      <Items m={m} evening={evening} quality={quality} />
+      <Items m={m} evening={evening} quality={quality} detail={eyeLevel} />
       {BAKE_EXPORT && <BakeExport m={m} />}
       <People low={quality === "low"} m={m} />
       <Advisories hidden={mode === "walk"} />

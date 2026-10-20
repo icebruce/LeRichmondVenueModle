@@ -3,9 +3,10 @@
 python meshy.py preview <name> <prompt-file> [polycount] [prop]  -> starts a preview task, prints its id
                                                      (prop: an object, no character pose)
 python meshy.py refine <name> <preview_id> <texture-prompt-file>
+python meshy.py remesh <task_id> <polycount>           -> a lighter version of a finished task (5 credits)
 python meshy.py rig <name> <refine_id> <height_m>
 python meshy.py animate <rig_id> <action_id>
-python meshy.py wait <kind> <id> <out_dir> <name>   kind: text3d | rig | anim ; downloads GLB + thumbnail
+python meshy.py wait <kind> <id> <out_dir> <name>   kind: text3d | remesh | rig | anim ; downloads GLB + thumbnail
 """
 import json
 import os
@@ -56,6 +57,9 @@ elif cmd == "refine":
     tp = open(sys.argv[4]).read().strip()
     r = call("POST", "/v2/text-to-3d", {"mode": "refine", "preview_task_id": sys.argv[3], "enable_pbr": True, "texture_prompt": tp[:600]})
     print(r.get("result"))
+elif cmd == "remesh":
+    r = call("POST", "/v1/remesh", {"input_task_id": sys.argv[2], "target_polycount": int(sys.argv[3]), "topology": "triangle", "target_formats": ["glb"]})
+    print(r.get("result"))
 elif cmd == "rig":
     r = call("POST", "/v1/rigging", {"input_task_id": sys.argv[3], "height_meters": float(sys.argv[4])})
     print(r.get("result"))
@@ -64,7 +68,12 @@ elif cmd == "animate":
     print(r.get("result"))
 elif cmd == "wait":
     kind, tid, out, name = sys.argv[2:6]
-    path = {"text3d": f"/v2/text-to-3d/{tid}", "rig": f"/v1/rigging/{tid}", "anim": f"/v1/animations/{tid}"}[kind]
+    path = {
+        "text3d": f"/v2/text-to-3d/{tid}",
+        "remesh": f"/v1/remesh/{tid}",
+        "rig": f"/v1/rigging/{tid}",
+        "anim": f"/v1/animations/{tid}",
+    }[kind]
     while True:
         t = call("GET", path)
         st = t.get("status")
@@ -74,7 +83,7 @@ elif cmd == "wait":
     if st != "SUCCEEDED":
         sys.exit(f"task {tid} {st}: {json.dumps(t.get('task_error'))}")
     os.makedirs(out, exist_ok=True)
-    if kind == "text3d":
+    if kind in ("text3d", "remesh"):
         fetch(t["model_urls"]["glb"], os.path.join(out, f"{name}.glb"))
         if t.get("thumbnail_url"):
             fetch(t["thumbnail_url"], os.path.join(out, f"{name}-thumb.png"))

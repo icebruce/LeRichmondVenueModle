@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
 import {
+  BLOOM_MODELS,
   DECOR_GENERATORS,
+  FLOWER_TYPES,
   type Part,
   candleLayout,
   heightOf,
@@ -37,6 +39,23 @@ const decor = (
   );
 
 describe("décor", () => {
+  test("[LIB-06] blooms name their flower type's model, leaves the leaf sprig; baby's breath and hydrangea stay primitives", () => {
+    for (const [type, f] of Object.entries(FLOWER_TYPES)) {
+      const parts = decor({ florals: "floral-low", flowerType: type });
+      const blooms = parts.filter((p) => p.slot === "flower");
+      const leaves = parts.filter((p) => p.slot === "leaf");
+      expect(blooms.length).toBeGreaterThan(0);
+      // Pampas' plumes are their own model; every other bloom is the type's.
+      for (const b of blooms) expect([f.model, ...(f.form === "plume" ? ["pampas"] : [])]).toContain(b.model);
+      for (const l of leaves) expect(l.model).toBe("eucalyptus");
+    }
+    expect(FLOWER_TYPES.babysBreath?.model).toBeUndefined();
+    expect(FLOWER_TYPES.hydrangea?.model).toBeUndefined();
+    // Every model named has a file (`check:assets` checks the files themselves).
+    const named = Object.values(FLOWER_TYPES).flatMap((f) => (f.model ? [f.model] : []));
+    for (const m of [...named, "pampas", "blossom", "eucalyptus"]) expect(BLOOM_MODELS).toContain(m);
+  });
+
   test("[DEC-03] florals have realistic heights: low ≤ 30 cm, tall 80–120 cm", () => {
     expect(heightOf(decor({ florals: "floral-low" }))).toBeLessThanOrEqual(0.3);
     expect(heightOf(decor({ florals: "floral-bud" }))).toBeLessThanOrEqual(0.3);

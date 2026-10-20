@@ -298,7 +298,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 - **Linens:** every table wears a procedural drape (`scene/items/drape.ts`): an eased top edge, folds 4 cm deep at the hem round its line, a rectangle's corners crisp at the top and gathered round at the hem, a 3.5 cm flare; floor length stops 12 mm above the floor, lap length 0.30 m below the top, a rectangle's corners hanging in points to about 0.42 m, as a flat cloth's do (R04; owner, 2026-10-20). One geometry per table size, shared. Runner ends hang just outside the cloth's reach at their own hem (`domain/layout/cloth.ts`).
 - **Chair-gap rule:** a tucked chair's front stays outside the cloth's furthest reach, for every chair style and table size (unit test).
-- **Chairs (Meshy, approved 2026-10-19):** oval-back, cross-back and Chiavari, made with Meshy (about 3,000 triangles each; task ids in `tools/meshy/TASKS.md`) and prepared by `tools/blender/chair_from_meshy.py`: the remesher's topology kept (its few fins and pin holes do not show; refilling them made jagged patches), width and height fitted, the backrest placed where a seated guest's back rests, a grey detail map and a frame/seat mask, so each library entry tints frame and seat and every chair type is one draw call. About 320 KB each, uncompressed (the site's CSP has no `wasm-unsafe-eval` for meshopt). High only, loaded with the room so no chair shader compiles on a later switch; Balanced and phones keep the parametric chairs. The venue chair: grey-oak frame, grey velvet (R04).
+- **Chairs (Meshy, approved 2026-10-19):** oval-back, cross-back and Chiavari, made with Meshy (about 3,000 triangles each; task ids in `tools/meshy/TASKS.md`) and prepared by `tools/blender/chair_from_meshy.py`: the remesher's topology kept (its few fins and pin holes do not show; refilling them made jagged patches), width and height fitted, the backrest placed where a seated guest's back rests, a grey detail map and a frame/seat mask, so each library entry tints frame and seat and every chair type is one draw call. About 320 KB each, uncompressed (the site's CSP has no `wasm-unsafe-eval` for meshopt). On desktops (High and Balanced), loaded with the room so no chair shader compiles on a later switch; phones keep the parametric chairs (corrected 2026-10-20: an earlier note said High only). The venue chair: grey-oak frame, grey velvet (R04).
 - **Budgets:** High's triangle budget is 2.0 M (owner, 2026-10-19; was 1.5 M), for the Meshy chairs, flowers and chandeliers.
 
 ### V5: Table décor and Photo mode
@@ -324,6 +324,12 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 - **Review:** `ux-reviewer` on the Photo mode controls (new pattern, mock-up first).
 
 **Gate:** the owner approves on the preview.
+
+**In progress (2026-10-20):**
+
+- **Photo mode:** mock-up approved (owner, 2026-10-20; `docs/mockups/photo.html`, DESIGN_GUIDE §4 "Photo mode"): phone entry in the camera menu, a footnote on the image for approximate imported items. Not built yet.
+- **Blooms (Meshy, owner):** rose, peony, ranunculus, pampas plume, blossom cluster and a leaf sprig (every mound's leaves), 265–600 triangles each, tinted per arrangement (`public/assets/models/blooms/`, `tools/blender/bloom_from_meshy.py`, task ids in `tools/meshy/TASKS.md`). Drawn at eye level only (Walk, Sit here, low reference views; Photo mode when built); the dollhouse and plan keep the primitives, both meshes always mounted so a switch compiles nothing. Desktops only. Hydrangea and baby's breath keep their primitives (their models came out as shards and loose florets). The venue sample with a mound on every table: about 0.76–0.99 M triangles in one frame at eye level, against 0.63 M for the candle benchmark.
+- **Plants (Meshy, owner):** all six, 4.7–8.3 k triangles, a 1K colour map, 0.5–0.9 MB each (`public/assets/models/plants/`, `tools/blender/plant_from_meshy.py`); desktops draw the model, phones the generator. A plant's model loads when it is first placed, a moment after it appears. The blossom tree's crown (2.1 m) is wider than its footprint (1.0 m); two pots came out beige, not stone grey.
 
 ### V6: Remaining fixtures (if time allows)
 

@@ -2,14 +2,21 @@ import * as THREE from "three";
 import { useEffect, useMemo } from "react";
 import { useLoader, useThree } from "@react-three/fiber";
 import { chairsWorld } from "../../domain/layout/items";
-import { type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
+import { BLOOM_MODELS, type Part, type Prim, type Slot, tableDecor } from "../../domain/layout/decor";
 import { makePiece } from "../../domain/layout/pieces";
 import { styleOf } from "../../domain/scenario/scenario";
 import type { Scenario } from "../../domain/scenario/schema";
 import { useStudio, useView } from "../context";
 import type { Materials } from "../materials";
 import { type Placed, LIFT, TOP, moved } from "./common";
-import { type ChairModel, ChairModelLoader, chairGeometry } from "./geometry";
+import {
+  BloomLoader,
+  type ChairModel,
+  ChairModelLoader,
+  type PieceModel,
+  PieceModelLoader,
+  chairGeometry,
+} from "./geometry";
 
 const CHAIR_CAPACITY = 400;
 
@@ -218,7 +225,13 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
   );
 }
 
-type Group = { key: string; prim: Prim; slot: Slot; solid: boolean };
+/** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
+/**
+ * A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). `lod`: drawn only at
+ * eye level (`near`, the bloom models) or only from further off (`far`, the primitives standing in
+ * for them).
+ */
+type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string; lod?: "near" | "far" };
 
 /**
  * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance with its
@@ -275,21 +288,39 @@ export function TableDecor({
   m,
   evening,
   low,
+  detail,
 }: {
   decor: DecorParts;
   m: Materials;
   evening: boolean;
   low: boolean;
+  /** At eye level: blooms as models (V5); from further off, the lighter primitives. */
+  detail: boolean;
 }) {
   const drag = useView((s) => s.drag);
   // Instances are written in place below, so each write asks for a frame (frames are on demand).
   const invalidate = useThree((s) => s.invalidate);
   const prims = useMemo(() => primitives(low), [low]);
+  // Full quality loads every bloom model with the room (its loading step waits for them); the phone
+  // tier keeps the primitives (V5).
+  const bloomList = useMemo<string[]>(() => (low ? [] : [...BLOOM_MODELS]), [low]);
+  const loadedBlooms = useLoader(BloomLoader, bloomList) as THREE.BufferGeometry[];
+  const blooms = useMemo(
+    () => new Map(bloomList.map((name, i) => [name, loadedBlooms[i] as THREE.BufferGeometry])),
+    [bloomList, loadedBlooms],
+  );
   const solidMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.15 }),
     [],
   );
   useEffect(() => () => solidMaterial.dispose(), [solidMaterial]);
+  // Bloom models: their creases' shade in the vertex colour, tinted per instance; petals are thin
+  // shells, seen from both sides.
+  const bloomMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ roughness: 0.8, vertexColors: true, side: THREE.DoubleSide }),
+    [],
+  );
+  useEffect(() => () => bloomMaterial.dispose(), [bloomMaterial]);
   const materials = useMemo<Record<Slot, THREE.Material>>(
     () => ({
       wax: new THREE.MeshStandardMaterial({
@@ -360,22 +391,45 @@ export function TableDecor({
   const groups = useMemo(() => {
     const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
     for (const { p, parts, base } of perItem) {
+      // A piece with a model file draws that instead at full quality (`PieceModels`).
+      if (!low && p.shape.kind === "piece" && p.shape.file) continue;
       for (const part of parts) {
         const solid = low && SOLID_SLOTS.has(part.slot);
-        const key = `${part.prim}:${solid ? "solid" : part.slot}`;
-        let g = map.get(key);
-        if (!g) map.set(key, (g = { key, prim: part.prim, slot: part.slot, solid, parts: [] }));
-        g.parts.push({ p, part, base });
+        // A part with a bloom model goes in twice: the model near, its primitive far. Both meshes
+        // stay mounted, so a view switch only shows one and hides the other (no shader compiles).
+        const model = part.model && blooms.has(part.model) ? part.model : undefined;
+        const lods = model ? (["near", "far"] as const) : [undefined];
+        for (const lod of lods) {
+          const near = lod === "near";
+          const key = near
+            ? `bloom:${model}`
+            : `${part.prim}:${solid ? "solid" : part.slot}${lod ? ":far" : ""}`;
+          let g = map.get(key);
+          if (!g)
+            map.set(
+              key,
+              (g = {
+                key,
+                prim: part.prim,
+                slot: part.slot,
+                solid,
+                ...(near ? { model } : {}),
+                lod,
+                parts: [],
+              }),
+            );
+          g.parts.push({ p, part, base });
+        }
       }
     }
     return [...map.values()];
-  }, [perItem, low]);
+  }, [perItem, low, blooms]);
   const meshes = useMemo(
     () =>
       groups.map((g) => {
         const mesh = new THREE.InstancedMesh(
-          prims[g.prim],
-          g.solid ? solidMaterial : materials[g.slot],
+          (g.model && blooms.get(g.model)) || prims[g.prim],
+          g.model ? bloomMaterial : g.solid ? solidMaterial : materials[g.slot],
           Math.max(1, g.parts.length),
         );
         // Phone tier: small décor casts no shadow, to stay inside the draw-call budget (ARCHITECTURE §7).
@@ -383,7 +437,7 @@ export function TableDecor({
           !low && !["flame", "glass", "water", "sheer", "bulb", "beam", "glow"].includes(g.slot);
         return { g, mesh };
       }),
-    [groups, prims, materials, solidMaterial, low],
+    [groups, prims, materials, solidMaterial, bloomMaterial, blooms, low],
   );
   useEffect(
     () => () => {
@@ -431,7 +485,9 @@ export function TableDecor({
         table.makeRotationY(item.rotY).setPosition(item.x, p.y + base + lift, item.z);
         local.position.set(part.x, part.y, part.z);
         local.rotation.set(part.rx ?? 0, part.ry ?? 0, part.rz ?? 0);
-        local.scale.set(part.sx, part.sy, part.sz);
+        // A bloom model keeps its own proportions, at the part's largest size.
+        if (g.model) local.scale.setScalar(Math.max(part.sx, part.sy, part.sz));
+        else local.scale.set(part.sx, part.sy, part.sz);
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
         mesh.setMatrixAt(i, out);
@@ -447,10 +503,12 @@ export function TableDecor({
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
       // Flames, beams and glows show only in the evening.
-      mesh.visible = evening || !["flame", "beam", "glow"].includes(g.slot);
+      mesh.visible =
+        (evening || !["flame", "beam", "glow"].includes(g.slot)) &&
+        (g.lod === undefined || (g.lod === "near") === detail);
     }
     invalidate();
-  }, [meshes, drag, materials, evening, invalidate]);
+  }, [meshes, drag, materials, evening, detail, invalidate]);
   return (
     <group name="table-decor">
       {meshes.map(({ g, mesh }) => (
@@ -459,3 +517,65 @@ export function TableDecor({
     </group>
   );
 }
+
+/**
+ * Floor pieces with a model file (Meshy plants, V5) at full quality: one mesh per file, scaled to
+ * the piece's height. The phone tier draws the generator's parts (`TableDecor`).
+ */
+export function PieceModels({ decor, low }: { decor: DecorParts; low: boolean }) {
+  const drag = useView((s) => s.drag);
+  const invalidate = useThree((s) => s.invalidate);
+  const key = low
+    ? ""
+    : [...new Set(decor.flatMap(({ p }) => (p.shape.kind === "piece" && p.shape.file ? [p.shape.file] : [])))]
+        .sort()
+        .join("|");
+  const files = useMemo(() => (key ? key.split("|") : []), [key]);
+  const loaded = useLoader(PieceModelLoader, files) as PieceModel[];
+  const meshes = useMemo(
+    () =>
+      files.map((file, i) => {
+        const model = loaded[i] as PieceModel;
+        const mesh = new THREE.InstancedMesh(model.geometry, model.material, PIECE_CAPACITY);
+        mesh.castShadow = true;
+        return { file, model, mesh };
+      }),
+    [files, loaded],
+  );
+  useEffect(
+    () => () => {
+      for (const { mesh } of meshes) mesh.dispose();
+    },
+    [meshes],
+  );
+  useEffect(() => {
+    const t = new THREE.Object3D();
+    for (const { file, model, mesh } of meshes) {
+      let n = 0;
+      for (const { p } of decor) {
+        if (p.shape.kind !== "piece" || p.shape.file !== file || n >= PIECE_CAPACITY) continue;
+        const item = moved(p.item, drag);
+        const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
+        t.position.set(item.x, p.y + lift, item.z);
+        t.rotation.set(0, item.rotY, 0);
+        t.scale.setScalar(p.shape.height / model.height);
+        t.updateMatrix();
+        mesh.setMatrixAt(n++, t.matrix);
+      }
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    }
+    invalidate();
+  }, [meshes, decor, drag, invalidate]);
+  return (
+    <group name="piece-models">
+      {meshes.map(({ file, mesh }) => (
+        <primitive key={file} object={mesh} />
+      ))}
+    </group>
+  );
+}
+
+/** Placements of one piece model drawn at most (more of one plant than this would be a mistake). */
+const PIECE_CAPACITY = 64;

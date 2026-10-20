@@ -164,3 +164,73 @@ export class ChairModelLoader extends THREE.Loader<ChairModel> {
     loadChairModel(file).then(onLoad, onError);
   }
 }
+
+const bloomModels = new Map<string, Promise<THREE.BufferGeometry>>();
+
+/** Loads a bloom model (V5): its geometry, with the creases' shade in the vertex colour; never disposed. */
+function loadBloom(name: string): Promise<THREE.BufferGeometry> {
+  let p = bloomModels.get(name);
+  if (!p) {
+    p = new GLTFLoader()
+      .loadAsync(`${import.meta.env.BASE_URL}assets/models/blooms/${name}.glb`)
+      .then((gltf) => {
+        const mesh = gltf.scene.getObjectByName("bloom");
+        if (!(mesh instanceof THREE.Mesh)) throw new Error(`${name}: no bloom mesh`);
+        return mesh.geometry as THREE.BufferGeometry;
+      });
+    bloomModels.set(name, p);
+  }
+  return p;
+}
+
+/** `loadBloom` as a three loader, so the scene's loading step waits for the blooms (`useLoader`). */
+export class BloomLoader extends THREE.Loader<THREE.BufferGeometry> {
+  override load(
+    name: string,
+    onLoad: (geometry: THREE.BufferGeometry) => void,
+    _: unknown,
+    onError?: (e: unknown) => void,
+  ) {
+    loadBloom(name).then(onLoad, onError);
+  }
+}
+
+/** A floor piece's model (V5): its geometry and its own textured material, and its height. */
+export type PieceModel = {
+  geometry: THREE.BufferGeometry;
+  material: THREE.MeshStandardMaterial;
+  height: number;
+};
+
+const pieceModels = new Map<string, Promise<PieceModel>>();
+
+/** Loads a floor piece's model file once; shared by every placement, never disposed. */
+function loadPieceModel(file: string): Promise<PieceModel> {
+  let p = pieceModels.get(file);
+  if (!p) {
+    p = new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}${file}`).then((gltf) => {
+      const mesh = gltf.scene.getObjectByName("plant");
+      if (!(mesh instanceof THREE.Mesh)) throw new Error(`${file}: no plant mesh`);
+      const geometry = mesh.geometry as THREE.BufferGeometry;
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      // Leaves are thin shells, seen from both sides.
+      material.side = THREE.DoubleSide;
+      geometry.computeBoundingBox();
+      return { geometry, material, height: geometry.boundingBox?.max.y ?? 1 };
+    });
+    pieceModels.set(file, p);
+  }
+  return p;
+}
+
+/** `loadPieceModel` as a three loader (`useLoader`). */
+export class PieceModelLoader extends THREE.Loader<PieceModel> {
+  override load(
+    file: string,
+    onLoad: (model: PieceModel) => void,
+    _: unknown,
+    onError?: (e: unknown) => void,
+  ) {
+    loadPieceModel(file).then(onLoad, onError);
+  }
+}
