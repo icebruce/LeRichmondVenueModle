@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) built, in review; V5 next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21). V5 in progress: Photo mode mock-up approved (owner, 2026-10-20); Meshy for all eight flower types and the six plants (owner, 2026-10-20). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -54,8 +54,8 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V1 | Room model and surfaces | Must | Merged (PR #17) |
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Merged (PR #18), approved by the owner |
 | V3 | Bar and back bar | Should | Merged (PR #19) |
-| V4 | Linens and chairs | Must | Built, in review |
-| V5 | Table décor and Photo mode | Must | Not started |
+| V4 | Linens and chairs | Must | Merged (PR #21) |
+| V5 | Table décor and Photo mode | Must | In progress |
 | V6 | Remaining fixtures | If time allows | Not started |
 | V7 | People | Should | Not started |
 

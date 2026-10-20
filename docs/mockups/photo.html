@@ -352,6 +352,32 @@
     color: var(--ink);
     margin-top: 6px;
   }
+  .phone .menu {
+    position: absolute;
+    top: 14px;
+    right: 62px;
+    width: 168px;
+    padding: 4px;
+    display: grid;
+  }
+  .phone .menu .item {
+    min-height: var(--target);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: var(--t-callout);
+    border-radius: var(--r-control);
+  }
+  .phone .menu .item.on {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .phone .menu .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 4px 8px;
+  }
   table {
     border-collapse: collapse;
     font: var(--t-callout);
@@ -393,6 +419,12 @@
     <path d="m15 14 5-5-5-5" />
     <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
   </symbol>
+  <symbol id="frame" viewBox="0 0 24 24">
+    <path
+      d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"
+    />
+    <circle cx="12" cy="12" r="1" />
+  </symbol>
   <symbol id="box" viewBox="0 0 24 24">
     <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
     <path d="m3 8 9 5 9-5M12 13v8" />
@@ -400,13 +432,13 @@
 </svg>
 <div class="page">
   <header class="intro">
-    <span class="eyebrow">Visual stage V5 · new pattern · for owner approval</span>
+    <span class="eyebrow">Visual stage V5 · new pattern · owner-approved 2026-10-20</span>
     <h1>Photo mode</h1>
     <p>
-      A camera button opens Photo mode from the toolbar (desktop) or the top-right stack (phone). Plans ›
-      “Save this view as an image” opens the same mode. Inside, everything but the room and one bar is hidden.
-      You can still frame the shot by dragging, and a tap on the room sets the focus. Save image renders the
-      view at full quality and downloads it; Close returns to the same view.
+      A camera button in the toolbar (desktop) or “Photo mode” in the camera menu (phone) opens Photo mode.
+      Plans › “Save this view as an image” opens the same mode. Inside, everything but the room and one bar is
+      hidden. You can still frame the shot by dragging, and a tap on the room sets the focus. Save image
+      renders the view at full quality and downloads it; Close returns to the same view.
     </p>
     <p class="note"><span class="tag">New</span> Dashed outline marks what is new on each screen.</p>
   </header>
@@ -519,9 +551,16 @@
           <span class="btn icon"
             ><svg class="i"><use href="#moon" /></svg
           ></span>
-          <span class="btn icon new"
-            ><svg class="i"><use href="#camera" /></svg
+          <span class="btn icon"
+            ><svg class="i"><use href="#frame" /></svg
           ></span>
+        </div>
+        <div class="menu glass">
+          <span class="item on">Dollhouse</span><span class="item">Plan</span><span class="item">Walk</span>
+          <span class="divider"></span>
+          <span class="item new"
+            ><svg class="i"><use href="#camera" /></svg>Photo mode</span
+          >
         </div>
         <div class="sheet">8 tables · 72 seats · 3 without a seat<b>Room</b></div>
         <div class="tabs">
@@ -529,10 +568,10 @@
         </div>
       </div>
       <figcaption>
-        <b>4 · Phone, entry.</b> The camera button goes in the top-right stack, under the light. It takes the
-        place of Reset view, which moves into the camera menu as a plain item after a divider (Dollhouse /
-        Plan / Walk, then Reset view), as on the desktop toolbar. The stack stays three buttons tall, so Undo
-        / Redo stay clear of the half-height sheet.
+        <b>4 · Phone, entry.</b> The top-right stacks stay as they are (camera, light, Reset view; Undo /
+        Redo). The camera menu gains “Photo mode” after a divider, below Dollhouse / Plan / Walk (owner,
+        2026-10-20). In Plan or while comparing, the item is dimmed with the line “Works in Dollhouse and
+        Walk”.
       </figcaption>
     </figure>
 
@@ -623,9 +662,9 @@
       </table>
     </div>
     <p class="note" style="margin-top: 12px">
-      <b>For the owner:</b> the saved image shows the room only, so labels such as “Photo preview” on imported
-      items are not in it (already the case for today's saved view). Keep it that way, or add a small footnote
-      on the image naming any approximate items?
+      <b>Approximate items (owner, 2026-10-20):</b> when imported items shown as approximate are in the
+      picture, the saved image carries a small footnote in its bottom-left corner, e.g. “Approximate: Welcome
+      sign (photo preview)”, in the fidelity labels' exact words. With none in view, there is no footnote.
     </p>
   </section>
 
