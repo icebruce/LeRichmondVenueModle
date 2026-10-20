@@ -24,7 +24,8 @@ export function styleKeyOf(e: LibraryEntry): keyof TableStyle | null {
  * cube, base at y 0 · `cone` radius 1, height 1, base at y 0, point up · `bowl` the same cone
  * point down (vase bowls) · `plane` 1 m square facing +z, base at y 0 (glows, washes of light).
  */
-export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane" | "drop";
+/** Unit shapes the scene draws (Decor.tsx `primitives`); `plate` and `goblet` are turned (V5). */
+export type Prim = "cylinder" | "sphere" | "box" | "cone" | "bowl" | "plane" | "drop" | "plate" | "goblet";
 export type Slot =
   | "wax"
   | "flame"
@@ -533,7 +534,7 @@ function spots(shape: Shape): [number, number][] {
 type Extras = { settings: boolean; menus: boolean; tableNumbers: boolean; linenLength: "lap" | "floor" };
 
 /**
- * One place setting in front of a chair: charger, plate, two glasses, fork, knife; a folded napkin
+ * One place setting in front of a chair: charger, plate, two stemmed glasses, fork, knife; a folded napkin
  * and a menu card on the plate when chosen (LIB-03, LIB-04).
  */
 function setting(ch: Chair, edge: number, charger: string, napkin: string | null, menu: boolean): Part[] {
@@ -546,15 +547,15 @@ function setting(ch: Chair, edge: number, charger: string, napkin: string | null
   const rz = -Math.sin(ch.rotY);
   const parts: Part[] = [];
   const c = CHARGERS[charger];
-  if (c) parts.push(cyl(c, cx, 0, cz, 0.165, 0.008));
-  parts.push(cyl("ceramic", cx, 0.008, cz, 0.135, 0.012));
+  if (c) parts.push({ ...cyl(c, cx, 0, cz, 0.165, 0.008), prim: "plate" });
+  parts.push({ ...cyl("ceramic", cx, 0.008, cz, 0.135, 0.018), prim: "plate" });
   for (const [dx, h] of [
     [0.13, 0.17],
     [0.2, 0.13],
   ] as const) {
     const gx = cx + rx * dx + fx * 0.14;
     const gz = cz + rz * dx + fz * 0.14;
-    parts.push(cyl("glass", gx, 0, gz, 0.035, h));
+    parts.push({ ...cyl("glass", gx, 0, gz, 0.035, h), prim: "goblet" });
   }
   for (const s of [-1, 1]) {
     parts.push({

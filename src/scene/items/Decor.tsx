@@ -61,7 +61,44 @@ function primitives(low: boolean): Record<Prim, THREE.BufferGeometry> {
     bowl: new THREE.ConeGeometry(1, 1, r).rotateX(Math.PI).translate(0, 0.5, 0),
     plane: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
     drop: low ? teardrop(6, 3) : teardrop(8, 6),
+    plate: turned(PLATE, low ? 12 : 32),
+    goblet: turned(GOBLET, low ? 8 : 16),
   };
+}
+
+/**
+ * Turned tableware (V5), as profiles (radius, height) within a unit cylinder from y = 0 to 1, so
+ * they scale like the cylinders they replace. A plate: a flat well rising to a rim, its top
+ * surface turned back to the centre (a solid, seen from above and below).
+ */
+const PLATE: [number, number][] = [
+  [0, 0],
+  [0.62, 0],
+  [0.7, 0.3],
+  [0.97, 0.85],
+  [1, 1],
+  [0.94, 1],
+  [0.68, 0.55],
+  [0, 0.5],
+];
+/** A stemmed glass: foot, stem, a bowl widest two thirds up, drawn to the rim (glass shows both sides). */
+const GOBLET: [number, number][] = [
+  [0, 0],
+  [0.75, 0],
+  [0.72, 0.03],
+  [0.1, 0.06],
+  [0.07, 0.42],
+  [0.25, 0.5],
+  [0.85, 0.66],
+  [0.98, 0.8],
+  [0.9, 1],
+];
+
+function turned(profile: [number, number][], segments: number): THREE.BufferGeometry {
+  return new THREE.LatheGeometry(
+    profile.map(([r, y]) => new THREE.Vector2(r, y)),
+    segments,
+  );
 }
 
 /**
@@ -240,12 +277,11 @@ export function Chairs({ placed, scenario, low }: { placed: Placed[]; scenario: 
 }
 
 /** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
-/**
- * A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). `lod`: drawn only at
- * eye level (`near`, the bloom models) or only from further off (`far`, the primitives standing in
- * for them).
- */
-type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string; lod?: "near" | "far" };
+/** A mesh's worth of parts: one primitive and slot, or one bloom model (`model`). */
+type Group = { key: string; prim: Prim; slot: Slot; solid: boolean; model?: string };
+
+/** Turned shapes and the primitive drawn for them away from eye level and on phones (V5). */
+const FAR: Partial<Record<Prim, Prim>> = { plate: "cylinder", goblet: "cylinder" };
 
 /**
  * Phone tier: every opaque slot of one primitive shares one mesh, coloured per instance with its
@@ -415,37 +451,42 @@ export function TableDecor({
     (materials.bulb as THREE.MeshStandardMaterial).emissiveIntensity = evening ? 3 : 0.25;
   }, [materials, evening]);
   const groups = useMemo(() => {
-    const map = new Map<string, Group & { parts: { p: Placed; part: Part; base: number }[] }>();
+    type Entry = { p: Placed; part: Part; base: number; lod?: "near" | "far" };
+    const map = new Map<string, Group & { parts: Entry[] }>();
+    const place = (key: string, g: Omit<Group, "key">, entry: Entry) => {
+      let group = map.get(key);
+      if (!group) map.set(key, (group = { key, ...g, parts: [] }));
+      group.parts.push(entry);
+    };
     for (const { p, parts, base } of perItem) {
       // A piece with a model file draws that instead at full quality (`PieceModels`).
       if (!low && p.shape.kind === "piece" && p.shape.file) continue;
       for (const part of parts) {
         const solid = low && SOLID_SLOTS.has(part.slot);
-        // A part with a bloom model goes in twice: the model near, its primitive far. Both meshes
-        // stay mounted, so a view switch only shows one and hides the other (no shader compiles).
+        const slotKey = solid ? "solid" : part.slot;
+        const plain = (prim: Prim, lod?: "near" | "far") =>
+          place(
+            `${prim}:${slotKey}`,
+            { prim, slot: part.slot, solid },
+            { p, part, base, ...(lod ? { lod } : {}) },
+          );
+        // Detail (V5) at eye level only: a bloom model or a turned shape near, and from further off
+        // the primitive standing in for it, in its slot's own mesh. A view switch only refills the
+        // instances: no mesh, draw call or shader is added. Phones draw the stand-ins.
         const model = part.model && blooms.has(part.model) ? part.model : undefined;
-        const lods = model ? (["near", "far"] as const) : [undefined];
-        for (const lod of lods) {
-          const near = lod === "near";
-          const key = near
-            ? `bloom:${model}`
-            : `${part.prim}:${solid ? "solid" : part.slot}${lod ? ":far" : ""}`;
-          let g = map.get(key);
-          if (!g)
-            map.set(
-              key,
-              (g = {
-                key,
-                prim: part.prim,
-                slot: part.slot,
-                solid,
-                ...(near ? { model } : {}),
-                lod,
-                parts: [],
-              }),
-            );
-          g.parts.push({ p, part, base });
-        }
+        const far = FAR[part.prim];
+        if (low) plain(far ?? part.prim);
+        else if (model) {
+          place(
+            `bloom:${model}`,
+            { prim: part.prim, slot: part.slot, solid, model },
+            { p, part, base, lod: "near" },
+          );
+          plain(part.prim, "far");
+        } else if (far) {
+          plain(part.prim, "near");
+          plain(far, "far");
+        } else plain(part.prim);
       }
     }
     return [...map.values()];
@@ -506,7 +547,10 @@ export function TableDecor({
     const out = new THREE.Matrix4();
     const colour = new THREE.Color();
     for (const { g, mesh } of meshes) {
-      g.parts.forEach(({ p, part, base }, i) => {
+      // Only the parts for this distance: near ones at eye level, far ones otherwise.
+      let n = 0;
+      for (const { p, part, base, lod } of g.parts) {
+        if (lod && (lod === "near") !== detail) continue;
         const item = moved(p.item, drag);
         const lift = drag?.ids.includes(p.item.id) ? LIFT : 0;
         table.makeRotationY(item.rotY).setPosition(item.x, p.y + base + lift, item.z);
@@ -517,22 +561,21 @@ export function TableDecor({
         else local.scale.set(part.sx, part.sy, part.sz);
         local.updateMatrix();
         out.multiplyMatrices(table, local.matrix);
-        mesh.setMatrixAt(i, out);
+        mesh.setMatrixAt(n, out);
         // A part's own colour (flowers, napkins, eucalyptus); else foliage green on leaves and, in a
         // phone batch, the colour of the slot's own material.
         const own = part.colour ?? (part.slot === "leaf" ? LEAF : null);
-        if (own) mesh.setColorAt(i, colour.set(own));
+        if (own) mesh.setColorAt(n, colour.set(own));
         else if (g.solid)
-          mesh.setColorAt(i, colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color));
-      });
-      mesh.count = g.parts.length;
+          mesh.setColorAt(n, colour.copy((materials[part.slot] as THREE.MeshStandardMaterial).color));
+        n++;
+      }
+      mesh.count = n;
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       mesh.computeBoundingSphere();
-      // Flames, beams and glows show only in the evening.
-      mesh.visible =
-        (evening || !["flame", "beam", "glow", "pool"].includes(g.slot)) &&
-        (g.lod === undefined || (g.lod === "near") === detail);
+      // Flames, beams, glows and pools show only in the evening.
+      mesh.visible = n > 0 && (evening || !["flame", "beam", "glow", "pool"].includes(g.slot));
     }
     invalidate();
   }, [meshes, drag, materials, evening, detail, invalidate]);
