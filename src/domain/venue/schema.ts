@@ -158,8 +158,14 @@ export const venueSchema = z.object({
         top: z.number().optional(),
         height: z.number().optional(),
         radius: z.number(),
+        /** What a birdcage hangs from: a thick rope (R05, R10) or, by default, a rod. */
+        hanger: z.enum(["rope", "rod"]).optional(),
       }),
     ),
+    /** The crystal chandelier hung inside each birdcage (V6): a model file in `public/`. */
+    chandelierModels: z.object({ birdcage: z.string() }),
+    /** Greenery `height` m tall in the planters outside the street windows' sills, `perWindow` each (V6). */
+    sillPlants: z.object({ height: z.number(), perWindow: z.number().int().positive() }),
     pendantRows: z.array(
       z.object({
         z: z.number(),

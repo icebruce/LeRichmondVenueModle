@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21). V5 in progress: Photo mode mock-up approved (owner, 2026-10-20); Meshy for all eight flower types and the six plants (owner, 2026-10-20). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 in progress (#23): Meshy for both chandeliers, the terrace canopy dropped (owner, 2026-10-20). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -55,8 +55,8 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V2 | Light: hybrid bake, evening calibration, grounding | Must | Merged (PR #18), approved by the owner |
 | V3 | Bar and back bar | Should | Merged (PR #19) |
 | V4 | Linens and chairs | Must | Merged (PR #21) |
-| V5 | Table décor and Photo mode | Must | In progress |
-| V6 | Remaining fixtures | If time allows | Not started |
+| V5 | Table décor and Photo mode | Must | Merged (PR #22) |
+| V6 | Remaining fixtures | If time allows | In progress (PR #23) |
 | V7 | People | Should | Not started |
 
 ### V0: Performance foundation and measurement
@@ -325,7 +325,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 **Gate:** the owner approves on the preview.
 
-**In progress (2026-10-20):**
+**Delivered (merged in #22, 2026-10-20):**
 
 - **Photo mode (EXP-02):** built to the approved mock-up (owner, 2026-10-20; `docs/mockups/photo.html`, DESIGN_GUIDE §4 "Photo mode"): the camera button (P) and the phone camera menu's "Photo mode", Plans › "Save this view as an image"; a layer that hides the interface, pauses the selection and the edit shortcuts and gives both back on Close (Escape, back); Background blur (depth of field sharp at the tap or the centre, its sharp band a share of the focus distance so the dollhouse stays readable); the detailed blooms whatever the view; Save image at twice the window on desktops (2880 × 1800 from 1440 × 900), the screen's pixels up to 2048 px on phones, once more at screen size if that fails, with "Share" on phones that offer it; a footnote naming approximate imported items in view. Opening and closing it rebuilds the effect chain once (a compile, as for a new tier); on Battery saver the chain is mounted only while it is open. **Short of the mock-up:** phones save with their own shading (1K textures, no ambient occlusion, the simple chairs) rather than High's: building the desktop chain on a phone would compile for longer than the 3 s target; candles warm the cloth under them (the pools below) but light nothing else, in the room or the image. UX review of the built mode (2026-10-20): the focus ray skipped invisible pick boxes (in Walk nothing was sharp), a sharp band of at least 1 m, the toast placed from the bar's measured height, the footnote's label once and in its exact words, the hint and focus ring fade, focus returns to the camera button on Close, tokens for the footnote and ring.
 - **Candles:** flames are teardrops (96 triangles, 36 on phones: no more than the spheres they replace); every flame on a table warms the cloth under it in the evening, a 0.26 m pool multiplied into the cloth (on a white cloth candlelight shows as warmth, not brightness), one draw call for all. ppl03 on Balanced was then at 149 of its 150 draw calls; with the Meshy plants on phones it is at 151, and the phone budget for frames of motion is now 155 (owner, 2026-10-20).
@@ -338,13 +338,23 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 - Ornate iron scroll railings as cut-out panels (stair, raised floor, mezzanine; R09, R11).
 - East curtains: deep pleats, sheen.
-- Plants: fiddle-leaf figs by the green wall and the west garage door; planters on the east window sills.
-- The terrace string-light canopy through the garage doors at night (R11, R16).
+- Plants: planters on the east window sills (the fixed figs dropped, owner 2026-10-20).
 - Chandelier polish, then a re-bake if fixtures change.
+- Dropped (owner, 2026-10-20): the terrace string-light canopy; the terrace stays a dark backdrop at night, never modelled.
 
 **Validation:** as V3.
 
 **Gate:** the owner approves on the preview.
+
+**In progress (2026-10-20):**
+
+- **Chandeliers (Meshy for both, owner):** the birdcages are a dense 32-bar wire cage on a base band with a bell dome (code), 1.65 m tall (about 1.8 × their width, R02, R03, R05, R10), the east two on a thick rope; inside, a Meshy crystal candle chandelier (6.6 k triangles, a 1K colour map whose pale crystal and ivory sleeves glow faintly; one instanced mesh for the four). The brass cluster stays in code after three Meshy attempts came out as other chandeliers: a broad, rough oval (top 5.1, radius 0.78) of eight tiers of nine arms, each at its own height and reach, ending in a chunky brass cylinder with a small bulb under it (R02, R03, R11). The bake reads them as lights and occluders: re-baked.
+- **Railings:** wrought-iron scrollwork (a drawn cut-out card, `scrollPanelTexture`, bold strokes, matt) under the handrail along the whole raised-floor railing (R02, R11); wide panels between plain balusters on the mezzanine (R09); one panel on the stair's turn landing, the flights plain (R01, R09). No shadow (thin cards).
+- **Curtains:** rounded folds with V valleys, eight to a panel, each a little different, hanging straight (R05, R10).
+- **Plants:** greenery cards in planters outside the street windows' sills (R05, R09). The planned fixed fiddle-leaf figs were built, then removed (owner, 2026-10-20: the couple places plants from the library where they want them).
+- **Reviews (2026-10-20):** `ux-reviewer` (scroll panels noisy at night → bold, matt; figs not obstacles → obstacles; bulbs too bright → smaller; birdcage glow copper → near white) and `fidelity-reviewer` (cluster read as rings → irregular oval; curtains like blinds → rounded folds; birdcages too squat → taller, bell dome, rope; panels misplaced → per railing) addressed. Open: the cages' candle tips do not sparkle separately (R11). The terrace's faint string-light points stay in the night view through the garage doors (owner, 2026-10-20, as R11; no terrace geometry).
+- **Bloom models cast no shadow** (a bloom's own is too small to see; the far shapes and the contact shadows stay): the sample at eye level with a mound on every table drops from 1.98 M triangles (main, 23 k under High's 2.0 M) to 1.48 M with V6's fixtures.
+- **Budgets:** ppl03 on Balanced 153 of 155 draw calls (151 before V6), 0.53 M of 0.6 M triangles; the initial download 11.0 of 12 MB (High) and 5.5 of 6 MB (phones). Balanced's still frame (ambient occlusion, logged, not held) is 182 on ppl03, 180 before V6: well past the ≈ 155 noted at the V0 gate.
 
 ### V7: People (last)
 

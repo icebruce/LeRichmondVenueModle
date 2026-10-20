@@ -347,31 +347,33 @@
         "x": 8.13,
         "z": 5.0,
         "bottom": 3.3,
-        "top": 5.3,
-        "radius": 0.7
+        "top": 5.1,
+        "radius": 0.78
       },
       {
         "kind": "birdcage",
         "x": 3.0,
         "z": 6.3,
         "bottom": 2.6,
-        "height": 1.3,
+        "height": 1.65,
         "radius": 0.45
       },
       {
         "kind": "birdcage",
         "x": 13.0,
         "z": 2.6,
+        "hanger": "rope",
         "bottom": 2.7,
-        "height": 1.3,
+        "height": 1.65,
         "radius": 0.45
       },
       {
         "kind": "birdcage",
         "x": 13.0,
         "z": 7.6,
+        "hanger": "rope",
         "bottom": 2.7,
-        "height": 1.3,
+        "height": 1.65,
         "radius": 0.45
       },
       {
@@ -379,10 +381,12 @@
         "x": 5.2,
         "z": 11.0,
         "bottom": 2.8,
-        "height": 1.3,
+        "height": 1.65,
         "radius": 0.45
       }
     ],
+    "chandelierModels": { "birdcage": "assets/models/fixtures/birdcage.glb" },
+    "sillPlants": { "height": 0.45, "perWindow": 3 },
     "pendantRows": [
       {
         "z": 2.0,

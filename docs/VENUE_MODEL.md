@@ -5,7 +5,7 @@
 
 ## 1. Rules
 
-1. Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (DJ spot excepted, `LAY-11`). Terrace = dark backdrop through the glass. Terrace images (X01–X05) never inform geometry.
+1. Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (DJ spot excepted, `LAY-11`). Terrace = backdrop through the glass (dark at night but for faint string-light points, owner 2026-10-20). Terrace images (X01–X05) never inform geometry.
 2. Every dimension is a range with a confidence and sources. Owner-confirmed facts (marked **C** in the evidence matrix) override inferences.
 3. No measurements exist. Never present an estimate as measured. UI shows "≈".
 4. Recent images beat older ones when they conflict (artwork and furniture change; architecture rarely does).

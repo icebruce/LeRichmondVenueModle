@@ -62,3 +62,12 @@ creases into the vertex colour); plants are refined with PBR and keep only the c
 | Monstera | 01a15758-b120-7434-91dc-000611b8a2b3 | 01a1575e-c12e-741b-865d-c3983feb1de3 | 0.9 |
 | Fern | 01a15758-bd00-779b-855a-2b3a4fa5e9c1 | 01a1575e-c252-7289-bc46-da8fe463df01 | 0.65 |
 | Blossom tree | 01a15758-c51b-7489-8a95-fb339e5513ac | 01a1575e-c36c-7104-836f-53a8e813d465 (`prompts/plant-blossom-texture.txt`) | 2.4 |
+
+## Chandeliers (V6, 2026-10-20)
+
+Owner: Meshy for both chandeliers. Text prompts only (`prompts/chandelier-*.txt`). Credits 394 → 299.
+
+| Chandelier | Used | Rejected |
+|---|---|---|
+| Birdcage (the crystal chandelier inside; the cage is built in code) | preview 01a15abb-ee55-7775-b5f1-928b8d236775, refine 01a15ac2-f940-757a-a56a-9ffa902d7ec6, remesh to 8,000 01a15ad6-b9c3-762f-9440-f860d2b41c40 (6,662 triangles; the refine's 18k was 1.5 MB, over the initial-download budget) | — |
+| Brass cluster | none: built in code (tiers of arms, R03) | 01a15abb-e64a-733f-8782-a82eb40da2d8 (a candle chandelier), 01a15abd-24d8-7170-b143-7ffd9ba0b052 (a sputnik), 01a15ac1-8427-74d2-915d-5a659031246a (a column of hanging cylinders) |

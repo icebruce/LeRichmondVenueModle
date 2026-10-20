@@ -54,5 +54,9 @@
   "assets/models/plants/blossom.glb": {
     "openEdges": 302,
     "nonManifoldEdges": 250
+  },
+  "assets/models/fixtures/birdcage.glb": {
+    "openEdges": 165,
+    "nonManifoldEdges": 144
   }
 }

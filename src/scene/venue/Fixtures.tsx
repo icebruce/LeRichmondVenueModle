@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
+import { useLoader } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { VenueModel } from "../../domain/venue/model";
 import { artFor } from "../../domain/venue/art";
@@ -9,6 +10,8 @@ import { CARD, CARD_STRIP_M, paintingTexture } from "../textures";
 import { openingMatrix } from "./walls";
 import { lit, mapped } from "./Architecture";
 import type { Bake } from "../useBake";
+import { type PieceModel, PieceModelLoader } from "../items/geometry";
+import { requestWarmup } from "../frames";
 
 type P = { venue: VenueModel; m: Materials; evening: boolean };
 
@@ -45,15 +48,34 @@ function gridFrame(o: OpeningData, cols: number, rows: number, bar = 0.05): THRE
   return geos;
 }
 
-function curtainGeo(width: number, height: number, folds: number): THREE.BufferGeometry {
-  const g = new THREE.PlaneGeometry(width, height, folds * 8, 1);
+/**
+ * A hanging curtain `width` × `height` with `folds` pleats `depth` deep: rounded crests and
+ * V-shaped valleys, each pleat a little deeper or shallower than the next, hanging straight with a
+ * slight opening toward the hem (R05, R09, R10).
+ */
+function curtainGeo(width: number, height: number, folds: number, depth: number): THREE.BufferGeometry {
+  const g = new THREE.PlaneGeometry(width, height, folds * 6, 2);
   const pos = g.getAttribute("position");
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    pos.setZ(i, Math.sin(((x + width / 2) / width) * Math.PI * 2 * folds) * 0.06);
+    const u = (pos.getX(i) + width / 2) / width;
+    const down = 0.5 - pos.getY(i) / height;
+    const s = Math.abs(Math.sin(u * Math.PI * folds));
+    const h = Math.sin(Math.floor(u * folds) * 12.9898) * 43758.5453;
+    const vary = 0.75 + 0.5 * (h - Math.floor(h));
+    pos.setZ(i, (2 * s ** 0.8 - 1) * depth * vary * (0.97 + 0.06 * down));
   }
   g.computeVertexNormals();
   return g;
+}
+
+/** A thin round bar of radius `r` from point `a` to point `b`. */
+function rod(a: readonly number[], b: readonly number[], r: number): THREE.BufferGeometry {
+  const [from, to] = [new THREE.Vector3(...a), new THREE.Vector3(...b)];
+  const g = new THREE.CylinderGeometry(r, r, from.distanceTo(to), 4, 1, true);
+  g.applyQuaternion(
+    new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize()),
+  );
+  return g.translate((from.x + to.x) / 2, (from.y + to.y) / 2, (from.z + to.z) / 2);
 }
 
 /** A 3.5 cm trim strip facing +z along x from `x0` to `x1`, at height `y`: one nail head per 5 cm. */
@@ -65,7 +87,7 @@ function trim(x0: number, x1: number, y: number, z: number): THREE.BufferGeometr
 }
 
 /** One wall's glazing, curtains, doors and openings, in world space. */
-function buildOpenings(wall: WallData) {
+function buildOpenings(wall: WallData, sill: VenueModel["data"]["fixtures"]["sillPlants"]) {
   const frames: THREE.BufferGeometry[] = [];
   const lightFrames: THREE.BufferGeometry[] = [];
   const kitchen: THREE.BufferGeometry[] = [];
@@ -79,6 +101,7 @@ function buildOpenings(wall: WallData) {
   const greens: THREE.BufferGeometry[] = [];
   const floors: THREE.BufferGeometry[] = [];
   const prints: THREE.BufferGeometry[] = [];
+  const plants: THREE.BufferGeometry[] = [];
   for (const o of wall.openings) {
     const mtx = openingMatrix(wall, o.start);
     const w = o.end - o.start;
@@ -101,18 +124,27 @@ function buildOpenings(wall: WallData) {
       add(lightFrames, gridFrame(o, 3, 4, 0.06));
       add(glass, [local(0, o.sill, -0.07, w, o.head, -0.06)]);
       add(lightFrames, [local(-0.05, o.sill - 0.05, -0.15, w + 0.05, o.sill, 0.12)]);
+      // The planter outside the glass along the sill and its greenery, crossed cards (R05, R09).
+      add(frames, [local(0.1, o.sill - 0.2, -0.42, w - 0.1, o.sill, -0.2)]);
+      for (let i = 0; i < sill.perWindow; i++)
+        for (const turn of [0, Math.PI / 2]) {
+          const q = card(sill.height, sill.height, CARD.plant);
+          q.rotateY(turn + i);
+          q.translate(((i + 0.5) / sill.perWindow) * w, o.sill - 0.02 + sill.height / 2, -0.31);
+          add(plants, [q]);
+        }
       const ch = o.head + 0.25;
       for (const [cx, cw] of [
         [-0.32, 0.8],
         [w + 0.32, 0.8],
       ] as const) {
-        const g = curtainGeo(cw, ch, 4);
+        const g = curtainGeo(cw, ch, 8, 0.06);
         g.translate(cx, ch / 2, 0.16);
         curtains.push(g.applyMatrix4(mtx));
       }
       add(frames, [local(-0.8, ch, 0.12, w + 0.8, ch + 0.04, 0.2)]);
       // Sheers across the glass, behind the velvet, from the rod down to the sill (R10).
-      const sheer = curtainGeo(w, ch - o.sill, Math.round(w / 0.3));
+      const sheer = curtainGeo(w, ch - o.sill, Math.round(w / 0.3), 0.04);
       sheer.translate(w / 2, (ch + o.sill) / 2, 0.14);
       sheers.push(sheer.applyMatrix4(mtx));
     } else if (o.kind === "door") {
@@ -158,13 +190,15 @@ function buildOpenings(wall: WallData) {
     greens: merge(greens),
     floors: merge(floors),
     prints: merge(prints),
+    plants: merge(plants),
   };
 }
 
 /** Glazing, curtains, doors and the views beyond them; hidden on walls cut away by the camera. */
 export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: ReadonlySet<string> }) {
   const perWall = useMemo(
-    () => venue.data.walls.map((w) => ({ id: w.id, built: buildOpenings(w) })),
+    () =>
+      venue.data.walls.map((w) => ({ id: w.id, built: buildOpenings(w, venue.data.fixtures.sillPlants) })),
     [venue],
   );
   return (
@@ -184,6 +218,7 @@ export function Openings({ venue, m, evening, cutWalls }: P & { cutWalls: Readon
           {built.greens && <mesh geometry={built.greens} material={m.greenPanel} />}
           {built.floors && <mesh geometry={built.floors} material={m.woodFloor} receiveShadow />}
           {built.prints && <mesh geometry={built.prints} material={m.windowFrame} />}
+          {built.plants && <mesh geometry={built.plants} material={m.cards} />}
         </group>
       ))}
     </group>
@@ -645,93 +680,89 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
     const tubes: THREE.Matrix4[] = [];
     const bulbs: THREE.Matrix4[] = [];
     const wires: THREE.BufferGeometry[] = [];
-    const crystals: THREE.Matrix4[] = [];
     const drums: THREE.Matrix4[] = [];
     const cords: THREE.BufferGeometry[] = [];
     const t = new THREE.Object3D();
     const C = venue.ceiling;
-    let seed = 3;
-    const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (const c of venue.data.fixtures.chandeliers) {
       if (c.kind === "brassCluster") {
         const top = c.top ?? c.bottom + 2;
         const stem = new THREE.CylinderGeometry(0.03, 0.03, C - c.bottom, 6);
         stem.translate(c.x, (C + c.bottom) / 2, c.z);
         wires.push(stem);
-        // Dense cluster of short vertical brass cylinders with bare bulbs, each on a thin arm from
-        // the central stem, filling an upright ovoid (R02, R03; owner-confirmed 2026-10-16).
-        const cy = (c.bottom + top) / 2;
-        const ry = (top - c.bottom) / 2;
-        const count = 84;
-        for (let i = 0; i < count; i++) {
-          const shell = i % 3 === 0 ? 0.55 : 1;
-          const v = 1 - (2 * (i + 0.5)) / count;
-          const ring = Math.sqrt(1 - v * v);
-          const a = i * 2.39996;
-          const lx = Math.cos(a) * ring * c.radius * shell;
-          const lz = Math.sin(a) * ring * c.radius * shell;
-          const y = cy + v * ry * 0.92;
-          const reach = Math.hypot(lx, lz);
-          if (reach > 0.05) {
-            const arm = new THREE.CylinderGeometry(0.006, 0.006, reach, 4);
+        // A broad, rough oval of arms off the central stem (R02, R03, R11; owner-confirmed
+        // 2026-10-16): eight tiers, widest near the top, each arm at its own height and reach,
+        // ending in a short brass cylinder with a small bare bulb hanging under it.
+        const tiers = 8;
+        let seed = 7;
+        const jitter = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+        for (let k = 0; k < tiers; k++) {
+          const f = k / (tiers - 1);
+          const y = top - 0.15 - f * (top - c.bottom - 0.3);
+          const profile = 0.75 + 0.25 * Math.sin(Math.PI * Math.min(1, (f + 0.25) / 1.25));
+          const n = 9;
+          for (let j = 0; j < n; j++) {
+            const a = ((j + (k % 2) / 2) / n) * Math.PI * 2;
+            const rad = c.radius * profile * (1 + 0.15 * jitter());
+            const ay = y + 0.07 * jitter();
+            const [lx, lz] = [Math.cos(a) * rad, Math.sin(a) * rad];
+            const arm = new THREE.CylinderGeometry(0.006, 0.006, rad, 4);
             arm.rotateZ(Math.PI / 2);
-            arm.rotateY(-Math.atan2(lz, lx));
-            arm.translate(c.x + lx / 2, y + 0.17, c.z + lz / 2);
+            arm.rotateY(-a);
+            arm.translate(c.x + lx / 2, ay + 0.1, c.z + lz / 2);
             wires.push(arm);
+            t.position.set(c.x + lx, ay, c.z + lz);
+            t.scale.set(1, 1, 1);
+            t.updateMatrix();
+            tubes.push(t.matrix.clone());
+            t.position.y = ay - 0.13;
+            t.scale.set(1, 1.4, 1);
+            t.updateMatrix();
+            bulbs.push(t.matrix.clone());
           }
-          t.position.set(c.x + lx, y + 0.09, c.z + lz);
-          t.scale.set(1, 1, 1);
-          t.updateMatrix();
-          tubes.push(t.matrix.clone());
-          t.position.y = y - 0.04;
-          t.updateMatrix();
-          bulbs.push(t.matrix.clone());
         }
       } else {
         const h = c.height ?? 1.2;
         const cage: THREE.BufferGeometry[] = [];
-        for (let i = 0; i < 18; i++) {
-          const a = (i / 18) * Math.PI * 2;
-          const bar = new THREE.CylinderGeometry(0.006, 0.006, h * 0.78, 4);
-          bar.translate(c.x + Math.cos(a) * c.radius, c.bottom + h * 0.39, c.z + Math.sin(a) * c.radius);
-          cage.push(bar);
-        }
-        for (const y of [0.02, h * 0.78]) {
-          const ring = new THREE.TorusGeometry(c.radius, 0.012, 4, 32);
-          ring.rotateX(Math.PI / 2);
-          ring.translate(c.x, c.bottom + y, c.z);
-          cage.push(ring);
+        // A dense wire cage on a solid base band, its bars curving into a bell dome over the top
+        // fifth (R05, R10); the crystal chandelier inside is a model (`Birdcages`).
+        const wall = h * 0.78;
+        const bell = (s: number) => {
+          const t = (s * Math.PI) / 2;
+          return [c.radius * Math.cos(t) ** 0.6, c.bottom + wall + (h - wall) * Math.sin(t)] as const;
+        };
+        for (let i = 0; i < 32; i++) {
+          const a = (i / 32) * Math.PI * 2;
+          const [cx, cz] = [Math.cos(a), Math.sin(a)];
+          cage.push(
+            new THREE.CylinderGeometry(0.006, 0.006, wall, 4, 1, true).translate(
+              c.x + cx * c.radius,
+              c.bottom + wall / 2,
+              c.z + cz * c.radius,
+            ),
+          );
+          for (let k = 0; k < 4; k++) {
+            const [r0, y0] = bell(k / 4);
+            const [r1, y1] = bell((k + 1) / 4);
+            cage.push(rod([c.x + cx * r0, y0, c.z + cz * r0], [c.x + cx * r1, y1, c.z + cz * r1], 0.006));
+          }
         }
         cage.push(
-          new THREE.CylinderGeometry(0.01, c.radius * 0.95, h * 0.22, 18, 1, true).translate(
+          new THREE.CylinderGeometry(c.radius, c.radius, 0.05, 32, 1, true).translate(
             c.x,
-            c.bottom + h * 0.89,
+            c.bottom + 0.025,
             c.z,
           ),
         );
-        const rope = new THREE.CylinderGeometry(0.015, 0.015, C - (c.bottom + h), 6);
+        const ring = new THREE.TorusGeometry(c.radius, 0.012, 4, 32);
+        ring.rotateX(Math.PI / 2);
+        cage.push(ring.translate(c.x, c.bottom + wall, c.z));
+        // A thick rope where the photos show one (the east cages, R05, R10), else a rod.
+        const hr = c.hanger === "rope" ? 0.025 : 0.012;
+        const rope = new THREE.CylinderGeometry(hr, hr, C - (c.bottom + h), 6);
         rope.translate(c.x, (C + c.bottom + h) / 2, c.z);
         cage.push(rope);
         wires.push(...cage);
-        for (let i = 0; i < 26; i++) {
-          const a = r() * Math.PI * 2;
-          const rad = r() * c.radius * 0.6;
-          t.position.set(c.x + Math.cos(a) * rad, c.bottom + 0.2 + r() * h * 0.5, c.z + Math.sin(a) * rad);
-          t.scale.setScalar(0.6 + r() * 0.6);
-          t.updateMatrix();
-          crystals.push(t.matrix.clone());
-        }
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2;
-          t.position.set(
-            c.x + Math.cos(a) * c.radius * 0.45,
-            c.bottom + h * 0.42,
-            c.z + Math.sin(a) * c.radius * 0.45,
-          );
-          t.scale.setScalar(1);
-          t.updateMatrix();
-          bulbs.push(t.matrix.clone());
-        }
       }
     }
     for (const row of venue.data.fixtures.pendantRows) {
@@ -753,9 +784,8 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
       return mesh;
     };
     return {
-      tubes: inst(new THREE.CylinderGeometry(0.032, 0.032, 0.17, 8), m.brass, tubes),
-      bulbs: inst(new THREE.SphereGeometry(0.045, 10, 8), m.bulb, bulbs),
-      crystals: inst(new THREE.OctahedronGeometry(0.03), m.crystal, crystals),
+      tubes: inst(new THREE.CylinderGeometry(0.045, 0.045, 0.2, 10), m.brass, tubes),
+      bulbs: inst(new THREE.SphereGeometry(0.03, 10, 8), m.bulb, bulbs),
       drums: inst(new THREE.CylinderGeometry(0.2, 0.24, 0.32, 20, 1, true), m.blackMetal, drums),
       drumGlow: inst(
         new THREE.CircleGeometry(0.22, 20).rotateX(Math.PI / 2),
@@ -770,7 +800,9 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
     <group name="light-fixtures">
       <primitive object={built.tubes} />
       <primitive object={built.bulbs} />
-      <primitive object={built.crystals} />
+      <Suspense fallback={null}>
+        <Birdcages venue={venue} />
+      </Suspense>
       <group visible={pendants}>
         <primitive object={built.drums} />
         <primitive object={built.drumGlow} />
@@ -779,4 +811,32 @@ export function Lights({ venue, m, pendants }: Omit<P, "evening"> & { pendants: 
       {built.wires && <mesh geometry={built.wires} material={m.blackMetal} />}
     </group>
   );
+}
+
+/**
+ * The crystal chandeliers inside the birdcages (V6): one Meshy model, hung just above each cage's
+ * bottom ring. Its pale crystal and candle sleeves glow faintly by their own colour, kept near white
+ * so the bronze arms do not glow copper.
+ */
+function Birdcages({ venue }: { venue: VenueModel }) {
+  const file = venue.data.fixtures.chandelierModels.birdcage;
+  const model = useLoader(PieceModelLoader, file) as PieceModel;
+  const mesh = useMemo(() => {
+    const cages = venue.data.fixtures.chandeliers.filter((c) => c.kind === "birdcage");
+    model.material.emissiveMap = model.material.map;
+    model.material.emissive.set("#fff3e0");
+    model.material.emissiveIntensity = 0.2;
+    const mesh = new THREE.InstancedMesh(model.geometry, model.material, cages.length);
+    const t = new THREE.Object3D();
+    cages.forEach((c, i) => {
+      t.position.set(c.x, c.bottom + 0.06, c.z);
+      t.rotation.set(0, i * 0.7, 0);
+      t.updateMatrix();
+      mesh.setMatrixAt(i, t.matrix);
+    });
+    return mesh;
+  }, [venue, model]);
+  // Made after the first frames: compiled now, not when a view first shows it (PLT-03).
+  useEffect(() => requestWarmup(), [mesh]);
+  return <primitive object={mesh} />;
 }
