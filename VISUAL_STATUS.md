@@ -365,7 +365,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 - **Figures:** a man and a woman in 2 poses each (owner, 2026-10-21; was 4): seated with hands on the table, standing with hands by the hips.
 - **Versions:** each in three detail levels.
 - **Colour:** per-guest outfit, skin and hair colours from one shared material.
-- **Rendering:** solid at eye level and in Sit here; light and see-through in the dollhouse overview.
+- **Rendering:** solid and coloured in every view (owner, 2026-10-22; was light and see-through in the overview).
 - **Docs:** the `DESIGN_GUIDE.md` §9 people rule and the PRODUCT_SPEC people line updated.
 
 **Validation:** in **People plan**.
@@ -383,7 +383,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
   - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
   - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes.
   - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
-- **In the app:** at eye level, in Sit here and in Photo mode the nearest 12 guests use the finer level (desktop detailed, phone medium), the rest medium (desktop) or simple (phone); in the overview and plan every guest is simple, faded toward warm white and 55% opaque. Loaded after the room.
+- **In the app:** solid and coloured in every view (owner, 2026-10-22: the see-through overview dropped), with the fabric's rough look: Meshy's folds kept in the shade and a fine grain in the shader, no texture. At eye level, in Sit here and in Photo mode the nearest 12 guests use the finer level (desktop detailed, phone medium), the rest medium (desktop) or simple (phone); in the overview and plan every guest is simple. They fade in after the room loads.
 
 ## People plan (V7)
 
@@ -452,7 +452,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
   - PPL-01 and PPL-02 tests unchanged.
   - Visual baselines.
   - `fidelity-reviewer` against the people reference.
-  - `ux-reviewer` on the overview see-through rule.
+  - `ux-reviewer` on the people in every view.
 - **Devices:** the PPL-03 scene on the iPhone 16 and Galaxy S24 meets the frame-rate target; a regression of more than 10% from V6 is fixed or V7 is reverted.
 
 **Fallback:** if V7 cannot pass its gate by 2026-11-07, today's simple figures stay. The result is consistent, just plainer.

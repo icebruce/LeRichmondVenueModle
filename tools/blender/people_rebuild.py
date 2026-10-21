@@ -193,9 +193,10 @@ while True:
     moved[todo] = False
 part = PART[cls]
 lum = cols @ np.array([0.2126, 0.7152, 0.0722])
-# The texture's folds and painted shadows, softened over a few centimetres within each class.
+# The texture's folds and painted shadows (owner, 2026-10-22: the fabric's rough look kept), only
+# their speckle softened, within each class.
 same = cls[edges[:, 0]] == cls[edges[:, 1]]
-for _ in range(12):
+for _ in range(4):
     acc, cnt = lum.copy(), np.ones(len(lum))
     for e in (edges[same], edges[same][:, ::-1]):
         np.add.at(acc, e[:, 0], lum[e[:, 1]])
@@ -209,7 +210,7 @@ for k in range(6):
     if PART[k] == 3:
         value[sel, :3] = srgb_to_linear(cols[sel])
     else:
-        value[sel, :3] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.75, 1.25) * 0.5)[:, None]
+        value[sel, :3] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.6, 1.4) * 0.5)[:, None]
     value[sel, 3] = PART[k] / 3
 # Each dense face's class (the most of its corners'; below a hem, bare leg or shoe), for the levels.
 dense_tri = []

@@ -30,8 +30,11 @@ const OUTFITS = [
 ] as const;
 const SKIN = ["#f1d3bd", "#e0b89a", "#c99a7a", "#9c6b4e", "#6b4632"] as const;
 const HAIR = ["#1b1512", "#3b2618", "#6b4a2e", "#a88a5e"] as const;
-/** Overview figures fade toward the wall caps' warm white and turn see-through (DESIGN_GUIDE §9). */
-const GHOST = { mix: 0.6, opacity: 0.55 };
+/**
+ * The fabric's rough look (owner, 2026-10-22): a fine grain over each part, as a share of its colour
+ * (outfit, skin, hair, as is), at two scales (cycles a metre), fading out where it would shimmer.
+ */
+const GRAIN = { amount: [0.1, 0.035, 0.14, 0.05], fine: 420, coarse: 140 };
 /** Guests fade in when they arrive after the room (s; `--m-slow`, shorter with reduced motion). */
 const APPEAR = { normal: 0.36, reduced: 0.15 };
 
@@ -58,17 +61,15 @@ function mirrored(g: THREE.BufferGeometry): THREE.BufferGeometry {
 /**
  * One material for every guest (V7): the vertex colour holds the part in its alpha (outfit, skin,
  * hair, or drawn as is) and the shade in its red (0.5 the part's average); the guest's palette
- * choices come as the batch colour (choice / 16). `ghost` and `opacity` are uniforms, so the
- * overview's see-through figures need no other shader.
+ * choices come as the batch colour (choice / 16). A fine grain gives the fabric, skin and hair their
+ * rough look without a texture.
  */
-function peopleMaterial(ghost: { value: number }, ghostColour: { value: THREE.Color }) {
+function peopleMaterial() {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, transparent: true });
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.outfits = { value: vec3s(OUTFITS.flat()) };
     shader.uniforms.skins = { value: vec3s(SKIN) };
     shader.uniforms.hairs = { value: vec3s(HAIR) };
-    shader.uniforms.ghost = ghost;
-    shader.uniforms.ghostColour = ghostColour;
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
@@ -76,26 +77,58 @@ function peopleMaterial(ghost: { value: number }, ghostColour: { value: THREE.Co
 uniform vec3 outfits[${OUTFITS.flat().length}];
 uniform vec3 skins[${SKIN.length}];
 uniform vec3 hairs[${HAIR.length}];
-uniform float ghost;
-uniform vec3 ghostColour;`,
+varying vec3 vGrain;
+varying float vPart;`,
       )
       .replace(
         "#include <color_vertex>",
         `vec3 choice = floor(getBatchingColor(getIndirectIndex(gl_DrawID)).rgb * 16.0 + 0.5);
 int part = int(floor(color.a * 3.0 + 0.5));
 vec3 base = part == 0 ? outfits[int(choice.r)] : part == 1 ? skins[int(choice.g)] : hairs[int(choice.b)];
-vColor = vec4(mix(part == 3 ? color.rgb : base * color.r * 2.0, ghostColour, ghost * ${GHOST.mix.toFixed(2)}), 1.0);`,
+vColor = vec4(part == 3 ? color.rgb : base * color.r * 2.0, 1.0);
+// Hair's grain runs along its strands (stretched vertically); the rest is even.
+vGrain = part == 2 ? position * vec3(1.0, 0.25, 1.0) : position;
+vPart = float(part);`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec3 vGrain;
+varying float vPart;
+float grainHash(vec3 p) {
+  p = fract(p * 0.3183099 + 0.1) * 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+float grainNoise(vec3 x) {
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(mix(grainHash(i), grainHash(i + vec3(1, 0, 0)), f.x), mix(grainHash(i + vec3(0, 1, 0)), grainHash(i + vec3(1, 1, 0)), f.x), f.y),
+    mix(mix(grainHash(i + vec3(0, 0, 1)), grainHash(i + vec3(1, 0, 1)), f.x), mix(grainHash(i + vec3(0, 1, 1)), grainHash(i + vec3(1, 1, 1)), f.x), f.y),
+    f.z);
+}
+float grainAt(vec3 p) {
+  // Each scale fades out once a pixel spans more than a cycle of it (no shimmer at a distance).
+  vec3 a = p * ${GRAIN.fine.toFixed(1)};
+  vec3 b = p * ${GRAIN.coarse.toFixed(1)};
+  float fa = clamp(1.5 - length(fwidth(a)), 0.0, 1.0);
+  float fb = clamp(1.5 - length(fwidth(b)), 0.0, 1.0);
+  return (grainNoise(a) - 0.5) * fa * 0.55 + (grainNoise(b) - 0.5) * fb * 0.45;
+}`,
+      )
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+float grainAmount = vPart < 0.5 ? ${GRAIN.amount[0]?.toFixed(3)} : vPart < 1.5 ? ${GRAIN.amount[1]?.toFixed(3)} : vPart < 2.5 ? ${GRAIN.amount[2]?.toFixed(3)} : ${GRAIN.amount[3]?.toFixed(3)};
+diffuseColor.rgb *= 1.0 + 2.0 * grainAmount * grainAt(vGrain);`,
       );
   };
   return mat;
 }
 
-type Figures = {
-  mesh: THREE.BatchedMesh;
-  ids: Map<string, number>;
-  ghost: { value: number };
-  ghostColour: { value: THREE.Color };
-};
+type Figures = { mesh: THREE.BatchedMesh; ids: Map<string, number> };
 
 /** Every figure of the loaded levels, plain and mirrored, in one batched mesh: one draw call for all guests. */
 function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Figures {
@@ -107,18 +140,16 @@ function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Fi
     }
   });
   const sum = (f: (g: THREE.BufferGeometry) => number) => [...geos.values()].reduce((a, g) => a + f(g), 0);
-  const ghost = { value: 0 };
-  const ghostColour = { value: new THREE.Color() };
   const mesh = new THREE.BatchedMesh(
     MAX,
     sum((g) => g.getAttribute("position").count),
     sum((g) => g.getIndex()?.count ?? 0),
-    peopleMaterial(ghost, ghostColour),
+    peopleMaterial(),
   );
   const ids = new Map<string, number>();
   for (const [key, g] of geos) ids.set(key, mesh.addGeometry(g));
   for (const [key, g] of geos) if (key.endsWith(":1")) g.dispose();
-  return { mesh, ids, ghost, ghostColour };
+  return { mesh, ids };
 }
 
 /**
@@ -134,9 +165,8 @@ function release(mesh: THREE.BatchedMesh) {
 /**
  * Guests seated on chairs and standing in open floor (PPL-01..03), drawn as the V7 figures: a man
  * and a woman, seated with hands on the table or standing, mirrored, recoloured per guest. Loaded
- * after the room, they fade in. At eye level and in
- * Photo mode the nearest guests get the finer level; in the overview the figures are light and
- * see-through.
+ * after the room, they fade in. Solid and coloured in every view (owner, 2026-10-22); at eye level
+ * and in Photo mode the nearest guests get the finer level, in the overview everyone the simplest.
  */
 export function People({ low, m, detail }: { low: boolean; m: Materials; detail: boolean }) {
   const names = LEVELS[low ? "low" : "high"];
@@ -221,21 +251,17 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     // Written in place: ask for a frame (frames are on demand).
     invalidate();
   }, [guests, figures, geometryOf, low, invalidate]);
-  // Opacity at full presence, and how far the fade-in has come (0-1).
-  const opacity = detail ? 1 : GHOST.opacity;
+  // How far the fade-in has come (0-1); a new detail level is chosen again with the view.
   const appear = useRef(0);
   useEffect(() => {
-    figures.ghost.value = detail ? 0 : 1;
-    figures.ghostColour.value.copy(m.cap.color);
-    (figures.mesh.material as THREE.Material).opacity = opacity * appear.current;
     near.current = null;
     invalidate();
-  }, [detail, opacity, figures, m, invalidate]);
+  }, [detail, figures, invalidate]);
   useFrame((_, delta) => {
     if (appear.current >= 1) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     appear.current = Math.min(1, appear.current + delta / (reduced ? APPEAR.reduced : APPEAR.normal));
-    (figures.mesh.material as THREE.Material).opacity = opacity * appear.current;
+    (figures.mesh.material as THREE.Material).opacity = appear.current;
     invalidate();
   });
   // The nearest guests at the finer level, chosen again once the camera has moved.
