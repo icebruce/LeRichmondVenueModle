@@ -199,12 +199,23 @@ if pose == "table":
         print("hand", s, "error", round(best[0], 3), "reach", best[1], "pitch", round(best[2], 2), "hand z", best[4], "hand y", best[5])
 
 def hang(s):
-    """A free arm hanging relaxed by the side, the palm turned toward the thigh."""
-    sg = 1 if world(P[f"{s}Arm"].head).x > 0 else -1
-    aim(f"{s}Arm", (sg * 0.1, 0.02, -1))
-    aim(f"{s}ForeArm", (sg * 0.04, -0.1, -1))
+    """A free arm hanging relaxed by the side, the palm turned toward the thigh.
+
+    Side and front are the torso's own (shoulder to shoulder), not the world's: the recorded standing
+    poses turn the torso, and a world-aligned arm then hangs behind the hip.
+    """
+    other = "Right" if s == "Left" else "Left"
+    side = world(P[f"{s}Arm"].head) - world(P[f"{other}Arm"].head)
+    side.z = 0
+    side.normalize()
+    front = Vector((0, 0, 1)).cross(side)
+    if front.y > 0:  # the figure faces Blender -y
+        front = -front
+    down = Vector((0, 0, -1))
+    aim(f"{s}Arm", side * 0.14 - front * 0.02 + down)
+    aim(f"{s}ForeArm", side * 0.04 + front * 0.1 + down)
     _, a, n = hand_frame(coords(), s)
-    rotate_about(f"{s}Hand", basis((sg * 0.02, -0.06, -1), (-sg, 0, 0)) @ basis(a, n).inverted())
+    rotate_about(f"{s}Hand", basis(side * 0.02 + front * 0.06 + down, -side) @ basis(a, n).inverted())
 
 
 glass_at = None

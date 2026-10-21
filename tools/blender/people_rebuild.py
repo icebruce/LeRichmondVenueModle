@@ -123,9 +123,41 @@ def level(name, target):
     # Texture pixels come as stored (sRGB): parts are told apart there; glTF vertex colour is linear.
     cols = np.array([sample(v.co) for v in o.data.vertices])
     parts = np.array([classify(c, v.co.z, head_line) for c, v in zip(cols, o.data.vertices)])
+    edges = np.array([e.vertices[:] for e in o.data.edges])
+    # Specks (an ankle read as skin, a collar's white on a shoulder) join the part around them.
+    nbrs = [[] for _ in parts]
+    for a, b in edges:
+        nbrs[a].append(b)
+        nbrs[b].append(a)
+    seen = np.zeros(len(parts), bool)
+    moved = np.zeros(len(parts), bool)
+    for v0 in range(len(parts)):
+        if seen[v0] or parts[v0] == 0:
+            continue
+        comp, todo = [], [v0]
+        seen[v0] = True
+        while todo:
+            v = todo.pop()
+            comp.append(v)
+            for w in nbrs[v]:
+                if not seen[w] and parts[w] == parts[v0]:
+                    seen[w] = True
+                    todo.append(w)
+        if len(comp) < max(3, 0.006 * len(parts)):
+            around = [parts[w] for v in comp for w in nbrs[v] if parts[w] != parts[v0]]
+            if around:
+                parts[comp] = np.bincount(around).argmax()
+                moved[comp] = True
+    # A speck takes its new part's colour too, from the neighbours it joined, filling inwards.
+    while True:
+        todo = [v for v in np.flatnonzero(moved) if any(not moved[w] and parts[w] == parts[v] for w in nbrs[v])]
+        if not todo:
+            break
+        for v in todo:
+            cols[v] = np.mean([cols[w] for w in nbrs[v] if not moved[w] and parts[w] == parts[v]], axis=0)
+        moved[todo] = False
     lum = cols @ np.array([0.2126, 0.7152, 0.0722])
     # The texture's folds and painted shadows, softened: averaged with the neighbours of the same part.
-    edges = np.array([e.vertices[:] for e in o.data.edges])
     same = parts[edges[:, 0]] == parts[edges[:, 1]]
     for _ in range(3):
         acc, cnt = lum.copy(), np.ones(len(lum))
