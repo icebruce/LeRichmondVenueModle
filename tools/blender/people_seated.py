@@ -1,6 +1,6 @@
 """A guest generated seated at a table by Meshy (no rig), freed of the furniture and fitted (visual stage V7).
 
-venv/bin/python people_seated.py <meshy.glb> <out.glb> sit=<m> [seat=0.446] [table=0.75] [edge=0.32]
+venv/bin/python people_seated.py <meshy.glb> <out.glb> sit=<m> [forward=<m>] [seat=0.446] [table=0.75] [edge=0.32]
 
 Owner, 2026-10-21: the rig distorted arms and hands, so the seated guest is generated in its pose,
 at a table and on a chair (`tools/meshy/prompts/*-seated-*.txt`; they are textured plain light grey).
@@ -28,6 +28,9 @@ SEAT = float(opts.get("seat", "0.446"))
 TABLE = float(opts.get("table", "0.75"))
 EDGE = float(opts.get("edge", "0.32"))
 SIT = float(opts["sit"])
+# Sitting this much further forward than against the backrest, so the palms (not just the fingers)
+# reach the top.
+FORWARD = float(opts.get("forward", "0"))
 # The backrests' fronts start 0.21 m behind the chair's place (oval, crossback, chiavari), less a margin.
 BACKREST = 0.19
 
@@ -199,7 +202,7 @@ body.data.transform(Matrix.Translation(Vector((-(P[:, 0].min() + P[:, 0].max()) 
 P = np.array([v.co[:] for v in me.vertices])
 # Back and jacket clear of the backrest: its fronts are 0.21 m or more behind the chair's place.
 torso = (P[:, 2] > SEAT) & (P[:, 2] < SEAT + 0.5)
-P[:, 1] += BACKREST - P[torso, 1].max()
+P[:, 1] += BACKREST - FORWARD - P[torso, 1].max()
 # Feet on our floor: below the seat, heights are rescaled (the shins a little longer or shorter).
 low = P[:, 2].min()
 legs = P[:, 2] < SEAT
@@ -207,7 +210,7 @@ P[legs, 2] = (P[legs, 2] - low) / (SEAT - low) * SEAT
 # Palms on our tabletop: the forearms are raised smoothly, from where they leave the body to the
 # table's edge, and nothing above the chest moves: a gentle tilt, no joint bent.
 smooth = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
-start = BACKREST - 0.32
+start = BACKREST - FORWARD - 0.32
 # The generated tabletop, where the forearms rested: the lift brings it to ours. Only what is over
 # the thighs behind the edge, and over the tabletop beyond it, moves: the knees under the table stay.
 gen_top = (top_z - seat_z) * k + SEAT

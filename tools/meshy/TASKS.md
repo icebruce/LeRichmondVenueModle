@@ -99,5 +99,5 @@ Idle 1, 2, 3 (11, 12, 243): man 01a15ebe-af20-7258-afc3-47325b6b142e, 01a15ebe-b
 | Man, standing | 01a15fbc-be91-72aa-9480-18b7f8a3f4f4 (one hand at the jacket button; owner kept it) | 01a15fdc-6739-704b-9cea-0021dde3a4bc | `man-standing-*.txt` | — |
 | Woman, standing | 01a15fbc-c635-75d5-80fa-d7a2c1dd8725 | 01a15fbe-57b6-7427-b3a3-27616d943b39 | `woman-standing-*.txt` | — |
 
-Commands: `people_seated.py <refined.glb> <out.glb> sit=0.93` (man), `sit=0.87` (woman); `people_standing.py <refined.glb> <out.glb> height=1.80` / `1.70`; `people_rebuild.py <posed.glb> <out.glb>` (woman: `legs=0.42` seated, `legs=0.545` standing, her hem).
+Commands: `people_seated.py <refined.glb> <out.glb> sit=0.93` (man), `sit=0.87 forward=0.06` (woman); `people_standing.py <refined.glb> <out.glb> height=1.80` / `1.70`; `people_rebuild.py <placed.glb> <out.glb>` (woman: `legs=0.38 front=-0.26` seated, `legs=0.545` standing, her hem); `people_pack.py <rebuilt_dir> public/assets/models/people`.
 

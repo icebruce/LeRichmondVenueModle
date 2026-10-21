@@ -1,16 +1,20 @@
 """A placed guest rebuilt as the app's clean figures (visual stage V7).
 
-venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>]
+venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>] [front=<m>]
 
-- The placed Meshy mesh (`people_seated.py`, `people_standing.py`) is never smoothed or simplified itself: it is remeshed into
-  one closed surface (`voxel` m), which is then simplified to each detail level: `detail` 8,000
-  triangles, `medium` 2,000, `simple` 540 (the people budget in VISUAL_STATUS.md: 150 guests on a
-  phone, 12 medium and the rest simple, stay under 100k).
-- Colour comes from the Meshy texture, sampled at the nearest point of the posed mesh, into the
-  vertex colour: no texture at all. Its alpha holds the part (0 outfit, 1/3 skin, 2/3 hair, 1 as
-  is): the app recolours outfit, skin and hair per guest, keeping their shading (rgb then holds the
-  shade, 0.5 the part's average), and draws the rest (shirt, tie, shoes) as it is. `legs` (a
-  dress's hem height): bare legs below it, and no tie.
+- The placed Meshy mesh (`people_seated.py`, `people_standing.py`) is never smoothed or simplified
+  itself: it is remeshed into one closed surface (`voxel` m), which is then simplified to each detail
+  level: `detail` 8,000 triangles, `medium` 2,000, `simple` 540 (the people budget in
+  VISUAL_STATUS.md: 150 guests on a phone, 12 medium and the rest simple, stay under 100k).
+- Colour comes from the Meshy texture into the vertex colour: no texture at all. Its alpha holds the
+  part (0 outfit, 1/3 skin, 2/3 hair, 1 as is): the app recolours outfit, skin and hair per guest,
+  keeping their shading (rgb then holds the shade, 0.5 the part's average), and draws the rest
+  (shirt, tie, shoes) as it is.
+- Parts are decided once on the dense closed surface (specks cleaned, a dress's hem cut straight)
+  and kept through simplification (their borders collapse least); each level's triangle takes one
+  part, the dense surface's at its middle, so no triangle blends two palette colours.
+- `legs` (a dress's hem height) and `front` (seated: the thighs past the hem, Blender y): bare legs
+  there, and no tie.
 """
 import colorsys
 import sys
@@ -19,14 +23,23 @@ import bpy
 import bmesh  # after bpy, which provides it
 import numpy as np
 from mathutils.bvhtree import BVHTree
+from mathutils import Vector
+from mathutils.kdtree import KDTree
 
 src, dst = sys.argv[1], sys.argv[2]
 opts = dict(a.split("=", 1) for a in sys.argv[3:])
 voxel = float(opts.get("voxel", "0.005"))
 # A dress: bare legs below `legs` m (its hem), and no tie to keep as it is (navy would read as one).
 legs = float(opts.get("legs", "0"))
+# Seated in a dress: bare legs also ahead of `front` (Blender y, the thighs past the hem), below 0.6 m.
+front = float(opts.get("front", "-9"))
 dress = legs > 0
+
+
+def bare(x, y, z):
+    return z <= legs or (y <= front and z < 0.6)
 LEVELS = {"detail": 8000, "medium": 2000, "simple": 540}
+BORDER_WEIGHT = float(opts.get("border", "0.2"))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
@@ -104,23 +117,127 @@ def srgb_to_linear(c):
     return np.where(c <= 0.04045, c / 12.92, np.power((c + 0.055) / 1.055, 2.4))
 
 
-def classify(rgb, z, head_line):
-    """Part per vertex: 0 outfit, 1 skin, 2 hair, 3 as is (shirt, tie, shoes)."""
+# Classes: the app's parts 0 outfit, 1 skin, 2 hair, and drawn as is: 3 shirt, 4 tie, 5 shoes (kept
+# apart so a tie's highlight read as shirt is cleaned up like any other speck).
+PART = np.array([0, 1, 2, 3, 3, 3])
+
+
+def classify(rgb, p, head_line):
+    z = p[2]
     h, s, v = colorsys.rgb_to_hsv(*rgb)
     hue = h * 360
+    if z < 0.13 and v < 0.3:
+        return 5  # shoes
+    if bare(*p):
+        return 1  # bare legs
     if s < 0.2 and v > 0.6:
         return 3  # white shirt
     if not dress and 190 < hue < 260 and s > 0.25 and v > 0.15:
-        return 3  # tie
-    if z < 0.13 and v < 0.3:
-        return 3  # shoes
-    if z < legs:
-        return 1  # bare legs
+        return 4  # tie
     if 5 < hue < 50 and s > 0.15 and v >= 0.62:
         return 1
     if z > head_line and ((0 <= hue < 55 and s > 0.15 and v < 0.62) or v < 0.12):
         return 2
     return 0
+
+
+# Parts are decided once, on the dense closed surface, and kept through every level: their borders
+# follow the figure, not the triangles a simplification leaves. A dress's hem is cut straight first.
+if dress:
+    bm = bmesh.new()
+    bm.from_mesh(work.data)
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, legs), plane_no=(0, 0, 1))
+    if front > -9:
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, front, 0), plane_no=(0, 1, 0))
+    bm.to_mesh(work.data)
+    bm.free()
+me = work.data
+D = np.array([v.co[:] for v in me.vertices])
+# The head: its top 24 cm (hair and face; the shoulders start below).
+head_line = top - 0.24
+# Texture pixels come as stored (sRGB): parts are told apart there; glTF vertex colour is linear.
+cols = np.array([sample(v.co) for v in me.vertices])
+cls = np.array([classify(c, p, head_line) for c, p in zip(cols, D)])
+edges = np.array([e.vertices[:] for e in me.edges])
+nbrs = [[] for _ in cls]
+for a, b in edges:
+    nbrs[a].append(b)
+    nbrs[b].append(a)
+# Specks (an ankle read as skin, a highlight on a tie read as shirt) join the class around them.
+seen = np.zeros(len(cls), bool)
+moved = np.zeros(len(cls), bool)
+for v0 in range(len(cls)):
+    if seen[v0] or cls[v0] == 0:
+        continue
+    comp, todo = [], [v0]
+    seen[v0] = True
+    while todo:
+        v = todo.pop()
+        comp.append(v)
+        for w in nbrs[v]:
+            if not seen[w] and cls[w] == cls[v0]:
+                seen[w] = True
+                todo.append(w)
+    if len(comp) < max(3, 0.002 * len(cls)):
+        around = [cls[w] for v in comp for w in nbrs[v] if cls[w] != cls[v0]]
+        if around:
+            cls[comp] = np.bincount(around).argmax()
+            moved[comp] = True
+# A speck takes its new class's colour too, from the neighbours it joined, filling inwards.
+while True:
+    todo = [v for v in np.flatnonzero(moved) if any(not moved[w] and cls[w] == cls[v] for w in nbrs[v])]
+    if not todo:
+        break
+    for v in todo:
+        cols[v] = np.mean([cols[w] for w in nbrs[v] if not moved[w] and cls[w] == cls[v]], axis=0)
+    moved[todo] = False
+part = PART[cls]
+lum = cols @ np.array([0.2126, 0.7152, 0.0722])
+# The texture's folds and painted shadows, softened over a few centimetres within each class.
+same = cls[edges[:, 0]] == cls[edges[:, 1]]
+for _ in range(12):
+    acc, cnt = lum.copy(), np.ones(len(lum))
+    for e in (edges[same], edges[same][:, ::-1]):
+        np.add.at(acc, e[:, 0], lum[e[:, 1]])
+        np.add.at(cnt, e[:, 0], 1)
+    lum = acc / cnt
+value = np.zeros((len(cls), 4), dtype=np.float32)
+for k in range(6):
+    sel = cls == k
+    if not sel.any():
+        continue
+    if PART[k] == 3:
+        value[sel, :3] = srgb_to_linear(cols[sel])
+    else:
+        value[sel, :3] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.75, 1.25) * 0.5)[:, None]
+    value[sel, 3] = PART[k] / 3
+# Each dense face's class (the most of its corners'; below a hem, bare leg or shoe), for the levels.
+dense_tri = []
+dense_cls = []
+for p in me.polygons:
+    c = cls[list(p.vertices)]
+    k = np.bincount(c, minlength=6).argmax()
+    if dress and k != 5 and bare(*(p.center - Vector((0, 1e-6, 1e-6)))):
+        k = 1
+    for i in range(1, len(p.vertices) - 1):
+        dense_tri.append((p.vertices[0], p.vertices[i], p.vertices[i + 1]))
+        dense_cls.append(k)
+dense_cls = np.array(dense_cls)
+dense_tree = BVHTree.FromPolygons([tuple(v) for v in D], dense_tri)
+by_class = {}
+for k in range(6):
+    idx = np.flatnonzero(cls == k)
+    if len(idx):
+        t = KDTree(len(idx))
+        for i, v in enumerate(idx):
+            t.insert(D[v], i)
+        t.balance()
+        by_class[k] = (t, idx)
+# Simplification keeps the class borders: their vertices collapse least (the decimate weight).
+weight = work.vertex_groups.new(name="collapse")
+weight.add(list(range(len(cls))), 1.0, "REPLACE")
+edge_idx = np.flatnonzero(cls[edges[:, 0]] != cls[edges[:, 1]])
+weight.add(sorted(set(edges[edge_idx].ravel().tolist())), BORDER_WEIGHT, "REPLACE")
 
 
 def level(name, target):
@@ -131,6 +248,7 @@ def level(name, target):
     tris = sum(len(p.vertices) - 2 for p in o.data.polygons)
     dec = o.modifiers.new("dec", "DECIMATE")
     dec.ratio = min(1.0, target / tris)
+    dec.vertex_group = "collapse"
     for x in sc.objects:
         x.select_set(False)
     bpy.context.view_layer.objects.active = o
@@ -152,6 +270,7 @@ def level(name, target):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(o.data)
     bm.free()
+    o.vertex_groups.clear()
     for p in o.data.polygons:
         p.use_smooth = True
     # A face folded against its neighbours would be lit from behind when smoothed: it stays flat.
@@ -164,70 +283,21 @@ def level(name, target):
             break
         for p in folded:
             p.use_smooth = False
-    # Colour and part per vertex.
-    # The head: its top 24 cm (hair and face; the shoulders start below).
-    head_line = top - 0.24
-    # Texture pixels come as stored (sRGB): parts are told apart there; glTF vertex colour is linear.
-    cols = np.array([sample(v.co) for v in o.data.vertices])
-    parts = np.array([classify(c, v.co.z, head_line) for c, v in zip(cols, o.data.vertices)])
-    edges = np.array([e.vertices[:] for e in o.data.edges])
-    # Specks (an ankle read as skin, a collar's white on a shoulder) join the part around them.
-    nbrs = [[] for _ in parts]
-    for a, b in edges:
-        nbrs[a].append(b)
-        nbrs[b].append(a)
-    seen = np.zeros(len(parts), bool)
-    moved = np.zeros(len(parts), bool)
-    for v0 in range(len(parts)):
-        if seen[v0] or parts[v0] == 0:
-            continue
-        comp, todo = [], [v0]
-        seen[v0] = True
-        while todo:
-            v = todo.pop()
-            comp.append(v)
-            for w in nbrs[v]:
-                if not seen[w] and parts[w] == parts[v0]:
-                    seen[w] = True
-                    todo.append(w)
-        if len(comp) < max(3, 0.006 * len(parts)):
-            around = [parts[w] for v in comp for w in nbrs[v] if parts[w] != parts[v0]]
-            if around:
-                parts[comp] = np.bincount(around).argmax()
-                moved[comp] = True
-    # A speck takes its new part's colour too, from the neighbours it joined, filling inwards.
-    while True:
-        todo = [v for v in np.flatnonzero(moved) if any(not moved[w] and parts[w] == parts[v] for w in nbrs[v])]
-        if not todo:
-            break
-        for v in todo:
-            cols[v] = np.mean([cols[w] for w in nbrs[v] if not moved[w] and parts[w] == parts[v]], axis=0)
-        moved[todo] = False
-    lum = cols @ np.array([0.2126, 0.7152, 0.0722])
-    # The texture's folds and painted shadows, softened: averaged with the neighbours of the same part.
-    same = parts[edges[:, 0]] == parts[edges[:, 1]]
-    for _ in range(3):
-        acc, cnt = lum.copy(), np.ones(len(lum))
-        for e in (edges[same], edges[same][:, ::-1]):
-            np.add.at(acc, e[:, 0], lum[e[:, 1]])
-            np.add.at(cnt, e[:, 0], 1)
-        lum = acc / cnt
-    out = np.zeros((len(cols), 4), dtype=np.float32)
-    for k in range(4):
-        sel = parts == k
-        if not sel.any():
-            continue
-        if k == 3:
-            out[sel, :3] = srgb_to_linear(cols[sel])
-        else:
-            shade = np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.75, 1.25) * 0.5
-            out[sel, :3] = shade[:, None]
-        out[sel, 3] = k / 3
-    attr = o.data.color_attributes.new("part", "FLOAT_COLOR", "POINT")
-    attr.data.foreach_set("color", out.ravel())
+    # One class per triangle, the dense surface's at its middle, so no triangle blends two palette
+    # colours in the app; each corner takes the nearest dense value of that class.
+    V = [v.co for v in o.data.vertices]
+    corner = np.zeros((len(o.data.loops), 4), dtype=np.float32)
+    counts = np.zeros(4, int)
+    for p in o.data.polygons:
+        k = int(dense_cls[dense_tree.find_nearest(p.center)[2]])
+        t, idx = by_class.get(k) or by_class[0]
+        counts[PART[k]] += 1
+        for li, vi in zip(p.loop_indices, p.vertices):
+            corner[li] = value[idx[t.find(V[vi])[1]]]
+    attr = o.data.color_attributes.new("part", "FLOAT_COLOR", "CORNER")
+    attr.data.foreach_set("color", corner.ravel())
     o.data.color_attributes.active_color = attr
-    counts = [int((np.floor(out[:, 3] * 3 + 0.5) == k).sum()) for k in range(4)]
-    print(name, "triangles", sum(len(p.vertices) - 2 for p in o.data.polygons), "outfit/skin/hair/as-is", counts)
+    print(name, "triangles", sum(len(p.vertices) - 2 for p in o.data.polygons), "faces outfit/skin/hair/as-is", counts.tolist())
     return o
 
 
