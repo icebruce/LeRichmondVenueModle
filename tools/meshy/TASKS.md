@@ -71,3 +71,12 @@ Owner: Meshy for both chandeliers. Text prompts only (`prompts/chandelier-*.txt`
 |---|---|---|
 | Birdcage (the crystal chandelier inside; the cage is built in code) | preview 01a15abb-ee55-7775-b5f1-928b8d236775, refine 01a15ac2-f940-757a-a56a-9ffa902d7ec6, remesh to 8,000 01a15ad6-b9c3-762f-9440-f860d2b41c40 (6,662 triangles; the refine's 18k was 1.5 MB, over the initial-download budget) | — |
 | Brass cluster | none: built in code (tiers of arms, R03) | 01a15abb-e64a-733f-8782-a82eb40da2d8 (a candle chandelier), 01a15abd-24d8-7170-b143-7ffd9ba0b052 (a sputnik), 01a15ac1-8427-74d2-915d-5a659031246a (a column of hanging cylinders) |
+
+## People (V7, 2026-10-21)
+
+Owner: up to 180 credits; the man of the proofs of concept kept as approved (with his tie); the woman in a fitted sleeveless midi sheath dress with a low bun. Text prompts only (`prompts/woman-*.txt`; the owner's stock reference stays private). Credits 299 → 229.
+
+| Character | Used | Rejected |
+|---|---|---|
+| Man | preview 01a14cd1-29ca-7169-8840-c8ece42f8158, refine 01a14cd4-9df4-77a0-8bce-a0c8b9439d84 (above) | — |
+| Woman | preview 01a15bfe-2172-728a-9e56-d14e372f6d7d (attempt 2), refine 01a15c02-a260-77aa-9c72-e4be87fee8ba | 01a15bfd-1bfd-718d-9445-8fa63baf0881 (no dress), 01a15bff-55ab-7772-ace1-f6f34b25e74f (long hair, not a bun) |
