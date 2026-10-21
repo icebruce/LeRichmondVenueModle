@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 in progress (#23): Meshy for both chandeliers, the terrace canopy dropped (owner, 2026-10-20). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) started (owner, 2026-10-21): up to 180 Meshy credits; the woman in a fitted sleeveless midi sheath dress with her hair in a low bun; waiting for the owner's people reference image on a "Guest figures" request before any Meshy spend. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -56,8 +56,8 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V3 | Bar and back bar | Should | Merged (PR #19) |
 | V4 | Linens and chairs | Must | Merged (PR #21) |
 | V5 | Table décor and Photo mode | Must | Merged (PR #22) |
-| V6 | Remaining fixtures | If time allows | In progress (PR #23) |
-| V7 | People | Should | Not started |
+| V6 | Remaining fixtures | If time allows | Merged (PR #23) |
+| V7 | People | Should | In progress |
 
 ### V0: Performance foundation and measurement
 
@@ -346,7 +346,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 **Gate:** the owner approves on the preview.
 
-**In progress (2026-10-20):**
+**Delivered (merged in #23, 2026-10-20):**
 
 - **Chandeliers (Meshy for both, owner):** the birdcages are a dense 32-bar wire cage on a base band with a bell dome (code), 1.65 m tall (about 1.8 × their width, R02, R03, R05, R10), the east two on a thick rope; inside, a Meshy crystal candle chandelier (6.6 k triangles, a 1K colour map whose pale crystal and ivory sleeves glow faintly; one instanced mesh for the four). The brass cluster stays in code after three Meshy attempts came out as other chandeliers: a broad, rough oval (top 5.1, radius 0.78) of eight tiers of nine arms, each at its own height and reach, ending in a chunky brass cylinder with a small bulb under it (R02, R03, R11). The bake reads them as lights and occluders: re-baked.
 - **Railings:** wrought-iron scrollwork (a drawn cut-out card, `scrollPanelTexture`, bold strokes, matt) under the handrail along the whole raised-floor railing (R02, R11); wide panels between plain balusters on the mezzanine (R09); one panel on the stair's turn landing, the flights plain (R01, R09). No shadow (thin cards).
