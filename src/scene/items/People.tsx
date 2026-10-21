@@ -115,6 +115,8 @@ float grainAt(vec3 p) {
   vec3 b = p * ${GRAIN.coarse.toFixed(1)};
   float fa = clamp(1.5 - length(fwidth(a)), 0.0, 1.0);
   float fb = clamp(1.5 - length(fwidth(b)), 0.0, 1.0);
+  // Far away (the overview) neither scale shows: no noise is computed at all.
+  if (fb == 0.0) return 0.0;
   return (grainNoise(a) - 0.5) * fa * 0.55 + (grainNoise(b) - 0.5) * fb * 0.45;
 }`,
       )

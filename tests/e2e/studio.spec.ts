@@ -536,6 +536,9 @@ for (const quality of ["low", "high"] as const)
   test(`[PLT-03] nothing is drawn while the view is still; views, lighting, menus and a selection compile no shader (${quality})`, async ({
     page,
   }) => {
+    // On High it visits every view with the guests drawn solid (V7): CI's software renderer takes about
+    // the 150 s limit for it.
+    test.slow(quality === "high");
     type Hooks = { __frames: () => number; __programs: () => number[] };
     await openStudio(page, `fresh&quality=${quality}`);
     // A pinspot adds the evening-only beams and glows (LIB-08); flowers chosen after the room loaded
