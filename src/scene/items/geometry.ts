@@ -237,3 +237,32 @@ export class PieceModelLoader extends THREE.Loader<PieceModel> {
     loadPieceModel(file).then(onLoad, onError);
   }
 }
+
+/** One detail level of the guest figures (V7, `tools/blender/people_pack.py`): a geometry per `<body>-<pose>`. */
+export type PeopleLevel = Map<string, THREE.BufferGeometry>;
+
+const peopleLevels = new Map<string, Promise<PeopleLevel>>();
+
+function loadPeopleLevel(level: string): Promise<PeopleLevel> {
+  let p = peopleLevels.get(level);
+  if (!p) {
+    p = new GLTFLoader()
+      .loadAsync(`${import.meta.env.BASE_URL}assets/models/people/people-${level}.glb`)
+      .then((gltf) => {
+        const out: PeopleLevel = new Map();
+        gltf.scene.traverse((o) => {
+          if (o instanceof THREE.Mesh) out.set(o.name, o.geometry as THREE.BufferGeometry);
+        });
+        return out;
+      });
+    peopleLevels.set(level, p);
+  }
+  return p;
+}
+
+/** `loadPeopleLevel` as a three loader (`useLoader`); never disposed. */
+export class PeopleLoader extends THREE.Loader<PeopleLevel> {
+  override load(level: string, onLoad: (l: PeopleLevel) => void, _: unknown, onError?: (e: unknown) => void) {
+    loadPeopleLevel(level).then(onLoad, onError);
+  }
+}

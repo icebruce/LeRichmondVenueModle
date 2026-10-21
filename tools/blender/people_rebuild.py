@@ -4,12 +4,14 @@ venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005]
 
 - The posed Meshy mesh (`people_pose.py`) is never smoothed or simplified itself: it is remeshed into
   one closed surface (`voxel` m), which is then simplified to each detail level: `detail` 8,000
-  triangles, `medium` 2,000, `simple` 600 (the people budget in VISUAL_STATUS.md).
+  triangles, `medium` 2,000, `simple` 540 (the people budget in VISUAL_STATUS.md: 150 guests on a
+  phone, 12 medium and the rest simple, stay under 100k).
 - Colour comes from the Meshy texture, sampled at the nearest point of the posed mesh, into the
   vertex colour: no texture at all. Its alpha holds the part (0 outfit, 1/3 skin, 2/3 hair, 1 as
   is): the app recolours outfit, skin and hair per guest, keeping their shading (rgb then holds the
   shade, 0.5 the part's average), and draws the rest (shirt, tie, shoes, the glass) as it is.
-- A `glass` in the posed file joins the detailed and medium figures as its own closed part.
+- A `glass` in the posed file joins the detailed and medium figures as its own closed part, within
+  their budgets.
 """
 import colorsys
 import sys
@@ -22,7 +24,7 @@ from mathutils.bvhtree import BVHTree
 src, dst = sys.argv[1], sys.argv[2]
 opts = dict(a.split("=", 1) for a in sys.argv[3:])
 voxel = float(opts.get("voxel", "0.005"))
-LEVELS = {"detail": 8000, "medium": 2000, "simple": 600}
+LEVELS = {"detail": 8000, "medium": 2000, "simple": 540}
 GLASS = (0.7, 0.78, 0.82)  # linear
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -74,6 +76,27 @@ rm = work.modifiers.new("remesh", "REMESH")
 rm.mode = "VOXEL"
 rm.voxel_size = voxel
 bpy.ops.object.modifier_apply(modifier="remesh")
+# Specks the remesher leaves off the body (a strand of hair, a fingertip's tip) are dropped.
+bm = bmesh.new()
+bm.from_mesh(work.data)
+seen = set()
+for f0 in bm.faces:
+    if f0 in seen:
+        continue
+    island, todo = [], [f0]
+    seen.add(f0)
+    while todo:
+        f = todo.pop()
+        island.append(f)
+        for e in f.edges:
+            for g in e.link_faces:
+                if g not in seen:
+                    seen.add(g)
+                    todo.append(g)
+    if len(island) < 200:
+        bmesh.ops.delete(bm, geom=island, context="FACES")
+bm.to_mesh(work.data)
+bm.free()
 top = max(v.co.z for v in work.data.vertices)
 
 
@@ -104,6 +127,9 @@ def level(name, target):
     o.name = o.data.name = name
     sc.collection.objects.link(o)
     tris = sum(len(p.vertices) - 2 for p in o.data.polygons)
+    # The glass joins within the same budget.
+    if glass is not None and name != "simple":
+        target -= sum(len(p.vertices) - 2 for p in glass.data.polygons)
     dec = o.modifiers.new("dec", "DECIMATE")
     dec.ratio = min(1.0, target / tris)
     for x in sc.objects:
@@ -111,13 +137,34 @@ def level(name, target):
     bpy.context.view_layer.objects.active = o
     o.select_set(True)
     bpy.ops.object.modifier_apply(modifier="dec")
+    # Closed and clean: no slivers (a collapse can leave some), no pin holes, faces outward.
     bm = bmesh.new()
     bm.from_mesh(o.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges)
     bmesh.ops.triangulate(bm, faces=bm.faces)
+    # A collapse can fold two faces onto the same corners, a fin with no volume: both go.
+    by_corners = {}
+    for f in bm.faces:
+        by_corners.setdefault(frozenset(v.index for v in f.verts), []).append(f)
+    bmesh.ops.delete(bm, geom=[f for fs in by_corners.values() if len(fs) > 1 for f in fs], context="FACES_ONLY")
+    bmesh.ops.holes_fill(bm, edges=bm.edges, sides=8)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(o.data)
     bm.free()
     for p in o.data.polygons:
         p.use_smooth = True
+    # A face folded against its neighbours would be lit from behind when smoothed: it stays flat.
+    for _ in range(5):
+        cn = np.zeros(len(o.data.loops) * 3)
+        o.data.corner_normals.foreach_get("vector", cn)
+        cn = cn.reshape(-1, 3)
+        folded = [p for p in o.data.polygons if p.use_smooth and np.dot(cn[list(p.loop_indices)].sum(0), p.normal) < 0]
+        if not folded:
+            break
+        for p in folded:
+            p.use_smooth = False
     # Colour and part per vertex.
     head_line = top - 0.32
     # Texture pixels come as stored (sRGB): parts are told apart there; glTF vertex colour is linear.

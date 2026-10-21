@@ -397,19 +397,22 @@ test("[PLT-03] [LIB-04] [LIB-06] eye level with flowers on every table and full 
 });
 
 // Everything the studio downloads until the room is drawn: app, transcoder, textures (ARCHITECTURE §7;
-// served uncompressed here, so a ceiling on what the deployed site sends compressed).
-for (const [quality, limitMb] of [
-  ["high", 12],
-  ["low", 6],
+// served uncompressed here, so a ceiling on what the deployed site sends compressed). The guests'
+// figures load after the room, within their own budget (VISUAL_STATUS.md, people plan).
+for (const [quality, limitMb, peopleMb] of [
+  ["high", 12, 3],
+  ["low", 6, 1.5],
 ] as const)
-  test(`[PLT-03] [VEN-01] the initial download on ${quality} stays under ${limitMb} MB, phones on the 1K textures`, async ({
+  test(`[PLT-03] [VEN-01] [PPL-03] the initial download on ${quality} stays under ${limitMb} MB, phones on the 1K textures, and the guests under ${peopleMb} MB`, async ({
     page,
   }) => {
     test.slow();
     const sizes: Promise<number>[] = [];
+    const people: Promise<number>[] = [];
     const textures: string[] = [];
     page.on("requestfinished", (r) => {
-      sizes.push(r.sizes().then((x) => x.responseBodySize));
+      const size = r.sizes().then((x) => x.responseBodySize);
+      (r.url().includes("/assets/models/people/") ? people : sizes).push(size);
       if (r.url().includes("/assets/textures/")) textures.push(r.url().split("/").pop() ?? "");
     });
     await page.goto(`/?bench=sample&quality=${quality}`);
@@ -423,6 +426,10 @@ for (const [quality, limitMb] of [
       `initial download on ${quality}: ${(total / 1e6).toFixed(1)} MB, ${textures.length} textures`,
     );
     expect(total).toBeLessThan(limitMb * 1e6);
+    const guests = (await Promise.all(people)).reduce((a, b) => a + b, 0);
+    console.log(`guests on ${quality}: ${(guests / 1e6).toFixed(2)} MB in ${people.length} files`);
+    expect(people).toHaveLength(2);
+    expect(guests).toBeLessThan(peopleMb * 1e6);
     expect(textures.some((t) => t.endsWith("_2k.webp"))).toBe(quality === "high");
   });
 

@@ -1,13 +1,14 @@
 // `npm run check:assets` (VISUAL_STATUS.md, asset quality bar): every GLB the app loads is checked
 // as one welded mesh — no open or non-manifold edges beyond its source's, no zero-area or flipped
 // triangles, triangle lists with normals only, triangle and texture budgets from its library entry,
-// and contact with the floor or table it stands on. Seat contact comes with the people (V7).
+// and contact with the floor or table it stands on; each guest figure (V7) closed, within its level's
+// budget and fitting the chair, table and floor.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { NodeIO, type Primitive } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
-import { type TriMesh, bottom, edges, faces } from "./checks.ts";
+import { type TriMesh, bottom, edges, faces, figureFit } from "./checks.ts";
 
 const root = new URL("../..", import.meta.url).pathname;
 const modelsDir = join(root, "public/assets/models");
@@ -26,6 +27,9 @@ type Use = { id: string; phone: boolean; triangles: number; placement: string };
 const BLOOMS = { dir: "assets/models/blooms/", triangles: 1000 };
 /** The room's own models (V6, `chandelierModels`): drawn on phones too, each within this budget. */
 const FIXTURES = { triangles: 20000 };
+
+/** Guest figures (V7): one file per detail level, a mesh per figure, each within its level's budget. */
+const PEOPLE = { dir: "assets/models/people/", triangles: { detail: 8000, medium: 2000, simple: 600 } };
 
 /** Which library entries load each GLB, with the budget and placement that applies. */
 function uses(): Map<string, Use[]> {
@@ -116,6 +120,30 @@ for (const file of byFile.keys())
     problems.push(`${file}: used by the library but not in public/assets/models`);
 for (const file of files) {
   const doc = await io.read(join(root, "public", file));
+  if (file.startsWith(PEOPLE.dir)) {
+    const level = file
+      .slice(PEOPLE.dir.length)
+      .replace(/^people-|\.glb$/g, "") as keyof typeof PEOPLE.triangles;
+    const budget = PEOPLE.triangles[level];
+    if (!budget) problems.push(`${file}: not a people level (${Object.keys(PEOPLE.triangles).join(", ")})`);
+    for (const node of doc.getRoot().listNodes()) {
+      const mesh = node.getMesh();
+      if (!mesh) continue;
+      const name = `${file} ${node.getName()}`;
+      const m = { positions: [] as number[], indices: [] as number[], normals: [] as number[] };
+      for (const prim of mesh.listPrimitives()) append(m, prim, node.getWorldMatrix() as unknown as number[]);
+      const e = edges(m);
+      const f = faces(m);
+      if (e.open || e.nonManifold)
+        problems.push(`${name}: ${e.open} open and ${e.nonManifold} non-manifold edges`);
+      if (f.zeroArea || f.flipped)
+        problems.push(`${name}: ${f.zeroArea} zero-area and ${f.flipped} flipped triangles`);
+      if (m.indices.length / 3 > budget)
+        problems.push(`${name}: ${m.indices.length / 3} triangles over ${budget}`);
+      for (const p of figureFit(m, node.getName().split("-")[1] ?? "")) problems.push(`${name}: ${p}`);
+    }
+    continue;
+  }
   // The whole model as one mesh: parts split by material still close against each other.
   const m = { positions: [] as number[], indices: [] as number[], normals: [] as number[] };
   for (const node of doc.getRoot().listNodes()) {

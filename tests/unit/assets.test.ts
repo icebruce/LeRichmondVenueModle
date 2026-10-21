@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { bottom, edges, faces } from "../../tools/assets/checks";
+import { bottom, edges, faces, figureFit } from "../../tools/assets/checks";
 
 // A unit cube resting on the floor, as a GLB exporter writes it: 24 vertices (split per face for
 // normals), 12 triangles wound outward.
@@ -79,5 +79,23 @@ describe("asset checks", () => {
 
   test("[LIB-11] the lowest point gives floor contact", () => {
     expect(bottom(cube())).toBeCloseTo(0, 6);
+  });
+
+  // Guest figures as points (x, y, z): feet, the lowest point over the seat, and the hands.
+  const figure = (...points: number[][]) => ({ positions: points.flat(), indices: [] });
+  const feet = [0, 0.005, 0.3];
+
+  test("[PPL-01] a seated figure on the seat with its hands on the table top fits", () => {
+    expect(figureFit(figure(feet, [0, 0.44, -0.1], [0.1, 0.76, 0.45]), "table")).toEqual([]);
+  });
+
+  test("[PPL-01] floating feet, a figure off the seat, hands in the air or through the top are refused", () => {
+    expect(figureFit(figure([0, 0.05, 0.3]), "standing")).toEqual(["feet 50 mm off the floor"]);
+    const off = figureFit(figure(feet, [0, 0.5, -0.1], [0.1, 0.8, 0.45], [0, 0.73, 0.4]), "table");
+    expect(off).toEqual([
+      "lowest point over the seat at 500 mm",
+      "1 points inside the table top",
+      "hands at 730 mm, not on the table top",
+    ]);
   });
 });

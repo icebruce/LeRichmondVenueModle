@@ -496,7 +496,10 @@ function Scene({
       <Ceiling venue={venue} m={m} showCeiling={showCeiling} bake={bake} />
       <Items m={m} evening={evening} quality={quality} detail={eyeLevel || !!photo} />
       {BAKE_EXPORT && <BakeExport m={m} />}
-      <People low={quality === "low"} m={m} />
+      {/* The guests load after the room. */}
+      <Suspense fallback={null}>
+        <People low={quality === "low"} m={m} detail={eyeLevel || !!photo} />
+      </Suspense>
       <Advisories hidden={mode === "walk" || !!photo} />
       <ShaderKeepers />
       <StaticShadows signature={`${[...cut].join(",")}|${evening}|${mode}|${LEVERS[tier].shadow}`} />

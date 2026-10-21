@@ -8,7 +8,7 @@ venv/bin/python people_pose.py <animated.glb> <out.glb> pose=lap|table|standing|
   the mesh's own palm (the rig's hand bones are unusable); only shoulders, elbows and wrists move.
 - `glass`: a wine glass in the raised hand, as its own closed mesh named `glass`.
 - Seated poses: hip joints 10 cm above the seat top `seat`, 7 cm behind the chair's place (the
-  app's chair origin); standing: feet on the floor, hips over the origin. The app faces +z
+  app's chair origin) or less, so the back stays clear of the backrest; standing: feet on the floor, hips over the origin. The app faces +z
   (Blender -y), the table edge 0.32 m ahead of the chair's place.
 - Writes the posed, still textured mesh; `people_rebuild.py` makes the app's clean versions.
 """
@@ -27,6 +27,9 @@ frame = int(opts.get("frame", "0"))
 seat = float(opts.get("seat", "0.446"))
 seated = pose in ("lap", "table")
 TABLE_TOP = 0.75
+TABLE_EDGE = 0.33  # 0.32 m ahead of the chair's place, and 1 cm in
+# The backrests' fronts start 0.21 m behind the chair's place (oval, crossback, chiavari), less a margin.
+BACKREST = 0.20
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
@@ -124,12 +127,41 @@ head_dir = (A @ (P["Head"].tail - P["Head"].head)).normalized()
 aim("Head", (head_dir.x * 0.3, 0.0, 1.0))
 
 
+def back_line():
+    """How far the back reaches behind the hip joints (Blender +y) where a backrest is, 0.55-0.85 m up."""
+    lj = (world(P["LeftUpLeg"].head) + world(P["RightUpLeg"].head)) / 2
+    C = coords()
+    z = C[:, 2] + seat + 0.10 - lj.z
+    torso = (np.abs(C[:, 0] - lj.x) < 0.12) & (z > 0.55) & (z < 0.85)
+    return C[torso, 1].max() - lj.y
+
+
+# The arms never reach behind the back: measured once, before they move.
+back = back_line() if seated else 0.0
+lift = 0.0
+
+
 def offset():
-    """World offset that places the figure: hip joints over the seat, or hips over the origin with feet down."""
+    """World offset that places the figure: hip joints over the seat, 7 cm behind the chair's place or
+    forward enough that the back stays clear of the backrests (their fronts 0.21 m or more behind it),
+    or hips over the origin with feet down."""
     lj = (world(P["LeftUpLeg"].head) + world(P["RightUpLeg"].head)) / 2
     if seated:
-        return Vector((-lj.x, 0.07 - lj.y, seat + 0.10 - lj.z))
+        return Vector((-lj.x, min(0.07, BACKREST - back) - lj.y, seat + 0.10 + lift - lj.z))
     return Vector((-lj.x, -lj.y, -coords()[:, 2].min()))
+
+
+def seat_lift():
+    """Heels below the floor lift a seated figure, as long as it still sits in the cushion; measured
+    once, before the arms move (they reach neither the floor nor the seat)."""
+    C = coords() + np.array(offset())
+    near = C[(np.abs(C[:, 0]) < 0.15) & (C[:, 1] > -0.1) & (C[:, 1] < 0.2) & (C[:, 2] > seat - 0.15) & (C[:, 2] < seat + 0.2)]
+    gap = near[:, 2].min() - seat
+    return max(0.0, min(-C[:, 2].min(), -gap))
+
+
+if seated:
+    lift = seat_lift()
 
 
 hand = {s: members(f"{s}Hand") for s in ("Left", "Right")}
@@ -175,8 +207,9 @@ if pose == "table":
         # Upper arm hanging forward; the reach, forearm and hand pitch that rest the palm on the top.
         rest = [P[f"{s}{b}"].matrix_basis.copy() for b in ("Arm", "ForeArm", "Hand")]
         best = None
-        for reach in (-0.2, -0.32, -0.45, -0.6):
-            for pitch in np.linspace(-0.7, 0.2, 19):
+        # Reach 0 hangs the upper arm straight down, beside the body; positive takes the elbow back.
+        for reach in (0.1, 0.0, -0.1, -0.2, -0.32, -0.45, -0.6):
+            for pitch in np.linspace(-0.7, 0.5, 25):
                 for hp in (-0.05, -0.12, -0.2, -0.3):
                     for b, m in zip(("Arm", "ForeArm", "Hand"), rest):
                         P[f"{s}{b}"].matrix_basis = m.copy()
@@ -184,10 +217,13 @@ if pose == "table":
                     place_hand(s, sg, float(pitch), hp)
                     C = coords()
                     o = offset()
-                    hz = C[hand[s], 2].min() + o.z
-                    hy = C[hand[s], 1].mean() + o.y
-                    # On the top, 3-10 cm in from its edge (0.32 m ahead, Blender -y), elbows bent rather
-                    # than arms stretched.
+                    H = C[hand[s]] + np.array(o)
+                    over = H[H[:, 1] < -TABLE_EDGE]
+                    hz = over[:, 2].min() if len(over) else 9.0
+                    hy = H[:, 1].mean()
+                    # The palm on the top (its part past the edge, 0.32 m ahead, Blender -y, lowest 1 cm
+                    # above it), the hand's middle 3-10 cm in from the edge, elbows bent rather than
+                    # arms stretched.
                     err = (abs(hz - (TABLE_TOP + 0.01)) + max(0, hy + 0.35) * 2 + max(0, -0.42 - hy) * 2
                            + 0.05 * abs(reach))
                     if best is None or err < best[0]:
@@ -265,15 +301,8 @@ if glass_at is not None:
     glass.location = glass_at + off - Vector((0, 0, 0.05))
 
 if seated:
-    # How far the buttocks sit from the seat top (negative: into the cushion). Heels below the floor
-    # lift the figure, as long as it still sits in the cushion.
     near = [v.co for v in guest.data.vertices if abs(v.co.x) < 0.15 and -0.1 < v.co.y < 0.2 and seat - 0.15 < v.co.z < seat + 0.2]
-    gap = min(c.z for c in near) - seat
-    lift = max(0.0, min(-min(v.co.z for v in guest.data.vertices), -gap))
-    for v in guest.data.vertices:
-        v.co.z += lift
-    off.z += lift
-    print("seat gap", round(gap + lift, 3), "lift", round(lift, 3))
+    print("seat gap", round(min(c.z for c in near) - seat, 3), "lift", round(lift, 3))
 print("pose", pose, "frame", frame, "min z", round(min(v.co.z for v in guest.data.vertices), 3))
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(filepath=dst, export_format="GLB", use_selection=True, export_image_format="JPEG",

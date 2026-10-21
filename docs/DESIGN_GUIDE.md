@@ -172,7 +172,7 @@ Short, warm, plain. Sentence case. Numbers as numerals. Dimensions "≈ 2.4 m". 
 - **Evening (default):** low warm ambient, chandeliers and back-bar shelving glowing (bloom kept subtle), candle pools on tablecloths, warm tone mapping. Mood reference: photo R08.
 - **Daylight:** neutral, soft, high-key like the samples; for checking layout.
 - Materials: buff and red brick, timber planks and beams, black steel, dark large-format tile with light joints, dark hardwood, white marble bar top, velvet curtains, brass.
-- People: matte neutral figures (warm greys), seated and standing poses, no faces.
+- People (V7): stylised matte figures with minimal faces: a man in a suit and a woman in a sheath dress, seated with hands on the table or in the lap, standing relaxed or with a glass, mirrored at random; each guest has their own outfit (5 per body), skin (5) and hair (4) colours. Solid at eye level, in Sit here and in Photo mode; in the overview and plan they fade toward warm white and turn see-through (55%), so the layout stays readable.
 - Plan view: flat, high-contrast, numbered tables, thin hairlines, no perspective.
 
 ## 10. Accessibility

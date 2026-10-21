@@ -34,7 +34,7 @@ Le Richmond is **not** Salon Richmond 1861.
 - **Atmospheric, close to the venue, not photoreal.** Recognizable from the photo R01 viewpoint.
 - **Evening with candlelight is the default.** Daylight is one tap away.
 - **Dollhouse view** in the style of an isometric architectural cutaway (owner-supplied DreamHouse3D samples, described in `DESIGN_GUIDE.md` §9), adapted to a tall room.
-- **People** are simple neutral figures, not lifelike humans.
+- **People** are stylised figures with minimal faces, not lifelike humans: a man and a woman, seated (hands on the table or in the lap) and standing (relaxed or with a glass), each guest with their own outfit, skin and hair colours (V7).
 
 ## 5. Requirements
 

@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) started (owner, 2026-10-21): up to 180 Meshy credits; the woman in a fitted sleeveless midi sheath dress with her hair in a low bun; waiting for the owner's people reference image on a "Guest figures" request before any Meshy spend. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) built (2026-10-21): the owner approved the close-ups; the room on the preview is next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -57,7 +57,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V4 | Linens and chairs | Must | Merged (PR #21) |
 | V5 | Table décor and Photo mode | Must | Merged (PR #22) |
 | V6 | Remaining fixtures | If time allows | Merged (PR #23) |
-| V7 | People | Should | In progress |
+| V7 | People | Should | Built, waiting for the owner's review |
 
 ### V0: Performance foundation and measurement
 
@@ -371,6 +371,19 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 **Validation:** in **People plan**.
 
 **Gate:** the owner approves each pose in close-up renders before integration, then the room on the preview.
+
+**Built (2026-10-21):**
+
+- **Characters** (Meshy, text prompts only; 96 of the 180 credits): the man of the proofs of concept, with his tie (owner), and a woman in a fitted sleeveless midi sheath dress with a low bun (owner, attempt 2). Task ids, clips and frames: `tools/meshy/TASKS.md`.
+- **Poses** (`tools/blender/people_pose.py`): seated poses from Chair Sit Idle, standing from Stand and Chat, glass from Stand and Drink. Seated figures sit with their hip joints 10 cm above the seat, as far forward as keeps the back 1 cm clear of every backrest; hands on the table are placed by a search over shoulder, elbow and wrist only; free arms hang in the torso's own frame. The close-up renders were approved by the owner (2026-10-21).
+- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 2,000, 540 triangles; the glass inside the budget), one file per level.
+- **Decisions:**
+  - Vertex colours instead of the planned 1K atlas: the part (outfit, skin, hair, as is) in alpha and the shade in red, so there is no texture at all and one shader recolours every guest.
+  - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
+  - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes with no bones.
+  - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
+  - The man sinks up to 6 cm into the seat cushion (feet on the floor, posture from motion capture); the chair-clearance rule leaves the cushion out, so `check-assets` allows it.
+- **In the app:** the nearest 12 guests use the finer level at eye level, in Sit here and in Photo mode (desktop detailed, phone medium); the rest medium (desktop) or simple (phone). In the overview and plan, figures fade toward warm white and are 55% opaque. Loaded after the room (desktop 1.9 MB, phone 0.5 MB, measured by the download test).
 
 ## People plan (V7)
 
