@@ -498,7 +498,7 @@ function Scene({
       {BAKE_EXPORT && <BakeExport m={m} />}
       {/* The guests load after the room. */}
       <Suspense fallback={null}>
-        <People low={quality === "low"} m={m} detail={eyeLevel || !!photo} />
+        <People low={quality === "low"} m={m} />
       </Suspense>
       <Advisories hidden={mode === "walk" || !!photo} />
       <ShaderKeepers />

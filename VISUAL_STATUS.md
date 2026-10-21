@@ -377,13 +377,13 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 - **First pass rejected** (owner, 2026-10-21): poses from Meshy's rig and motion-capture clips, with arms and hands set by hand, distorted the mesh and the hands; a re-skin with Blender's automatic weights deformed it worse. The owner asked for two neutral poses only: standing with hands by the hips, and seated with hands on the table. No glass, no hands in the lap.
 - **Figures generated in their pose** (Meshy text-to-3D, no rig, nothing deformed): a man in a charcoal suit and tie and a woman in a sleeveless sheath dress, mannequin heads (the man bald, the woman with a bun), seated at a table and standing. The standing man has one hand at his jacket button (owner kept it). The seated pair approved by the owner (2026-10-21; the woman's knees fixed after). Task ids and prompts: `tools/meshy/TASKS.md`. V7 spent 254 credits (owner approved going over the 180 cap).
 - **Fit** (`tools/blender/people_seated.py`, `people_standing.py`): Meshy's table and chairs, textured plain light grey, are cut away and the holes capped; the guest is scaled to its own size, set on our seat with its back clear of every backrest, its shins rescaled to our floor and its forearms raised smoothly (up to 8 cm, no joint bent) onto our 0.75 m top.
-- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 2,000, 540 triangles), one file per level.
+- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 1,200, 540 triangles), one file per level.
 - **Decisions:**
   - Vertex colours instead of the planned 1K atlas: the part (outfit, skin, hair, as is) in alpha and the shade in red, so there is no texture at all and one shader recolours every guest.
   - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
   - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes.
   - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
-- **In the app:** solid and coloured in every view (owner, 2026-10-22: the see-through overview dropped), with the fabric's rough look: Meshy's folds kept in the shade and a fine grain in the shader, no texture. At eye level, in Sit here and in Photo mode the nearest 12 guests use the finer level (desktop detailed, phone medium), the rest medium (desktop) or simple (phone); in the overview and plan every guest is simple. They fade in after the room loads.
+- **In the app:** solid and coloured in every view (owner, 2026-10-22: the see-through overview dropped), with the fabric's rough look: Meshy's folds kept in the shade and a fine grain in the shader, no texture. Each guest's level follows its size on screen, in every view (owner, 2026-10-22: a close look in the overview as smooth as at eye level): taller than 300 px the detailed level, than 45 px medium, else simple (a phone one step coarser); the nearest in the frame first, while the triangles over simple stay within 70k (the people are drawn again for the shadows). The overview's narrow lens makes far guests large, so a size rule, not a distance one. They fade in after the room loads.
 
 ## People plan (V7)
 
@@ -431,7 +431,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 | | Desktop | Phone |
 |---|---|---|
-| Per figure | Detailed ≤ 8k triangles (eye level, Sit here, Photo mode; nearest 12 guests only); medium ≤ 2k; simple ≤ 600 | Medium only for the nearest 12 at eye level and in Sit here; else simple ≤ 600 |
+| Per figure | Detailed ≤ 8k triangles; medium ≤ 1.2k; simple ≤ 600; finer levels by size on screen, ≤ 70k triangles over simple in all | Medium by size on screen, within the same 70k; else simple ≤ 600 |
 | All people | ≤ 400k triangles | ≤ 100k triangles |
 | Draw calls, all people | ≤ 16 (one instanced mesh per pose and detail level) | ≤ 8 |
 | Texture | One 1K atlas (KTX2) | One 512 atlas |

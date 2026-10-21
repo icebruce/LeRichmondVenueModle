@@ -12,11 +12,19 @@ import { PeopleLoader } from "./geometry";
 
 /** PPL-01 allows up to 200 guests. */
 const MAX = 300;
-/** The guests nearest the camera drawn at the finer level, at eye level and in Photo mode (VISUAL_STATUS.md). */
-const NEAR = 12;
-/** The camera moves this far (m) before the nearest guests are chosen again. */
+/**
+ * Levels by size on screen, in every view (owner, 2026-10-22: a close look in the overview is as
+ * smooth as at eye level; its narrow lens makes far guests large): a guest drawn taller than `px[0]`
+ * pixels gets the finest level loaded, taller than `px[1]` the next, the rest and those out of the
+ * frame the simplest; the nearest first, while the triangles over the simplest stay within `spare`
+ * (drawn again for the shadows; VISUAL_STATUS.md, people budget).
+ */
+const NEAR = { px: [300, 45], spare: 70_000 } as const;
+/** A guest's height for its size on screen (m): seated, standing about 1.7. */
+const TALL = 1.3;
+/** The camera moves this far (m), or its lens this much (degrees), before the levels are chosen again. */
 const RESELECT = 0.25;
-/** Levels loaded per device: the finer one for the nearest guests at eye level, the other for the rest. */
+/** Levels loaded per device, finest first. */
 const LEVELS: Record<"high" | "low", string[]> = {
   high: ["detail", "medium", "simple"],
   low: ["medium", "simple"],
@@ -82,7 +90,12 @@ varying float vPart;`,
       )
       .replace(
         "#include <color_vertex>",
-        `vec3 choice = floor(getBatchingColor(getIndirectIndex(gl_DrawID)).rgb * 16.0 + 0.5);
+        `// The batch colours exist once the first guest is placed; a compile before that draws no one.
+#ifdef USE_BATCHING_COLOR
+vec3 choice = floor(getBatchingColor(getIndirectIndex(gl_DrawID)).rgb * 16.0 + 0.5);
+#else
+vec3 choice = vec3(0.0);
+#endif
 int part = int(floor(color.a * 3.0 + 0.5));
 vec3 base = part == 0 ? outfits[int(choice.r)] : part == 1 ? skins[int(choice.g)] : hairs[int(choice.b)];
 vColor = vec4(part == 3 ? color.rgb : base * color.r * 2.0, 1.0);
@@ -130,7 +143,8 @@ diffuseColor.rgb *= 1.0 + 2.0 * grainAmount * grainAt(vGrain);`,
   return mat;
 }
 
-type Figures = { mesh: THREE.BatchedMesh; ids: Map<string, number> };
+/** The batched mesh, each figure's geometry id by `level:body-pose:mirrored`, and its triangles by id. */
+type Figures = { mesh: THREE.BatchedMesh; ids: Map<string, number>; triangles: Map<number, number> };
 
 /** Every figure of the loaded levels, plain and mirrored, in one batched mesh: one draw call for all guests. */
 function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Figures {
@@ -149,9 +163,14 @@ function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Fi
     peopleMaterial(),
   );
   const ids = new Map<string, number>();
-  for (const [key, g] of geos) ids.set(key, mesh.addGeometry(g));
+  const triangles = new Map<number, number>();
+  for (const [key, g] of geos) {
+    const id = mesh.addGeometry(g);
+    ids.set(key, id);
+    triangles.set(id, (g.getIndex()?.count ?? 0) / 3);
+  }
   for (const [key, g] of geos) if (key.endsWith(":1")) g.dispose();
-  return { mesh, ids };
+  return { mesh, ids, triangles };
 }
 
 /**
@@ -167,10 +186,10 @@ function release(mesh: THREE.BatchedMesh) {
 /**
  * Guests seated on chairs and standing in open floor (PPL-01..03), drawn as the V7 figures: a man
  * and a woman, seated with hands on the table or standing, mirrored, recoloured per guest. Loaded
- * after the room, they fade in. Solid and coloured in every view (owner, 2026-10-22); at eye level
- * and in Photo mode the nearest guests get the finer level, in the overview everyone the simplest.
+ * after the room, they fade in. Solid and coloured in every view (owner, 2026-10-22); the larger a
+ * guest on screen, the finer its level.
  */
-export function People({ low, m, detail }: { low: boolean; m: Materials; detail: boolean }) {
+export function People({ low, m }: { low: boolean; m: Materials }) {
   const names = LEVELS[low ? "low" : "high"];
   const loaded = useLoader(PeopleLoader, names);
   const figures = useMemo(() => batch(loaded, names), [loaded, names]);
@@ -213,8 +232,8 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     () => guests.filter((g) => !g.seated).map((g) => ({ ...g, w: CONTACT_SMALL, d: CONTACT_SMALL })),
     [guests],
   );
-  // Rank 0: the nearest guests at eye level, 1: the others there, 2: the overview; a phone has no
-  // detailed level, so its ranks 1 and 2 share the simple one.
+  // Rank 0: the nearest guests large on screen, 1: the next, 2: the rest; a phone has no detailed level, so its
+  // ranks 1 and 2 share the simple one.
   const geometryOf = useCallback(
     (look: Look, rank: 0 | 1 | 2) =>
       figures.ids.get(
@@ -253,12 +272,8 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     // Written in place: ask for a frame (frames are on demand).
     invalidate();
   }, [guests, figures, geometryOf, low, invalidate]);
-  // How far the fade-in has come (0-1); a new detail level is chosen again with the view.
+  // How far the fade-in has come (0-1).
   const appear = useRef(0);
-  useEffect(() => {
-    near.current = null;
-    invalidate();
-  }, [detail, figures, invalidate]);
   useFrame((_, delta) => {
     if (appear.current >= 1) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -266,20 +281,40 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     (figures.mesh.material as THREE.Material).opacity = appear.current;
     invalidate();
   });
-  // The nearest guests at the finer level, chosen again once the camera has moved.
-  useFrame(({ camera }) => {
+  // Each guest's level by its size on screen, chosen again once the camera has moved.
+  const lens = useRef(0);
+  useFrame(({ camera, size }) => {
     // Not before the guests are placed (effects run after the first frame's hooks may).
     if (figures.mesh.instanceCount < guests.length) return;
-    if (near.current && (!detail || near.current.distanceTo(camera.position) < RESELECT)) return;
+    const fov = (camera as THREE.PerspectiveCamera).fov;
+    const still = near.current && near.current.distanceTo(camera.position) < RESELECT;
+    if (still && Math.abs(fov - lens.current) < RESELECT) return;
     near.current = camera.position.clone();
+    lens.current = fov;
+    // Pixels a metre tall at a metre away.
+    const scale = size.height / (2 * Math.tan(THREE.MathUtils.degToRad(fov) / 2));
     const p = camera.position;
-    const order = guests
-      .map((g, i) => ({ i, d: (g.x - p.x) ** 2 + (g.z - p.z) ** 2 }))
-      .sort((a, b) => a.d - b.d);
-    const fine = new Set(detail ? order.slice(0, NEAR).map((o) => o.i) : []);
-    guests.forEach((g, i) =>
-      figures.mesh.setGeometryIdAt(i, geometryOf(g.look, detail ? (fine.has(i) ? 0 : 1) : 2)),
+    camera.updateMatrixWorld();
+    const frustum = new THREE.Frustum().setFromProjectionMatrix(
+      new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
     );
+    const order = guests
+      .map((g, i) => ({ i, d: Math.hypot(g.x - p.x, g.y + 1 - p.y, g.z - p.z) }))
+      .sort((a, b) => a.d - b.d);
+    const triangles = (id: number) => figures.triangles.get(id) as number;
+    let spare: number = NEAR.spare;
+    for (const { i, d } of order) {
+      const px = (TALL * scale) / d;
+      const g = guests[i] as (typeof guests)[number];
+      const simplest = geometryOf(g.look, 2);
+      // Guests out of the frame stay simplest (their shadows show it least).
+      const seen = frustum.intersectsSphere(new THREE.Sphere(new THREE.Vector3(g.x, g.y + 0.9, g.z), 1));
+      let rank: 0 | 1 | 2 = !seen ? 2 : px > NEAR.px[0] ? 0 : px > NEAR.px[1] ? 1 : 2;
+      while (rank < 2 && triangles(geometryOf(g.look, rank)) - triangles(simplest) > spare) rank++;
+      const id = geometryOf(g.look, rank);
+      spare -= triangles(id) - triangles(simplest);
+      figures.mesh.setGeometryIdAt(i, id);
+    }
   });
   if (!show || drag) return null;
   return (

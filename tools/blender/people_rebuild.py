@@ -4,8 +4,8 @@ venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>]
 
 - The placed Meshy mesh (`people_seated.py`, `people_standing.py`) is never smoothed or simplified
   itself: it is remeshed into one closed surface (`voxel` m), which is then simplified to each detail
-  level: `detail` 8,000 triangles, `medium` 2,000, `simple` 540 (the people budget in
-  VISUAL_STATUS.md: 150 guests on a phone, 12 medium and the rest simple, stay under 100k).
+  level: `detail` 8,000 triangles, `medium` 1,200, `simple` 540 (the people budget in
+  VISUAL_STATUS.md: medium light enough for every guest in a close overview to afford it).
 - Colour comes from the Meshy texture into the vertex colour: no texture at all. Its alpha holds the
   part (0 outfit, 1/3 skin, 2/3 hair, 1 as is): the app recolours outfit, skin and hair per guest,
   keeping their shading (rgb then holds the shade, 0.5 the part's average), and draws the rest
@@ -38,7 +38,7 @@ dress = legs > 0
 
 def bare(x, y, z):
     return z <= legs or (y <= front and z < 0.6)
-LEVELS = {"detail": 8000, "medium": 2000, "simple": 540}
+LEVELS = {"detail": 8000, "medium": 1200, "simple": 540}
 BORDER_WEIGHT = float(opts.get("border", "0.2"))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
