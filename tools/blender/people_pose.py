@@ -1,19 +1,20 @@
 """A Meshy motion-capture clip frozen into one guest pose, placed for the app (visual stage V7).
 
-venv/bin/python people_pose.py <animated.glb> <out.glb> pose=standing|table [frame=N] [seat=0.446] [dqs=0]
+venv/bin/python people_pose.py <animated.glb> <out.glb> pose=standing|table [frame=N] [seat=0.446]
 
 - Freezes the clip at `frame` and keeps its motion-captured posture: arms, hands and torso as
-  recorded (owner, 2026-10-21: natural joints and hands, no mesh distortion). Welds the mesh along its
-  UV seams (Meshy splits it there) and levels the head (neck only).
+  recorded (owner, 2026-10-21: natural joints and hands, no mesh distortion), and levels the head
+  (neck only).
+- Re-skins the character first: rebuilt at rest as one closed surface with its texture in a colour
+  attribute, bound to Meshy's skeleton with Blender's automatic weights (Meshy's own weights distort it).
 - `standing`: the recorded frame as it is, arms by the sides, feet on the floor, hips over the origin.
 - `table`: from a seated frame with the hands on the thighs (palms down), each arm reaches the
   table top (0.75 m, its edge 0.32 m ahead of the chair's place) by swinging the upper arm and forearm
   only, the wrists about shoulder-width apart; the hand keeps the orientation it had on the thigh. No
   bone is ever twisted about its own length. Hip joints 10 cm above the seat top `seat`, 7 cm behind the chair's place or less,
   so the back stays clear of the backrests.
-- `dqs=1` skins with dual quaternions instead of Meshy's linear blend.
-- The app faces +z (Blender -y). Writes the posed, still textured mesh; `people_rebuild.py` makes
-  the app's clean versions.
+- The app faces +z (Blender -y). Writes the posed closed mesh with its `srgb` colour attribute;
+  `people_rebuild.py` makes the app's levels from it.
 """
 import sys
 
@@ -21,6 +22,7 @@ import bpy
 import bmesh  # after bpy, which provides it
 import numpy as np
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 src, dst = sys.argv[1], sys.argv[2]
 opts = dict(a.split("=", 1) for a in sys.argv[3:])
@@ -46,18 +48,98 @@ bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
 bm.to_mesh(body.data)
 bm.free()
 
-# The clip's frame becomes the rest of the pose; the animation itself is dropped.
+# The clip's frame is kept; the animation itself is dropped.
 sc.frame_set(frame)
 base = {pb.name: pb.matrix_basis.copy() for pb in arm.pose.bones}
 for o in sc.objects:
     o.animation_data_clear()
 for a in list(bpy.data.actions):
     bpy.data.actions.remove(a)
+
+# Re-skinned (owner, 2026-10-21: Meshy's rig weights distort the mesh): at rest, the character is
+# rebuilt as one closed surface (Meshy's mesh is cut along its texture seams), its texture sampled
+# into a colour attribute, and bound to the same skeleton with Blender's automatic weights, which
+# need a closed surface. The clips drive that skeleton as before.
+for pb in arm.pose.bones:
+    pb.matrix_basis = Matrix.Identity(4)
+bpy.context.view_layer.update()
+rest = body.evaluated_get(bpy.context.evaluated_depsgraph_get())
+src_bm = bmesh.new()
+src_bm.from_mesh(rest.to_mesh())
+src_bm.transform(body.matrix_world)
+bmesh.ops.triangulate(src_bm, faces=src_bm.faces)
+src_bm.faces.ensure_lookup_table()
+uv_layer = src_bm.loops.layers.uv.active
+tree = BVHTree.FromBMesh(src_bm)
+img = next(n.image for n in body.data.materials[0].node_tree.nodes if n.type == "TEX_IMAGE" and n.image)
+W, H = img.size
+pixels = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
+
+
+def sample(p):
+    """The texture's colour (as stored, sRGB) at the rest surface's nearest point to `p`."""
+    loc, _, fi, _ = tree.find_nearest(p)
+    f = src_bm.faces[fi]
+    a, b, c = (lp.vert.co for lp in f.loops)
+    v0, v1, v2 = b - a, c - a, loc - a
+    d00, d01, d11, d20, d21 = v0.dot(v0), v0.dot(v1), v1.dot(v1), v2.dot(v0), v2.dot(v1)
+    den = d00 * d11 - d01 * d01 or 1e-12
+    wb = (d11 * d20 - d01 * d21) / den
+    wc = (d00 * d21 - d01 * d20) / den
+    uv = f.loops[0][uv_layer].uv * (1 - wb - wc) + f.loops[1][uv_layer].uv * wb + f.loops[2][uv_layer].uv * wc
+    return pixels[min(H - 1, max(0, int((uv.y % 1) * H))), min(W - 1, max(0, int((uv.x % 1) * W))), :3]
+
+
+skin = bpy.data.objects.new("guest", bpy.data.meshes.new_from_object(rest))
+rest.to_mesh_clear()
+sc.collection.objects.link(skin)
+skin.matrix_world = body.matrix_world
+for o in sc.objects:
+    o.select_set(o is skin)
+bpy.context.view_layer.objects.active = skin
+bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+rm = skin.modifiers.new("remesh", "REMESH")
+rm.mode = "VOXEL"
+rm.voxel_size = 0.005
+bpy.ops.object.modifier_apply(modifier="remesh")
+# Specks the remesher leaves off the body are dropped; the rest is simplified for the binding (the
+# app's levels are made from the posed result by `people_rebuild.py`).
+bm = bmesh.new()
+bm.from_mesh(skin.data)
+seen = set()
+for f0 in bm.faces:
+    if f0 in seen:
+        continue
+    island, todo = [], [f0]
+    seen.add(f0)
+    while todo:
+        f = todo.pop()
+        island.append(f)
+        for e in f.edges:
+            for g in e.link_faces:
+                if g not in seen:
+                    seen.add(g)
+                    todo.append(g)
+    if len(island) < 200:
+        bmesh.ops.delete(bm, geom=island, context="FACES")
+bm.to_mesh(skin.data)
+bm.free()
+dec = skin.modifiers.new("dec", "DECIMATE")
+dec.ratio = min(1.0, 80000 / len(skin.data.polygons))
+bpy.ops.object.modifier_apply(modifier="dec")
+cols = np.array([[*sample(v.co), 1.0] for v in skin.data.vertices], dtype=np.float32)
+attr = skin.data.color_attributes.new("srgb", "FLOAT_COLOR", "POINT")
+attr.data.foreach_set("color", cols.ravel())
+bpy.data.objects.remove(body)
+body = skin
+for o in sc.objects:
+    o.select_set(o in (body, arm))
+bpy.context.view_layer.objects.active = arm
+bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+unbound = sum(1 for v in body.data.vertices if not v.groups)
+print("bound", len(body.data.vertices), "vertices,", unbound, "without a bone")
 for pb in arm.pose.bones:
     pb.matrix_basis = base[pb.name]
-for md in body.modifiers:
-    if md.type == "ARMATURE":
-        md.use_deform_preserve_volume = opts.get("dqs", "0") == "1"
 bpy.context.view_layer.update()
 
 bpy.context.view_layer.objects.active = arm
@@ -210,5 +292,7 @@ if seated:
     print("seat gap", round(min(c.z for c in near) - seat, 3), "lift", round(lift, 3))
 print("pose", pose, "frame", frame, "min z", round(min(v.co.z for v in guest.data.vertices), 3))
 bpy.ops.object.select_all(action="SELECT")
-bpy.ops.export_scene.gltf(filepath=dst, export_format="GLB", use_selection=True, export_image_format="JPEG",
-                          export_jpeg_quality=92)
+guest.data.color_attributes.active_color = guest.data.color_attributes["srgb"]
+bpy.ops.export_scene.gltf(filepath=dst, export_format="GLB", use_selection=True, export_vertex_color="ACTIVE",
+                          export_active_vertex_color_when_no_material=True, export_materials="NONE",
+                          export_texcoords=False)
