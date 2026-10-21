@@ -74,9 +74,16 @@ Owner: Meshy for both chandeliers. Text prompts only (`prompts/chandelier-*.txt`
 
 ## People (V7, 2026-10-21)
 
-Owner: up to 180 credits; the man of the proofs of concept kept as approved (with his tie); the woman in a fitted sleeveless midi sheath dress with a low bun. Text prompts only (`prompts/woman-*.txt`; the owner's stock reference stays private). Credits 299 → 229.
+Owner: up to 180 credits; the man of the proofs of concept kept as approved (with his tie); the woman in a fitted sleeveless midi sheath dress with a low bun. Text prompts only (`prompts/woman-*.txt`; the owner's stock reference stays private). Credits 299 → 203.
 
 | Character | Used | Rejected |
 |---|---|---|
 | Man | preview 01a14cd1-29ca-7169-8840-c8ece42f8158, refine 01a14cd4-9df4-77a0-8bce-a0c8b9439d84 (above) | — |
 | Woman | preview 01a15bfe-2172-728a-9e56-d14e372f6d7d (attempt 2), refine 01a15c02-a260-77aa-9c72-e4be87fee8ba | 01a15bfd-1bfd-718d-9445-8fa63baf0881 (no dress), 01a15bff-55ab-7772-ace1-f6f34b25e74f (long hair, not a bun) |
+
+Rig and clips (library: 32/33 Chair Sit Idle, 0 Idle, 342 Stand and Drink, 56 Stand and Chat), frozen by `tools/blender/people_pose.py` (seated poses from Sit, standing from Chat frame 0, glass from Drink frame 0; Idle unused), then rebuilt by `people_rebuild.py`:
+
+| Character | Rig | Sit | Idle | Drink | Chat |
+|---|---|---|---|---|---|
+| Man | 01a14cd5 (above) | 01a14d3d-b21d (above) | 01a15c06-1b8e-70b8-80d6-30d585d9c7c9 | 01a15c06-4bca-73dc-ae58-3ce477467c4d | 01a15c06-7bdb-70cc-abf1-0550d47b0da6 |
+| Woman | 01a15c05-255d-7180-af69-efd33566dce0 | 01a15c05-cf49-71e0-a3e6-bfa9cbbfed25 | 01a15c06-ac4d-7532-b781-3d393bae4401 | 01a15c06-dc30-7530-aa76-18484430fa8f | 01a15c07-0b99-70fc-bd71-dcf4e6628d74 |
