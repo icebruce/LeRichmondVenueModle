@@ -98,15 +98,16 @@ export const FIT = {
   /** Feet within this of the floor. */
   floor: 0.02,
   /**
-   * Lowest point over the seat's back part, where the figure sits (|x| < 0.18, -0.25 < z < 0.05):
+   * Lowest point over the seat's back part, where the figure sits (|x| < 0.18, -0.25 < z < 0.05,
+   * 0.3-0.6 m up: feet tucked under the seat do not count):
    * resting on it, or sunk into its cushion (the plan's chair-clearance rule leaves the cushion out).
    */
   seat: [0.37, 0.47],
   /** Where the table starts (z), and its top's slab no figure may enter. */
   tableEdge: 0.33,
   slab: [0.72, 0.745],
-  /** Lowest point of the hands on the top. */
-  hands: [0.75, 0.77],
+  /** Lowest point of the hands on the top (over the table, above the knees under it: 0.68 m). */
+  hands: [0.745, 0.77],
 } as const;
 
 /** What breaks a figure's fit, empty when it fits; `pose` is `table`, `lap`, `standing` or `glass`. */
@@ -120,9 +121,9 @@ export function figureFit(m: TriMesh, pose: string): string[] {
   for (let i = 0; i < p.length; i += 3) {
     const [x, y, z] = [p[i] as number, p[i + 1] as number, p[i + 2] as number];
     feet = Math.min(feet, y);
-    if (Math.abs(x) < 0.18 && z > -0.25 && z < 0.05 && y < 0.6) seat = Math.min(seat, y);
+    if (Math.abs(x) < 0.18 && z > -0.25 && z < 0.05 && y > 0.3 && y < 0.6) seat = Math.min(seat, y);
     if (z > FIT.tableEdge && y > FIT.slab[0] && y < FIT.slab[1]) slab++;
-    if (z > FIT.tableEdge && y > 0.6) hands = Math.min(hands, y);
+    if (z > FIT.tableEdge && y > 0.68) hands = Math.min(hands, y);
   }
   const mm = (v: number) => `${(v * 1000).toFixed(0)} mm`;
   if (Math.abs(feet) > FIT.floor) out.push(`feet ${mm(feet)} off the floor`);

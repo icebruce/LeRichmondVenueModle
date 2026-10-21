@@ -81,9 +81,23 @@ Owner: up to 180 credits; the man of the proofs of concept kept as approved (wit
 | Man | preview 01a14cd1-29ca-7169-8840-c8ece42f8158, refine 01a14cd4-9df4-77a0-8bce-a0c8b9439d84 (above) | — |
 | Woman | preview 01a15bfe-2172-728a-9e56-d14e372f6d7d (attempt 2), refine 01a15c02-a260-77aa-9c72-e4be87fee8ba | 01a15bfd-1bfd-718d-9445-8fa63baf0881 (no dress), 01a15bff-55ab-7772-ace1-f6f34b25e74f (long hair, not a bun) |
 
-Rig and clips (library: 32/33 Chair Sit Idle, 0 Idle, 342 Stand and Drink, 56 Stand and Chat), frozen by `tools/blender/people_pose.py` (seated poses from Sit, standing from Chat frame 0, glass from Drink frame 0; Idle unused), then rebuilt by `people_rebuild.py`:
+Rig and clips (library: 32/33 Chair Sit Idle, 0 Idle, 342 Stand and Drink, 56 Stand and Chat; then 11, 12, 243 Idle 1, 2, 3), used for the first poses, which the owner rejected (2026-10-21: the rig distorted arms and hands); not used by the app:
 
 | Character | Rig | Sit | Idle | Drink | Chat |
 |---|---|---|---|---|---|
 | Man | 01a14cd5 (above) | 01a14d3d-b21d (above) | 01a15c06-1b8e-70b8-80d6-30d585d9c7c9 | 01a15c06-4bca-73dc-ae58-3ce477467c4d | 01a15c06-7bdb-70cc-abf1-0550d47b0da6 |
 | Woman | 01a15c05-255d-7180-af69-efd33566dce0 | 01a15c05-cf49-71e0-a3e6-bfa9cbbfed25 | 01a15c06-ac4d-7532-b781-3d393bae4401 | 01a15c06-dc30-7530-aa76-18484430fa8f | 01a15c07-0b99-70fc-bd71-dcf4e6628d74 |
+
+Idle 1, 2, 3 (11, 12, 243): man 01a15ebe-af20-7258-afc3-47325b6b142e, 01a15ebe-b32a-764e-a522-296a5e210c57, 01a15ebe-b6eb-72c7-bb77-802c42b31bd2; woman 01a15ebe-b0f8-7671-94b0-b2cc90ba8f86, 01a15ebe-b525-762e-85b3-e4f64ad7ee3e, 01a15ebe-b8d4-7276-8f66-0f04b838a71a.
+
+**Generated in pose (the app's figures, owner 2026-10-21):** no rig; `tools/blender/people_seated.py` (furniture cut away, fitted) and `people_standing.py`, then `people_rebuild.py` and `people_pack.py`. Mannequin heads (the seated man came out bald; owner kept it and the standing man matches). Credits 203 → 45 (V7 254 in all; owner approved going over the 180 cap).
+
+| Figure | Preview | Refine | Prompts | Rejected |
+|---|---|---|---|---|
+| Man, seated at a table | 01a15f44-b143-77f3-ae4b-0e2c57c9e9c2 | 01a15fa8-86e3-7762-87fe-6842e45d4d53 | `man-seated-*.txt` | 01a15f08-9287-77ff-be93-e0f3a641d7c5 (no table: hands on the knees, on a stool) |
+| Woman, seated at a table | 01a15fa8-8fe3-727e-875f-616f671bbf1c | 01a15faa-fb32-7119-b488-6445a46d474f | `woman-seated-*.txt` | — |
+| Man, standing | 01a15fbc-be91-72aa-9480-18b7f8a3f4f4 (one hand at the jacket button; owner kept it) | 01a15fdc-6739-704b-9cea-0021dde3a4bc | `man-standing-*.txt` | — |
+| Woman, standing | 01a15fbc-c635-75d5-80fa-d7a2c1dd8725 | 01a15fbe-57b6-7427-b3a3-27616d943b39 | `woman-standing-*.txt` | — |
+
+Commands: `people_seated.py <refined.glb> <out.glb> sit=0.93` (man), `sit=0.87` (woman); `people_standing.py <refined.glb> <out.glb> height=1.80` / `1.70`; `people_rebuild.py <posed.glb> <out.glb>` (woman: `legs=0.42` seated, `legs=0.545` standing, her hem).
+

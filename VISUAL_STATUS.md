@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) built (2026-10-21): the owner approved the close-ups; the room on the preview is next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) in progress (2026-10-21): the rigged poses rejected; figures generated in their pose, seated pair approved; the room on the preview is next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -362,7 +362,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 **Delivers:**
 
-- **Figures:** a man and a woman in 4 poses each: seated with hands on the table, seated with hands in the lap, standing relaxed, standing with a glass.
+- **Figures:** a man and a woman in 2 poses each (owner, 2026-10-21; was 4): seated with hands on the table, standing with hands by the hips.
 - **Versions:** each in three detail levels.
 - **Colour:** per-guest outfit, skin and hair colours from one shared material.
 - **Rendering:** solid at eye level and in Sit here; light and see-through in the dollhouse overview.
@@ -374,16 +374,16 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 **Built (2026-10-21):**
 
-- **Characters** (Meshy, text prompts only; 96 of the 180 credits): the man of the proofs of concept, with his tie (owner), and a woman in a fitted sleeveless midi sheath dress with a low bun (owner, attempt 2). Task ids, clips and frames: `tools/meshy/TASKS.md`.
-- **Poses** (`tools/blender/people_pose.py`): seated poses from Chair Sit Idle, standing from Stand and Chat, glass from Stand and Drink. Seated figures sit with their hip joints 10 cm above the seat, as far forward as keeps the back 1 cm clear of every backrest; hands on the table are placed by a search over shoulder, elbow and wrist only; free arms hang in the torso's own frame. The close-up renders were approved by the owner (2026-10-21).
-- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 2,000, 540 triangles; the glass inside the budget), one file per level.
+- **First pass rejected** (owner, 2026-10-21): poses from Meshy's rig and motion-capture clips, with arms and hands set by hand, distorted the mesh and the hands; a re-skin with Blender's automatic weights deformed it worse. The owner asked for two neutral poses only: standing with hands by the hips, and seated with hands on the table. No glass, no hands in the lap.
+- **Figures generated in their pose** (Meshy text-to-3D, no rig, nothing deformed): a man in a charcoal suit and tie and a woman in a sleeveless sheath dress, mannequin heads (the man bald, the woman with a bun), seated at a table and standing. The standing man has one hand at his jacket button (owner kept it). The seated pair approved by the owner (2026-10-21; the woman's knees fixed after). Task ids and prompts: `tools/meshy/TASKS.md`. V7 spent 254 credits (owner approved going over the 180 cap).
+- **Fit** (`tools/blender/people_seated.py`, `people_standing.py`): Meshy's table and chairs, textured plain light grey, are cut away and the holes capped; the guest is scaled to its own size, set on our seat with its back clear of every backrest, its shins rescaled to our floor and its forearms raised smoothly (up to 8 cm, no joint bent) onto our 0.75 m top.
+- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 2,000, 540 triangles), one file per level.
 - **Decisions:**
   - Vertex colours instead of the planned 1K atlas: the part (outfit, skin, hair, as is) in alpha and the shade in red, so there is no texture at all and one shader recolours every guest.
   - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
-  - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes with no bones.
+  - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes.
   - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
-  - The man sinks up to 6 cm into the seat cushion (feet on the floor, posture from motion capture); the chair-clearance rule leaves the cushion out, so `check-assets` allows it.
-- **In the app:** the nearest 12 guests use the finer level at eye level, in Sit here and in Photo mode (desktop detailed, phone medium); the rest medium (desktop) or simple (phone). In the overview and plan, figures fade toward warm white and are 55% opaque. Loaded after the room (desktop 1.9 MB, phone 0.5 MB, measured by the download test).
+- **In the app:** at eye level, in Sit here and in Photo mode the nearest 12 guests use the finer level (desktop detailed, phone medium), the rest medium (desktop) or simple (phone); in the overview and plan every guest is simple, faded toward warm white and 55% opaque. Loaded after the room.
 
 ## People plan (V7)
 
@@ -421,7 +421,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 **Variety without cost:**
 
-- 2 bodies × 4 poses = 8 meshes.
+- 2 bodies × 2 poses = 4 meshes (owner, 2026-10-21; was 4 poses).
 - Mirrored copies.
 - Per-guest colours from masks: 5 outfit colours, 5 skin tones, 4 hair colours.
 - Varied head turns on seated figures (small neck bones only; still static).

@@ -2,8 +2,8 @@
 
 venv/bin/python people_pack.py <rebuilt_dir> <out_dir>
 
-Reads `<rebuilt_dir>/<body>-<pose>.glb` (`people_rebuild.py`, bodies `man` and `woman`, poses `table`,
-`lap`, `standing`, `glass`) and writes `<out_dir>/people-detail.glb`, `people-medium.glb` and
+Reads `<rebuilt_dir>/<body>-<pose>.glb` (`people_rebuild.py`, bodies `man` and `woman`, poses `table`
+and `standing`) and writes `<out_dir>/people-detail.glb`, `people-medium.glb` and
 `people-simple.glb`, each holding one mesh per figure named `<body>-<pose>`. A phone loads only the
 medium and simple files, a desktop only the detailed and medium ones.
 """
@@ -13,7 +13,7 @@ import bpy
 
 src, dst = sys.argv[1], sys.argv[2]
 BODIES = ("man", "woman")
-POSES = ("table", "lap", "standing", "glass")
+POSES = ("table", "standing")
 LEVELS = ("detail", "medium", "simple")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)

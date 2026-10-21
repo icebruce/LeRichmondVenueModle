@@ -13,12 +13,12 @@ export type Crowd = { seated: Person[]; standing: Person[]; unplaced: number };
 export const LOOK_CHOICES = { outfit: 5, skin: 5, hair: 4 } as const;
 
 /**
- * A guest's figure (V7): body, pose (seated with hands on the table or in the lap; standing relaxed
- * or with a glass), mirrored or not, and palette choices.
+ * A guest's figure (V7): body, pose (seated with hands on the table, or standing; owner, 2026-10-21),
+ * mirrored or not, and palette choices.
  */
 export type Look = {
   body: "man" | "woman";
-  pose: "table" | "lap" | "standing" | "glass";
+  pose: "table" | "standing";
   mirror: boolean;
   outfit: number;
   skin: number;
@@ -34,10 +34,9 @@ export function lookOf(seed: number, i: number, seated: boolean): Look {
     (Math.imul(seed, 0x9e3779b1) ^ Math.imul(i * 2 + (seated ? 0 : 1), 0x85ebca6b)) >>> 0,
   );
   const pick = (n: number) => Math.floor(rand() * n);
-  const half = rand() < 0.5;
   return {
     body: rand() < 0.5 ? "man" : "woman",
-    pose: seated ? (half ? "table" : "lap") : half ? "standing" : "glass",
+    pose: seated ? "table" : "standing",
     mirror: rand() < 0.5,
     outfit: pick(LOOK_CHOICES.outfit),
     skin: pick(LOOK_CHOICES.skin),

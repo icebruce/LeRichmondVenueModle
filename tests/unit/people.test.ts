@@ -44,10 +44,10 @@ describe("people", () => {
     const seated = Array.from({ length: 150 }, (_, i) => lookOf(7, i, true));
     expect(lookOf(7, 42, true)).toEqual(seated[42]);
     expect(lookOf(8, 42, true)).not.toEqual(seated[42]);
-    // Seated guests sit with hands on the table or in the lap; standing ones stand or hold a glass.
-    expect(new Set(seated.map((l) => l.pose))).toEqual(new Set(["table", "lap"]));
+    // Seated guests sit with hands on the table; the others stand.
+    expect(new Set(seated.map((l) => l.pose))).toEqual(new Set(["table"]));
     const standing = Array.from({ length: 150 }, (_, i) => lookOf(7, i, false));
-    expect(new Set(standing.map((l) => l.pose))).toEqual(new Set(["standing", "glass"]));
+    expect(new Set(standing.map((l) => l.pose))).toEqual(new Set(["standing"]));
     // Both bodies, mirrored and not, and every palette choice turn up in a crowd.
     const all = [...seated, ...standing];
     expect(new Set(all.map((l) => l.body)).size).toBe(2);

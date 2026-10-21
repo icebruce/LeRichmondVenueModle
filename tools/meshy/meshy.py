@@ -1,7 +1,8 @@
 """Small Meshy API client (the proxy injects the key). Stops on any API error.
 
-python meshy.py preview <name> <prompt-file> [polycount] [prop]  -> starts a preview task, prints its id
-                                                     (prop: an object, no character pose)
+python meshy.py preview <name> <prompt-file> [polycount] [prop|posed]  -> starts a preview task, prints its id
+                                                     (prop: an object; posed: a figure in the prompt's pose,
+                                                     not Meshy's A-pose)
 python meshy.py refine <name> <preview_id> <texture-prompt-file>
 python meshy.py remesh <task_id> <polycount>           -> a lighter version of a finished task (5 credits)
 python meshy.py rig <name> <refine_id> <height_m>
@@ -42,6 +43,7 @@ if cmd == "preview":
     prompt = open(sys.argv[3]).read().strip()
     assert len(prompt) <= 600, f"prompt too long: {len(prompt)}"
     prop = "prop" in sys.argv[4:]
+    posed = "posed" in sys.argv[4:]
     r = call("POST", "/v2/text-to-3d", {
         "mode": "preview",
         "prompt": prompt,
@@ -50,7 +52,7 @@ if cmd == "preview":
         "topology": "triangle",
         "target_polycount": int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4].isdigit() else 30000,
         "symmetry_mode": "on",
-        **({} if prop else {"pose_mode": "a-pose"}),
+        **({} if prop or posed else {"pose_mode": "a-pose"}),
     })
     print(r.get("result"))
 elif cmd == "refine":

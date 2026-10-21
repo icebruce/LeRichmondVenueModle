@@ -17,7 +17,10 @@ const NEAR = 12;
 /** The camera moves this far (m) before the nearest guests are chosen again. */
 const RESELECT = 0.25;
 /** Levels loaded per device: the finer one for the nearest guests at eye level, the other for the rest. */
-const LEVELS: Record<"high" | "low", string[]> = { high: ["detail", "medium"], low: ["medium", "simple"] };
+const LEVELS: Record<"high" | "low", string[]> = {
+  high: ["detail", "medium", "simple"],
+  low: ["medium", "simple"],
+};
 const BODIES = ["man", "woman"] as const;
 
 /** Palettes, one entry per `LOOK_CHOICES` choice: the man's outfits, then the woman's dresses. */
@@ -169,9 +172,13 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     () => guests.filter((g) => !g.seated).map((g) => ({ ...g, w: CONTACT_SMALL, d: CONTACT_SMALL })),
     [guests],
   );
+  // Rank 0: the nearest guests at eye level, 1: the others there, 2: the overview; a phone has no
+  // detailed level, so its ranks 1 and 2 share the simple one.
   const geometryOf = useCallback(
-    (look: Look, fine: boolean) =>
-      figures.ids.get(`${names[fine ? 0 : 1]}:${look.body}-${look.pose}:${look.mirror ? 1 : 0}`) as number,
+    (look: Look, rank: 0 | 1 | 2) =>
+      figures.ids.get(
+        `${names[Math.min(rank, names.length - 1)]}:${look.body}-${look.pose}:${look.mirror ? 1 : 0}`,
+      ) as number,
     [figures, names],
   );
   // The camera position the nearest guests were last chosen from; null: choose again.
@@ -181,7 +188,7 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
     const t = new THREE.Object3D();
     const c = new THREE.Color();
     guests.forEach((g, i) => {
-      const id = geometryOf(g.look, false);
+      const id = geometryOf(g.look, 2);
       if (i >= mesh.instanceCount) mesh.addInstance(id);
       else mesh.setGeometryIdAt(i, id);
       mesh.setVisibleAt(i, true);
@@ -222,7 +229,9 @@ export function People({ low, m, detail }: { low: boolean; m: Materials; detail:
       .map((g, i) => ({ i, d: (g.x - p.x) ** 2 + (g.z - p.z) ** 2 }))
       .sort((a, b) => a.d - b.d);
     const fine = new Set(detail ? order.slice(0, NEAR).map((o) => o.i) : []);
-    guests.forEach((g, i) => figures.mesh.setGeometryIdAt(i, geometryOf(g.look, fine.has(i))));
+    guests.forEach((g, i) =>
+      figures.mesh.setGeometryIdAt(i, geometryOf(g.look, detail ? (fine.has(i) ? 0 : 1) : 2)),
+    );
   });
   if (!show || drag) return null;
   return (
