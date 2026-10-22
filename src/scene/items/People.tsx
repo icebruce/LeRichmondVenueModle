@@ -30,6 +30,10 @@ const LEVELS: Record<"high" | "low", string[]> = {
   low: ["medium", "simple"],
 };
 const BODIES = ["man", "woman"] as const;
+/** The figures' shade and parts textures, shared by every level (`people_pack.py`). */
+const TEXTURES = ["shade.webp", "parts.png"].map(
+  (f) => `${import.meta.env.BASE_URL}assets/models/people/people-${f}`,
+);
 
 /** Palettes, one entry per `LOOK_CHOICES` choice: the man's outfits, then the woman's dresses. */
 const OUTFITS = [
@@ -67,14 +71,17 @@ function mirrored(g: THREE.BufferGeometry): THREE.BufferGeometry {
 }
 
 /**
- * One material for every guest (V7): the vertex colour holds the part in its alpha (outfit, skin,
- * hair, or drawn as is) and the shade in its red (0.5 the part's average); the guest's palette
- * choices come as the batch colour (choice / 16). A fine grain gives the fabric, skin and hair their
- * rough look without a texture.
+ * One material for every guest (V7). Two textures shared by every figure (`people_pack.py`): the
+ * parts (outfit, skin and hair weights in red, green and blue; none, drawn as is) and the shade
+ * (grey, 0.5 the part's average; the colour itself where drawn as is), so a part's border follows
+ * the figure, not its triangles (owner, 2026-10-22). The guest's palette choices come as the batch
+ * colour (choice / 16). A fine grain gives the fabric, skin and hair their rough look.
  */
-function peopleMaterial() {
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, transparent: true });
+function peopleMaterial(shade: THREE.Texture, parts: THREE.Texture) {
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.85, transparent: true });
   mat.onBeforeCompile = (shader) => {
+    shader.uniforms.peopleShade = { value: shade };
+    shader.uniforms.peopleParts = { value: parts };
     shader.uniforms.outfits = { value: vec3s(OUTFITS.flat()) };
     shader.uniforms.skins = { value: vec3s(SKIN) };
     shader.uniforms.hairs = { value: vec3s(HAIR) };
@@ -86,7 +93,10 @@ uniform vec3 outfits[${OUTFITS.flat().length}];
 uniform vec3 skins[${SKIN.length}];
 uniform vec3 hairs[${HAIR.length}];
 varying vec3 vGrain;
-varying float vPart;`,
+varying vec2 vPeopleUv;
+varying vec3 vOutfit;
+varying vec3 vSkin;
+varying vec3 vHair;`,
       )
       .replace(
         "#include <color_vertex>",
@@ -96,19 +106,23 @@ vec3 choice = floor(getBatchingColor(getIndirectIndex(gl_DrawID)).rgb * 16.0 + 0
 #else
 vec3 choice = vec3(0.0);
 #endif
-int part = int(floor(color.a * 3.0 + 0.5));
-vec3 base = part == 0 ? outfits[int(choice.r)] : part == 1 ? skins[int(choice.g)] : hairs[int(choice.b)];
-vColor = vec4(part == 3 ? color.rgb : base * color.r * 2.0, 1.0);
-// Hair's grain runs along its strands (stretched vertically); the rest is even.
-vGrain = part == 2 ? position * vec3(1.0, 0.25, 1.0) : position;
-vPart = float(part);`,
+vOutfit = outfits[int(choice.r)];
+vSkin = skins[int(choice.g)];
+vHair = hairs[int(choice.b)];
+vPeopleUv = uv;
+vGrain = position;`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
         `#include <common>
+uniform sampler2D peopleShade;
+uniform sampler2D peopleParts;
 varying vec3 vGrain;
-varying float vPart;
+varying vec2 vPeopleUv;
+varying vec3 vOutfit;
+varying vec3 vSkin;
+varying vec3 vHair;
 float grainHash(vec3 p) {
   p = fract(p * 0.3183099 + 0.1) * 17.0;
   return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
@@ -135,9 +149,18 @@ float grainAt(vec3 p) {
       )
       .replace(
         "#include <color_fragment>",
-        `#include <color_fragment>
-float grainAmount = vPart < 0.5 ? ${GRAIN.amount[0]?.toFixed(3)} : vPart < 1.5 ? ${GRAIN.amount[1]?.toFixed(3)} : vPart < 2.5 ? ${GRAIN.amount[2]?.toFixed(3)} : ${GRAIN.amount[3]?.toFixed(3)};
-diffuseColor.rgb *= 1.0 + 2.0 * grainAmount * grainAt(vGrain);`,
+        // Instead of the batch's colour (it holds the palette choices, not a colour).
+        `vec3 peopleTone = texture2D(peopleShade, vPeopleUv).rgb;
+vec3 peopleW = texture2D(peopleParts, vPeopleUv).rgb;
+float peopleMix = min(1.0, peopleW.r + peopleW.g + peopleW.b);
+vec3 peopleBase = (peopleW.r * vOutfit + peopleW.g * vSkin + peopleW.b * vHair) / max(peopleMix, 1e-4);
+diffuseColor.rgb *= mix(peopleTone, peopleBase * peopleTone.r * 2.0, peopleMix);
+float grainAmount = dot(peopleW, vec3(${GRAIN.amount
+          .slice(0, 3)
+          .map((a) => a.toFixed(3))
+          .join(", ")})) + (1.0 - peopleMix) * ${GRAIN.amount[3]?.toFixed(3)};
+// Hair's grain runs along its strands (stretched vertically); the rest is even.
+diffuseColor.rgb *= 1.0 + 2.0 * grainAmount * grainAt(peopleW.b > 0.5 ? vGrain * vec3(1.0, 0.25, 1.0) : vGrain);`,
       );
   };
   return mat;
@@ -147,7 +170,15 @@ diffuseColor.rgb *= 1.0 + 2.0 * grainAmount * grainAt(vGrain);`,
 type Figures = { mesh: THREE.BatchedMesh; ids: Map<string, number>; triangles: Map<number, number> };
 
 /** Every figure of the loaded levels, plain and mirrored, in one batched mesh: one draw call for all guests. */
-function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Figures {
+function batch(
+  levels: Map<string, THREE.BufferGeometry>[],
+  names: string[],
+  textures: THREE.Texture[],
+): Figures {
+  const [shade, parts] = textures as [THREE.Texture, THREE.Texture];
+  // Laid out as glTF lays out its textures (not flipped); the shade is colour, the parts are data.
+  shade.flipY = parts.flipY = false;
+  shade.colorSpace = THREE.SRGBColorSpace;
   const geos = new Map<string, THREE.BufferGeometry>();
   levels.forEach((level, l) => {
     for (const [name, g] of level) {
@@ -160,7 +191,7 @@ function batch(levels: Map<string, THREE.BufferGeometry>[], names: string[]): Fi
     MAX,
     sum((g) => g.getAttribute("position").count),
     sum((g) => g.getIndex()?.count ?? 0),
-    peopleMaterial(),
+    peopleMaterial(shade, parts),
   );
   const ids = new Map<string, number>();
   const triangles = new Map<number, number>();
@@ -192,7 +223,8 @@ function release(mesh: THREE.BatchedMesh) {
 export function People({ low, m }: { low: boolean; m: Materials }) {
   const names = LEVELS[low ? "low" : "high"];
   const loaded = useLoader(PeopleLoader, names);
-  const figures = useMemo(() => batch(loaded, names), [loaded, names]);
+  const textures = useLoader(THREE.TextureLoader, TEXTURES);
+  const figures = useMemo(() => batch(loaded, names, textures), [loaded, names, textures]);
   useEffect(() => () => release(figures.mesh), [figures]);
   const { venue, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);

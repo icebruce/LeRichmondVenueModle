@@ -6,13 +6,13 @@ venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>]
   itself: it is remeshed into one closed surface (`voxel` m), which is then simplified to each detail
   level: `detail` 8,000 triangles, `medium` 1,200, `simple` 540 (the people budget in
   VISUAL_STATUS.md: medium light enough for every guest in a close overview to afford it).
-- Colour comes from the Meshy texture into the vertex colour: no texture at all. Its alpha holds the
-  part (0 outfit, 1/3 skin, 2/3 hair, 1 as is): the app recolours outfit, skin and hair per guest,
-  keeping their shading (rgb then holds the shade, 0.5 the part's average), and draws the rest
-  (shirt, tie, shoes) as it is.
+- Colour comes from the Meshy texture into two small textures per level (`TILE` texels, saved
+  beside the GLB as `.npz` for `people_pack.py`): the parts (outfit, skin, hair weights; none, drawn
+  as is) and the shade (0.5 the part's average; the colour itself for shirt, tie, shoes). The app
+  recolours outfit, skin and hair per guest, keeping their shading.
 - Parts are decided once on the dense closed surface (specks cleaned, a dress's hem cut straight)
-  and kept through simplification (their borders collapse least); each level's triangle takes one
-  part, the dense surface's at its middle, so no triangle blends two palette colours.
+  and kept through simplification (their borders collapse least); each level is unwrapped and each
+  texel takes the dense surface's part and shade, so a border follows the figure, not the triangles.
 - `legs` (a dress's hem height) and `front` (seated: the thighs past the hem, Blender y): bare legs
   there, and no tie.
 """
@@ -39,6 +39,10 @@ dress = legs > 0
 def bare(x, y, z):
     return z <= legs or (y <= front and z < 0.6)
 LEVELS = {"detail": 8000, "medium": 1200, "simple": 540}
+# Each level's texture (texels a side) and the share of it kept clear at its edges.
+TILE = 256
+MARGIN = 4 / TILE
+tiles = {}
 BORDER_WEIGHT = float(opts.get("border", "0.2"))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -284,20 +288,60 @@ def level(name, target):
             break
         for p in folded:
             p.use_smooth = False
-    # One class per triangle, the dense surface's at its middle, so no triangle blends two palette
-    # colours in the app; each corner takes the nearest dense value of that class.
-    V = [v.co for v in o.data.vertices]
-    corner = np.zeros((len(o.data.loops), 4), dtype=np.float32)
+    # Unwrapped, each level's parts and shade go to a texture of its own (`TILE` texels): their borders
+    # follow the figure, never the triangles (owner, 2026-10-22: no triangles in a neckline or a tie).
+    for x in sc.objects:
+        x.select_set(False)
+    bpy.context.view_layer.objects.active = o
+    o.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.02, scale_to_bounds=True)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    uv = np.zeros(len(o.data.loops) * 2)
+    o.data.uv_layers.active.data.foreach_get("uv", uv)
+    # Kept off the tile's edge, so far (smaller) mip levels do not reach the next tile.
+    uv = MARGIN + uv.reshape(-1, 2) * (1 - 2 * MARGIN)
+    o.data.uv_layers.active.data.foreach_set("uv", uv.ravel())
+    X = np.array([v.co[:] for v in o.data.vertices])
+    shade = np.zeros((TILE, TILE, 3), np.float32)
+    parts = np.zeros((TILE, TILE, 3), np.float32)
+    filled = np.zeros((TILE, TILE), bool)
     counts = np.zeros(4, int)
-    for p in o.data.polygons:
-        k = int(dense_cls[dense_tree.find_nearest(p.center)[2]])
-        t, idx = by_class.get(k) or by_class[0]
-        counts[PART[k]] += 1
-        for li, vi in zip(p.loop_indices, p.vertices):
-            corner[li] = value[idx[t.find(V[vi])[1]]]
-    attr = o.data.color_attributes.new("part", "FLOAT_COLOR", "CORNER")
-    attr.data.foreach_set("color", corner.ravel())
-    o.data.color_attributes.active_color = attr
+    for poly in o.data.polygons:
+        P = uv[list(poly.loop_indices)] * TILE - 0.5
+        lo, hi = np.floor(P.min(0)).astype(int), np.ceil(P.max(0)).astype(int)
+        xs, ys = np.meshgrid(np.arange(max(lo[0], 0), min(hi[0], TILE - 1) + 1), np.arange(max(lo[1], 0), min(hi[1], TILE - 1) + 1))
+        q = np.stack([xs.ravel(), ys.ravel()], 1) - P[0]
+        m = np.array([P[1] - P[0], P[2] - P[0]]).T
+        if abs(np.linalg.det(m)) < 1e-12:
+            continue
+        w12 = np.linalg.solve(m, q.T).T
+        w = np.column_stack([1 - w12.sum(1), w12])
+        inside = (w >= -1e-6).all(1)
+        for (wa, wb, wc), x, y in zip(w[inside], xs.ravel()[inside], ys.ravel()[inside]):
+            pt = Vector(wa * X[poly.vertices[0]] + wb * X[poly.vertices[1]] + wc * X[poly.vertices[2]])
+            k = int(dense_cls[dense_tree.find_nearest(pt)[2]])
+            t, idx = by_class.get(k) or by_class[0]
+            shade[y, x] = value[idx[t.find(pt)[1]], :3]
+            parts[y, x] = 0
+            if PART[k] < 3:
+                parts[y, x, PART[k]] = 1
+            filled[y, x] = True
+        counts[PART[int(dense_cls[dense_tree.find_nearest(poly.center)[2]])]] += 1
+    # Texels outside every island take their neighbours' values (no seam shows through filtering).
+    while not filled.all():
+        acc_s, acc_p, n = np.zeros_like(shade), np.zeros_like(parts), np.zeros((TILE, TILE))
+        for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            f = np.roll(filled, (dy, dx), (0, 1))
+            acc_s += np.where(f[..., None], np.roll(shade, (dy, dx), (0, 1)), 0)
+            acc_p += np.where(f[..., None], np.roll(parts, (dy, dx), (0, 1)), 0)
+            n += f
+        grow = ~filled & (n > 0)
+        shade[grow] = acc_s[grow] / n[grow, None]
+        parts[grow] = acc_p[grow] / n[grow, None]
+        filled |= grow
+    tiles[name] = (shade, parts)
     print(name, "triangles", sum(len(p.vertices) - 2 for p in o.data.polygons), "faces outfit/skin/hair/as-is", counts.tolist())
     return o
 
@@ -313,11 +357,12 @@ bpy.ops.export_scene.gltf(
     export_format="GLB",
     use_selection=True,
     export_normals=True,
-    export_texcoords=False,
+    export_texcoords=True,
     export_tangents=False,
-    export_vertex_color="ACTIVE",
-    export_active_vertex_color_when_no_material=True,
+    export_vertex_color="NONE",
     export_materials="NONE",
     export_animations=False,
     export_extras=False,
 )
+# The textures beside it, by level, as `people_pack.py` reads them: shade (linear) and parts.
+np.savez_compressed(dst[: -len(".glb")] + ".npz", **{f"{n}-{k}": t[i] for n, t in tiles.items() for i, k in enumerate(("shade", "parts"))})
