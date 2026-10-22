@@ -222,6 +222,8 @@ function release(mesh: THREE.BatchedMesh) {
  */
 export function People({ low, m }: { low: boolean; m: Materials }) {
   const names = LEVELS[low ? "low" : "high"];
+  // The textures load alongside the figures, not after them (the first loader suspends).
+  useLoader.preload(THREE.TextureLoader, TEXTURES);
   const loaded = useLoader(PeopleLoader, names);
   const textures = useLoader(THREE.TextureLoader, TEXTURES);
   const figures = useMemo(() => batch(loaded, names, textures), [loaded, names, textures]);
