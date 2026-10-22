@@ -296,6 +296,8 @@ export function People({ low, m }: { low: boolean; m: Materials }) {
     mesh.computeBoundingSphere();
     mesh.castShadow = !low;
     near.current = null;
+    // For the e2e tests: the guests are in (they load after the room).
+    (window as unknown as { __guests?: number }).__guests = guests.length;
     // Written in place: ask for a frame (frames are on demand).
     invalidate();
   }, [guests, figures, geometryOf, low, invalidate]);
