@@ -244,8 +244,8 @@ export type PeopleLevel = Map<string, THREE.BufferGeometry>;
 const peopleLevels = new Map<string, Promise<PeopleLevel>>();
 
 /**
- * A figure as plain floats in its own place: its attributes come quantized (KHR_mesh_quantization,
- * integers the node scales; `people_pack.py`), and every figure in one batch must match.
+ * A figure as plain floats in its own place: its normals and texture coordinates come quantized
+ * (KHR_mesh_quantization, `tools/assets/quantize.ts`), and every figure in one batch must match.
  */
 function dequantized(g: THREE.BufferGeometry, world: THREE.Matrix4): THREE.BufferGeometry {
   const out = new THREE.BufferGeometry();

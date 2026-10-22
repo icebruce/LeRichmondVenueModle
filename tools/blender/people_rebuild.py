@@ -1,10 +1,11 @@
 """A placed guest rebuilt as the app's clean figures (visual stage V7).
 
-venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>] [front=<m>]
+venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.0035] [legs=<m>] [front=<m>]
 
 - The placed Meshy mesh (`people_seated.py`, `people_standing.py`) is never smoothed or simplified
   itself: it is remeshed into one closed surface (`voxel` m), which is then simplified to each detail
-  level: `detail` 8,000 triangles, `medium` 1,200, `simple` 540 (the people budget in
+  level: `detail` 14,000 triangles (about half Meshy's; owner, 2026-10-22: the closest guests at
+  about half the original's quality), `medium` 1,200, `simple` 540 (the people budget in
   VISUAL_STATUS.md: medium light enough for every guest in a close overview to afford it).
 - Colour comes from the Meshy texture into two small textures per level (`TILES` texels, saved
   beside the GLB as `.npz` for `people_pack.py`): the parts (outfit, skin, hair weights; none, drawn
@@ -30,7 +31,7 @@ from mathutils.kdtree import KDTree
 
 src, dst = sys.argv[1], sys.argv[2]
 opts = dict(a.split("=", 1) for a in sys.argv[3:])
-voxel = float(opts.get("voxel", "0.005"))
+voxel = float(opts.get("voxel", "0.0035"))
 # A dress: bare legs below `legs` m (its hem), and no tie to keep as it is (navy would read as one).
 legs = float(opts.get("legs", "0"))
 # Seated in a dress: bare legs also ahead of `front` (Blender y, the thighs past the hem), below 0.6 m.
@@ -40,19 +41,20 @@ dress = legs > 0
 
 def bare(x, y, z):
     return z <= legs or (y <= front and z < 0.6)
-LEVELS = {"detail": 8000, "medium": 1200, "simple": 540}
+LEVELS = {"detail": 14000, "medium": 1200, "simple": 540}
 # Each level's texture (texels a side; the levels seen close finer) and the texels kept clear at its
 # edges.
-TILES = {"detail": 512, "medium": 512, "simple": 256}
+TILES = {"detail": 1024, "medium": 512, "simple": 256}
 MARGIN = 4
-# The dense surface a texel reads (m around it), and how far from it a level's surface may lie.
-VOTE = 0.012
+# The dense surface a texel reads (m around it; finer textures read less), and how far from it a
+# level's surface may lie.
+VOTES = {"detail": 0.007, "medium": 0.01, "simple": 0.012}
 RAY = 0.03
 # Texels a triangle writes beyond its edges.
 PAD = 1.5
 tiles = {}
 BORDER_WEIGHT = float(opts.get("border", "0.2"))
-SMOOTH = int(opts.get("smooth", "12"))
+SMOOTH = int(opts.get("smooth", "24"))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
@@ -222,7 +224,6 @@ while True:
     for v in todo:
         cols[v] = np.mean([cols[w] for w in nbrs[v] if not moved[w] and cls[w] == cls[v]], axis=0)
     moved[todo] = False
-part = PART[cls]
 lum = cols @ np.array([0.2126, 0.7152, 0.0722])
 # The texture's folds and painted shadows (owner, 2026-10-22: the fabric's rough look kept), only
 # their speckle softened, within each class.
@@ -237,16 +238,15 @@ for _ in range(4):
     lum = acc / cnt
     # What is drawn as is (shirt, tie, shoes) softened alike.
     cols = acc_c / cnt[:, None]
-value = np.zeros((len(cls), 4), dtype=np.float32)
+value = np.zeros((len(cls), 3), dtype=np.float32)
 for k in range(6):
     sel = cls == k
     if not sel.any():
         continue
     if PART[k] == 3:
-        value[sel, :3] = srgb_to_linear(cols[sel])
+        value[sel] = srgb_to_linear(cols[sel])
     else:
-        value[sel, :3] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.6, 1.4) * 0.5)[:, None]
-    value[sel, 3] = PART[k] / 3
+        value[sel] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.6, 1.4) * 0.5)[:, None]
 dense_tree = BVHTree.FromPolygons([tuple(v) for v in D], [tuple(p.vertices) for p in me.polygons])
 dense_kd = KDTree(len(D))
 for i, v in enumerate(D):
@@ -257,12 +257,14 @@ weight = work.vertex_groups.new(name="collapse")
 weight.add(list(range(len(cls))), 1.0, "REPLACE")
 edge_idx = np.flatnonzero(cls[edges[:, 0]] != cls[edges[:, 1]])
 weight.add(sorted(set(edges[edge_idx].ravel().tolist())), BORDER_WEIGHT, "REPLACE")
+# The soles collapse last: every level's feet stay on the floor.
+weight.add(np.flatnonzero(D[:, 2] < D[:, 2].min() + 0.01).tolist(), BORDER_WEIGHT / 4, "REPLACE")
 
 
-def texel(p, n):
+def texel(p, n, vote):
     """A level's point `p` (normal `n`) read from the dense surface: found along the normal, facing
     the same way (a simpler level can pass under a tie or a lapel), then the dense surface around
-    that point voting (within `VOTE` m, nearer counting more): the class most of it has, and that
+    that point voting (within `vote` m, nearer counting more): the class most of it has, and that
     class's mean value. A vote, not one point, so a border stays smooth."""
     best = None
     for d in (n, -n):
@@ -271,18 +273,18 @@ def texel(p, n):
             best = (loc, dist)
     if best:
         p = best[0]
-    near = dense_kd.find_range(p, VOTE) or dense_kd.find_n(p, 4)
+    near = dense_kd.find_range(p, vote) or dense_kd.find_n(p, 4)
     idx = np.array([i for _, i, _ in near])
-    wt = np.exp(-((np.array([d for _, _, d in near]) / (VOTE / 2)) ** 2))
+    wt = np.exp(-((np.array([d for _, _, d in near]) / (vote / 2)) ** 2))
     k = int(np.bincount(cls[idx], wt, minlength=6).argmax())
     sel = cls[idx] == k
-    return k, (value[idx[sel], :3] * wt[sel, None]).sum(0) / wt[sel].sum()
+    return k, (value[idx[sel]] * wt[sel, None]).sum(0) / wt[sel].sum()
 
 
-def level(name, target):
+def level(name, target, src):
     tile = TILES[name]
-    o = work.copy()
-    o.data = work.data.copy()
+    o = src.copy()
+    o.data = src.data.copy()
     o.name = o.data.name = name
     sc.collection.objects.link(o)
     tris = sum(len(p.vertices) - 2 for p in o.data.polygons)
@@ -310,7 +312,6 @@ def level(name, target):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(o.data)
     bm.free()
-    o.vertex_groups.clear()
     for p in o.data.polygons:
         p.use_smooth = True
     # A face folded against its neighbours (or nearly: compressed normals could turn it over) would
@@ -345,7 +346,6 @@ def level(name, target):
     # Each texel's distance (texels) outside the triangle that wrote it: a triangle also writes the
     # texels just around it, so a sliver or an island's edge never shows a neighbouring island.
     outside = np.full((tile, tile), np.inf)
-    counts = np.zeros(4, int)
     for poly in o.data.polygons:
         P = uv[list(poly.loop_indices)] * tile - 0.5
         lo, hi = np.floor(P.min(0) - PAD).astype(int), np.ceil(P.max(0) + PAD).astype(int)
@@ -364,11 +364,10 @@ def level(name, target):
         a, b, c = poly.vertices
         for (wa, wb, wc), d, x, y in zip(w[take], out[take], x_all[take], y_all[take]):
             outside[y, x] = d
-            k, shade[y, x] = texel(Vector(wa * X[a] + wb * X[b] + wc * X[c]), Vector(wa * N[a] + wb * N[b] + wc * N[c]).normalized())
+            k, shade[y, x] = texel(Vector(wa * X[a] + wb * X[b] + wc * X[c]), Vector(wa * N[a] + wb * N[b] + wc * N[c]).normalized(), VOTES[name])
             parts[y, x] = 0
             if PART[k] < 3:
                 parts[y, x, PART[k]] = 1
-        counts[PART[texel(poly.center, poly.normal)[0]]] += 1
     # Texels outside every island take their neighbours' values (no seam shows through filtering).
     filled = outside < np.inf
     while not filled.all():
@@ -383,11 +382,15 @@ def level(name, target):
         parts[grow] = acc_p[grow] / n[grow, None]
         filled |= grow
     tiles[name] = (shade, parts)
-    print(name, "triangles", sum(len(p.vertices) - 2 for p in o.data.polygons), "faces outfit/skin/hair/as-is", counts.tolist())
+    print(name, "triangles", sum(len(p.vertices) - 2 for p in o.data.polygons))
     return o
 
 
-made = [level(n, t) for n, t in LEVELS.items()]
+# Each level simplified from the one before it (the dense surface, then the detailed level...): a
+# coarse level straight from the dense one came out with slivers and pinched edges.
+made = []
+for n, t in LEVELS.items():
+    made.append(level(n, t, made[-1] if made else work))
 for o in list(sc.objects):
     if o not in made:
         bpy.data.objects.remove(o)

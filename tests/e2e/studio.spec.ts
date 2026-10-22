@@ -401,7 +401,7 @@ test("[PLT-03] [LIB-04] [LIB-06] eye level with flowers on every table and full 
 // figures load after the room, within their own budget (VISUAL_STATUS.md, people plan).
 for (const [quality, limitMb, peopleMb] of [
   ["high", 12, 3],
-  ["low", 6, 1.5],
+  ["low", 6, 2.5],
 ] as const)
   test(`[PLT-03] [VEN-01] [PPL-03] the initial download on ${quality} stays under ${limitMb} MB, phones on the 1K textures, and the guests under ${peopleMb} MB`, async ({
     page,

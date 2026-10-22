@@ -29,7 +29,7 @@ const BLOOMS = { dir: "assets/models/blooms/", triangles: 1000 };
 const FIXTURES = { triangles: 20000 };
 
 /** Guest figures (V7): one file per detail level, a mesh per figure, each within its level's budget. */
-const PEOPLE = { dir: "assets/models/people/", triangles: { detail: 8000, medium: 1200, simple: 600 } };
+const PEOPLE = { dir: "assets/models/people/", triangles: { detail: 14000, medium: 1200, simple: 600 } };
 
 /** Which library entries load each GLB, with the budget and placement that applies. */
 function uses(): Map<string, Use[]> {

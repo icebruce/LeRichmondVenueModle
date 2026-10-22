@@ -6,8 +6,9 @@ Reads `<rebuilt_dir>/<body>-<pose>.glb` and `.npz` (`people_rebuild.py`, bodies 
 poses `table` and `standing`) and writes `<out_dir>/people-detail.glb`, `people-medium.glb` and
 `people-simple.glb`, each holding one mesh per figure named `<body>-<pose>`, and the textures they
 share: `people-shade.webp` (shade, or the colour of what is drawn as is; sRGB) and `people-parts.png`
-(outfit, skin and hair weights in red, green and blue), 2048×1280: a 512-texel tile per figure for
-the detailed level along the bottom, the medium level's above, then 256-texel ones for the simple.
+(outfit, skin and hair weights in red, green and blue), 4096×1536: a 1024-texel tile per figure
+for the detailed level along the bottom, 512-texel ones for the medium and 256 for the simple above.
+The shade is saved at half that (2048×768): the folds need less, and its memory halves.
 Every device loads all three. Then `node tools/assets/quantize.ts` on each GLB (half the size).
 """
 import sys
@@ -21,14 +22,16 @@ BODIES = ("man", "woman")
 POSES = ("table", "standing")
 LEVELS = ("detail", "medium", "simple")
 FIGURES = [f"{b}-{p}" for b in BODIES for p in POSES]
-W, H = 2048, 1280
+W, H = 4096, 1536
 
 
 def place(level, c):
     """A tile's corner and side (texels, Blender's v up) in the shared textures."""
-    if level == "simple":
-        return c * 256, 1024, 256
-    return c * 512, 512 * (level == "medium"), 512
+    if level == "detail":
+        return c * 1024, 0, 1024
+    if level == "medium":
+        return c * 512, 1024, 512
+    return 2048 + c * 256, 1024, 256
 
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -56,6 +59,7 @@ def save(a, path, **opts):
     Image.fromarray(np.flipud(np.clip(a * 255 + 0.5, 0, 255)).astype(np.uint8)).save(path, **opts)
 
 
+shade = shade.reshape(H // 2, 2, W // 2, 2, 3).mean((1, 3))
 srgb = np.where(shade <= 0.0031308, shade * 12.92, 1.055 * np.power(np.maximum(shade, 0), 1 / 2.4) - 0.055)
 save(srgb, f"{dst}/people-shade.webp", quality=90, method=6)
 save(parts, f"{dst}/people-parts.png", optimize=True)

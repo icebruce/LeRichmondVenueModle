@@ -377,9 +377,9 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 - **First pass rejected** (owner, 2026-10-21): poses from Meshy's rig and motion-capture clips, with arms and hands set by hand, distorted the mesh and the hands; a re-skin with Blender's automatic weights deformed it worse. The owner asked for two neutral poses only: standing with hands by the hips, and seated with hands on the table. No glass, no hands in the lap.
 - **Figures generated in their pose** (Meshy text-to-3D, no rig, nothing deformed): a man in a charcoal suit and tie and a woman in a sleeveless sheath dress, mannequin heads (the man bald, the woman with a bun), seated at a table and standing. The standing man has one hand at his jacket button (owner kept it). The seated pair approved by the owner (2026-10-21; the woman's knees fixed after). Task ids and prompts: `tools/meshy/TASKS.md`. V7 spent 254 credits (owner approved going over the 180 cap).
 - **Fit** (`tools/blender/people_seated.py`, `people_standing.py`): Meshy's table and chairs, textured plain light grey, are cut away and the holes capped; the guest is scaled to its own size, set on our seat with its back clear of every backrest, its shins rescaled to our floor and its forearms raised smoothly (up to 8 cm, no joint bent) onto our 0.75 m top.
-- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh into one closed surface, three levels (8,000, 1,200, 540 triangles), one file per level, quantized (`tools/assets/quantize.ts`: half the download, no WebAssembly, which the site's CSP forbids).
+- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh (3.5 mm) into one closed surface, three levels (14,000, 1,200, 540 triangles; the detailed about half Meshy's 18k–31k, owner 2026-10-22: the closest guests at about half the original's quality), each simplified from the one before, one file per level, normals and texture coordinates quantized (`tools/assets/quantize.ts`: a third off the download, no WebAssembly, which the site's CSP forbids).
 - **Decisions:**
-  - Two textures shared by every figure (2048×1280 each; a 512-texel tile per figure for the detailed and medium levels, 256 for simple): the parts (outfit, skin, hair weights; none, drawn as is) and the shade (or the colour of what is drawn as is). One shader recolours every guest from them. Per-triangle vertex colours were dropped (owner, 2026-10-22: necklines and ties read as triangles). Each level is unwrapped by xatlas (large charts, tightly packed: about 5 mm a texel on the detailed level); each texel reads the dense surface along its normal and takes the vote of the dense surface around it (1.2 cm), whose part borders are smoothed first (owner, 2026-10-22: ties and necklines read as torn).
+  - Two textures shared by every figure: the parts at 4096×1536 (a 1024-texel tile per figure for the detailed level, about half Meshy's 2048; 512 for medium, 256 for simple) and the shade at half that, 2048×768 (folds need less; about 45 MB of graphics memory in all): the parts (outfit, skin, hair weights; none, drawn as is) and the shade (or the colour of what is drawn as is). One shader recolours every guest from them. Per-triangle vertex colours were dropped (owner, 2026-10-22: necklines and ties read as triangles). Each level is unwrapped by xatlas (large charts, tightly packed: about 2.5 mm a texel on the detailed level); each texel reads the dense surface along its normal and takes the vote of the dense surface around it (0.7 cm detailed, 1–1.2 cm coarser), whose part borders are smoothed first (owner, 2026-10-22: ties and necklines read as torn).
   - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
   - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes.
   - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
@@ -431,11 +431,11 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 | | Desktop | Phone |
 |---|---|---|
-| Per figure | Detailed ≤ 8k triangles; medium ≤ 1.2k; simple ≤ 600; finer levels by size on screen, ≤ 70k triangles over simple in all | Same levels, ≤ 45k triangles over simple |
+| Per figure | Detailed ≤ 14k triangles; medium ≤ 1.2k; simple ≤ 600; finer levels by size on screen, ≤ 70k triangles over simple in all | Same levels, ≤ 45k triangles over simple |
 | All people | ≤ 400k triangles | ≤ 130k triangles |
 | Draw calls, all people | ≤ 16 (one instanced mesh per pose and detail level) | ≤ 8 |
-| Texture | Shade (WebP) and parts (PNG), 2048×1280 each, shared by all levels | Same |
-| Download | ≤ 3 MB, loaded after the room | ≤ 1.5 MB, loaded after the room |
+| Texture | Parts (PNG, 4096×1536) and shade (WebP, 2048×768), shared by all levels | Same |
+| Download | ≤ 3 MB, loaded after the room | ≤ 2.5 MB, loaded after the room (owner, 2026-10-22: the same guests as desktop) |
 | Runtime | No skinning, no animation, no per-guest materials. Real shadows from people only on High; painted contact shadows elsewhere | Same, no real shadows |
 
 **Validation:**
