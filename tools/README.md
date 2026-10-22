@@ -4,7 +4,7 @@ Offline tools Claude runs from committed scripts; nothing here ships in the app.
 
 ## Setup
 
-- **Blender, headless, as a Python module:** `python -m venv venv && venv/bin/pip install bpy numpy` (`blender.org` is allowed by the network policy). `import bpy` must come before `import bmesh`.
+- **Blender, headless, as a Python module:** `python -m venv venv && venv/bin/pip install bpy numpy pillow xatlas` (Pillow and xatlas for the people tools) (`blender.org` is allowed by the network policy). `import bpy` must come before `import bmesh`.
 - **glTF processing:** `@gltf-transform/*` and `meshoptimizer` are dev dependencies.
 - **Textures:** `sharp` is a dev dependency; no system tools.
 - **Meshy:** the API key is injected by the session proxy; `docs.meshy.ai` is blocked (the API's own `/openapi` paths work). Meshy-generated models may be committed (owner, 2026-10-18).
@@ -49,6 +49,7 @@ A room or light change makes the manifest stale: `[LGT-03]` fails in CI, and the
 | `blender/plant_from_meshy.py` | A Meshy plant made ready for the app: `… <meshy.glb> <out.glb> <height>`. Keeps the topology, fits the height with the pot's foot at 0, keeps only a 1K colour map. | V5 |
 | `blender/people_seated.py` | A guest Meshy generated seated at a table: the furniture (textured plain light grey) cut away and capped, scaled to the guest's own size, set on our seat with the back clear of the backrests, shins rescaled to our floor, forearms raised smoothly onto our 0.75 m top: `… <refined.glb> <out.glb> sit=<m>`. | V7 |
 | `blender/people_standing.py` | A guest Meshy generated standing: scaled to `height`, feet on the floor, centred: `… <refined.glb> <out.glb> height=<m>`. | V7 |
-| `blender/people_rebuild.py` | A placed guest rebuilt clean: voxel remesh, three levels (8,000, 1,200, 540 triangles), each unwrapped, its parts (outfit, skin, hair weights) and shade sampled from the dense surface into a 256-texel tile beside it (`.npz`): `… <posed.glb> <out.glb> [legs=<hem m>] [front=<m>]`. | V7 |
-| `blender/people_pack.py` | The four rebuilt figures packed one file per level (`public/assets/models/people/people-<level>.glb`) and the shared `people-shade.webp` and `people-parts.png` (a tile per figure and level): `… <rebuilt_dir> <out_dir>` (needs Pillow). Task ids and clips: `meshy/TASKS.md`. | V7 |
+| `blender/people_rebuild.py` | A placed guest rebuilt clean: voxel remesh, three levels (8,000, 1,200, 540 triangles), part borders smoothed on the dense surface, each level unwrapped (xatlas), its parts (outfit, skin, hair weights) and shade read from the dense surface into a tile beside it (`.npz`; 512 texels, simple 256): `… <posed.glb> <out.glb> [legs=<hem m>] [front=<m>] [smooth=<passes>]`. | V7 |
+| `blender/people_pack.py` | The four rebuilt figures packed one file per level (`public/assets/models/people/people-<level>.glb`) and the shared `people-shade.webp` and `people-parts.png` (a tile per figure and level): `… <rebuilt_dir> <out_dir>`; then `node tools/assets/quantize.ts` on each GLB. Task ids and clips: `meshy/TASKS.md`. | V7 |
+| `assets/quantize.ts` | A model's geometry quantized (KHR_mesh_quantization, about half the download; the browser decodes it without WebAssembly): `node tools/assets/quantize.ts <in.glb> <out.glb>`. | V7 |
 | `meshy/meshy.py` | Meshy API: `preview` (`[polycount] [prop]` for objects), `refine`, `remesh <task_id> <polycount>` (5 credits), `rig`, `animate`, `wait` (`wait <kind> <task_id> <out_dir> <name>` downloads; see `meshy/TASKS.md` for the man's task ids and the useful clips). The rigged man (`meshy/source/man-b-rig.glb`, 9.5 MB) stays on `proto/visual-poc` until V7 needs it. | V7 |

@@ -428,8 +428,8 @@ for (const [quality, limitMb, peopleMb] of [
     expect(total).toBeLessThan(limitMb * 1e6);
     const guests = (await Promise.all(people)).reduce((a, b) => a + b, 0);
     console.log(`guests on ${quality}: ${(guests / 1e6).toFixed(2)} MB in ${people.length} files`);
-    // Desktop: detailed, medium and simple; phone: medium and simple; both, the shade and parts textures.
-    expect(people).toHaveLength(quality === "high" ? 5 : 4);
+    // Every device: the detailed, medium and simple figures, and the shade and parts textures.
+    expect(people).toHaveLength(5);
     expect(guests).toBeLessThan(peopleMb * 1e6);
     expect(textures.some((t) => t.endsWith("_2k.webp"))).toBe(quality === "high");
   });

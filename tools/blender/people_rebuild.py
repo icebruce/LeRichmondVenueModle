@@ -6,13 +6,14 @@ venv/bin/python people_rebuild.py <posed.glb> <out.glb> [voxel=0.005] [legs=<m>]
   itself: it is remeshed into one closed surface (`voxel` m), which is then simplified to each detail
   level: `detail` 8,000 triangles, `medium` 1,200, `simple` 540 (the people budget in
   VISUAL_STATUS.md: medium light enough for every guest in a close overview to afford it).
-- Colour comes from the Meshy texture into two small textures per level (`TILE` texels, saved
+- Colour comes from the Meshy texture into two small textures per level (`TILES` texels, saved
   beside the GLB as `.npz` for `people_pack.py`): the parts (outfit, skin, hair weights; none, drawn
   as is) and the shade (0.5 the part's average; the colour itself for shirt, tie, shoes). The app
   recolours outfit, skin and hair per guest, keeping their shading.
-- Parts are decided once on the dense closed surface (specks cleaned, a dress's hem cut straight)
-  and kept through simplification (their borders collapse least); each level is unwrapped and each
-  texel takes the dense surface's part and shade, so a border follows the figure, not the triangles.
+- Parts are decided once on the dense closed surface (specks cleaned, borders smoothed, a dress's
+  hem cut straight) and kept through simplification (their borders collapse least); each level is
+  unwrapped (xatlas) and each texel reads the dense surface's part and shade, so a border follows
+  the figure, not the triangles. Needs `pip install xatlas` beside bpy.
 - `legs` (a dress's hem height) and `front` (seated: the thighs past the hem, Blender y): bare legs
   there, and no tie.
 """
@@ -22,6 +23,7 @@ import sys
 import bpy
 import bmesh  # after bpy, which provides it
 import numpy as np
+import xatlas
 from mathutils.bvhtree import BVHTree
 from mathutils import Vector
 from mathutils.kdtree import KDTree
@@ -39,11 +41,18 @@ dress = legs > 0
 def bare(x, y, z):
     return z <= legs or (y <= front and z < 0.6)
 LEVELS = {"detail": 8000, "medium": 1200, "simple": 540}
-# Each level's texture (texels a side) and the share of it kept clear at its edges.
-TILE = 256
-MARGIN = 4 / TILE
+# Each level's texture (texels a side; the levels seen close finer) and the texels kept clear at its
+# edges.
+TILES = {"detail": 512, "medium": 512, "simple": 256}
+MARGIN = 4
+# The dense surface a texel reads (m around it), and how far from it a level's surface may lie.
+VOTE = 0.012
+RAY = 0.03
+# Texels a triangle writes beyond its edges.
+PAD = 1.5
 tiles = {}
 BORDER_WEIGHT = float(opts.get("border", "0.2"))
+SMOOTH = int(opts.get("smooth", "12"))
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
@@ -187,6 +196,24 @@ for v0 in range(len(cls)):
         if around:
             cls[comp] = np.bincount(around).argmax()
             moved[comp] = True
+# Borders smoothed (owner, 2026-10-22: a tie's or a neckline's edge read as torn): each class's
+# share diffused over its neighbours (`SMOOTH` passes, about 2 cm), each vertex taking the largest;
+# the hem stays where it was cut. A vertex that changed class takes its new class's colour below.
+share = np.eye(6)[cls]
+deg = np.bincount(edges.ravel(), minlength=len(cls))[:, None] + 1.0
+for _ in range(SMOOTH):
+    acc = share.copy()
+    np.add.at(acc, edges[:, 0], share[edges[:, 1]])
+    np.add.at(acc, edges[:, 1], share[edges[:, 0]])
+    share = acc / deg
+smoothed = share.argmax(1)
+if dress:
+    # Bare legs below the hem; above it, near it, no skin grows from them.
+    smoothed[[bare(*p) and c != 5 for p, c in zip(D, smoothed)]] = 1
+    near = [bare(*p) or bare(p[0], p[1] - 0.1, p[2] - 0.1) for p in D]
+    smoothed[[n and not bare(*p) and c == 1 and k != 1 for n, p, c, k in zip(near, D, smoothed, cls)]] = 0
+moved |= smoothed != cls
+cls = smoothed
 # A speck takes its new class's colour too, from the neighbours it joined, filling inwards.
 while True:
     todo = [v for v in np.flatnonzero(moved) if any(not moved[w] and cls[w] == cls[v] for w in nbrs[v])]
@@ -202,10 +229,14 @@ lum = cols @ np.array([0.2126, 0.7152, 0.0722])
 same = cls[edges[:, 0]] == cls[edges[:, 1]]
 for _ in range(4):
     acc, cnt = lum.copy(), np.ones(len(lum))
+    acc_c = cols.copy()
     for e in (edges[same], edges[same][:, ::-1]):
         np.add.at(acc, e[:, 0], lum[e[:, 1]])
+        np.add.at(acc_c, e[:, 0], cols[e[:, 1]])
         np.add.at(cnt, e[:, 0], 1)
     lum = acc / cnt
+    # What is drawn as is (shirt, tie, shoes) softened alike.
+    cols = acc_c / cnt[:, None]
 value = np.zeros((len(cls), 4), dtype=np.float32)
 for k in range(6):
     sel = cls == k
@@ -216,28 +247,11 @@ for k in range(6):
     else:
         value[sel, :3] = (np.clip(lum[sel] / max(1e-3, lum[sel].mean()), 0.6, 1.4) * 0.5)[:, None]
     value[sel, 3] = PART[k] / 3
-# Each dense face's class (the most of its corners'; below a hem, bare leg or shoe), for the levels.
-dense_tri = []
-dense_cls = []
-for p in me.polygons:
-    c = cls[list(p.vertices)]
-    k = np.bincount(c, minlength=6).argmax()
-    if dress and k != 5 and bare(*(p.center - Vector((0, 1e-6, 1e-6)))):
-        k = 1
-    for i in range(1, len(p.vertices) - 1):
-        dense_tri.append((p.vertices[0], p.vertices[i], p.vertices[i + 1]))
-        dense_cls.append(k)
-dense_cls = np.array(dense_cls)
-dense_tree = BVHTree.FromPolygons([tuple(v) for v in D], dense_tri)
-by_class = {}
-for k in range(6):
-    idx = np.flatnonzero(cls == k)
-    if len(idx):
-        t = KDTree(len(idx))
-        for i, v in enumerate(idx):
-            t.insert(D[v], i)
-        t.balance()
-        by_class[k] = (t, idx)
+dense_tree = BVHTree.FromPolygons([tuple(v) for v in D], [tuple(p.vertices) for p in me.polygons])
+dense_kd = KDTree(len(D))
+for i, v in enumerate(D):
+    dense_kd.insert(v, i)
+dense_kd.balance()
 # Simplification keeps the class borders: their vertices collapse least (the decimate weight).
 weight = work.vertex_groups.new(name="collapse")
 weight.add(list(range(len(cls))), 1.0, "REPLACE")
@@ -245,7 +259,28 @@ edge_idx = np.flatnonzero(cls[edges[:, 0]] != cls[edges[:, 1]])
 weight.add(sorted(set(edges[edge_idx].ravel().tolist())), BORDER_WEIGHT, "REPLACE")
 
 
+def texel(p, n):
+    """A level's point `p` (normal `n`) read from the dense surface: found along the normal, facing
+    the same way (a simpler level can pass under a tie or a lapel), then the dense surface around
+    that point voting (within `VOTE` m, nearer counting more): the class most of it has, and that
+    class's mean value. A vote, not one point, so a border stays smooth."""
+    best = None
+    for d in (n, -n):
+        loc, normal, _, dist = dense_tree.ray_cast(p, d, RAY)
+        if loc is not None and normal.dot(n) > 0 and (best is None or dist < best[1]):
+            best = (loc, dist)
+    if best:
+        p = best[0]
+    near = dense_kd.find_range(p, VOTE) or dense_kd.find_n(p, 4)
+    idx = np.array([i for _, i, _ in near])
+    wt = np.exp(-((np.array([d for _, _, d in near]) / (VOTE / 2)) ** 2))
+    k = int(np.bincount(cls[idx], wt, minlength=6).argmax())
+    sel = cls[idx] == k
+    return k, (value[idx[sel], :3] * wt[sel, None]).sum(0) / wt[sel].sum()
+
+
 def level(name, target):
+    tile = TILES[name]
     o = work.copy()
     o.data = work.data.copy()
     o.name = o.data.name = name
@@ -278,60 +313,66 @@ def level(name, target):
     o.vertex_groups.clear()
     for p in o.data.polygons:
         p.use_smooth = True
-    # A face folded against its neighbours would be lit from behind when smoothed: it stays flat.
-    for _ in range(5):
+    # A face folded against its neighbours (or nearly: compressed normals could turn it over) would
+    # be lit from behind when smoothed: it stays flat.
+    for _ in range(50):
         cn = np.zeros(len(o.data.loops) * 3)
         o.data.corner_normals.foreach_get("vector", cn)
         cn = cn.reshape(-1, 3)
-        folded = [p for p in o.data.polygons if p.use_smooth and np.dot(cn[list(p.loop_indices)].sum(0), p.normal) < 0]
+        folded = [p for p in o.data.polygons if p.use_smooth and np.dot(cn[list(p.loop_indices)].sum(0), p.normal) < 0.3]
         if not folded:
             break
         for p in folded:
             p.use_smooth = False
-    # Unwrapped, each level's parts and shade go to a texture of its own (`TILE` texels): their borders
+    # Unwrapped, each level's parts and shade go to a texture of its own (`TILES` texels): their borders
     # follow the figure, never the triangles (owner, 2026-10-22: no triangles in a neckline or a tie).
-    for x in sc.objects:
-        x.select_set(False)
-    bpy.context.view_layer.objects.active = o
-    o.select_set(True)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.02, scale_to_bounds=True)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    uv = np.zeros(len(o.data.loops) * 2)
-    o.data.uv_layers.active.data.foreach_get("uv", uv)
+    # xatlas: large charts, tightly packed (Blender's smart project left hundreds of small islands
+    # filling a sixth of the tile).
+    atlas = xatlas.Atlas()
+    atlas.add_mesh(np.array([v.co[:] for v in o.data.vertices], np.float32), np.array([p.vertices[:] for p in o.data.polygons], np.uint32))
+    pack = xatlas.PackOptions()
+    pack.resolution, pack.padding, pack.bilinear = tile, 2, True
+    atlas.generate(xatlas.ChartOptions(), pack)
+    _, corners, coords = atlas[0]
     # Kept off the tile's edge, so far (smaller) mip levels do not reach the next tile.
-    uv = MARGIN + uv.reshape(-1, 2) * (1 - 2 * MARGIN)
-    o.data.uv_layers.active.data.foreach_set("uv", uv.ravel())
+    uv = (MARGIN + coords[corners.ravel()] * (tile - 2 * MARGIN)) / tile
+    layer = o.data.uv_layers.active or o.data.uv_layers.new()
+    layer.data.foreach_set("uv", uv.ravel())
     X = np.array([v.co[:] for v in o.data.vertices])
-    shade = np.zeros((TILE, TILE, 3), np.float32)
-    parts = np.zeros((TILE, TILE, 3), np.float32)
-    filled = np.zeros((TILE, TILE), bool)
+    N = np.array([v.normal[:] for v in o.data.vertices])
+    shade = np.zeros((tile, tile, 3), np.float32)
+    parts = np.zeros((tile, tile, 3), np.float32)
+    # Each texel's distance (texels) outside the triangle that wrote it: a triangle also writes the
+    # texels just around it, so a sliver or an island's edge never shows a neighbouring island.
+    outside = np.full((tile, tile), np.inf)
     counts = np.zeros(4, int)
     for poly in o.data.polygons:
-        P = uv[list(poly.loop_indices)] * TILE - 0.5
-        lo, hi = np.floor(P.min(0)).astype(int), np.ceil(P.max(0)).astype(int)
-        xs, ys = np.meshgrid(np.arange(max(lo[0], 0), min(hi[0], TILE - 1) + 1), np.arange(max(lo[1], 0), min(hi[1], TILE - 1) + 1))
+        P = uv[list(poly.loop_indices)] * tile - 0.5
+        lo, hi = np.floor(P.min(0) - PAD).astype(int), np.ceil(P.max(0) + PAD).astype(int)
+        xs, ys = np.meshgrid(np.arange(max(lo[0], 0), min(hi[0], tile - 1) + 1), np.arange(max(lo[1], 0), min(hi[1], tile - 1) + 1))
         q = np.stack([xs.ravel(), ys.ravel()], 1) - P[0]
         m = np.array([P[1] - P[0], P[2] - P[0]]).T
         if abs(np.linalg.det(m)) < 1e-12:
             continue
         w12 = np.linalg.solve(m, q.T).T
         w = np.column_stack([1 - w12.sum(1), w12])
-        inside = (w >= -1e-6).all(1)
-        for (wa, wb, wc), x, y in zip(w[inside], xs.ravel()[inside], ys.ravel()[inside]):
-            pt = Vector(wa * X[poly.vertices[0]] + wb * X[poly.vertices[1]] + wc * X[poly.vertices[2]])
-            k = int(dense_cls[dense_tree.find_nearest(pt)[2]])
-            t, idx = by_class.get(k) or by_class[0]
-            shade[y, x] = value[idx[t.find(pt)[1]], :3]
+        # Barycentric weight to texels: each corner's height over its opposite edge.
+        height = abs(np.linalg.det(m)) / np.linalg.norm(P[[2, 0, 1]] - P[[1, 2, 0]], axis=1)
+        out = np.maximum(0, (-w * height).max(1))
+        x_all, y_all = xs.ravel(), ys.ravel()
+        take = (out <= PAD) & (out < outside[y_all, x_all])
+        a, b, c = poly.vertices
+        for (wa, wb, wc), d, x, y in zip(w[take], out[take], x_all[take], y_all[take]):
+            outside[y, x] = d
+            k, shade[y, x] = texel(Vector(wa * X[a] + wb * X[b] + wc * X[c]), Vector(wa * N[a] + wb * N[b] + wc * N[c]).normalized())
             parts[y, x] = 0
             if PART[k] < 3:
                 parts[y, x, PART[k]] = 1
-            filled[y, x] = True
-        counts[PART[int(dense_cls[dense_tree.find_nearest(poly.center)[2]])]] += 1
+        counts[PART[texel(poly.center, poly.normal)[0]]] += 1
     # Texels outside every island take their neighbours' values (no seam shows through filtering).
+    filled = outside < np.inf
     while not filled.all():
-        acc_s, acc_p, n = np.zeros_like(shade), np.zeros_like(parts), np.zeros((TILE, TILE))
+        acc_s, acc_p, n = np.zeros_like(shade), np.zeros_like(parts), np.zeros((tile, tile))
         for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
             f = np.roll(filled, (dy, dx), (0, 1))
             acc_s += np.where(f[..., None], np.roll(shade, (dy, dx), (0, 1)), 0)

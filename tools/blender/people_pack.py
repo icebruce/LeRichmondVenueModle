@@ -6,8 +6,9 @@ Reads `<rebuilt_dir>/<body>-<pose>.glb` and `.npz` (`people_rebuild.py`, bodies 
 poses `table` and `standing`) and writes `<out_dir>/people-detail.glb`, `people-medium.glb` and
 `people-simple.glb`, each holding one mesh per figure named `<body>-<pose>`, and the textures they
 share: `people-shade.webp` (shade, or the colour of what is drawn as is; sRGB) and `people-parts.png`
-(outfit, skin and hair weights in red, green and blue). One tile per figure (column) and level (row).
-A phone loads only the medium and simple files, a desktop all three.
+(outfit, skin and hair weights in red, green and blue), 2048×1280: a 512-texel tile per figure for
+the detailed level along the bottom, the medium level's above, then 256-texel ones for the simple.
+Every device loads all three. Then `node tools/assets/quantize.ts` on each GLB (half the size).
 """
 import sys
 
@@ -20,36 +21,44 @@ BODIES = ("man", "woman")
 POSES = ("table", "standing")
 LEVELS = ("detail", "medium", "simple")
 FIGURES = [f"{b}-{p}" for b in BODIES for p in POSES]
+W, H = 2048, 1280
+
+
+def place(level, c):
+    """A tile's corner and side (texels, Blender's v up) in the shared textures."""
+    if level == "simple":
+        return c * 256, 1024, 256
+    return c * 512, 512 * (level == "medium"), 512
+
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
-shade, parts = [], []
+shade, parts = np.zeros((H, W, 3), np.float32), np.zeros((H, W, 3), np.float32)
 for c, figure in enumerate(FIGURES):
     before = set(sc.objects)
     bpy.ops.import_scene.gltf(filepath=f"{src}/{figure}.glb")
     tiles = np.load(f"{src}/{figure}.npz")
     for o in set(sc.objects) - before:
         level = o.name.split(".")[0]
-        r = LEVELS.index(level)
-        # Its own tile in the shared textures (Blender's v runs up, rows from the bottom).
+        x, y, side = place(level, c)
+        # Its own tile in the shared textures.
         uv = np.zeros(len(o.data.loops) * 2)
         o.data.uv_layers.active.data.foreach_get("uv", uv)
         uv = uv.reshape(-1, 2)
-        uv = np.column_stack([(c + uv[:, 0]) / len(FIGURES), (r + uv[:, 1]) / len(LEVELS)])
+        uv = np.column_stack([(x + uv[:, 0] * side) / W, (y + uv[:, 1] * side) / H])
         o.data.uv_layers.active.data.foreach_set("uv", uv.ravel())
         o.name = f"{level}:{figure}"
-    shade.append(np.concatenate([tiles[f"{lv}-shade"] for lv in LEVELS], 0))
-    parts.append(np.concatenate([tiles[f"{lv}-parts"] for lv in LEVELS], 0))
+        shade[y : y + side, x : x + side] = tiles[f"{level}-shade"]
+        parts[y : y + side, x : x + side] = tiles[f"{level}-parts"]
 
 
 def save(a, path, **opts):
     Image.fromarray(np.flipud(np.clip(a * 255 + 0.5, 0, 255)).astype(np.uint8)).save(path, **opts)
 
 
-linear = np.concatenate(shade, 1)
-srgb = np.where(linear <= 0.0031308, linear * 12.92, 1.055 * np.power(np.maximum(linear, 0), 1 / 2.4) - 0.055)
+srgb = np.where(shade <= 0.0031308, shade * 12.92, 1.055 * np.power(np.maximum(shade, 0), 1 / 2.4) - 0.055)
 save(srgb, f"{dst}/people-shade.webp", quality=90, method=6)
-save(np.concatenate(parts, 1), f"{dst}/people-parts.png", optimize=True)
+save(parts, f"{dst}/people-parts.png", optimize=True)
 
 for level in LEVELS:
     chosen = [o for o in sc.objects if o.name.startswith(f"{level}:")]

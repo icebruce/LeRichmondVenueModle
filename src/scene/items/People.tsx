@@ -15,20 +15,17 @@ const MAX = 300;
 /**
  * Levels by size on screen, in every view (owner, 2026-10-22: a close look in the overview is as
  * smooth as at eye level; its narrow lens makes far guests large): a guest drawn taller than `px[0]`
- * pixels gets the finest level loaded, taller than `px[1]` the next, the rest and those out of the
- * frame the simplest; the nearest first, while the triangles over the simplest stay within `spare`
- * (drawn again for the shadows; VISUAL_STATUS.md, people budget).
+ * pixels gets the detailed level, taller than `px[1]` medium, the rest and those out of the frame
+ * simple, while the triangles over simple stay within the device's `spare` (desktop: drawn again
+ * for the shadows; phones: their frame budget; VISUAL_STATUS.md): medium first, nearest first.
  */
-const NEAR = { px: [300, 45], spare: 70_000 } as const;
+const NEAR = { px: [300, 45], spare: { high: 70_000, low: 45_000 } } as const;
 /** A guest's height for its size on screen (m): seated, standing about 1.7. */
 const TALL = 1.3;
 /** The camera moves this far (m), or its lens this much (degrees), before the levels are chosen again. */
 const RESELECT = 0.25;
-/** Levels loaded per device, finest first. */
-const LEVELS: Record<"high" | "low", string[]> = {
-  high: ["detail", "medium", "simple"],
-  low: ["medium", "simple"],
-};
+/** The levels, finest first, on every device (owner, 2026-10-22: phones handle the finer guests). */
+const LEVELS = ["detail", "medium", "simple"];
 const BODIES = ["man", "woman"] as const;
 /** The figures' shade and parts textures, shared by every level (`people_pack.py`). */
 const TEXTURES = ["shade.webp", "parts.png"].map(
@@ -221,12 +218,11 @@ function release(mesh: THREE.BatchedMesh) {
  * guest on screen, the finer its level.
  */
 export function People({ low, m }: { low: boolean; m: Materials }) {
-  const names = LEVELS[low ? "low" : "high"];
   // The textures load alongside the figures, not after them (the first loader suspends).
   useLoader.preload(THREE.TextureLoader, TEXTURES);
-  const loaded = useLoader(PeopleLoader, names);
+  const loaded = useLoader(PeopleLoader, LEVELS);
   const textures = useLoader(THREE.TextureLoader, TEXTURES);
-  const figures = useMemo(() => batch(loaded, names, textures), [loaded, names, textures]);
+  const figures = useMemo(() => batch(loaded, LEVELS, textures), [loaded, textures]);
   useEffect(() => () => release(figures.mesh), [figures]);
   const { venue, catalog } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
@@ -266,14 +262,11 @@ export function People({ low, m }: { low: boolean; m: Materials }) {
     () => guests.filter((g) => !g.seated).map((g) => ({ ...g, w: CONTACT_SMALL, d: CONTACT_SMALL })),
     [guests],
   );
-  // Rank 0: the nearest guests large on screen, 1: the next, 2: the rest; a phone has no detailed level, so its
-  // ranks 1 and 2 share the simple one.
+  // Rank 0: detailed, 1: medium, 2: simple.
   const geometryOf = useCallback(
     (look: Look, rank: 0 | 1 | 2) =>
-      figures.ids.get(
-        `${names[Math.min(rank, names.length - 1)]}:${look.body}-${look.pose}:${look.mirror ? 1 : 0}`,
-      ) as number,
-    [figures, names],
+      figures.ids.get(`${LEVELS[rank]}:${look.body}-${look.pose}:${look.mirror ? 1 : 0}`) as number,
+    [figures],
   );
   // The camera position the nearest guests were last chosen from; null: choose again.
   const near = useRef<THREE.Vector3 | null>(null);
@@ -336,19 +329,26 @@ export function People({ low, m }: { low: boolean; m: Materials }) {
       .map((g, i) => ({ i, d: Math.hypot(g.x - p.x, g.y + 1 - p.y, g.z - p.z) }))
       .sort((a, b) => a.d - b.d);
     const triangles = (id: number) => figures.triangles.get(id) as number;
-    let spare: number = NEAR.spare;
-    for (const { i, d } of order) {
-      const px = (TALL * scale) / d;
+    // The level each guest's size asks for; out of the frame, simple (their shadows show it least).
+    const wants = order.map(({ i, d }) => {
       const g = guests[i] as (typeof guests)[number];
-      const simplest = geometryOf(g.look, 2);
-      // Guests out of the frame stay simplest (their shadows show it least).
+      const px = (TALL * scale) / d;
       const seen = frustum.intersectsSphere(new THREE.Sphere(new THREE.Vector3(g.x, g.y + 0.9, g.z), 1));
-      let rank: 0 | 1 | 2 = !seen ? 2 : px > NEAR.px[0] ? 0 : px > NEAR.px[1] ? 1 : 2;
-      while (rank < 2 && triangles(geometryOf(g.look, rank)) - triangles(simplest) > spare) rank++;
-      const id = geometryOf(g.look, rank);
-      spare -= triangles(id) - triangles(simplest);
-      figures.mesh.setGeometryIdAt(i, id);
-    }
+      return { i, look: g.look, want: !seen ? 2 : px > NEAR.px[0] ? 0 : px > NEAR.px[1] ? 1 : 2 };
+    });
+    // Within the spare triangles: first medium for every guest who asks for at least that, then
+    // detailed for the nearest who ask for it (a few detailed guests must not leave the rest simple).
+    const rank = new Map<number, 0 | 1 | 2>();
+    let spare: number = NEAR.spare[low ? "low" : "high"];
+    for (const step of [1, 0] as const)
+      for (const { i, look, want } of wants) {
+        if (want > step) continue;
+        const cost = triangles(geometryOf(look, step)) - triangles(geometryOf(look, rank.get(i) ?? 2));
+        if (cost > spare) continue;
+        spare -= cost;
+        rank.set(i, step);
+      }
+    for (const { i, look } of wants) figures.mesh.setGeometryIdAt(i, geometryOf(look, rank.get(i) ?? 2));
   });
   if (!show || drag) return null;
   return (
