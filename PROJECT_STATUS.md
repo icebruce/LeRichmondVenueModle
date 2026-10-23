@@ -79,7 +79,7 @@
 - Owner feedback (2026-10-23):
   - Phone: a pan that starts on a piece no longer selects it (only a tap or the 300 ms pick-up does), so a closed sheet stays closed while the view moves.
   - The checks' outlines and labels in the room are off by default; Room › Layout › Show checks in the room turns them on (remembered on the device); they always show while a piece moves, and a selected piece shows its own (so choosing a check in the list shows where it is); the checks count and list are unchanged.
-  - Bar flowers: bigger and fuller, closer to R02 (a slender trumpet vase with a low, wide dome of 22 copies of one Meshy blossom branch; Meshy credits 45 → 10), and dragged along the bar top in the room (touch: hold, then drag).
+  - Bar flowers: bigger and fuller, closer to R02 (a slender trumpet vase with a low, wide dome of 20 copies of one Meshy blossom branch; Meshy credits 45 → 10), and dragged along the bar top in the room (touch: hold, then drag).
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)

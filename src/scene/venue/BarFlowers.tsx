@@ -14,7 +14,7 @@ const VASE_H = 0.75;
 /** Radius of the vase's mouth (m); its waist is much slimmer. */
 const LIP_R = 0.085;
 /** Blossom branches in each vase: together a big, airy, low dome (R02, owner 2026-10-23). */
-const BRANCHES = 22;
+const BRANCHES = 20;
 /** Length (m, the model's own) of each branch's bare stem below the lip. */
 const LIP_DEPTH = 0.48;
 /** Each branch spread wider and lower than the model: R02's crowns are domes wider than tall. */
@@ -69,8 +69,9 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
     model.material.emissive.set("#ffeed8");
     model.material.emissiveIntensity = 0.32;
     const vases = new THREE.InstancedMesh(vaseGeo, m.glass, 2);
+    // No shadow, as the blossom never had one: the shadow pass would draw the crowns' triangles
+    // twice, past the phone budget (PLT-03).
     const crowns = new THREE.InstancedMesh(model.geometry, model.material, 2 * BRANCHES);
-    crowns.castShadow = true;
     return { vases, crowns };
   }, [m, model]);
   useEffect(() => {

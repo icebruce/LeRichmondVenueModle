@@ -103,7 +103,7 @@ Commands: `people_seated.py <refined.glb> <out.glb> sit=0.93` (man), `sit=0.87 f
 
 ## Bar flowers (VEN-06, 2026-10-23)
 
-Owner: Meshy for the bar flowers, within 35 of the 45 credits left. Asked for a whole arrangement without the vase (`prompts/barflowers-preview.txt`); Meshy made one blossom branch, which the app repeats 22 times per vase (the glass stays in code). Credits 45 → 10.
+Owner: Meshy for the bar flowers, within 35 of the 45 credits left. Asked for a whole arrangement without the vase (`prompts/barflowers-preview.txt`); Meshy made one blossom branch, which the app repeats 20 times per vase (the glass stays in code). Credits 45 → 10.
 
 | Step | Task | Notes |
 |---|---|---|
