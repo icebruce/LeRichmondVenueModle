@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { placePeople } from "../../src/domain/layout/people";
+import { LOOK_CHOICES, lookOf, placePeople } from "../../src/domain/layout/people";
 import { type Item, footprint } from "../../src/domain/layout/items";
 import { walkArea } from "../../src/domain/layout/walk";
 import { venueSampleItems } from "../../src/domain/scenario/scenario";
@@ -38,5 +38,22 @@ describe("people", () => {
     expect(b).toEqual(a);
     const c = placePeople(items, 120, "dinner", venue, catalog, off, 8);
     expect(c.standing).not.toEqual(a.standing);
+  });
+
+  test("[PPL-02] each guest keeps their look for the same seed, whatever the guest count", () => {
+    const seated = Array.from({ length: 150 }, (_, i) => lookOf(7, i, true));
+    expect(lookOf(7, 42, true)).toEqual(seated[42]);
+    expect(lookOf(8, 42, true)).not.toEqual(seated[42]);
+    // Seated guests sit with hands on the table; the others stand.
+    expect(new Set(seated.map((l) => l.pose))).toEqual(new Set(["table"]));
+    const standing = Array.from({ length: 150 }, (_, i) => lookOf(7, i, false));
+    expect(new Set(standing.map((l) => l.pose))).toEqual(new Set(["standing"]));
+    // Both bodies, mirrored and not, and every palette choice turn up in a crowd.
+    const all = [...seated, ...standing];
+    expect(new Set(all.map((l) => l.body)).size).toBe(2);
+    expect(new Set(all.map((l) => l.mirror)).size).toBe(2);
+    expect(new Set(all.map((l) => l.outfit)).size).toBe(LOOK_CHOICES.outfit);
+    expect(new Set(all.map((l) => l.skin)).size).toBe(LOOK_CHOICES.skin);
+    expect(new Set(all.map((l) => l.hair)).size).toBe(LOOK_CHOICES.hair);
   });
 });

@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 in progress (#23): Meshy for both chandeliers, the terrace canopy dropped (owner, 2026-10-20). Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) in progress (2026-10-21): the rigged poses rejected; figures generated in their pose, seated pair approved; the room on the preview is next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -56,8 +56,8 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V3 | Bar and back bar | Should | Merged (PR #19) |
 | V4 | Linens and chairs | Must | Merged (PR #21) |
 | V5 | Table décor and Photo mode | Must | Merged (PR #22) |
-| V6 | Remaining fixtures | If time allows | In progress (PR #23) |
-| V7 | People | Should | Not started |
+| V6 | Remaining fixtures | If time allows | Merged (PR #23) |
+| V7 | People | Should | Built, waiting for the owner's review |
 
 ### V0: Performance foundation and measurement
 
@@ -346,7 +346,7 @@ The Balanced still frame on PPL-03 can reach ≈ 155 draw calls (its ambient-occ
 
 **Gate:** the owner approves on the preview.
 
-**In progress (2026-10-20):**
+**Delivered (merged in #23, 2026-10-20):**
 
 - **Chandeliers (Meshy for both, owner):** the birdcages are a dense 32-bar wire cage on a base band with a bell dome (code), 1.65 m tall (about 1.8 × their width, R02, R03, R05, R10), the east two on a thick rope; inside, a Meshy crystal candle chandelier (6.6 k triangles, a 1K colour map whose pale crystal and ivory sleeves glow faintly; one instanced mesh for the four). The brass cluster stays in code after three Meshy attempts came out as other chandeliers: a broad, rough oval (top 5.1, radius 0.78) of eight tiers of nine arms, each at its own height and reach, ending in a chunky brass cylinder with a small bulb under it (R02, R03, R11). The bake reads them as lights and occluders: re-baked.
 - **Railings:** wrought-iron scrollwork (a drawn cut-out card, `scrollPanelTexture`, bold strokes, matt) under the handrail along the whole raised-floor railing (R02, R11); wide panels between plain balusters on the mezzanine (R09); one panel on the stair's turn landing, the flights plain (R01, R09). No shadow (thin cards).
@@ -362,15 +362,28 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 **Delivers:**
 
-- **Figures:** a man and a woman in 4 poses each: seated with hands on the table, seated with hands in the lap, standing relaxed, standing with a glass.
+- **Figures:** a man and a woman in 2 poses each (owner, 2026-10-21; was 4): seated with hands on the table, standing with hands by the hips.
 - **Versions:** each in three detail levels.
 - **Colour:** per-guest outfit, skin and hair colours from one shared material.
-- **Rendering:** solid at eye level and in Sit here; light and see-through in the dollhouse overview.
+- **Rendering:** solid and coloured in every view (owner, 2026-10-22; was light and see-through in the overview).
 - **Docs:** the `DESIGN_GUIDE.md` §9 people rule and the PRODUCT_SPEC people line updated.
 
 **Validation:** in **People plan**.
 
 **Gate:** the owner approves each pose in close-up renders before integration, then the room on the preview.
+
+**Built (2026-10-21):**
+
+- **First pass rejected** (owner, 2026-10-21): poses from Meshy's rig and motion-capture clips, with arms and hands set by hand, distorted the mesh and the hands; a re-skin with Blender's automatic weights deformed it worse. The owner asked for two neutral poses only: standing with hands by the hips, and seated with hands on the table. No glass, no hands in the lap.
+- **Figures generated in their pose** (Meshy text-to-3D, no rig, nothing deformed): a man in a charcoal suit and tie and a woman in a sleeveless sheath dress, mannequin heads (the man bald, the woman with a bun), seated at a table and standing. The standing man has one hand at his jacket button (owner kept it). The seated pair approved by the owner (2026-10-21; the woman's knees fixed after). Task ids and prompts: `tools/meshy/TASKS.md`. V7 spent 254 credits (owner approved going over the 180 cap).
+- **Fit** (`tools/blender/people_seated.py`, `people_standing.py`): Meshy's table and chairs, textured plain light grey, are cut away and the holes capped; the guest is scaled to its own size, set on our seat with its back clear of every backrest, its shins rescaled to our floor and its forearms raised smoothly (up to 8 cm, no joint bent) onto our 0.75 m top.
+- **Rebuild** (`people_rebuild.py`, `people_pack.py`): a voxel remesh (3.5 mm) into one closed surface, three levels (14,000, 1,200, 540 triangles; the detailed about half Meshy's 18k–31k, owner 2026-10-22: the closest guests at about half the original's quality), each simplified from the one before, one file per level, normals and texture coordinates quantized (`tools/assets/quantize.ts`: a third off the download, no WebAssembly, which the site's CSP forbids).
+- **Decisions:**
+  - Two textures shared by every figure: the parts at 4096×1536 (a 1024-texel tile per figure for the detailed level, about half Meshy's 2048; 512 for medium, 256 for simple) and the shade at half that, 2048×768 (folds need less; about 45 MB of graphics memory in all): the parts (outfit, skin, hair weights; none, drawn as is) and the shade (or the colour of what is drawn as is). One shader recolours every guest from them. Per-triangle vertex colours were dropped (owner, 2026-10-22: necklines and ties read as triangles). Each level is unwrapped by xatlas (large charts, tightly packed: about 2.5 mm a texel on the detailed level); each texel reads the dense surface along its normal and takes the vote of the dense surface around it (0.7 cm detailed, 1–1.2 cm coarser), whose part borders are smoothed first (owner, 2026-10-22: ties and necklines read as torn).
+  - One `BatchedMesh` for all guests instead of one instanced mesh per pose and level: one draw call for every guest on every device (the plan allowed 16 on desktop, 8 on phones).
+  - Mirrored copies are made at load (no extra download, no draw call). Head turns are dropped: the figures are static meshes.
+  - Real shadows from people wherever movables cast them (desktop), as before V7; phones none.
+- **In the app:** solid and coloured in every view (owner, 2026-10-22: the see-through overview dropped), with the fabric's rough look: Meshy's folds kept in the shade texture and a fine grain in the shader. Each guest's level follows its size on screen, in every view (owner, 2026-10-22: a close look in the overview as smooth as at eye level): taller than 300 px the detailed level, than 45 px medium, else simple; within an allowance of triangles over simple (desktop 70k, the people being drawn again for the shadows; phones 45k, their frame budget): first medium for every guest who asks for it, then detailed for the nearest. Phones load all three levels (owner, 2026-10-22: a Galaxy S24+ runs the guests smoothly; finer guests wanted). The overview's narrow lens makes far guests large, so a size rule, not a distance one. They fade in after the room loads.
 
 ## People plan (V7)
 
@@ -408,7 +421,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 **Variety without cost:**
 
-- 2 bodies × 4 poses = 8 meshes.
+- 2 bodies × 2 poses = 4 meshes (owner, 2026-10-21; was 4 poses).
 - Mirrored copies.
 - Per-guest colours from masks: 5 outfit colours, 5 skin tones, 4 hair colours.
 - Varied head turns on seated figures (small neck bones only; still static).
@@ -418,11 +431,11 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
 
 | | Desktop | Phone |
 |---|---|---|
-| Per figure | Detailed ≤ 8k triangles (eye level, Sit here, Photo mode; nearest 12 guests only); medium ≤ 2k; simple ≤ 600 | Medium only for the nearest 12 at eye level and in Sit here; else simple ≤ 600 |
-| All people | ≤ 400k triangles | ≤ 100k triangles |
+| Per figure | Detailed ≤ 14k triangles; medium ≤ 1.2k; simple ≤ 600; finer levels by size on screen, ≤ 70k triangles over simple in all | Same levels, ≤ 45k triangles over simple |
+| All people | ≤ 400k triangles | ≤ 130k triangles |
 | Draw calls, all people | ≤ 16 (one instanced mesh per pose and detail level) | ≤ 8 |
-| Texture | One 1K atlas (KTX2) | One 512 atlas |
-| Download | ≤ 3 MB, loaded after the room | ≤ 1.5 MB, loaded after the room |
+| Texture | Parts (PNG, 4096×1536) and shade (WebP, 2048×768), shared by all levels | Same |
+| Download | ≤ 3 MB, loaded after the room | ≤ 2.5 MB, loaded after the room (owner, 2026-10-22: the same guests as desktop) |
 | Runtime | No skinning, no animation, no per-guest materials. Real shadows from people only on High; painted contact shadows elsewhere | Same, no real shadows |
 
 **Validation:**
@@ -439,7 +452,7 @@ V7 is the last change to the app. Details, lessons from the proofs of concept an
   - PPL-01 and PPL-02 tests unchanged.
   - Visual baselines.
   - `fidelity-reviewer` against the people reference.
-  - `ux-reviewer` on the overview see-through rule.
+  - `ux-reviewer` on the people in every view.
 - **Devices:** the PPL-03 scene on the iPhone 16 and Galaxy S24 meets the frame-rate target; a regression of more than 10% from V6 is fixed or V7 is reverted.
 
 **Fallback:** if V7 cannot pass its gate by 2026-11-07, today's simple figures stay. The result is consistent, just plainer.

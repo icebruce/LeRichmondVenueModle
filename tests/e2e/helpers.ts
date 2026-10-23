@@ -50,6 +50,9 @@ export async function openStudio(page: Page, query = "fresh") {
     { timeout: 60_000 },
   );
   await expect(page.locator(".loading")).toHaveCount(0, { timeout: 60_000 });
+  // The guests load after the room; their first draw holds the page for seconds on a software GPU,
+  // which can outlast a toast the test is about to click.
+  await page.waitForFunction(() => "__guests" in window, null, { timeout: 120_000 });
   await settle(page);
 }
 

@@ -9,6 +9,41 @@ import { walkArea } from "./walk";
 export type Person = { x: number; z: number; rotY: number };
 export type Crowd = { seated: Person[]; standing: Person[]; unplaced: number };
 
+/** Per-guest choices among the figures' palettes (V7): outfit and skin colours, hair colours. */
+export const LOOK_CHOICES = { outfit: 5, skin: 5, hair: 4 } as const;
+
+/**
+ * A guest's figure (V7): body, pose (seated with hands on the table, or standing; owner, 2026-10-21),
+ * mirrored or not, and palette choices.
+ */
+export type Look = {
+  body: "man" | "woman";
+  pose: "table" | "standing";
+  mirror: boolean;
+  outfit: number;
+  skin: number;
+  hair: number;
+};
+
+/**
+ * The look of the `i`-th seated or standing guest: the same for the same seed and place in the crowd
+ * (PPL-02), and unchanged for everyone else when guests are added or removed.
+ */
+export function lookOf(seed: number, i: number, seated: boolean): Look {
+  const rand = seededRandom(
+    (Math.imul(seed, 0x9e3779b1) ^ Math.imul(i * 2 + (seated ? 0 : 1), 0x85ebca6b)) >>> 0,
+  );
+  const pick = (n: number) => Math.floor(rand() * n);
+  return {
+    body: rand() < 0.5 ? "man" : "woman",
+    pose: seated ? "table" : "standing",
+    mirror: rand() < 0.5,
+    outfit: pick(LOOK_CHOICES.outfit),
+    skin: pick(LOOK_CHOICES.skin),
+    hair: pick(LOOK_CHOICES.hair),
+  };
+}
+
 /** Standing guests keep this much room each (m between neighbours). */
 const STAND_PITCH = 0.7;
 const DANCE_PITCH = 0.6;

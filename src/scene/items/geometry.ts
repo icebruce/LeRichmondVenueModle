@@ -237,3 +237,50 @@ export class PieceModelLoader extends THREE.Loader<PieceModel> {
     loadPieceModel(file).then(onLoad, onError);
   }
 }
+
+/** One detail level of the guest figures (V7, `tools/blender/people_pack.py`): a geometry per `<body>-<pose>`. */
+export type PeopleLevel = Map<string, THREE.BufferGeometry>;
+
+const peopleLevels = new Map<string, Promise<PeopleLevel>>();
+
+/**
+ * A figure as plain floats in its own place: its normals and texture coordinates come quantized
+ * (KHR_mesh_quantization, `tools/assets/quantize.ts`), and every figure in one batch must match.
+ */
+function dequantized(g: THREE.BufferGeometry, world: THREE.Matrix4): THREE.BufferGeometry {
+  const out = new THREE.BufferGeometry();
+  for (const [name, a] of Object.entries(g.attributes)) {
+    const floats = new Float32Array(a.count * a.itemSize);
+    for (let i = 0; i < a.count; i++)
+      for (let k = 0; k < a.itemSize; k++) floats[i * a.itemSize + k] = a.getComponent(i, k);
+    out.setAttribute(name, new THREE.BufferAttribute(floats, a.itemSize));
+  }
+  out.setIndex(g.index);
+  return out.applyMatrix4(world);
+}
+
+function loadPeopleLevel(level: string): Promise<PeopleLevel> {
+  let p = peopleLevels.get(level);
+  if (!p) {
+    p = new GLTFLoader()
+      .loadAsync(`${import.meta.env.BASE_URL}assets/models/people/people-${level}.glb`)
+      .then((gltf) => {
+        const out: PeopleLevel = new Map();
+        gltf.scene.updateMatrixWorld();
+        gltf.scene.traverse((o) => {
+          if (o instanceof THREE.Mesh)
+            out.set(o.name, dequantized(o.geometry as THREE.BufferGeometry, o.matrixWorld));
+        });
+        return out;
+      });
+    peopleLevels.set(level, p);
+  }
+  return p;
+}
+
+/** `loadPeopleLevel` as a three loader (`useLoader`); never disposed. */
+export class PeopleLoader extends THREE.Loader<PeopleLevel> {
+  override load(level: string, onLoad: (l: PeopleLevel) => void, _: unknown, onError?: (e: unknown) => void) {
+    loadPeopleLevel(level).then(onLoad, onError);
+  }
+}

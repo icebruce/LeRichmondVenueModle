@@ -88,3 +88,49 @@ export function bottom(m: TriMesh): number {
   for (let i = 1; i < m.positions.length; i += 3) y = Math.min(y, m.positions[i] as number);
   return y;
 }
+
+/**
+ * How a guest figure (V7) fits the chair, table and floor, in the app's frame: y up, the figure
+ * facing +z, its chair's origin at 0 (`tools/blender/people_pose.py`). Chair seats are 0.43–0.45 m
+ * high and the table edge is 0.32 m ahead of the chair with its top at 0.75 m (0.76 for the farm table).
+ */
+export const FIT = {
+  /** Feet within this of the floor. */
+  floor: 0.02,
+  /**
+   * Lowest point over the seat's back part, where the figure sits (|x| < 0.18, -0.25 < z < 0.05,
+   * 0.3-0.6 m up: feet tucked under the seat do not count):
+   * resting on it, or sunk into its cushion (the plan's chair-clearance rule leaves the cushion out).
+   */
+  seat: [0.37, 0.47],
+  /** Where the table starts (z), and its top's slab no figure may enter. */
+  tableEdge: 0.33,
+  slab: [0.72, 0.745],
+  /** Lowest point of the hands on the top (over the table, above the knees under it: 0.68 m). */
+  hands: [0.745, 0.77],
+} as const;
+
+/** What breaks a figure's fit, empty when it fits; `pose` is `table`, `lap`, `standing` or `glass`. */
+export function figureFit(m: TriMesh, pose: string): string[] {
+  const out: string[] = [];
+  const p = m.positions;
+  let feet = Infinity;
+  let seat = Infinity;
+  let hands = Infinity;
+  let slab = 0;
+  for (let i = 0; i < p.length; i += 3) {
+    const [x, y, z] = [p[i] as number, p[i + 1] as number, p[i + 2] as number];
+    feet = Math.min(feet, y);
+    if (Math.abs(x) < 0.18 && z > -0.25 && z < 0.05 && y > 0.3 && y < 0.6) seat = Math.min(seat, y);
+    if (z > FIT.tableEdge && y > FIT.slab[0] && y < FIT.slab[1]) slab++;
+    if (z > FIT.tableEdge && y > 0.68) hands = Math.min(hands, y);
+  }
+  const mm = (v: number) => `${(v * 1000).toFixed(0)} mm`;
+  if (Math.abs(feet) > FIT.floor) out.push(`feet ${mm(feet)} off the floor`);
+  if (pose !== "table" && pose !== "lap") return out;
+  if (seat < FIT.seat[0] || seat > FIT.seat[1]) out.push(`lowest point over the seat at ${mm(seat)}`);
+  if (slab) out.push(`${slab} points inside the table top`);
+  if (pose === "table" && (hands < FIT.hands[0] || hands > FIT.hands[1]))
+    out.push(`hands at ${mm(hands)}, not on the table top`);
+  return out;
+}
