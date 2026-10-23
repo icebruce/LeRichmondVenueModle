@@ -587,6 +587,19 @@ export function useFloorPointer() {
   );
 }
 
+/** Turns the camera controls off while a piece is dragged (they listen on the same canvas), and on again. */
+export function useSetControls() {
+  const getThree = useThree((s) => s.get);
+  return useCallback(
+    (enabled: boolean) => {
+      const controls = getThree().controls as { enabled?: boolean } | null;
+      if (controls) controls.enabled = enabled;
+      viewStore.setState({ controlsEnabled: enabled });
+    },
+    [getThree],
+  );
+}
+
 export function Items({
   m,
   evening,
@@ -613,7 +626,7 @@ export function Items({
     [placed],
   );
   const toPlane = useFloorPointer();
-  const getThree = useThree((s) => s.get);
+  const setControls = useSetControls();
   const press = useRef<{ x: number; y: number; timer: number | null; started: boolean } | null>(null);
 
   const lap = scenario.style.linenLength === "lap";
@@ -646,12 +659,6 @@ export function Items({
     },
     [linens],
   );
-
-  function setControls(enabled: boolean) {
-    const controls = getThree().controls as { enabled?: boolean } | null;
-    if (controls) controls.enabled = enabled;
-    viewStore.setState({ controlsEnabled: enabled });
-  }
 
   function beginDrag(
     kind: "move" | "rotate",
@@ -820,12 +827,13 @@ export function Items({
       : current.includes(id)
         ? current
         : [id];
-    editor.select(ids);
-    if (spotFor(p.item, venue)?.level === "mezzanine") return;
     const pivot: [number, number] = [p.item.x, p.item.z];
     if (e.pointerType === "touch") {
       // Long-press to pick up on touch, so one-finger drags still orbit the camera (DESIGN_GUIDE §3.2).
+      // A touch selects only on a tap or the pick-up: a pan that starts on a piece selects nothing,
+      // so it never reopens a closed sheet.
       const pointerId = e.pointerId;
+      const mezzanine = spotFor(p.item, venue)?.level === "mezzanine";
       const clear = () => {
         window.removeEventListener("pointermove", moveOff);
         window.removeEventListener("pointerup", end);
@@ -837,10 +845,16 @@ export function Items({
         if (ev.pointerId !== pointerId || !press.current || press.current.started) return;
         if (Math.hypot(ev.clientX - press.current.x, ev.clientY - press.current.y) > 8) clear();
       };
-      const end = (ev: PointerEvent) => ev.pointerId === pointerId && clear();
+      const end = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        if (ev.type === "pointerup" && press.current && !press.current.started) editor.select(ids);
+        clear();
+      };
       const timer = window.setTimeout(() => {
         if (press.current && !press.current.started) {
           press.current.started = true;
+          editor.select(ids);
+          if (mezzanine) return;
           navigator.vibrate?.(10);
           beginDrag("move", ids, e, p.y, pivot);
         }
@@ -851,6 +865,8 @@ export function Items({
       window.addEventListener("pointercancel", end);
       return;
     }
+    editor.select(ids);
+    if (spotFor(p.item, venue)?.level === "mezzanine") return;
     beginDrag("move", ids, e, p.y, pivot);
   }
 

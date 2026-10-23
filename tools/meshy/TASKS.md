@@ -101,3 +101,12 @@ Idle 1, 2, 3 (11, 12, 243): man 01a15ebe-af20-7258-afc3-47325b6b142e, 01a15ebe-b
 
 Commands: `people_seated.py <refined.glb> <out.glb> sit=0.93` (man), `sit=0.87 forward=0.06` (woman); `people_standing.py <refined.glb> <out.glb> height=1.80` / `1.70`; `people_rebuild.py <placed.glb> <out.glb>` (woman: `legs=0.38 front=-0.26` seated, `legs=0.545` standing, her hem); `people_pack.py <rebuilt_dir> public/assets/models/people`.
 
+## Bar flowers (VEN-06, 2026-10-23)
+
+Owner: Meshy for the bar flowers, within 35 of the 45 credits left. Asked for a whole arrangement without the vase (`prompts/barflowers-preview.txt`); Meshy made one blossom branch, which the app repeats 16 times per vase (the glass stays in code). Credits 45 → 10.
+
+| Step | Task | Notes |
+|---|---|---|
+| Preview (10,000 target) | 01a1695b-b3d7-7225-ae46-4b7e69a4a5d7 | one branch, 9,713 triangles |
+| Refine (PBR) | 01a1695d-78ed-7258-a2da-f686ac05cb9a | `prompts/barflowers-texture.txt` |
+| Remesh to 2,500 | 01a1695e-9f5f-77aa-967d-7d4334b18d24 | 2,473 triangles; `blender/barflower_from_meshy.py <remesh.glb> <out.glb> 1.3` |

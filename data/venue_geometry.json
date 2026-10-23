@@ -386,6 +386,7 @@
       }
     ],
     "chandelierModels": { "birdcage": "assets/models/fixtures/birdcage.glb" },
+    "barFlowerModel": "assets/models/fixtures/barflower.glb",
     "sillPlants": { "height": 0.45, "perWindow": 3 },
     "pendantRows": [
       {

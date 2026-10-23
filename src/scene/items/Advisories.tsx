@@ -14,7 +14,8 @@ const LABEL_MIN_BAND = 400;
 
 /**
  * Amber dashed outline on each advisory's floor area, with its short label (DESIGN_GUIDE §5);
- * never blocks anything. Live while dragging, so the couple sees an aisle close as they move.
+ * never blocks anything. Drawn at rest only when Room › Show checks in the room is on; always live
+ * while dragging, so the couple sees an aisle close as they move.
  * `hidden` (walk view) keeps the outline mounted but undrawn, so returning never compiles a shader.
  */
 export function Advisories({ hidden }: { hidden: boolean }) {
@@ -65,8 +66,10 @@ export function Advisories({ hidden }: { hidden: boolean }) {
   );
   // While choosing a seat, the chairs are what matter; the checks step aside.
   const picking = useView((s) => s.pickSeat !== null);
+  // Asked for in Room › Layout, or a piece is moving.
+  const wanted = useView((s) => s.showChecks || s.drag !== null);
   if (!segments.length) return null;
-  const shown = !hidden && !picking;
+  const shown = !hidden && !picking && wanted;
   return (
     <group name="advisories">
       <Line

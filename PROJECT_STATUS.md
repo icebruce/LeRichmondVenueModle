@@ -76,6 +76,10 @@
   - Venue (supersedes "bar front to kitchen wall ≈ 6.3–6.5 m" and "garage doors ≈ 6.3 m"): the raised floor's straight railing after its step 1.7 → 1.1 m, so the platform and the stair move 0.6 m north; the south (kitchen) wall moves 1.4 m north (bar front to kitchen wall ≈ 5.05 m, room ≈ 16 × 12.9 m, entrance landing ≈ 1.0 m); both garage doors ≈ 5.6 m, keeping the 0.9 m small wall at the south end; the mezzanine edge, DJ option 3, the cameras and the sample plan move with the wall.
   - Phone back (supersedes "never leaves the app"): steps back through everything open, latest first (menus, dialogs, Add › Yours steps, compare, walking or Sit here, checks, selection, pages, the sheet a height at a time); with nothing open, a "Leave Richmond Studio?" dialog with the save state, Stay first. History is only added after a tap, so browsers keep it.
   - DJ option 2 beside the kitchen pass, for now.
+- Owner feedback (2026-10-23):
+  - Phone: a pan that starts on a piece no longer selects it (only a tap or the 300 ms pick-up does), so a closed sheet stays closed while the view moves.
+  - The checks' outlines and labels in the room are off by default; Room › Layout › Show checks in the room turns them on (remembered on the device); they always show while a piece moves; the checks count and list are unchanged.
+  - Bar flowers: bigger and fuller, closer to R02 (a crown of 16 copies of one Meshy blossom branch per vase; Meshy credits 45 → 10), and dragged along the bar top in the room (touch: hold, then drag).
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 ## Next steps (2026-10-16)

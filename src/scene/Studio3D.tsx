@@ -476,7 +476,10 @@ function Scene({
       </StaticMerge>
       <BackBarBottles venue={venue} />
       {scenario.venueToggles.barFlowers.shown && (
-        <BarFlowers venue={venue} m={m} at={scenario.venueToggles.barFlowers.at} />
+        // Its own loading step: the blossom branch arrives a moment after the room.
+        <Suspense fallback={null}>
+          <BarFlowers venue={venue} m={m} at={scenario.venueToggles.barFlowers.at} />
+        </Suspense>
       )}
       <Openings venue={venue} m={m} evening={evening} cutWalls={cut} />
       <group visible={mode !== "plan"}>

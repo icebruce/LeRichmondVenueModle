@@ -25,7 +25,7 @@ type Use = { id: string; phone: boolean; triangles: number; placement: string };
 
 /** Bloom models (V5) are parts of table décor, not library entries: each holds this budget. */
 const BLOOMS = { dir: "assets/models/blooms/", triangles: 1000 };
-/** The room's own models (V6, `chandelierModels`): drawn on phones too, each within this budget. */
+/** The room's own models (V6, `chandelierModels`, `barFlowerModel`): drawn on phones too, each within this budget. */
 const FIXTURES = { triangles: 20000 };
 
 /** Guest figures (V7): one file per detail level, a mesh per figure, each within its level's budget. */
@@ -39,10 +39,11 @@ function uses(): Map<string, Use[]> {
       { id: "table décor", phone: false, triangles: BLOOMS.triangles, placement: "part" },
     ]);
   const venue = JSON.parse(readFileSync(join(root, "data/venue_geometry.json"), "utf8"));
-  for (const file of Object.values(venue.fixtures.chandelierModels) as string[])
-    out.set(file, [
-      { id: "venue chandelier", phone: true, triangles: FIXTURES.triangles, placement: "part" },
-    ]);
+  for (const file of [
+    ...Object.values(venue.fixtures.chandelierModels),
+    venue.fixtures.barFlowerModel,
+  ] as string[])
+    out.set(file, [{ id: "venue fixture", phone: true, triangles: FIXTURES.triangles, placement: "part" }]);
   const dir = join(root, "data/library");
   for (const f of readdirSync(dir).filter((n) => n.endsWith(".json"))) {
     for (const e of JSON.parse(readFileSync(join(dir, f), "utf8")).items ?? []) {

@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { openStudio, screenOf, setCamera, state } from "./helpers";
+import { item, openStudio, screenOf, setCamera, settle, state } from "./helpers";
 
 test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async ({ page }) => {
   await openStudio(page);
@@ -168,4 +168,33 @@ test("[EXP-02] [PLT-02] phone Photo mode: from the camera menu, a card with blur
   await page.goBack();
   await expect(page.getByTestId("photo-layer")).toHaveCount(0);
   await expect(page.locator(".tabbar")).toBeVisible();
+});
+
+test("[PLT-02] [LAY-02] phone: a pan that starts on a table selects nothing, so a closed sheet stays closed", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await setCamera(page, "plan");
+  await swipe(page, ".grabber", 600, 720);
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // The view re-frames the room once the sheet has gone.
+  await page.waitForTimeout(500);
+  await settle(page);
+  const t = await item(page, "t1");
+  const [x, y] = await screenOf(page, t.x, 0.77, t.z);
+  // A one-finger pan from the table, quicker than the hold that picks it up.
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", px: number) =>
+    cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: px, y }] });
+  await touch("touchStart", x);
+  for (let i = 1; i <= 6; i++) await touch("touchMove", x + i * 12);
+  await touch("touchEnd", x + 72);
+  await page.waitForTimeout(500);
+  expect((await state(page)).selection).toEqual([]);
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // A tap still selects it and shows it at the sheet's peek.
+  const [tx, ty] = await screenOf(page, t.x, 0.77, t.z);
+  await page.touchscreen.tap(tx, ty);
+  await expect.poll(async () => (await state(page)).selection).toEqual(["t1"]);
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
 });

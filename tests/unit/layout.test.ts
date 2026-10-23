@@ -8,7 +8,7 @@ import { venueSampleItems } from "../../src/domain/scenario/scenario";
 import { area, polygonInside } from "../../src/domain/geometry";
 import { alignSnap } from "../../src/domain/layout/align";
 import { walkArea } from "../../src/domain/layout/walk";
-import { barTopLength, barTopPlace } from "../../src/domain/venue/model";
+import { VASE_GAP_M, barTopLength, barTopPlace, barTopShare, moveVase } from "../../src/domain/venue/model";
 import type { Vec2 } from "../../src/domain/geometry";
 
 const table = (over: Partial<Item> = {}): Item => ({
@@ -377,5 +377,20 @@ describe("bar flowers", () => {
     }
     expect(barTopPlace(d, -1)).toEqual(barTopPlace(d, 0));
     expect(barTopLength(d)).toBeGreaterThan(x1 - x0);
+  });
+
+  test("[VEN-06] a vase dragged in the room lands on the nearest point of the bar top, in order and kept apart", () => {
+    const d = venue.data;
+    for (const t of [0, 0.2, 0.5, 0.8, 1]) expect(barTopShare(d, barTopPlace(d, t).point)).toBeCloseTo(t, 6);
+    // From beside the bar, a vase lands on the nearest run.
+    const [x0, , , z1] = d.bar.outer.value;
+    const front = barTopPlace(d, barTopShare(d, [x0 + 1, z1 + 2]));
+    expect(front.run).toBe("front");
+    expect(front.point[0]).toBeCloseTo(x0 + 1, 6);
+    const gap = VASE_GAP_M / barTopLength(d);
+    expect(moveVase(d, [0.3, 0.6], 0, 0.1)).toEqual([0.1, 0.6]);
+    expect(moveVase(d, [0.3, 0.6], 0, 0.9)[0]).toBeCloseTo(0.6 - gap, 9);
+    expect(moveVase(d, [0.3, 0.6], 1, 0)[1]).toBeCloseTo(0.3 + gap, 9);
+    expect(moveVase(d, [0.3, 0.6], 1, 2)).toEqual([0.3, 1]);
   });
 });
