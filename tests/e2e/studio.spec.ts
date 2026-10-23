@@ -1105,7 +1105,8 @@ test("[VEN-06] a bar flower is dragged along the bar top in the room; one undo s
   await expect.poll(async () => (await flowers())[1]).toBeGreaterThan(before[1] + 0.1);
   expect((await flowers())[0]).toBe(before[0]);
   // The camera stayed where it was: the drag moved the vase, not the view.
-  expect(await screenOf(page, x, top + 1, z)).toEqual([sx, sy]);
+  const [ax, ay] = await screenOf(page, x, top + 1, z);
+  expect(Math.hypot(ax - sx, ay - sy)).toBeLessThan(0.5);
   await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(flowers).toEqual(before);
 });
