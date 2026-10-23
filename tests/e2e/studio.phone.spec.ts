@@ -182,13 +182,29 @@ test("[PLT-02] [LAY-02] phone: a pan that starts on a table selects nothing, so 
   await settle(page);
   const t = await item(page, "t1");
   const [x, y] = await screenOf(page, t.x, 0.77, t.z);
-  // A one-finger pan from the table, quicker than the hold that picks it up.
-  const cdp = await page.context().newCDPSession(page);
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", px: number) =>
-    cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x: px, y }] });
-  await touch("touchStart", x);
-  for (let i = 1; i <= 6; i++) await touch("touchMove", x + i * 12);
-  await touch("touchEnd", x + 72);
+  // A one-finger pan from the table, quicker than the hold that picks it up: sent in one task, so a
+  // busy software renderer cannot let the hold's timer run between the press and the moves.
+  await page.getByTestId("studio-canvas").evaluate(
+    (wrap, [px, py]) => {
+      const canvas = wrap.querySelector("canvas") ?? wrap;
+      // On the canvas, as a finger's events are: they reach the camera controls and the window.
+      const fire = (type: string, dx: number) =>
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 7,
+            pointerType: "touch",
+            isPrimary: true,
+            bubbles: true,
+            clientX: (px as number) + dx,
+            clientY: py as number,
+          }),
+        );
+      fire("pointerdown", 0);
+      for (let i = 1; i <= 6; i++) fire("pointermove", i * 12);
+      fire("pointerup", 72);
+    },
+    [x, y],
+  );
   await page.waitForTimeout(500);
   expect((await state(page)).selection).toEqual([]);
   await expect(page.locator(".panel")).toHaveCount(0);
