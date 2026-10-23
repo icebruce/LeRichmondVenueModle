@@ -1,6 +1,6 @@
 # Richmond Studio — Visual Upgrade Status
 
-**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) in progress (2026-10-21): the rigged poses rejected; figures generated in their pose, seated pair approved; the room on the preview is next. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
+**Current stage:** V0 (#16), V1 (#17), V2 (#18), V3 (#19) and V2b (#20) merged; the owner asked for V3 to V6, one PR each, stopping before V7. V4 (linens and chairs) merged (#21), V5 (table décor and Photo mode) merged (#22). V6 (remaining fixtures) merged (#23). V7 (people) merged (#24, owner approved 2026-10-23): figures generated in their pose, colours from shared textures, the closest guests at about half the Meshy originals' quality on every device. All eight stages are merged. Plan v3 approved (owner, 2026-10-18): end-to-end implementation in eight stages, people last. The proofs of concept are done and closed (branch `proto/visual-poc`, never merged; it holds the scripts that V0 brings over). Freeze ~2026-11-10; no visual merges after 2026-11-07, fixes only.
 **Scope:** look and performance only. Behaviour stays as in `PRODUCT_SPEC.md`; the owner validates functionality separately. Main plan: `PROJECT_STATUS.md`. Reference analysis (finish checklist, people style, venue details, evening calibration): `docs/visual/REFERENCE_NOTES.md`.
 
 ## Goal
@@ -57,7 +57,7 @@ One pull request per stage, with the Vercel preview. Stopping after any stage le
 | V4 | Linens and chairs | Must | Merged (PR #21) |
 | V5 | Table décor and Photo mode | Must | Merged (PR #22) |
 | V6 | Remaining fixtures | If time allows | Merged (PR #23) |
-| V7 | People | Should | Built, waiting for the owner's review |
+| V7 | People | Should | Merged (#24) |
 
 ### V0: Performance foundation and measurement
 
