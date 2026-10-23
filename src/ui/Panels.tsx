@@ -1833,7 +1833,7 @@ export function RoomPanel({
         />
         <Toggle
           label="Show checks in the room"
-          sub="Where space is tight · always while moving a piece"
+          sub="On this device · always while dragging"
           checked={showChecks}
           onChange={(v) => viewStore.setState({ showChecks: v })}
           testId="toggle-checks"

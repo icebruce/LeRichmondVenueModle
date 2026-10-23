@@ -14,8 +14,8 @@ const LABEL_MIN_BAND = 400;
 
 /**
  * Amber dashed outline on each advisory's floor area, with its short label (DESIGN_GUIDE §5);
- * never blocks anything. Drawn at rest only when Room › Show checks in the room is on; always live
- * while dragging, so the couple sees an aisle close as they move.
+ * never blocks anything. All of them when Room › Show checks in the room is on, and always while
+ * dragging, so the couple sees an aisle close as they move; otherwise those of the selected pieces.
  * `hidden` (walk view) keeps the outline mounted but undrawn, so returning never compiles a shader.
  */
 export function Advisories({ hidden }: { hidden: boolean }) {
@@ -48,10 +48,20 @@ export function Advisories({ hidden }: { hidden: boolean }) {
   }, [scenario, dragKey, venue, catalog]);
   const floorY = (x: number, z: number) =>
     (pointInPolygon([x, z], venue.raised.outline) ? venue.raised.height : 0) + 0.03;
-  // Edge pairs of every outline, drawn as one line-segments object (one draw call).
+  // Every check when asked for in Room › Layout or while a piece moves; otherwise only those of the
+  // selected pieces, so choosing a check in the list still shows where it is.
+  const all = useView((s) => s.showChecks || s.drag !== null);
+  const selection = useEditor((s) => s.selection);
+  const drawn = useMemo(
+    () => (all ? list : list.filter((a) => a.items.some((id) => selection.includes(id)))),
+    [all, list, selection],
+  );
+  // Edge pairs of every outline, drawn as one line-segments object (one draw call); with none to
+  // draw, the full set stays mounted, undrawn, so the next one shown never compiles a shader.
+  const outlined = drawn.length ? drawn : list;
   const segments = useMemo(
     () =>
-      list.flatMap((a) => {
+      outlined.flatMap((a) => {
         const area = a.area ?? [];
         if (!area.length) return [];
         const c = area.reduce((s, p) => [s[0] + p[0] / area.length, s[1] + p[1] / area.length], [0, 0]);
@@ -62,14 +72,12 @@ export function Advisories({ hidden }: { hidden: boolean }) {
         });
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [list, venue],
+    [outlined, venue],
   );
   // While choosing a seat, the chairs are what matter; the checks step aside.
   const picking = useView((s) => s.pickSeat !== null);
-  // Asked for in Room › Layout, or a piece is moving.
-  const wanted = useView((s) => s.showChecks || s.drag !== null);
   if (!segments.length) return null;
-  const shown = !hidden && !picking && wanted;
+  const shown = !hidden && !picking && drawn.length > 0;
   return (
     <group name="advisories">
       <Line
@@ -85,7 +93,7 @@ export function Advisories({ hidden }: { hidden: boolean }) {
         renderOrder={8}
         opacity={0.95}
       />
-      {list.map(
+      {drawn.map(
         (a) =>
           shown &&
           labelled &&

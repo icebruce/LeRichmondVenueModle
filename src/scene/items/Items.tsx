@@ -838,12 +838,17 @@ export function Items({
         window.removeEventListener("pointermove", moveOff);
         window.removeEventListener("pointerup", end);
         window.removeEventListener("pointercancel", end);
+        window.removeEventListener("pointerdown", pinch);
         if (press.current?.timer) window.clearTimeout(press.current.timer);
         press.current = null;
       };
       const moveOff = (ev: PointerEvent) => {
         if (ev.pointerId !== pointerId || !press.current || press.current.started) return;
         if (Math.hypot(ev.clientX - press.current.x, ev.clientY - press.current.y) > 8) clear();
+      };
+      // A second finger makes it a pinch: no tap, no pick-up.
+      const pinch = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId && press.current && !press.current.started) clear();
       };
       const end = (ev: PointerEvent) => {
         if (ev.pointerId !== pointerId) return;
@@ -863,6 +868,7 @@ export function Items({
       window.addEventListener("pointermove", moveOff);
       window.addEventListener("pointerup", end);
       window.addEventListener("pointercancel", end);
+      window.addEventListener("pointerdown", pinch);
       return;
     }
     editor.select(ids);

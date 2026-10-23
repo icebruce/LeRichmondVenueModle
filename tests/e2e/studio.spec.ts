@@ -1062,6 +1062,14 @@ test("[LAY-08] the checks' outlines show in the room only when asked, and always
   await expect(labels.first()).toBeVisible();
   await page.mouse.move(sx, sy, { steps: 3 });
   await page.mouse.up();
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
+  await expect(labels).toHaveCount(0);
+  // A check chosen from the list shows where it is: its pieces selected, its outline drawn.
+  await page.getByTestId("open-checks").click();
+  await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
+  await expect(labels.filter({ hasText: "0.4 m" })).toBeVisible();
+  expect(await labels.count()).toBeLessThan(4);
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
   await expect(labels).toHaveCount(0);
   await openSection(page, "room");
   await page.getByTestId("toggle-checks").check();

@@ -11,34 +11,42 @@ import { PieceModelLoader, type PieceModel } from "../items/geometry";
 import { useFloorPointer, useSetControls } from "../items/Items";
 
 const VASE_H = 0.75;
-const VASE_R = 0.09;
-/** Blossom branches in each vase: together a big, airy crown (R02, owner 2026-10-23). */
-const BRANCHES = 16;
-/** How far down its stem (m) each branch crosses the vase's lip, where it leans from. */
-const LIP_DEPTH = 0.42;
+/** Radius of the vase's mouth (m); its waist is much slimmer. */
+const LIP_R = 0.085;
+/** Blossom branches in each vase: together a big, airy, low dome (R02, owner 2026-10-23). */
+const BRANCHES = 22;
+/** Length (m, the model's own) of each branch's bare stem below the lip. */
+const LIP_DEPTH = 0.48;
+/** Each branch spread wider and lower than the model: R02's crowns are domes wider than tall. */
+const SPREAD = 1.35;
+const SQUASH = 0.8;
 /** Touch: hold this long (ms) without moving this far (px) to pick a vase up, as for pieces. */
 const HOLD_MS = 300;
 const HOLD_PX = 8;
+/** How far a vase in hand rises (m), as a dragged piece does. */
+const LIFT = 0.02;
 
-/** A tall glass cylinder vase, flared at the lip (R02). */
+/** A tall, slender glass trumpet vase on a small foot, flaring toward the mouth (R02). */
 const vaseGeo = new THREE.LatheGeometry(
   [
     [0, 0],
-    [VASE_R, 0],
-    [VASE_R + 0.003, 0.02],
-    [VASE_R - 0.004, VASE_H * 0.6],
-    [VASE_R + 0.008, VASE_H],
+    [0.06, 0],
+    [0.055, 0.012],
+    [0.035, 0.05],
+    [0.035, VASE_H * 0.55],
+    [0.05, VASE_H * 0.8],
+    [LIP_R, VASE_H],
   ].map(([x, y]) => new THREE.Vector2(x, y)),
   24,
 );
 
-/** The pointer's target for one vase and its crown: narrow at the vase, as wide as the crown above. */
-const grabGeo = new THREE.CylinderGeometry(0.42, VASE_R + 0.03, 1.45, 12).translate(0, 0.725, 0);
+/** The pointer's target for one vase: the glass and the heart of its crown, not the outer branches. */
+const grabGeo = new THREE.CylinderGeometry(0.3, 0.08, 1.15, 12).translate(0, 0.575, 0);
 
 /**
  * The two bar flowers (VEN-06): tall glass vases of white blossom branches on the bar top, as in R02,
  * each where the plan puts it along the bar. Each crown is one Meshy blossom branch repeated, turned
- * and leaning out of the lip. Two draws for both: glass and branches. A vase is dragged along the bar
+ * and leaning out from a bundle of stems inside the glass. Two draws for both: glass and branches. A vase is dragged along the bar
  * (touch: hold, then drag) and saved on release, one undo step.
  */
 export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; at: [number, number] }) {
@@ -51,13 +59,15 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
   const model = useLoader(PieceModelLoader, venue.data.fixtures.barFlowerModel) as PieceModel;
   const top = venue.data.bar.counterHeight.value;
   const [live, setLive] = useState<[number, number] | null>(null);
+  /** The vase in hand, drawn lifted as a piece is (DESIGN_GUIDE §5), from pick-up to release. */
+  const [held, setHeld] = useState<0 | 1 | null>(null);
   const shown = live ?? at;
 
   const meshes = useMemo(() => {
     // Ivory by its own colour a little, so the blossom stays white in the evening's shade (R02).
     model.material.emissiveMap = model.material.map;
-    model.material.emissive.set("#fff3e0");
-    model.material.emissiveIntensity = 0.18;
+    model.material.emissive.set("#ffeed8");
+    model.material.emissiveIntensity = 0.32;
     const vases = new THREE.InstancedMesh(vaseGeo, m.glass, 2);
     const crowns = new THREE.InstancedMesh(model.geometry, model.material, 2 * BRANCHES);
     crowns.castShadow = true;
@@ -71,16 +81,17 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
     };
   }, [meshes]);
 
-  // Each branch: through the lip's centre, turned about the vase and leaning out by its own amount.
+  // Each branch: its stem's foot inside the vase, turned about it and leaning out by its own amount,
+  // so the stems cross the mouth within its radius.
   const branches = useMemo(
     () =>
       [0, 1].flatMap((v) => {
         const rand = seededRandom(7 + v * 101);
         return Array.from({ length: BRANCHES }, (_, b) => ({
           yaw: (b / BRANCHES) * Math.PI * 2 + rand() * 0.5,
-          lean: 0.06 + rand() * 0.2,
+          lean: 0.12 + rand() * 0.22,
           spin: rand() * Math.PI * 2,
-          scale: 0.7 + rand() * 0.22,
+          scale: 0.62 + rand() * 0.18,
         }));
       }),
     [],
@@ -88,10 +99,11 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
   useLayoutEffect(() => {
     const t = new THREE.Object3D();
     const lean = new THREE.Matrix4();
-    const drop = new THREE.Matrix4();
+    const shape = new THREE.Matrix4();
     shown.forEach((share, v) => {
       const [x, z] = barTopPlace(venue.data, share).point;
-      t.position.set(x, top, z);
+      const y = top + (held === v ? LIFT : 0);
+      t.position.set(x, y, z);
       t.rotation.set(0, 0, 0);
       t.scale.setScalar(1);
       t.updateMatrix();
@@ -99,13 +111,14 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
       for (let b = 0; b < BRANCHES; b++) {
         const br = branches[v * BRANCHES + b];
         if (!br) continue;
-        t.position.set(x, top + VASE_H, z);
+        t.position.set(x, y + VASE_H - LIP_DEPTH * br.scale * SQUASH, z);
         t.rotation.set(0, br.yaw, 0);
         t.updateMatrix();
         lean.makeRotationZ(br.lean);
-        drop.makeRotationY(br.spin).scale(new THREE.Vector3(br.scale, br.scale, br.scale));
-        drop.multiply(new THREE.Matrix4().makeTranslation(0, -LIP_DEPTH, 0));
-        meshes.crowns.setMatrixAt(v * BRANCHES + b, t.matrix.clone().multiply(lean).multiply(drop));
+        shape
+          .makeRotationY(br.spin)
+          .scale(new THREE.Vector3(br.scale * SPREAD, br.scale * SQUASH, br.scale * SPREAD));
+        meshes.crowns.setMatrixAt(v * BRANCHES + b, t.matrix.clone().multiply(lean).multiply(shape));
       }
     });
     meshes.vases.instanceMatrix.needsUpdate = true;
@@ -113,7 +126,7 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
     meshes.vases.computeBoundingSphere();
     meshes.crowns.computeBoundingSphere();
     invalidate();
-  }, [shown, meshes, branches, venue, top, invalidate]);
+  }, [shown, held, meshes, branches, venue, top, invalidate]);
 
   const press = useRef<number | null>(null);
   const editable = !readOnly && camera !== "walk" && !photo;
@@ -138,12 +151,14 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
       setControls(true);
       document.body.style.cursor = "";
       setLive(null);
+      setHeld(null);
       if (save && next && (next[0] !== from[0] || next[1] !== from[1])) editor.setBarFlowers({ at: next });
     };
     const up = stop(true);
     const cancel = stop(false);
     const begin = () => {
       setControls(false);
+      setHeld(i);
       document.body.style.cursor = "grabbing";
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
@@ -158,7 +173,10 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
       window.removeEventListener("pointermove", wander);
       window.removeEventListener("pointerup", clear);
       window.removeEventListener("pointercancel", clear);
+      window.removeEventListener("pointerdown", pinch);
     };
+    // A second finger makes it a pinch, not a pick-up.
+    const pinch = (ev: PointerEvent) => ev.pointerId !== pointerId && clear();
     const wander = (ev: PointerEvent) => {
       if (ev.pointerId === pointerId && Math.hypot(ev.clientX - x0, ev.clientY - y0) > HOLD_PX) clear();
     };
@@ -170,6 +188,7 @@ export function BarFlowers({ venue, m, at }: { venue: VenueModel; m: Materials; 
     window.addEventListener("pointermove", wander);
     window.addEventListener("pointerup", clear);
     window.addEventListener("pointercancel", clear);
+    window.addEventListener("pointerdown", pinch);
   }
 
   return (
