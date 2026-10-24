@@ -164,6 +164,8 @@ export const venueSchema = z.object({
     ),
     /** The crystal chandelier hung inside each birdcage (V6): a model file in `public/`. */
     chandelierModels: z.object({ birdcage: z.string() }),
+    /** One blossom branch (Meshy), repeated in each bar flower vase (VEN-06). */
+    barFlowerModel: z.string(),
     /** Greenery `height` m tall in the planters outside the street windows' sills, `perWindow` each (V6). */
     sillPlants: z.object({ height: z.number(), perWindow: z.number().int().positive() }),
     pendantRows: z.array(

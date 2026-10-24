@@ -15,7 +15,7 @@ import {
 } from "../domain/layout/decor";
 import { LIGHT_COLOURS } from "../domain/layout/pieces";
 import { ARTWORKS } from "../domain/venue/art";
-import { type VenueModel, barTopLength, barTopPlace } from "../domain/venue/model";
+import { type VenueModel, VASE_GAP_M, barTopLength, barTopPlace } from "../domain/venue/model";
 import { styleOf } from "../domain/scenario/scenario";
 import { countLayout, tableLabels } from "../domain/layout/counts";
 import { itemTitle, spotFor } from "../domain/layout/validate";
@@ -1772,6 +1772,7 @@ export function RoomPanel({
   const { editor, venue } = useStudio();
   const scenario = useEditor((s) => s.scenarios[s.activeId] as Scenario);
   const snapping = useEditor((s) => s.snapping);
+  const showChecks = useView((s) => s.showChecks);
   const { front, side } = venue.data.fixtures.venueFurniture.barStools;
   const changed = Object.keys(scenario.venueToggles.paintings).length;
   const t = scenario.thresholds;
@@ -1829,6 +1830,13 @@ export function RoomPanel({
           value={`Aisle ${metres(t.aisleM)} · doors ${metres(t.clearanceM)}`}
           onClick={() => open("rules")}
           testId="room-rules"
+        />
+        <Toggle
+          label="Show checks in the room"
+          sub="On this device · always while dragging"
+          checked={showChecks}
+          onChange={(v) => viewStore.setState({ showChecks: v })}
+          testId="toggle-checks"
         />
         <Toggle label="Snap to 10 cm grid" checked={snapping} onChange={(v) => editor.setSnapping(v)} />
       </div>
@@ -1903,9 +1911,6 @@ export function GraphicsPage({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
-
-/** Two vases keep at least this far apart along the bar top (VEN-06). */
-const VASE_GAP_M = 0.3;
 
 /** Where a bar flower stands, in words the couple use in the room (VEN-06). */
 function barPlace(venue: VenueModel, t: number): string {

@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { openStudio, screenOf, setCamera, state } from "./helpers";
+import { item, openStudio, screenOf, setCamera, settle, state } from "./helpers";
 
 test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async ({ page }) => {
   await openStudio(page);
@@ -168,4 +168,49 @@ test("[EXP-02] [PLT-02] phone Photo mode: from the camera menu, a card with blur
   await page.goBack();
   await expect(page.getByTestId("photo-layer")).toHaveCount(0);
   await expect(page.locator(".tabbar")).toBeVisible();
+});
+
+test("[PLT-02] [LAY-02] phone: a pan that starts on a table selects nothing, so a closed sheet stays closed", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await setCamera(page, "plan");
+  await swipe(page, ".grabber", 600, 720);
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // The view re-frames the room once the sheet has gone.
+  await page.waitForTimeout(500);
+  await settle(page);
+  const t = await item(page, "t1");
+  const [x, y] = await screenOf(page, t.x, 0.77, t.z);
+  // A one-finger pan from the table, quicker than the hold that picks it up: sent in one task, so a
+  // busy software renderer cannot let the hold's timer run between the press and the moves.
+  await page.getByTestId("studio-canvas").evaluate(
+    (wrap, [px, py]) => {
+      const canvas = wrap.querySelector("canvas") ?? wrap;
+      // On the canvas, as a finger's events are: they reach the camera controls and the window.
+      const fire = (type: string, dx: number) =>
+        canvas.dispatchEvent(
+          new PointerEvent(type, {
+            pointerId: 7,
+            pointerType: "touch",
+            isPrimary: true,
+            bubbles: true,
+            clientX: (px as number) + dx,
+            clientY: py as number,
+          }),
+        );
+      fire("pointerdown", 0);
+      for (let i = 1; i <= 6; i++) fire("pointermove", i * 12);
+      fire("pointerup", 72);
+    },
+    [x, y],
+  );
+  await page.waitForTimeout(500);
+  expect((await state(page)).selection).toEqual([]);
+  await expect(page.locator(".panel")).toHaveCount(0);
+  // A tap still selects it and shows it at the sheet's peek.
+  const [tx, ty] = await screenOf(page, t.x, 0.77, t.z);
+  await page.touchscreen.tap(tx, ty);
+  await expect.poll(async () => (await state(page)).selection).toEqual(["t1"]);
+  await expect(page.locator(".panel")).toHaveClass(/detent-peek/);
 });

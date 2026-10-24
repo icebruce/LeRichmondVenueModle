@@ -13,6 +13,8 @@ import {
   settle,
   state,
 } from "./helpers";
+import venueJson from "../../data/venue_geometry.json" with { type: "json" };
+import { barTopPlace, parseVenue } from "../../src/domain/venue/model";
 
 test.describe.configure({ mode: "serial" });
 
@@ -613,6 +615,7 @@ test("[PLT-03] the shadow map is redrawn when the room changes, not when the cam
 });
 
 test("[PLT-03] labels stay on their place in the room after the window resizes", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("rs-show-checks", "1"));
   await openStudio(page);
   const label = page.locator(".advisory-label").first();
   await expect(label).toBeVisible();
@@ -1041,4 +1044,69 @@ test("[LIB-08] a hanging light shows its height to the floor and drags up or dow
   // One change, one undo.
   await page.getByTestId("undo").click();
   await expect(readout).toHaveText(`≈ ${hang.toFixed(1)} m`);
+});
+
+test("[LAY-08] the checks' outlines show in the room only when asked, and always while a piece moves", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await expect(page.getByTestId("count-advisories")).toHaveText("4");
+  const labels = page.locator(".advisory-label");
+  await expect(labels).toHaveCount(0);
+  // While a table moves they show, and go again once it is let go.
+  const t = await item(page, "t1");
+  const [sx, sy] = await screenOf(page, t.x, 0.77, t.z);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move(sx + 12, sy, { steps: 3 });
+  await expect(labels.first()).toBeVisible();
+  await page.mouse.move(sx, sy, { steps: 3 });
+  await page.mouse.up();
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
+  await expect(labels).toHaveCount(0);
+  // A check chosen from the list shows where it is: its pieces selected, its outline drawn.
+  await page.getByTestId("open-checks").click();
+  await page.getByText("Aisle ≈ 0.4 m between table 5 and table 6").click();
+  await expect(labels.filter({ hasText: "0.4 m" })).toBeVisible();
+  expect(await labels.count()).toBeLessThan(4);
+  await page.evaluate(() => (window as unknown as W).__studio.editor.select([]));
+  await expect(labels).toHaveCount(0);
+  await openSection(page, "room");
+  await page.getByTestId("toggle-checks").check();
+  await expect(labels.first()).toBeVisible();
+  // A choice of this device: it stays after a reload.
+  await page.reload();
+  await openStudio(page);
+  await expect(labels.first()).toBeVisible();
+});
+
+test("[VEN-06] a bar flower is dragged along the bar top in the room; one undo step", async ({ page }) => {
+  await openStudio(page);
+  await setCamera(page, "plan");
+  const flowers = async () =>
+    page.evaluate(() => {
+      const s = (window as unknown as W).__studio.editor.store.getState();
+      const active = s.scenarios[s.activeId] as unknown as {
+        venueToggles: { barFlowers: { at: [number, number] } };
+      };
+      return active.venueToggles.barFlowers.at;
+    });
+  const before = await flowers();
+  const d = parseVenue(venueJson);
+  const top = d.bar.counterHeight.value;
+  const [x, z] = barTopPlace(d, before[1]).point;
+  const [tx, tz] = barTopPlace(d, before[1] + 0.15).point;
+  const [sx, sy] = await screenOf(page, x, top + 1, z);
+  const [ex, ey] = await screenOf(page, tx, top, tz);
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(sx + ((ex - sx) * i) / 8, sy + ((ey - sy) * i) / 8);
+  await page.mouse.up();
+  await expect.poll(async () => (await flowers())[1]).toBeGreaterThan(before[1] + 0.1);
+  expect((await flowers())[0]).toBe(before[0]);
+  // The camera stayed where it was: the drag moved the vase, not the view.
+  const [ax, ay] = await screenOf(page, x, top + 1, z);
+  expect(Math.hypot(ax - sx, ay - sy)).toBeLessThan(0.5);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(flowers).toEqual(before);
 });

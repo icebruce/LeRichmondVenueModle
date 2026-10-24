@@ -58,5 +58,9 @@
   "assets/models/fixtures/birdcage.glb": {
     "openEdges": 165,
     "nonManifoldEdges": 144
+  },
+  "assets/models/fixtures/barflower.glb": {
+    "openEdges": 80,
+    "nonManifoldEdges": 50
   }
 }

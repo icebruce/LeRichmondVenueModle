@@ -101,7 +101,8 @@ Owner-approved 2026-10-17 (Option 1 of the navigation mockups, design canvas `Op
 - **Bottom sheet** with three detents (peek 164 pt: one counts line, title and the key actions — owner-approved 2026-10-16; the phone counts line leaves the dance area to Room › Layout rules so it stays on one line; half; full). Swipe down steps it down one detent at a time to closed, a quick flick two. Content pulls the sheet down only from its very top; swiping up on the content raises it only from peek to half, and at half it scrolls: only the sheet's head (grabber and counts line, the grabber alone being too thin for a finger) opens it full (owner, 2026-10-17).
 - **Back:** the system back gesture steps back through the app, latest first: a menu or dialog, a step inside a page (Add › Yours), compare, walking or Sit here, then the checks, the selection, a page (one level up), and the sheet one height at a time. With nothing left open it asks "Leave Richmond Studio?" with the save state, Stay first; Leave, or back again, leaves (owner, 2026-10-17). Browsers only honour history the app adds after a tap, so before the first tap back may leave. No pull-to-refresh.
 - Adding a piece drops the sheet to its peek with the piece selected; a selection shows its actions first.
-- Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item.
+- A tap selects a piece; a pan that starts on one moves the view and selects nothing, so a closed sheet stays closed (owner, 2026-10-23).
+- Dragging a table: long-press 300 ms to pick up (haptic where supported), drag, release. Two-finger rotate on a selected item. A bar flower vase the same way, along the bar top.
 
 ### 3.3 Tablet (768–1023 px)
 
@@ -138,7 +139,7 @@ Desktop layout at 768–1023 px too: the panel folds away (its section button or
 - **Light height** (a selected hanging or ceiling light, step 4F, pending owner approval in its PR): a dashed accent line, with a dark halo, drops from the light to a small ring on the floor, with "≈ 2.6 m" beside it halfway down; in the dollhouse on desktop a brass grip just under the light's lowest point (14 px across, a 44 pt hit area) drags it up or down in 0.1 m steps between its limits, the light following; the selection toolbar hides meanwhile; release saves one undo step, Escape puts it back. Plan shows the line and height only; phones change it with the inspector's − / + stepper.
 - **Dragging:** the item lifts 2 cm with a soft shadow; a ghost footprint shows where it lands; snapping guides are thin accent lines.
 - **Refused move:** outline turns `--blocked`, a one-line reason appears near the cursor ("Overlaps the bar"), the item springs back on release. Any refused change (move, turn, option, venue furniture) also shows a toast with the reason ("Overlaps the bar. Nothing was changed."), so it is seen wherever the couple is (2026-10-17).
-- **Advisory:** amber dashed overlay on the problem area (aisle, doorway), with a short label and a details row in the inspector. Never blocks the action.
+- **Advisory:** amber dashed overlay on the problem area (aisle, doorway), with a short label and a details row in the inspector. Never blocks the action. In the room only with Room › Layout › Show checks in the room on (off by default, a device choice), always while a piece moves, and for the selected pieces, so a check chosen from the list shows where it is (owner, 2026-10-23).
 - **Dimensions** appear while dragging or resizing, in metres with one decimal, prefixed "≈".
 
 ## 6. Keyboard (desktop)

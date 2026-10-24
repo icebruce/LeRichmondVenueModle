@@ -135,6 +135,35 @@ export function barTopPlace(d: VenueData, t: number): BarTopPlace {
   throw new Error("unreachable");
 }
 
+/** The share (0 to 1) along the bar top's middle line nearest `p` (VEN-06): where a dragged vase lands. */
+export function barTopShare(d: VenueData, p: Vec2): number {
+  const runs = barTopRuns(d);
+  const total = runs.reduce((n, r) => n + r.length, 0);
+  let best = { dist: Infinity, s: 0 };
+  let start = 0;
+  for (const r of runs) {
+    const [dx, dz] = [r.b[0] - r.a[0], r.b[1] - r.a[1]];
+    const k = r.length
+      ? Math.min(1, Math.max(0, ((p[0] - r.a[0]) * dx + (p[1] - r.a[1]) * dz) / r.length ** 2))
+      : 0;
+    const dist = Math.hypot(r.a[0] + dx * k - p[0], r.a[1] + dz * k - p[1]);
+    if (dist < best.dist) best = { dist, s: start + k * r.length };
+    start += r.length;
+  }
+  return total ? best.s / total : 0;
+}
+
+/** The least distance between the two bar flowers along the bar top (VEN-06). */
+export const VASE_GAP_M = 0.3;
+
+/** The two vases' shares once vase `i` moves to `t`, kept in order and `VASE_GAP_M` apart (VEN-06). */
+export function moveVase(d: VenueData, at: readonly [number, number], i: 0 | 1, t: number): [number, number] {
+  const gap = VASE_GAP_M / barTopLength(d);
+  return i === 0
+    ? [Math.min(Math.max(0, at[1] - gap), Math.max(0, t)), at[1]]
+    : [at[0], Math.max(Math.min(1, at[0] + gap), Math.min(1, t))];
+}
+
 function barObstacles(d: VenueData): Obstacle[] {
   const [x0, z0, x1, z1] = d.bar.outer.value;
   const leg = d.bar.legWidth;

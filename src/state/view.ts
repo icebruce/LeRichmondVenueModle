@@ -33,6 +33,8 @@ export type ViewState = {
   insetColumn: number;
   /** Guests drawn in the room (a viewing choice, not saved). */
   showPeople: boolean;
+  /** The checks' outlines drawn in the room at rest (LAY-08); remembered on this device, not saved. */
+  showChecks: boolean;
   /** Scenario shown side by side with the active one, from the same camera (SCN-06). */
   compare: string | null;
   /** Desktop: screen point (px) just above the selection, where its toolbar sits; null when hidden. */
@@ -71,6 +73,16 @@ export type Photo = {
   busy: boolean;
 };
 
+const CHECKS_KEY = "rs-show-checks";
+
+function storedShowChecks(): boolean {
+  try {
+    return localStorage.getItem(CHECKS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Shared by the scene (renders it) and the UI (writes panel inset, reads drag state). */
 export const viewStore = createStore<ViewState>(() => ({
   drag: null,
@@ -87,12 +99,22 @@ export const viewStore = createStore<ViewState>(() => ({
   lift: null,
   focus: [8, 7],
   showPeople: true,
+  showChecks: storedShowChecks(),
   compare: null,
   pickSeat: null,
   seat: null,
   requestFor: null,
   photo: null,
 }));
+
+viewStore.subscribe((s, prev) => {
+  if (s.showChecks === prev.showChecks) return;
+  try {
+    localStorage.setItem(CHECKS_KEY, s.showChecks ? "1" : "0");
+  } catch {
+    // Private browsing: the choice lasts for this visit only.
+  }
+});
 
 /** Walk-mode input written by keyboard handlers and the on-screen joystick (x = strafe, y = forward). */
 export const walkInput = createStore<{ move: [number, number]; look: [number, number] }>(() => ({

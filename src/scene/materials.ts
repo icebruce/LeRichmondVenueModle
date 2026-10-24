@@ -340,9 +340,6 @@ export function useMaterials(quality: Quality) {
       // black steel (R02, R03). The fridges' dark glass doors are dimly lit inside.
       stainless: grounded(std({ color: "#b9bcbc", metalness: 0.9, roughness: 0.28 })),
       fridgeGlass: std({ color: "#1c2422", emissive: "#9fb5ad", emissiveIntensity: 0.14, roughness: 0.08 }),
-      // The bar flowers' white blossom and dark branches (R02, VEN-06).
-      blossom: std({ color: "#f3eee6", roughness: 0.85 }),
-      branch: std({ color: "#3b2c22", roughness: 0.9 }),
       // The banquettes' nail-head trim: a strip with one brass nail every 5 cm (trim sheet).
       nailTrim: std({ map: nailheadTexture("#2a2b2d"), color: "#ffffff", metalness: 0.4, roughness: 0.45 }),
       // Sheer curtains behind the velvet at the street windows (R10).
