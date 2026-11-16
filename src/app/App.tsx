@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { type CloudSync, getPartner, setPartner } from "../data/cloud";
 import { downloadBlob, downloadScenario, fileName, readScenarioFile } from "../data/files";
-import { PLAN_PIXELS, drawPlan } from "./plan";
+import { PLAN_SIZE, PRINT_SCALE, drawPlan } from "../ui/plan";
 import { jpegPagePdf } from "../domain/export/pdf";
 import type { Studio } from "../scene/context";
 import { StudioContext } from "../scene/context";
@@ -77,28 +77,23 @@ export function App({ studio: base, cloud }: { studio: Studio; cloud: Cloud }) {
           studio.editor.notify(own ? e.message : "That file isn't a Richmond Studio scenario.");
         }
       },
-      exportPlan: async (format) => {
+      exportPlan: async (format, kind) => {
         const scenario = studio.editor.active();
-        studio.editor.notify("Preparing the plan…");
+        const what = kind === "seating" ? "seating chart" : "plan";
+        studio.editor.notify(`Preparing the ${what}…`);
         const canvas = document.createElement("canvas");
-        const today = new Date().toLocaleDateString("en-CA", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-        drawPlan(canvas, scenario, studio.venue, studio.catalog, EVENT, today);
+        drawPlan(canvas, scenario, studio.venue, studio.catalog, EVENT, kind);
+        const name = `${scenario.name} ${kind === "seating" ? "seating chart" : "plan"}`;
+        const label = kind === "seating" ? "Seating chart" : "Plan";
         if (format === "png") {
-          downloadBlob(await toBlob(canvas, "image/png"), fileName(`${scenario.name} plan`, "png"));
-          studio.editor.notify("Plan saved as an image");
+          downloadBlob(await toBlob(canvas, "image/png"), fileName(name, "png"));
+          studio.editor.notify(`${label} saved as an image`);
           return;
         }
         const jpeg = new Uint8Array(await (await toBlob(canvas, "image/jpeg", 0.92)).arrayBuffer());
-        const pdf = jpegPagePdf(jpeg, PLAN_PIXELS.width, PLAN_PIXELS.height);
-        downloadBlob(
-          new Blob([pdf.slice().buffer], { type: "application/pdf" }),
-          fileName(`${scenario.name} plan`, "pdf"),
-        );
-        studio.editor.notify("Plan saved as a PDF");
+        const pdf = jpegPagePdf(jpeg, PLAN_SIZE.width * PRINT_SCALE, PLAN_SIZE.height * PRINT_SCALE);
+        downloadBlob(new Blob([pdf.slice().buffer], { type: "application/pdf" }), fileName(name, "pdf"));
+        studio.editor.notify(`${label} saved as a PDF`);
       },
       library: {
         decode: decodePhoto,

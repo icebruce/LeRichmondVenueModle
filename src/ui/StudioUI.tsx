@@ -35,6 +35,7 @@ import { PhotoLayer, openPhoto } from "./Photo";
 import { ConflictDialog, LeaveDialog, OfflineBanner, PartnerChooser } from "./Dialogs";
 import { backStore, useBackLayer } from "./back";
 import { InspirationPanel } from "./Inspiration";
+import { SeatingLayer } from "./Seating";
 
 /** The five sections (DESIGN_GUIDE §3): a rail on desktop, a tab bar on phones, same order. */
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
@@ -336,8 +337,10 @@ function useShortcuts() {
         editor.moveItems(items.map((i) => ({ id: i.id, x: i.x + dx, z: i.z + dz })));
       } else if (!mod && (e.key === "p" || e.key === "P")) {
         openPhoto(editor);
-      } else if (!mod && ["1", "2", "3"].includes(e.key)) {
-        editor.setCamera((["dollhouse", "plan", "walk"] as const)[Number(e.key) - 1] ?? "dollhouse");
+      } else if (!mod && ["1", "2", "3", "4"].includes(e.key)) {
+        editor.setCamera(
+          (["dollhouse", "plan", "walk", "seating"] as const)[Number(e.key) - 1] ?? "dollhouse",
+        );
       }
     };
     window.addEventListener("keydown", onKey);
@@ -504,6 +507,29 @@ export function StudioUI() {
   useEffect(() => {
     if (hasSelection) viewStore.setState({ pickSeat: null });
   }, [hasSelection]);
+  // Seating folds the panel (the sheet on phones) away for the chart and brings it back on
+  // leaving (SEA-01).
+  const folded = useRef<{ panel: boolean; sheet: Sheet } | null>(null);
+  const shown = useRef({ panel: panelOpen, sheet });
+  useEffect(() => {
+    shown.current = { panel: panelOpen, sheet };
+  });
+  useEffect(
+    () =>
+      (editor.store as StoreApi<EditorState>).subscribe((s, prev) => {
+        if (s.camera === prev.camera) return;
+        if (s.camera === "seating") {
+          folded.current = { ...shown.current };
+          setPanelOpen(false);
+          setSheet("closed");
+        } else if (prev.camera === "seating" && folded.current) {
+          setPanelOpen(folded.current.panel);
+          setSheet(folded.current.sheet);
+          folded.current = null;
+        }
+      }),
+    [editor],
+  );
 
   // A new selection shows itself: on phones as the sheet at its peek (actions first); on desktop
   // through the toolbar beside it, with details one tap away. Nothing selected, nothing to detail.
@@ -747,7 +773,8 @@ export function StudioUI() {
     setSheet(SHEET_ORDER[Math.max(0, Math.min(SHEET_ORDER.length - 1, i))] ?? detent);
   };
 
-  const showCounts = !phone && !compare && !photo;
+  const seating = camera === "seating" && !photo;
+  const showCounts = !phone && !compare && !photo && !seating;
   return (
     <div
       className={`ui cam-${camera}${photo ? " photo" : ""}`}
@@ -757,6 +784,7 @@ export function StudioUI() {
     >
       {PERF && <PerfOverlay />}
       {photo && <PhotoLayer phone={phone} />}
+      {seating && <SeatingLayer phone={phone} />}
       {!phone && !photo && (
         <>
           <nav className="rail" aria-label="Sections">
@@ -861,12 +889,12 @@ export function StudioUI() {
       )}
 
       {showCounts && <Counts onAdvisories={openChecks} />}
-      {!phone && checks && !photo && (
+      {!phone && checks && !photo && !seating && (
         <div className="checks-pop" role="dialog" aria-label="Checks">
           <ChecksList onAdjust={adjustRules} onClose={() => setChecks(false)} phone={false} />
         </div>
       )}
-      {!phone && !compare && !photo && camera !== "walk" && !pickSeat && (
+      {!phone && !compare && !photo && camera !== "walk" && !seating && !pickSeat && (
         <SelectionBar
           onDetails={() => {
             setDetails(true);

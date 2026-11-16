@@ -34,6 +34,7 @@ Rendering in CI uses software WebGL (SwiftShader), verified to work in this envi
 7. Upload an image on phone emulation → crop → size → place on a table → reload → present. (`IMP-01..06`)
 8. Walk from the entrance to the dance area without passing through objects. (`CAM-03`)
 9. Export the layout PDF → file has table numbers and totals. (`EXP-01`)
+10. Seating: name a table's seats, move a guest (swap), export the seating chart PDF; on phone, a seat opens its table's card and back closes it. (`SEA-01..04`)
 
 ## 4. What not to test
 

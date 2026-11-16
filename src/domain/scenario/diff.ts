@@ -92,6 +92,11 @@ export function differences(mine: Scenario, theirs: Scenario, catalog: Catalog):
     out.push("Check settings differ");
   if (JSON.stringify(mine.venueToggles) !== JSON.stringify(theirs.venueToggles))
     out.push("Venue furniture or paintings differ");
+  const seatKeys = new Set([...Object.keys(mine.seating), ...Object.keys(theirs.seating)]);
+  const renamed = [...seatKeys].filter(
+    (k) => JSON.stringify(mine.seating[k] ?? null) !== JSON.stringify(theirs.seating[k] ?? null),
+  ).length;
+  if (renamed) out.push(`${renamed} ${renamed === 1 ? "seat has" : "seats have"} a different name`);
   pair("Moment", mine.phase ?? "dinner", theirs.phase ?? "dinner");
   if (mine.name !== theirs.name) out.push(`Name: “${mine.name}” here, “${theirs.name}” in theirs`);
   // Never claim they match when something else differs (notes merge on their own).

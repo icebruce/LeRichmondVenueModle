@@ -148,7 +148,7 @@ function MainCamera() {
   const goTo = (key: CameraMode | string) => {
     userMoved.current = false;
     const isMode = key in poses;
-    const p = isMode ? poses[key as CameraMode] : presets[key];
+    const p = isMode ? poses[key as keyof typeof poses] : presets[key];
     if (!p) return;
     // A named reference view is shown as a guest would see it: full walls, ceiling on (VEN-01).
     viewStore.setState({ view: isMode ? null : key });

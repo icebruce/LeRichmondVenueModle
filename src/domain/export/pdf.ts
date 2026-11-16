@@ -1,5 +1,5 @@
 /**
- * A one-page PDF holding one JPEG image that fills the page (EXP-01). Hand-written to avoid a
+ * A one-page PDF holding one JPEG image that fills the page (EXP-01, SEA-04). Hand-written to avoid a
  * dependency: PDF can embed JPEG bytes directly (DCTDecode).
  */
 export function jpegPagePdf(

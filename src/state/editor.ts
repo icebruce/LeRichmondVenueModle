@@ -14,12 +14,14 @@ import {
 import { tableLabels } from "../domain/layout/counts";
 import { stylePatch } from "../domain/layout/decor";
 import { normalizeAngle, snap } from "../domain/geometry";
-import type { Scenario, TableStyle } from "../domain/scenario/schema";
+import { GUEST_NAME_MAX, type GuestName, type Scenario, type TableStyle } from "../domain/scenario/schema";
+import { fullName, seatItem } from "../domain/layout/seating";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 
 enablePatches();
 
-export type CameraMode = "dollhouse" | "plan" | "walk";
+/** The room's views, and Seating: the seating chart drawn in place of the room (SEA-01). */
+export type CameraMode = "dollhouse" | "plan" | "walk" | "seating";
 export type Toast = {
   id: number;
   text: string;
@@ -203,7 +205,7 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
     },
 
     setCamera(camera: CameraMode) {
-      set({ camera, ...(camera === "walk" ? { selection: [] } : {}) });
+      set({ camera, ...(camera === "walk" || camera === "seating" ? { selection: [] } : {}) });
     },
 
     setSnapping(snapping: boolean) {
@@ -378,6 +380,51 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       commit("Check settings", (d) => {
         d.thresholds[key] = value;
       });
+    },
+
+    /** Seating chart (SEA-01): the guest on a seat; both parts empty clears the seat. */
+    setSeatName(key: string, name: GuestName) {
+      const first = name.first.trim().slice(0, GUEST_NAME_MAX);
+      const last = name.last.trim().slice(0, GUEST_NAME_MAX);
+      const now = active().seating[key];
+      // The same name saved again (Enter, then leaving the field) is not another undo step.
+      if ((now?.first ?? "") === first && (now?.last ?? "") === last) return;
+      commit("Seat name", (d) => {
+        if (first || last) d.seating[key] = { first, last };
+        else Reflect.deleteProperty(d.seating, key);
+      });
+    },
+
+    /** Seating chart (SEA-02): a guest moves to another seat, swapping with whoever sits there; with Undo. */
+    moveSeatName(from: string, to: string) {
+      const who = active().seating[from];
+      const there = active().seating[to];
+      if (from === to || !who) return;
+      commit("Guest moved", (d) => {
+        const a = d.seating[from];
+        const b = d.seating[to];
+        if (a) d.seating[to] = a;
+        else Reflect.deleteProperty(d.seating, to);
+        if (b) d.seating[from] = b;
+        else Reflect.deleteProperty(d.seating, from);
+      });
+      const table = tableLabels(active().items, deps.catalog).get(seatItem(to)) ?? "";
+      toast(
+        there
+          ? `${fullName(who)} and ${fullName(there)} swapped`
+          : `${fullName(who)} moved to ${table === "♥" ? "the sweetheart table" : `table ${table}`}`,
+        undoLast(),
+      );
+    },
+
+    /** Removes a guest from the chart, with Undo (SEA-03). */
+    removeSeatName(key: string) {
+      const name = active().seating[key];
+      if (!name) return;
+      commit("Guest removed", (d) => {
+        Reflect.deleteProperty(d.seating, key);
+      });
+      toast(`${fullName(name)} removed`, undoLast());
     },
 
     setGuests(count: number) {

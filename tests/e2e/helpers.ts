@@ -16,7 +16,13 @@ export type W = Window & {
         getState: () => {
           scenarios: Record<
             string,
-            { items: Item[]; name: string; guests: { count: number }; style: Record<string, string> }
+            {
+              items: Item[];
+              name: string;
+              guests: { count: number };
+              style: Record<string, string>;
+              seating: Record<string, { first: string; last: string }>;
+            }
           >;
           activeId: string;
           order: string[];
@@ -68,7 +74,7 @@ export async function openYours(page: Page) {
   await page.getByTestId("category-yours").click();
 }
 
-export async function setCamera(page: Page, mode: "dollhouse" | "plan" | "walk") {
+export async function setCamera(page: Page, mode: "dollhouse" | "plan" | "walk" | "seating") {
   // Phones pick the camera from a menu in the top-right stack.
   const menu = page.getByTestId("camera-menu");
   if (await menu.isVisible()) await menu.click();

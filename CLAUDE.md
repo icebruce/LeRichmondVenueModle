@@ -6,7 +6,7 @@ Private web app for planning a wedding reception (2026-11-21, ~75 guests) at **R
 
 - Main restaurant floor only. Mezzanine = visible edge + stair, not a floor (only exception: DJ option 3 spot). Terrace = a backdrop through the glass (bright by day, dark at night with faint string-light points; owner 2026-10-19, 2026-10-20), never modelled. No bistro. Not Salon Richmond 1861.
 - Terrace images (X01–X05) never inform geometry.
-- Dimensions are estimates with confidence; never present them as measured. Layout checks are advisory; never claim code or capacity compliance.
+- Dimensions are estimates with confidence; never present them as measured. Layout checks are advisory; never claim code or capacity compliance. Exception (owner, 2026-11-16): the PDFs handed to the restaurant carry no "approximate" note, and the seating chart is a diagram, not to scale.
 
 ## Source of truth — read the relevant doc before changing anything
 

@@ -20,6 +20,27 @@ test("[PLT-02] phone layout: tab bar, bottom sheet inspector, walk pad", async (
   await expect(page.locator(".joystick")).toBeVisible();
 });
 
+test("[SEA-01] [PLT-02] phone Seating: the sheet closes for the chart; a seat opens its table's names", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await setCamera(page, "seating");
+  await expect(page.locator(".panel")).toHaveCount(0);
+  await page.getByTestId("seat-t1:2").tap();
+  const card = page.getByTestId("seating-card");
+  await expect(card).toContainText("Table 1");
+  await page.getByRole("textbox", { name: "Seat 2, first name" }).fill("Marie-Ève");
+  await page.getByRole("textbox", { name: "Seat 2, last name" }).fill("Paquette");
+  await page.getByRole("textbox", { name: "Seat 2, last name" }).press("Enter");
+  await expect
+    .poll(async () => (await state(page)).active?.seating["t1:2"])
+    .toEqual({ first: "Marie-Ève", last: "Paquette" });
+  // Back closes the card, then the chart stays.
+  await page.goBack();
+  await expect(card).toHaveCount(0);
+  await expect(page.getByTestId("seating-view")).toBeVisible();
+});
+
 /** A steady finger drag on `selector` from y0 to y1 over 400 ms (slower than a flick). */
 async function swipe(page: Page, selector: string, y0: number, y1: number) {
   const el = page.locator(selector).first();

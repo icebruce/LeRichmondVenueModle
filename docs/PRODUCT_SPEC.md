@@ -17,7 +17,7 @@ Useful window: now until about 2026-11-10. Anything that does not help a decisio
 
 **In:** Le Richmond's main restaurant floor, including the raised floor east of the bar; the mezzanine stair and mezzanine front edge as visible, non-walkable architecture; the terrace seen through the glass as a dark backdrop.
 
-**Out:** the mezzanine as a usable floor (one exception: a fixed DJ spot on its front edge, `LAY-11`), the terrace, the bistro, the kitchen interior, guest seating chart (names to seats), RSVP, budgets, vendor management.
+**Out:** the mezzanine as a usable floor (one exception: a fixed DJ spot on its front edge, `LAY-11`), the terrace, the bistro, the kitchen interior, RSVP, budgets, vendor management.
 
 Le Richmond is **not** Salon Richmond 1861.
 
@@ -165,7 +165,7 @@ The library is the single catalogue of everything placeable. Built-in items are 
 
 | ID | Pri | Step | Requirement | Acceptance |
 |---|---|---|---|---|
-| EXP-01 | M | 2 | Export the layout for the venue as PNG and PDF: top-down plan, table numbers, seats per table, totals, legend, date, note "approximate dimensions, for discussion". | Readable when printed on Letter paper. |
+| EXP-01 | M | 2 | Export the layout for the venue as PNG and PDF: the top-down plan as large as a Letter landscape page allows, table numbers and seats per table, the plan's name and the event at the top, the guest total at the bottom. No side list, legend, north arrow, scale bar, "approximate" note or export line (owner, 2026-11-16). | Readable when printed on Letter paper. |
 | EXP-02 | M | 2 | Save the current view as an image. | — |
 
 ### 5.12 Access and platforms — ACC / PLT
@@ -180,9 +180,20 @@ The library is the single catalogue of everything placeable. Built-in items are 
 | PLT-04 | M | 4 | Desktop: a labelled rail (Room, Add, Style, Guests, Plans) beside a wide panel, resizable 360–520 px and collapsible; one toolbar row; a selection shows a toolbar beside it and its details open inside the current section (owner, 2026-10-17, `DESIGN_GUIDE.md` §3.1). | Choosing a section always shows it; Details has a way back. |
 | PLT-05 | S | V0 | Graphics setting per device (Room › This device › Graphics): Auto (default; adapts to keep the room smooth), High, Balanced, Battery saver (phones only). Tiers change polish only, never lighting mood or models (owner-approved mock-up `docs/mockups/graphics.html`, 2026-10-18). | A choice applies at once and is kept on that device. |
 
+### 5.13 Seating chart — SEA
+
+In scope since 2026-11-16 (owner): the couple names each seat so the restaurant can place the guests.
+
+| ID | Pri | Step | Requirement | Acceptance |
+|---|---|---|---|---|
+| SEA-01 | M | 5 | **Seating**, a fourth choice beside Dollhouse, Plan and Walk, shows the plan as the seating chart prints it. Tapping a seat or a table opens that table's card: one row per seat (numbered clockwise from the left of its first long side) with first and last name; Enter moves on to the next field and seat. Names are saved with the plan (undo, cloud, conflicts). Desktop folds the panel away, phones close the sheet, while Seating is open. | A seat named in the card shows its name on the chart; undo removes it. |
+| SEA-02 | M | 5 | A guest moves to another seat from their row's move button, then a tap on the new seat; a guest already there swaps places. | Moving one guest onto another's seat swaps them in one undo step. |
+| SEA-03 | M | 5 | Names whose seat is gone (table deleted or fewer seats) are kept and listed "without a seat", to place again or remove (with Undo). | Reducing a 12-seat table to 10 lists the guests of seats 11–12; undo seats them again. |
+| SEA-04 | M | 5 | Export the seating chart for the venue as a PDF: one Letter landscape page oriented as the Plan view; the room a diagram, not to scale: stretched to the page's width, long tables drawn up to 1.3× longer where the room allows. Each guest's first name over last name, horizontal, outside the table at their seat, one row along each side; one type size for the page, the largest (8.2 pt down to 4.8 pt) at which no name touches another, a table, a wall, the bar, stair, DJ or dance area; a hyphenated name breaks at its hyphen only where it would. Table number in the table with its guest count under it; guest total at the bottom; plants left off (owner, 2026-11-16). | One Letter page; no name overlaps another name or the room. |
+
 ## 6. Non-goals
 
-Photoreal rendering; exact replicas from a single photo (exact pieces come through custom requests, `REQ`); automatic paid image-to-3D (could be proposed later with cost); real-time co-editing; seating chart; capacity or code compliance; mezzanine/terrace/bistro planning.
+Photoreal rendering; exact replicas from a single photo (exact pieces come through custom requests, `REQ`); automatic paid image-to-3D (could be proposed later with cost); real-time co-editing; capacity or code compliance; mezzanine/terrace/bistro planning.
 
 ## 7. Open questions
 
