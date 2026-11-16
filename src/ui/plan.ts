@@ -195,6 +195,8 @@ export function drawRoom(
       poly(transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY), INK, null);
       text("DJ", x, y, 17, 700, PAPER);
     } else if (shape.kind === "piece") {
+      // The seating chart leaves plants off: the restaurant places guests, not décor (owner, 2026-11-16).
+      if (opts.seating && entry?.family === "plant") continue;
       // Floor pieces as solid outlines; hanging ones dashed (they are above the floor).
       const fp = transform(centredRect(shape.width, shape.depth), it.x, it.z, it.rotY);
       poly(fp, shape.blocks ? FILL : null, INK_2, 1.2 * k, shape.blocks ? [] : [6 * k, 5 * k]);
