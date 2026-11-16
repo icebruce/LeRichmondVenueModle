@@ -69,7 +69,11 @@ const itemSchema = z.object({
 });
 
 /** A guest's name on a seat (SEA-01): first and last, either may be empty but not both. */
-export const guestNameSchema = z.object({ first: z.string().max(40), last: z.string().max(40) });
+export const GUEST_NAME_MAX = 40;
+export const guestNameSchema = z.object({
+  first: z.string().max(GUEST_NAME_MAX),
+  last: z.string().max(GUEST_NAME_MAX),
+});
 export type GuestName = z.infer<typeof guestNameSchema>;
 
 const noteSchema = z.object({

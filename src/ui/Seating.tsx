@@ -2,7 +2,7 @@ import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { type Vec2, pointInPolygon } from "../domain/geometry";
 import { tableLabels } from "../domain/layout/counts";
 import { type Seat, fullName, layoutSeats, seatedNames, unseated } from "../domain/layout/seating";
-import type { GuestName, Scenario } from "../domain/scenario/schema";
+import { GUEST_NAME_MAX, type GuestName, type Scenario } from "../domain/scenario/schema";
 import { cameraCommands } from "../state/view";
 import { useEditor, useStudio, useView } from "../scene/context";
 import { useBackLayer } from "./back";
@@ -13,8 +13,8 @@ import { useServices } from "./services";
 type View = { zoom: number; x: number; y: number };
 const FIT: View = { zoom: 1, x: 0, y: 0 };
 const ZOOM_MAX = 4;
-/** The desktop table card's width with its margin (studio.css .seating-card). */
-const CARD_W = 360;
+/** A tap this close to a seat (in screen points) chooses it: half a 44 pt target. */
+const REACH = 22;
 
 /**
  * Seating (SEA-01..04): the room as the seating chart prints it, in place of the 3D view. Tap a seat
@@ -27,13 +27,18 @@ export function SeatingLayer({ phone }: { phone: boolean }) {
   const insetTop = useView((s) => s.insetTop);
   const insetBottom = useView((s) => s.insetBottom);
   const insetRight = useView((s) => s.insetRight);
-  const insetColumn = useView((s) => s.insetColumn);
   const [table, setTable] = useState<string | null>(null);
   const [seat, setSeat] = useState<string | null>(null);
   const [moving, setMoving] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [view, setView] = useState<View>(FIT);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [cardH, setCardH] = useState(0);
+  // The desktop card's width, a design token (tokens.css --seating-card).
+  const cardW = useMemo(
+    () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--seating-card")) || 0,
+    [],
+  );
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -47,6 +52,20 @@ export function SeatingLayer({ phone }: { phone: boolean }) {
   useBackLayer(phone && !!shownTable, () => setTable(null));
   useBackLayer(phone && !!moving, () => setMoving(null));
   useBackLayer(phone && listOpen, () => setListOpen(false));
+  // Escape steps back the same way: the move, the list, then the card.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (moving) setMoving(null);
+      else if (listOpen) setListOpen(false);
+      else {
+        setTable(null);
+        setSeat(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moving, listOpen]);
 
   // Reset view fits the room again.
   useEffect(
@@ -69,13 +88,14 @@ export function SeatingLayer({ phone }: { phone: boolean }) {
   const cardOpen = !!table && !moving;
   const frame = useMemo(() => {
     const m = 16;
-    // Phone: the full width below the control column; desktop: below the toolbar, above the bar.
-    const top = (phone ? Math.max(60, insetColumn) : insetTop) + m;
-    const bottom = (phone ? 0 : 76) + m;
-    // Desktop: the table's card stands at the right; the room moves over beside it.
-    const right = !phone && cardOpen ? CARD_W + m : 0;
+    // Phone: the full width below the bar (the controls float over it, as over the room); desktop:
+    // below the toolbar, above the bar.
+    const top = (phone ? 60 : insetTop) + m;
+    // The table's card: at the right on desktop, at the bottom on phones; the room moves beside it.
+    const bottom = (phone ? (cardOpen ? cardH : 0) : 76) + m;
+    const right = !phone && cardOpen ? cardW + m : 0;
     return { x: m, y: top, w: Math.max(1, size.w - 2 * m - right), h: Math.max(1, size.h - top - bottom) };
-  }, [size, insetTop, insetColumn, phone, cardOpen]);
+  }, [size, insetTop, phone, cardOpen, cardH, cardW]);
 
   // Drawn off screen with where its seats and tables are, then shown.
   const stretch = useMemo(() => seatingStretch(venue), [venue]);
@@ -127,32 +147,182 @@ export function SeatingLayer({ phone }: { phone: boolean }) {
 
   const labels = tableLabels(scenario.items, catalog);
   /** A seat chosen (tap, click or keyboard): named in its table's card, or the moving guest's new seat. */
-  const choose = (spot: SeatSpot) => {
+  const choose = (key: string, item: string) => {
     if (moving) {
-      const who = scenario.seating[moving];
-      editor.moveSeatName(moving, spot.key);
-      if (who) editor.notify(`${fullName(who)} moved`);
+      editor.moveSeatName(moving, key);
       setMoving(null);
     }
-    setTable(spot.item);
-    setSeat(spot.key);
+    setTable(item);
+    setSeat(key);
   };
-  /** A tap off the seats: a table opens its card; elsewhere closes it (or stops a move). */
+  /**
+   * A tap off the seat buttons: the nearest seat within reach; else a table (while moving, its first
+   * empty seat); else the card closes. A stray tap never ends a move: Cancel, Escape or back does.
+   */
   const tap = (x: number, y: number) => {
-    if (moving) {
-      setMoving(null);
+    const spots = rendered?.hits.seats ?? [];
+    const screen = (s: SeatSpot) => {
+      const cx = view.x + (s.x + s.w / 2) * view.zoom;
+      const cy = view.y + (s.y + s.h / 2) * view.zoom;
+      const dx = Math.max(0, Math.abs(x - cx) - (s.w * view.zoom) / 2);
+      const dy = Math.max(0, Math.abs(y - cy) - (s.h * view.zoom) / 2);
+      return Math.hypot(dx, dy);
+    };
+    const near = spots.reduce<SeatSpot | null>((b, s) => (!b || screen(s) < screen(b) ? s : b), null);
+    if (near && screen(near) <= REACH) {
+      choose(near.key, near.item);
       return;
     }
     const r: Vec2 = [(x - view.x) / view.zoom, (y - view.y) / view.zoom];
     const t = rendered?.hits.tables.find((t) => pointInPolygon(r, t.poly));
+    if (moving) {
+      const free = t && seats.find((s) => s.item === t.id && !scenario.seating[s.key]);
+      if (free) choose(free.key, free.item);
+      else if (t) editor.notify(`Table ${labels.get(t.id) ?? ""} is full. Choose a seat to swap.`);
+      return;
+    }
     setTable(t ? t.id : null);
     setSeat(null);
   };
 
   return (
     <>
+      {movingName ? (
+        <div
+          className="seating-bar glass"
+          style={phone ? { right: insetRight + 12 } : undefined}
+          role="status"
+          data-testid="seating-moving"
+        >
+          <span className="seating-count moving">Choose a seat for {fullName(movingName)}</span>
+          <button type="button" className="plain-btn" onClick={() => setMoving(null)}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div
+          className="seating-bar glass"
+          style={phone ? { right: insetRight + 12 } : undefined}
+          data-testid="seating-bar"
+        >
+          {seats.length === 0 ? (
+            <span className="seating-count">Add tables in Room to seat your guests.</span>
+          ) : phone ? (
+            <span className="seating-count">
+              <b>{named}</b>/{seats.length} named
+            </span>
+          ) : (
+            <span className="seating-count">
+              <b>{named}</b> of {seats.length} seats named
+            </span>
+          )}
+          {lost.length > 0 && (
+            <button
+              type="button"
+              className="plain-btn"
+              onClick={() => setListOpen((o) => !o)}
+              aria-expanded={listOpen}
+              data-testid="seating-unseated"
+            >
+              {lost.length} {phone ? "unseated" : "without a seat"}
+            </button>
+          )}
+          {!phone && (
+            <span className="seating-zoom">
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => zoomAt(size.w / 2, size.h / 2, 1 / 1.5)}
+                disabled={view.zoom <= 1}
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <Icon name="minus" />
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => zoomAt(size.w / 2, size.h / 2, 1.5)}
+                disabled={view.zoom >= ZOOM_MAX}
+                aria-label="Zoom in"
+                title="Zoom in"
+                data-testid="seating-zoom-in"
+              >
+                <Icon name="plus" />
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => void services.exportPlan("pdf", "seating")}
+            disabled={seats.length === 0}
+            data-testid="seating-export"
+          >
+            <Icon name="download" />
+            {phone ? "PDF" : "Export PDF"}
+          </button>
+        </div>
+      )}
+
+      {listOpen && lost.length > 0 && (
+        <div className="seating-pop" role="dialog" aria-label="Guests without a seat">
+          <div className="seating-card-head">
+            <h2 className="panel-title">Without a seat</h2>
+            <button type="button" className="icon-btn" onClick={() => setListOpen(false)} aria-label="Close">
+              <Icon name="close" />
+            </button>
+          </div>
+          <p className="hint">Their table was removed or lost seats. Place them again or remove them.</p>
+          <ul className="seating-rows">
+            {lost.map(({ key, name }) => (
+              <li key={key} className="seating-lost">
+                <span>{fullName(name)}</span>
+                <button
+                  type="button"
+                  className="plain-btn"
+                  onClick={() => {
+                    setMoving(key);
+                    setListOpen(false);
+                  }}
+                >
+                  Place
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Remove ${fullName(name)}`}
+                  onClick={() => editor.removeSeatName(key)}
+                >
+                  <Icon name="trash" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {shownTable && !moving && (
+        <TableCard
+          key={shownTable}
+          item={shownTable}
+          seats={seats.filter((s) => s.item === shownTable)}
+          label={labels.get(shownTable) ?? ""}
+          names={scenario.seating}
+          focus={seat}
+          phone={phone}
+          onFocus={setSeat}
+          onSave={(key, name) => editor.setSeatName(key, name)}
+          onMove={(key) => setMoving(key)}
+          onHeight={setCardH}
+          onClose={() => {
+            setTable(null);
+            setSeat(null);
+          }}
+        />
+      )}
       <div
-        className="seating-view"
+        className={`seating-view${moving ? " moving" : ""}`}
         ref={box}
         style={phone ? { bottom: insetBottom } : undefined}
         onPointerDown={(e) => {
@@ -220,137 +390,12 @@ export function SeatingLayer({ phone }: { phone: boolean }) {
                 height: s.h * view.zoom,
               }}
               aria-label={`${where}: ${guest ? fullName(guest) : "empty"}`}
-              onClick={() => choose(s)}
+              onClick={() => choose(s.key, s.item)}
               data-testid={`seat-${s.key}`}
             />
           );
         })}
       </div>
-
-      {movingName ? (
-        <div
-          className="seating-bar glass"
-          style={phone ? { right: insetRight + 12 } : undefined}
-          role="status"
-          data-testid="seating-moving"
-        >
-          <span className="seating-count">Choose a seat for {fullName(movingName)}</span>
-          <button type="button" className="plain-btn" onClick={() => setMoving(null)}>
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div
-          className="seating-bar glass"
-          style={phone ? { right: insetRight + 12 } : undefined}
-          data-testid="seating-bar"
-        >
-          <span className="seating-count">
-            <b>{named}</b> of {seats.length} seats named
-          </span>
-          {lost.length > 0 && (
-            <button
-              type="button"
-              className="plain-btn"
-              onClick={() => setListOpen((o) => !o)}
-              aria-expanded={listOpen}
-              data-testid="seating-unseated"
-            >
-              {lost.length} without a seat
-            </button>
-          )}
-          {!phone && (
-            <span className="seating-zoom">
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => zoomAt(size.w / 2, size.h / 2, 1 / 1.5)}
-                disabled={view.zoom <= 1}
-                aria-label="Zoom out"
-                title="Zoom out"
-              >
-                <Icon name="minus" />
-              </button>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={() => zoomAt(size.w / 2, size.h / 2, 1.5)}
-                disabled={view.zoom >= ZOOM_MAX}
-                aria-label="Zoom in"
-                title="Zoom in"
-                data-testid="seating-zoom-in"
-              >
-                <Icon name="plus" />
-              </button>
-            </span>
-          )}
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => void services.exportPlan("pdf", "seating")}
-            data-testid="seating-export"
-          >
-            <Icon name="download" />
-            {phone ? "PDF" : "Export PDF"}
-          </button>
-        </div>
-      )}
-
-      {listOpen && lost.length > 0 && (
-        <div className="seating-pop" role="dialog" aria-label="Guests without a seat">
-          <div className="seating-card-head">
-            <h2 className="panel-title">Without a seat</h2>
-            <button type="button" className="icon-btn" onClick={() => setListOpen(false)} aria-label="Close">
-              <Icon name="close" />
-            </button>
-          </div>
-          <p className="hint">Their table was removed or lost seats. Place them again or remove them.</p>
-          <ul className="seating-rows">
-            {lost.map(({ key, name }) => (
-              <li key={key} className="seating-lost">
-                <span>{fullName(name)}</span>
-                <button
-                  type="button"
-                  className="plain-btn"
-                  onClick={() => {
-                    setMoving(key);
-                    setListOpen(false);
-                  }}
-                >
-                  Place
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label={`Remove ${fullName(name)}`}
-                  onClick={() => editor.removeSeatName(key)}
-                >
-                  <Icon name="trash" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {shownTable && !moving && (
-        <TableCard
-          key={shownTable}
-          item={shownTable}
-          seats={seats.filter((s) => s.item === shownTable)}
-          label={labels.get(shownTable) ?? ""}
-          names={scenario.seating}
-          focus={seat}
-          phone={phone}
-          onFocus={setSeat}
-          onSave={(key, name) => editor.setSeatName(key, name)}
-          onMove={(key) => setMoving(key)}
-          onClose={() => {
-            setTable(null);
-            setSeat(null);
-          }}
-        />
-      )}
     </>
   );
 }
@@ -366,10 +411,23 @@ function TableCard(props: {
   onFocus: (key: string) => void;
   onSave: (key: string, name: GuestName) => void;
   onMove: (key: string) => void;
+  onHeight: (h: number) => void;
   onClose: () => void;
 }) {
-  const { seats, names, focus } = props;
+  const { seats, names, focus, onHeight } = props;
   const list = useRef<HTMLOListElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  // Phones: the room above moves up out of the card's way.
+  useEffect(() => {
+    const el = card.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => onHeight(el.offsetHeight + 8));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      onHeight(0);
+    };
+  }, [onHeight]);
   const filled = seats.filter((s) => names[s.key]).length;
   const title = props.label === "♥" ? "Sweetheart table" : `Table ${props.label}`;
   // The tapped seat's first name takes the cursor.
@@ -387,11 +445,9 @@ function TableCard(props: {
   return (
     <div
       className={`seating-card${props.phone ? " phone" : ""}`}
+      ref={card}
       role="dialog"
       aria-label={title}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") props.onClose();
-      }}
       data-testid="seating-card"
     >
       <div className="seating-card-head">
@@ -468,7 +524,7 @@ function SeatRow(props: {
         onKeyDown={(e) => keys(e, false)}
         placeholder="First name"
         aria-label={`Seat ${n}, first name`}
-        maxLength={40}
+        maxLength={GUEST_NAME_MAX}
         autoComplete="off"
         data-first={props.seat.key}
       />
@@ -480,7 +536,7 @@ function SeatRow(props: {
         onKeyDown={(e) => keys(e, true)}
         placeholder="Last name"
         aria-label={`Seat ${n}, last name`}
-        maxLength={40}
+        maxLength={GUEST_NAME_MAX}
         autoComplete="off"
         data-last
       />

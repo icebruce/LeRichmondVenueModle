@@ -14,8 +14,8 @@ import {
 import { tableLabels } from "../domain/layout/counts";
 import { stylePatch } from "../domain/layout/decor";
 import { normalizeAngle, snap } from "../domain/geometry";
-import type { GuestName, Scenario, TableStyle } from "../domain/scenario/schema";
-import { fullName } from "../domain/layout/seating";
+import { GUEST_NAME_MAX, type GuestName, type Scenario, type TableStyle } from "../domain/scenario/schema";
+import { fullName, seatItem } from "../domain/layout/seating";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 
 enablePatches();
@@ -384,17 +384,22 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
 
     /** Seating chart (SEA-01): the guest on a seat; both parts empty clears the seat. */
     setSeatName(key: string, name: GuestName) {
-      const first = name.first.trim().slice(0, 40);
-      const last = name.last.trim().slice(0, 40);
+      const first = name.first.trim().slice(0, GUEST_NAME_MAX);
+      const last = name.last.trim().slice(0, GUEST_NAME_MAX);
+      const now = active().seating[key];
+      // The same name saved again (Enter, then leaving the field) is not another undo step.
+      if ((now?.first ?? "") === first && (now?.last ?? "") === last) return;
       commit("Seat name", (d) => {
         if (first || last) d.seating[key] = { first, last };
         else Reflect.deleteProperty(d.seating, key);
       });
     },
 
-    /** Seating chart (SEA-02): a guest moves to another seat, swapping with whoever sits there. */
+    /** Seating chart (SEA-02): a guest moves to another seat, swapping with whoever sits there; with Undo. */
     moveSeatName(from: string, to: string) {
-      if (from === to) return;
+      const who = active().seating[from];
+      const there = active().seating[to];
+      if (from === to || !who) return;
       commit("Guest moved", (d) => {
         const a = d.seating[from];
         const b = d.seating[to];
@@ -403,6 +408,13 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
         if (b) d.seating[from] = b;
         else Reflect.deleteProperty(d.seating, from);
       });
+      const table = tableLabels(active().items, deps.catalog).get(seatItem(to)) ?? "";
+      toast(
+        there
+          ? `${fullName(who)} and ${fullName(there)} swapped`
+          : `${fullName(who)} moved to ${table === "♥" ? "the sweetheart table" : `table ${table}`}`,
+        undoLast(),
+      );
     },
 
     /** Removes a guest from the chart, with Undo (SEA-03). */

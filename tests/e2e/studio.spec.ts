@@ -705,7 +705,7 @@ test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current vie
   expect(view.size).toBeGreaterThan(20_000);
 });
 
-test("[SEA-01] [SEA-02] [SEA-04] Seating: name a table's seats, move a guest, export the chart for the venue", async ({
+test("[SEA-01] [SEA-02] [SEA-03] [SEA-04] Seating: name a table's seats, move a guest, export the chart, place a guest without a seat", async ({
   page,
 }) => {
   await openStudio(page);
@@ -747,6 +747,32 @@ test("[SEA-01] [SEA-02] [SEA-04] Seating: name a table's seats, move a guest, ex
       .subarray(0, 8)
       .toString("latin1"),
   ).toBe("%PDF-1.4");
+  // Escape closes the card; a tap on a table opens its card.
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("seating-card")).toHaveCount(0);
+  const top = await page.getByTestId("seat-t3:1").boundingBox();
+  const bottom = await page.getByTestId("seat-t3:12").boundingBox();
+  if (!top || !bottom) throw new Error("table 3's seats are not drawn");
+  await page.mouse.click(top.x + top.width / 2, (top.y + top.height + bottom.y) / 2);
+  await expect(page.getByTestId("seating-card")).toContainText("Table 3");
+  // A guest whose seat goes (SEA-03) is listed without a seat and placed again.
+  await page.evaluate(() => {
+    const editor = (window as unknown as W).__studio.editor as unknown as {
+      setSeatName: (key: string, name: { first: string; last: string }) => void;
+      setOption: (id: string, key: string, value: number) => boolean;
+    };
+    editor.setSeatName("t1:12", { first: "Anne", last: "Côté" });
+    editor.setOption("t1", "seats", 10);
+  });
+  await page.getByTestId("seating-unseated").click();
+  await page
+    .getByRole("dialog", { name: "Guests without a seat" })
+    .getByRole("button", { name: "Place" })
+    .click();
+  await expect(page.getByTestId("seating-moving")).toContainText("Choose a seat for Anne Côté");
+  await page.getByTestId("seat-t3:2").click();
+  await expect.poll(async () => (await seating())?.["t3:2"]).toEqual({ first: "Anne", last: "Côté" });
+  await expect(page.getByTestId("seating-unseated")).toHaveCount(0);
   // Leaving Seating brings the panel back.
   await setCamera(page, "dollhouse");
   await expect(page.locator(".panel")).toBeVisible();

@@ -2330,6 +2330,11 @@ textarea.text-input {
   padding-left: var(--s-1);
 }
 .seating-count {
+  flex-shrink: 0;
+}
+/* The name being moved may be long: it gives way, never the Cancel beside it. */
+.seating-count.moving {
+  flex-shrink: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -2344,7 +2349,7 @@ textarea.text-input {
   box-sizing: border-box;
   right: var(--s-4);
   top: calc(var(--top) + var(--target) + var(--s-4));
-  width: 360px;
+  width: var(--seating-card);
   max-height: calc(100% - var(--top) - var(--target) - var(--above-counts) - var(--s-4));
   overflow: auto;
   padding: var(--s-3) var(--s-4) var(--s-4);
@@ -2373,6 +2378,17 @@ textarea.text-input {
 .seating-card-head .hint {
   margin: 0;
 }
+.seating-pop .seating-card-head {
+  align-items: center;
+  margin-bottom: 0;
+}
+.seating-pop > .hint {
+  margin: var(--s-1) 0 var(--s-2);
+}
+/* While a guest moves, every seat shows as a target. */
+.seating-view.moving .seat-hit {
+  outline: 1.5px dashed var(--accent);
+}
 .seating-rows {
   list-style: none;
   margin: 0;
@@ -2380,7 +2396,7 @@ textarea.text-input {
 }
 .seating-row {
   display: grid;
-  grid-template-columns: 28px 1fr 1fr var(--target);
+  grid-template-columns: var(--s-5) minmax(0, 1fr) minmax(0, 1.3fr) var(--target);
   align-items: center;
   gap: var(--s-2);
   padding: var(--s-1) 0;
@@ -2393,8 +2409,8 @@ textarea.text-input {
 .seating-n {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: var(--s-5);
+  height: var(--s-5);
   border-radius: 50%;
   background: var(--sunk);
   color: var(--ink-2);

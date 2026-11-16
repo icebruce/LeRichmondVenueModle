@@ -1,5 +1,6 @@
 import { createStore } from "zustand/vanilla";
 import type { AlignGuide } from "../domain/layout/align";
+import type { CameraMode } from "./editor";
 
 /** Live drag preview, kept out of the editor so a drag is one undo step (LAY-06). */
 export type Drag = {
@@ -56,7 +57,7 @@ export type ViewState = {
     look: [number, number];
     table: string;
     /** The camera to return to on "Stand up". */
-    from: "dollhouse" | "plan" | "walk";
+    from: CameraMode;
   } | null;
   /** Photo mode (EXP-02, V5): open while set. */
   photo: Photo | null;

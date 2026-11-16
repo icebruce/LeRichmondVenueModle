@@ -19,6 +19,9 @@ export type Seat = {
 
 export const seatKey = (itemId: string, n: number): string => `${itemId}:${n}`;
 
+/** The table a seat key belongs to. */
+export const seatItem = (key: string): string => key.slice(0, key.lastIndexOf(":"));
+
 export const fullName = (g: GuestName): string => [g.first, g.last].filter(Boolean).join(" ");
 
 /**
