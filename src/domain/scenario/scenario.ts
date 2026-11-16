@@ -52,6 +52,7 @@ export function newScenario(id: string, name: string, now: string, items: Item[]
     thresholds: { ...DEFAULT_THRESHOLDS },
     venueToggles: { barStools: false, paintings: {}, barFlowers: { ...DEFAULT_BAR_FLOWERS } },
     notes: [],
+    seating: {},
     updatedAt: now,
   };
 }
@@ -173,6 +174,8 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     schemaVersion: 6,
     venueToggles: { barFlowers: { ...DEFAULT_BAR_FLOWERS }, ...(raw.venueToggles as object) },
   }),
+  // v7: the seating chart, empty.
+  6: (raw) => ({ ...raw, schemaVersion: 7, seating: {} }),
 };
 
 /** The two candelabra of v4 and their arms. */

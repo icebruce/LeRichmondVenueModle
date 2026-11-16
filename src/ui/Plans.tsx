@@ -180,13 +180,19 @@ export function PlansPanel() {
         <ActionRow
           label="Plan for the venue (PDF)"
           icon="download"
-          onClick={() => void services.exportPlan("pdf")}
+          onClick={() => void services.exportPlan("pdf", "layout")}
           testId="export-pdf"
+        />
+        <ActionRow
+          label="Seating chart (PDF)"
+          icon="download"
+          onClick={() => void services.exportPlan("pdf", "seating")}
+          testId="export-seating"
         />
         <ActionRow
           label="Plan as an image (PNG)"
           icon="download"
-          onClick={() => void services.exportPlan("png")}
+          onClick={() => void services.exportPlan("png", "layout")}
           testId="export-png"
         />
         <ActionRow

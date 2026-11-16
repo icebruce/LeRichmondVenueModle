@@ -10,6 +10,7 @@ const CAMERAS: { mode: CameraMode; label: string; icon: IconName; key: string }[
   { mode: "dollhouse", label: "Dollhouse", icon: "cube", key: "1" },
   { mode: "plan", label: "Plan", icon: "plan", key: "2" },
   { mode: "walk", label: "Walk", icon: "walk", key: "3" },
+  { mode: "seating", label: "Seating", icon: "seating", key: "4" },
 ];
 
 function ResetView() {
@@ -26,7 +27,7 @@ function ResetView() {
   );
 }
 
-/** Desktop: the three cameras and Reset view in one pill (CAM-01..03, CAM-05). */
+/** Desktop: the three cameras, Seating and Reset view in one pill (CAM-01..03, CAM-05, SEA-01). */
 export function CameraSwitch() {
   const { editor } = useStudio();
   const mode = useEditor((s) => s.camera);

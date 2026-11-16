@@ -16,7 +16,8 @@ const BLURS: { value: Photo["blur"]; label: string }[] = [
 ];
 
 /** Photo mode works in Dollhouse and Walk, not in Plan or while comparing. */
-const allowed = (camera: CameraMode, compare: string | null) => camera !== "plan" && !compare;
+const allowed = (camera: CameraMode, compare: string | null) =>
+  (camera === "dollhouse" || camera === "walk") && !compare;
 
 export function usePhotoAllowed(): boolean {
   const camera = useEditor((s) => s.camera);

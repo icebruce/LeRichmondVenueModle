@@ -3,7 +3,7 @@ import { z } from "zod";
 export const MAX_CANDLE_KINDS = 3;
 export const MAX_CANDLES_PER_KIND = 8;
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 /** A share of a length, 0 to 1. */
 const unit = z.number().min(0).max(1);
@@ -68,6 +68,10 @@ const itemSchema = z.object({
   style: tableStyleSchema.partial().optional(),
 });
 
+/** A guest's name on a seat (SEA-01): first and last, either may be empty but not both. */
+export const guestNameSchema = z.object({ first: z.string().max(40), last: z.string().max(40) });
+export type GuestName = z.infer<typeof guestNameSchema>;
+
 const noteSchema = z.object({
   id: z.string(),
   author: z.enum(["A", "B"]),
@@ -107,6 +111,8 @@ export const scenarioSchema = z.object({
     barFlowers: z.object({ shown: z.boolean(), at: z.tuple([unit, unit]) }),
   }),
   notes: z.array(noteSchema),
+  /** Seating chart (SEA-01): seat key (`table id:seat number`) → the guest sitting there. */
+  seating: z.record(z.string().max(80), guestNameSchema),
   updatedAt: z.string(),
   updatedBy: z.enum(["A", "B"]).optional(),
 });

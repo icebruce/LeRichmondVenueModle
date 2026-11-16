@@ -19,12 +19,13 @@
 | 4E | Style: summary rows and pickers; candle mix (up to 3 kinds with counts), laid out clear of the settings | DEC-01..05, LIB-05, SCN-08, PLT-03 | UX review; phone budget | Merged (PR #12) |
 | 4F | Light height handle in 3D | LIB-08 | UX review | Merged (PR #13) |
 | 4G | Owner feedback, round 2: phone sheet scrolls at half; venue revision (platform, stair, south wall, garage doors); candle settings per kind and per group | PLT-02, VEN-01, VEN-04, LAY-11, DEC-02, LIB-05 | UX and fidelity review; owner approves the candle mock-up | Merged (PR #14; owner approved on the preview, 2026-10-17) |
+| 5 | Seating chart: Seating view beside the cameras, names per seat, move and swap, guests without a seat, seating chart PDF; layout PDF simplified | SEA-01..04, EXP-01 | UX review; owner approves the chart on the preview | In review (2026-11-16) |
 
 ## Decisions
 
 - Main floor only; mezzanine front edge allowed solely as DJ option 3 spot (owner-approved).
 - No measurements will be supplied; dimensions are inferred and edited in data by Claude (ADR-7).
-- F01 venue plan is a sample; tables seat up to 14. No seating chart.
+- F01 venue plan is a sample; tables seat up to 14.
 - Desktop and phone, two partners, one shared password; async collaboration with conflict detection (ADR-3, ADR-4).
 - Hosted on Vercel free plan; repository stays public; no third-party images in Git (ADR-6).
 - Visual target: atmospheric and close, not photoreal; dollhouse cutaway style per owner samples; evening candlelight default, daylight toggle.
@@ -81,6 +82,9 @@
   - The checks' outlines and labels in the room are off by default; Room › Layout › Show checks in the room turns them on (remembered on the device); they always show while a piece moves, and a selected piece shows its own (so choosing a check in the list shows where it is); the checks count and list are unchanged.
   - Bar flowers: bigger and fuller, closer to R02 (a slender trumpet vase with a low, wide dome of 20 copies of one Meshy blossom branch; Meshy credits 45 → 10), and dragged along the bar top in the room (touch: hold, then drag).
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
+
+- Seating chart in scope (owner, 2026-11-16; reverses "no seating chart"): Seating is a fourth choice beside the cameras; names are typed per seat (first, last), no import, no meal; one Letter landscape page for the restaurant, in the Plan view's orientation, the room stretched to the page width and long tables drawn longer where they can be (not to scale), names horizontal on one row per side at one size, hyphenated names breaking at the hyphen only where needed; table number with its guest count inside each table; guest total at the bottom (SEA-01..04).
+- Both PDFs (owner, 2026-11-16): no side list, legend, north arrow, scale bar, "approximate dimensions" note, export date or "Raised floor" label; the plan takes the page. The layout PDF stays to scale (EXP-01).
 
 ## Next steps (2026-10-16)
 

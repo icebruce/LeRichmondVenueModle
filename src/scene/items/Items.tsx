@@ -1003,7 +1003,8 @@ function SeatPicker({ placed }: { placed: Placed[] }) {
                   z: ch.z,
                   look: [p.item.x, p.item.z],
                   table: p.item.id,
-                  from: editor.store.getState().camera,
+                  // Seats are chosen in the room, never from Seating (the chart covers the room).
+                  from: ((c) => (c === "seating" ? "dollhouse" : c))(editor.store.getState().camera),
                 },
               });
               editor.select([]);

@@ -1,13 +1,14 @@
 import { createContext, useContext } from "react";
 import type { VersionInfo } from "../domain/scenario/schema";
 import type { CustomRequest, Imported } from "../domain/library/schema";
+import type { PlanKind } from "./plan";
 
 /** I/O the UI needs but may not implement itself (ARCHITECTURE §3: ui does not import data). */
 export type Services = {
   exportScenario: (id: string) => void;
   importScenario: (file: File) => Promise<void>;
-  /** The active scenario's plan for the venue, as PNG or PDF (EXP-01). */
-  exportPlan: (format: "png" | "pdf") => Promise<void>;
+  /** The active scenario's plan for the venue (EXP-01) or its seating chart (SEA-04), as PNG or PDF. */
+  exportPlan: (format: "png" | "pdf", kind: PlanKind) => Promise<void>;
   /**
    * Photo mode's image (EXP-02) as a file named after the plan, and saving it: downloaded, or with
    * `share`, handed to the phone's share sheet.

@@ -705,6 +705,53 @@ test("[EXP-01] [EXP-02] export the plan as PDF and PNG, and save the current vie
   expect(view.size).toBeGreaterThan(20_000);
 });
 
+test("[SEA-01] [SEA-02] [SEA-04] Seating: name a table's seats, move a guest, export the chart for the venue", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await setCamera(page, "seating");
+  await expect(page.getByTestId("seating-view")).toBeVisible();
+  // The panel folds away for the chart.
+  await expect(page.locator(".panel")).toHaveCount(0);
+  await page.getByTestId("seat-t2:3").click();
+  await expect(page.getByTestId("seating-card")).toContainText("Table 2");
+  // The tapped seat's first name has the cursor; Enter goes to the last name, then the next seat.
+  await page.keyboard.type("Catherine");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Tremblay");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Luc");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Roy");
+  await page.keyboard.press("Enter");
+  const seating = async () => (await state(page)).active?.seating;
+  await expect.poll(seating).toEqual({
+    "t2:3": { first: "Catherine", last: "Tremblay" },
+    "t2:4": { first: "Luc", last: "Roy" },
+  });
+  await expect(page.getByTestId("seat-t2:3")).toHaveAccessibleName("Table 2, seat 3: Catherine Tremblay");
+  await expect(page.getByTestId("seating-bar")).toContainText("2 of");
+  // Move Luc onto Catherine's seat: they swap.
+  await page.getByRole("button", { name: "Move the guest on seat 4" }).click();
+  await expect(page.getByTestId("seating-moving")).toContainText("Choose a seat for Luc Roy");
+  await page.getByTestId("seat-t2:3").click();
+  await expect.poll(seating).toEqual({
+    "t2:3": { first: "Luc", last: "Roy" },
+    "t2:4": { first: "Catherine", last: "Tremblay" },
+  });
+  const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId("seating-export").click()]);
+  expect(d.suggestedFilename()).toMatch(/Venue sample seating chart\.pdf$/);
+  const { readFileSync } = await import("node:fs");
+  expect(
+    readFileSync(await d.path())
+      .subarray(0, 8)
+      .toString("latin1"),
+  ).toBe("%PDF-1.4");
+  // Leaving Seating brings the panel back.
+  await setCamera(page, "dollhouse");
+  await expect(page.locator(".panel")).toBeVisible();
+});
+
 test("[EXP-02] Photo mode: hides the interface, blurs, saves twice the window, and Close returns to the same view and selection", async ({
   page,
 }) => {

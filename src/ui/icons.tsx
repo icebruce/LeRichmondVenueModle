@@ -36,6 +36,8 @@ const paths: Record<string, string> = {
   sidebar: "M3 4h14v12H3zM8 4v12",
   sliders: "M4 17v-5M4 8V3M10 17V9M10 5V3M16 17v-3M16 10V3M2 12h4M8 6h4M14 14h4",
   seat: "M5 18v-8h10v8M5 14h10M7 10V3h6v7",
+  seating: "M7 3h6v14H7zM3 5.5h1.5M3 10h1.5M3 14.5h1.5M15.5 5.5H17M15.5 10H17M15.5 14.5H17",
+  swap: "M4 7h11l-3-3M16 13H5l3 3",
   back: "M12 4l-6 6 6 6",
   pencil: "M4 16l1-4 8-8 3 3-8 8zM11 6l3 3",
   next: "M8 4l6 6-6 6",

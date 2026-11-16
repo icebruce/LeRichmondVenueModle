@@ -40,7 +40,8 @@ src/
   scene/    R3F components that render venue + scenario state. Reads domain types.
   ui/       React panels, inspector, rail, sheets, tokens.css.
   data/     API client, sync, IndexedDB drafts, image processing.
-  app/      Composition root: routes, providers, store wiring, the printable plan (canvas).
+  app/      Composition root: routes, providers, store wiring, file export.
+            (The printable plan and seating chart are drawn by ui/plan.ts, shared with the Seating view.)
 tests/
   unit/  e2e/  visual/
 tools/   Offline asset pipeline: Blender and Meshy scripts, check-assets, optimize (tools/README.md)
@@ -71,7 +72,7 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 
 ```ts
 type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
-  schemaVersion: 5;
+  schemaVersion: 7;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
   items: Item[];                        // tables, dance area, DJ; décor and imports from step 2
@@ -81,6 +82,7 @@ type Scenario = {                       // src/domain/scenario/schema.ts (zod) i
   thresholds: { aisleM: number; clearanceM: number; m2PerDancer: number; dancingShare: number };
   venueToggles: { barStools: boolean; paintings: Record<string, string> };
   notes: Note[];
+  seating: Record<string, { first: string; last: string }>;  // "tableId:seat number" → guest (SEA-01)
   updatedAt: string; updatedBy?: "A" | "B";
 };
 type Item = { id: string; libraryId: string; x: number; z: number; rotY: number;
@@ -94,7 +96,7 @@ type TableStyle = { linen: string; chair: string; florals: string;              
                     floralColour: string; flowerType: string; charger: string };
 ```
 
-The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Older files (versions 1–4) are upgraded by the migrations in `domain/scenario/scenario.ts` (tested).
+The level (main / raised / mezzanine) is derived from the position, not stored. People are not stored: they are placed from the layout, guest count, phase and `guests.seed` (`domain/layout/people.ts`, PPL-02). Older files (versions 1–6) are upgraded by the migrations in `domain/scenario/scenario.ts` (tested).
 
 Schema changes bump `schemaVersion` and add a migration in `domain/scenario/scenario.ts` with a test.
 

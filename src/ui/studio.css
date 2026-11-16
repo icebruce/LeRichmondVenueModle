@@ -2277,3 +2277,177 @@ textarea.text-input {
     );
   }
 }
+
+/* ---------- seating (SEA-01..04) ---------- */
+/* The seating chart in place of the room: the same drawing as the printed page. */
+.seating-view {
+  position: absolute;
+  left: var(--inset-left, 0px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface);
+  touch-action: none;
+  cursor: pointer;
+}
+.seating-view canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* A seat's name (or empty ring) as a button: invisible until hovered or focused. */
+.seat-hit {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  cursor: pointer;
+}
+.seat-hit:hover {
+  outline: 1px solid var(--line-2);
+}
+.seat-hit:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.seating-bar {
+  position: absolute;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
+  font: var(--t-callout);
+  color: var(--ink-2);
+  white-space: nowrap;
+  z-index: 20;
+}
+.seating-zoom {
+  display: flex;
+  border-left: 1px solid var(--line);
+  padding-left: var(--s-1);
+}
+.seating-count {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.seating-count b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.seating-card,
+.seating-pop {
+  position: absolute;
+  box-sizing: border-box;
+  right: var(--s-4);
+  top: calc(var(--top) + var(--target) + var(--s-4));
+  width: 360px;
+  max-height: calc(100% - var(--top) - var(--target) - var(--above-counts) - var(--s-4));
+  overflow: auto;
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow);
+  animation: rise var(--m-base);
+  z-index: 30;
+}
+.seating-pop {
+  top: auto;
+  right: auto;
+  left: calc(var(--inset-left, 0px) + (100% - var(--inset-left, 0px)) / 2);
+  bottom: var(--above-counts);
+  transform: translateX(-50%);
+  --tx: -50%;
+}
+.seating-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
+}
+.seating-card-head .hint {
+  margin: 0;
+}
+.seating-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.seating-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr var(--target);
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) 0;
+  border-top: 1px solid var(--line);
+}
+.seating-row.on .seating-n {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.seating-n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sunk);
+  color: var(--ink-2);
+  font: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+}
+.seating-row input {
+  min-width: 0;
+  min-height: var(--target);
+  padding: 0 var(--s-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--t-callout);
+}
+.seating-row input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.seating-lost {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  border-top: 1px solid var(--line);
+  font: var(--t-callout);
+  color: var(--ink);
+}
+.seating-lost span {
+  flex: 1;
+}
+@media (max-width: 767px) {
+  .seating-bar {
+    left: var(--s-3);
+    top: var(--top);
+    bottom: auto;
+    transform: none;
+    justify-content: space-between;
+    gap: var(--s-2);
+    padding-left: var(--s-3);
+  }
+  .seating-card,
+  .seating-pop {
+    left: var(--s-2);
+    right: var(--s-2);
+    top: auto;
+    bottom: calc(var(--tabbar) + var(--s-2));
+    width: auto;
+    max-height: 62%;
+    transform: none;
+    --tx: 0;
+  }
+  .seating-row input {
+    font: var(--t-field-phone);
+  }
+}
