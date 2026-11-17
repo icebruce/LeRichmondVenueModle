@@ -3,7 +3,7 @@ import { z } from "zod";
 export const MAX_CANDLE_KINDS = 3;
 export const MAX_CANDLES_PER_KIND = 8;
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 /** A share of a length, 0 to 1. */
 const unit = z.number().min(0).max(1);

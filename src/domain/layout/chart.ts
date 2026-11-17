@@ -85,8 +85,9 @@ export type Ends = { neg: number; pos: number };
  * How much longer each rectangular table may be drawn on the seating chart (SEA-04), at either end:
  * in all up to (LONGER_MAX − 1) × its length, each end as far as its top touches nothing it did not
  * already touch at its real length: walls, the bar, stair or banquettes, the DJ, the dance area,
- * another table, or the raised floor's edge. Tables alike (same library item and seats) grow by the
- * same amount, so they still match.
+ * another table, or the raised floor's edge. An end with a chair is not grown, so its guest's name
+ * keeps the room it has (LAY-03). Tables alike (same library item and side seats) grow by the same
+ * amount, so they still match.
  */
 export function longerTables(scenario: Scenario, venue: VenueModel, catalog: Catalog): Map<string, Ends> {
   const fixed: Polygon[] = [
@@ -121,14 +122,22 @@ export function longerTables(scenario: Scenario, venue: VenueModel, catalog: Cat
     const cap = (LONGER_MAX - 1) * sh.length;
     const before = new Set(touches(it, none));
     const ok = (e: Ends) => touches(it, e).every((t) => before.has(t));
+    const seated = (end: keyof Ends) =>
+      sh.chairs.some((c) => Math.abs(c.z) < 1e-6 && (end === "pos" ? c.x > 0 : c.x < 0));
     const reach = (end: keyof Ends) => {
+      if (seated(end)) return 0;
       let d = cap;
       while (d > 0 && !ok({ ...none, [end]: d })) d = Math.max(0, d - 0.05);
       return d;
     };
     room.set(it.id, { neg: reach("neg"), pos: reach("pos"), cap });
   }
-  const kind = (it: (typeof tables)[number]) => `${it.libraryId}:${seatsOf(shapeOf(it, catalog))}`;
+  // Seats along the sides: a table with an end chair still matches its plain twins.
+  const kind = (it: (typeof tables)[number]) => {
+    const sh = shapeOf(it, catalog);
+    const side = sh.kind === "rectTable" ? sh.chairs.filter((c) => Math.abs(c.z) > 1e-6).length : seatsOf(sh);
+    return `${it.libraryId}:${side}`;
+  };
   const ends = new Map<string, Ends>();
   for (const it of tables) {
     const r = room.get(it.id);
@@ -201,8 +210,9 @@ export function chartSeats(scenario: Scenario, catalog: Catalog, ends: ReadonlyM
 export type Measure = (text: string, px: number, bold: boolean) => number;
 
 /**
- * Names (SEA-04), in page units at 150 dpi: one size for the whole chart, the largest from 17 (8.2
- * pt) down to 10 (4.8 pt) at which every name stays clear; first name (semibold) over last name.
+ * Names (SEA-04), in page units at 150 dpi: 17 (8.2 pt); a name that would touch something is set
+ * smaller on its own, down to 10 (4.8 pt), never the others (owner, 2026-11-17); first name
+ * (semibold) over last name.
  */
 export const NAME_MAX = 17;
 export const NAME_MIN = 10;
@@ -218,12 +228,14 @@ export type NameBlock = {
   align: "left" | "right" | "center";
   /** The guest's lines; none for an empty seat (its ring). */
   lines: NameLine[];
+  /** The lines' type size, in drawing units. */
+  px: number;
   x: number;
   y: number;
   w: number;
   h: number;
 };
-export type NamePlan = { px: number; blocks: NameBlock[] };
+export type NamePlan = { blocks: NameBlock[] };
 
 /** A guest's lines: first name over last name; `split` breaks a long one at its hyphen. */
 export function nameLines(scenario: Scenario, key: string, split: boolean): NameLine[] {
@@ -248,9 +260,9 @@ export function nameLines(scenario: Scenario, key: string, split: boolean): Name
 /**
  * Where each guest's name goes on the seating chart (SEA-04), in drawing units: just outside the
  * table's edge at its seat, beside a table's end or centred over a seat along its side, one row per
- * side; at the one type size, the largest at which no name touches another, a wall, the bar or
- * stair, another table, the DJ or the dance area (banquettes are low; names may cross them). A
- * hyphenated name breaks at its hyphen where it would touch something, rather than shrink every name.
+ * side; clear of the other names, the walls, the bar and stair, other tables, the DJ and the dance
+ * area (banquettes are low; names may cross them). A name that would touch something first breaks
+ * at its hyphen, if it has one, then gets smaller on its own: every other name keeps its size.
  */
 export function placeNames(
   scenario: Scenario,
@@ -296,14 +308,15 @@ export function placeNames(
     y1: fit.oy + venue.depth * fit.scale,
   };
 
-  const blocks = (px: number, split: ReadonlySet<number>): NameBlock[] =>
+  const blocks = (sizes: readonly number[], split: ReadonlySet<number>): NameBlock[] =>
     placed.map((p, i) => {
+      const px = (sizes[i] ?? NAME_MAX) * k;
       const lines = nameLines(scenario, p.seat.key, split.has(i));
       const w = lines.length ? Math.max(...lines.map((l) => measure(l.s, px, l.bold))) : RING * 2 * k;
       const h = lines.length ? px * LEADING * lines.length : RING * 2 * k;
       const x = p.align === "left" ? p.x : p.align === "right" ? p.x - w : p.x - w / 2;
       const y = p.align !== "center" ? p.y - h / 2 : p.below > 0 ? p.y : p.y - h;
-      return { seat: p.seat, align: p.align, lines, x, y, w, h };
+      return { seat: p.seat, align: p.align, lines, px, x, y, w, h };
     });
   const conflicts = (b: NameBlock[]) => {
     const pad = CLEAR * k;
@@ -335,10 +348,17 @@ export function placeNames(
     const key = placed[i]?.seat.key ?? "";
     return nameLines(scenario, key, true).length > nameLines(scenario, key, false).length;
   };
-  for (let size = NAME_MAX; size >= NAME_MIN; size -= 0.5) {
-    const tight = new Set([...conflicts(blocks(size * k, new Set()))].filter(hyphenated));
-    const out = blocks(size * k, tight);
-    if (conflicts(out).size === 0 || size === NAME_MIN) return { px: size * k, blocks: out };
+  const sizes = placed.map(() => NAME_MAX);
+  const split = new Set<number>();
+  for (;;) {
+    const out = blocks(sizes, split);
+    const bad = [...conflicts(out)];
+    // A name that touches something breaks at its hyphen first; then the names still touching shrink.
+    const breaks = bad.filter((i) => hyphenated(i) && !split.has(i));
+    breaks.forEach((i) => split.add(i));
+    if (breaks.length) continue;
+    const shrink = bad.filter((i) => out[i]?.lines.length && (sizes[i] ?? NAME_MIN) > NAME_MIN);
+    if (!shrink.length) return { blocks: out };
+    for (const i of shrink) sizes[i] = Math.max(NAME_MIN, (sizes[i] ?? NAME_MAX) - 0.5);
   }
-  return { px: NAME_MIN * k, blocks: blocks(NAME_MIN * k, new Set()) };
 }

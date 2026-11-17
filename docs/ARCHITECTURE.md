@@ -72,7 +72,7 @@ The scene is built from this file by pure functions in `domain/venue` (footprint
 
 ```ts
 type Scenario = {                       // src/domain/scenario/schema.ts (zod) is the source of truth
-  schemaVersion: 7;
+  schemaVersion: 8;
   id: string; name: string; phase?: "dinner" | "party";
   revision: number;                     // server-assigned from step 2, for conflict detection
   items: Item[];                        // tables, dance area, DJ; décor and imports from step 2

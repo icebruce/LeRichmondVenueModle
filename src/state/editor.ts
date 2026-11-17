@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 import { type Patch, applyPatches, enablePatches, produceWithPatches } from "immer";
 import type { Catalog } from "../domain/library/catalog";
 import type { VenueModel } from "../domain/venue/model";
-import type { Item, ItemOptions } from "../domain/layout/items";
+import { END_OPTIONS, type Item, type ItemOptions, shapeOf } from "../domain/layout/items";
 import {
   type Placement,
   checkPlacement,
@@ -15,7 +15,7 @@ import { tableLabels } from "../domain/layout/counts";
 import { stylePatch } from "../domain/layout/decor";
 import { normalizeAngle, snap } from "../domain/geometry";
 import { GUEST_NAME_MAX, type GuestName, type Scenario, type TableStyle } from "../domain/scenario/schema";
-import { fullName, seatItem } from "../domain/layout/seating";
+import { fullName, namesAfterEnds, seatItem } from "../domain/layout/seating";
 import { newScenario, venueSampleScenario } from "../domain/scenario/scenario";
 
 enablePatches();
@@ -304,8 +304,14 @@ export function createEditor(deps: EditorDeps, initial: Scenario[]) {
       const changed = withSpot({ ...it, options: { ...it.options, [key]: value } });
       const reason = validate([changed]);
       if (reason) return refuse(reason);
+      // An end chair switched on or off leaves every guest on their chair (LAY-03).
+      const ends = (END_OPTIONS as readonly string[]).includes(key);
+      const seating = ends
+        ? namesAfterEnds(id, shapeOf(it, deps.catalog), shapeOf(changed, deps.catalog), active().seating)
+        : null;
       commit("Change", (d) => {
         Object.assign(d.items.find((i) => i.id === id) as Item, changed);
+        if (seating) d.seating = seating;
       });
       return true;
     },

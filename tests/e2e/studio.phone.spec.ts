@@ -41,6 +41,31 @@ test("[SEA-01] [PLT-02] phone Seating: the sheet closes for the chart; a seat op
   await expect(page.getByTestId("seating-view")).toBeVisible();
 });
 
+test("[LAY-03] [SEA-01] [PLT-02] phone: an end chair switched on in the sheet is a seat to name in Seating", async ({
+  page,
+}) => {
+  await openStudio(page);
+  await setCamera(page, "plan");
+  const t = await item(page, "t2");
+  const [x, y] = await screenOf(page, t.x, 0.77, t.z);
+  await page.touchscreen.tap(x, y);
+  await expect(page.getByTestId("inspector")).toBeVisible();
+  const left = page.getByRole("switch", { name: "Seat at the left end" });
+  await left.scrollIntoViewIfNeeded();
+  await left.tap();
+  await expect(left).toBeChecked();
+  expect((await item(page, "t2")).options).toMatchObject({ seats: 12, endLeft: true });
+  await setCamera(page, "seating");
+  // The left end comes last round the table: seat 13.
+  await page.getByTestId("seat-t2:13").tap();
+  await page.getByRole("textbox", { name: "Seat 13, first name" }).fill("Julie");
+  await page.getByRole("textbox", { name: "Seat 13, last name" }).fill("Simard");
+  await page.getByRole("textbox", { name: "Seat 13, last name" }).press("Enter");
+  await expect
+    .poll(async () => (await state(page)).active?.seating["t2:13"])
+    .toEqual({ first: "Julie", last: "Simard" });
+});
+
 /** A steady finger drag on `selector` from y0 to y1 over 400 ms (slower than a flick). */
 async function swipe(page: Page, selector: string, y0: number, y1: number) {
   const el = page.locator(selector).first();

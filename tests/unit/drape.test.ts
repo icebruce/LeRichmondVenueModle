@@ -32,7 +32,7 @@ describe("table drapes", () => {
       expect(drapeGeometry(o, TOP, TOP - HEM_LIFT).getAttribute("position").count).toBe(drapeVertexCount(o));
     }
     for (const seats of [4, 8, 12, 16, 20]) {
-      const t = rectTable(seats, false);
+      const t = rectTable(seats, 0);
       const o: Outline = { kind: "rect", length: t.length, width: t.width };
       const n = drapeVertexCount(o);
       expect(drapeGeometry(o, TOP, TOP - HEM_LIFT).getAttribute("position").count).toBe(n);

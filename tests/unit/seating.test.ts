@@ -42,17 +42,95 @@ describe("seating chart", () => {
     expect(order.slice(6).map((c) => c?.x)).toEqual(
       [...order.slice(6).map((c) => c?.x)].sort((a, b) => (b ?? 0) - (a ?? 0)),
     );
-    // With chairs at the ends, the east end comes between the sides and the west end last.
-    expect(editor.setOption("t1", "ends", true)).toBe(true);
-    const ends = shapeOf(editor.active().items.find((i) => i.id === "t1") ?? t1, catalog);
+    // With a chair at each end, the right end comes between the sides and the left end last.
+    expect(editor.setOption("t2", "endRight", true)).toBe(true);
+    expect(editor.setOption("t2", "endLeft", true)).toBe(true);
+    const ends = shapeOf(editor.active().items.find((i) => i.id === "t2") ?? t1, catalog);
     if (ends.kind !== "rectTable") throw new Error("not a rectangle");
     const withEnds = seatOrder(ends).map((i) => ends.chairs[i]);
-    expect(withEnds[5]?.z).toBe(0);
-    expect(withEnds[5]?.x).toBeGreaterThan(0);
-    expect(withEnds[11]?.x).toBeLessThan(0);
-    const keys = layoutSeats(editor.active().items, catalog).filter((s) => s.item === "t1");
-    expect(keys.map((s) => s.key)).toEqual(Array.from({ length: 12 }, (_, i) => `t1:${i + 1}`));
-    expect(keys.every((s) => s.table === "1")).toBe(true);
+    expect(withEnds[6]?.z).toBe(0);
+    expect(withEnds[6]?.x).toBeGreaterThan(0);
+    expect(withEnds[13]?.x).toBeLessThan(0);
+    const keys = layoutSeats(editor.active().items, catalog).filter((s) => s.item === "t2");
+    expect(keys.map((s) => s.key)).toEqual(Array.from({ length: 14 }, (_, i) => `t2:${i + 1}`));
+    expect(keys.every((s) => s.table === "2")).toBe(true);
+  });
+
+  test("[LAY-03] [SEA-03] switching an end chair leaves every guest on their chair, in one undo step", () => {
+    const editor = setup();
+    const at = () => {
+      const seats = layoutSeats(editor.active().items, catalog);
+      return Object.fromEntries(
+        Object.entries(editor.active().seating).map(([k, g]) => {
+          const s = seats.find((x) => x.key === k);
+          return [`${g.first}`, s ? [s.x.toFixed(3), s.z.toFixed(3)] : "without a seat"];
+        }),
+      );
+    };
+    // Every chair of table 2 named, and a guest at table 3.
+    for (let n = 1; n <= 12; n++) editor.setSeatName(`t2:${n}`, { first: `G${n}`, last: "" });
+    editor.setSeatName("t3:7", { first: "Other", last: "" });
+    const before = at();
+    // The right end comes after seat 6: the other side's guests are numbered one on, same chairs.
+    editor.setOption("t2", "endRight", true);
+    expect(at()).toEqual(before);
+    expect(editor.active().seating["t2:7"]).toBeUndefined();
+    expect(editor.active().seating["t2:8"]).toEqual({ first: "G7", last: "" });
+    expect(editor.active().seating["t3:7"]).toEqual({ first: "Other", last: "" });
+    editor.setSeatName("t2:7", { first: "End", last: "" });
+    const withEnd = at();
+    // The left end comes last: nobody moves.
+    editor.setOption("t2", "endLeft", true);
+    expect(at()).toEqual(withEnd);
+    // Switching the right end off again: its guest is listed without a seat, the rest stay put.
+    editor.setOption("t2", "endRight", false);
+    const now = at();
+    expect(now.End).toBe("without a seat");
+    expect({ ...now, End: withEnd.End }).toEqual(withEnd);
+    expect(
+      unseated(editor.active(), layoutSeats(editor.active().items, catalog)).map((u) => u.name.first),
+    ).toEqual(["End"]);
+    // One undo brings it back on its chair.
+    editor.undo();
+    expect(at()).toEqual(withEnd);
+  });
+
+  test("[LAY-03] older plans: 'Chairs at the ends' becomes both end chairs on the same table, names on the same chairs", () => {
+    const sample = venueSampleScenario("A", "2026-11-16T00:00:00.000Z");
+    const items = sample.items.map((i) =>
+      i.id === "t1"
+        ? { ...i, options: { seats: 12, ends: true } }
+        : i.id === "t5"
+          ? { ...i, options: { ends: true } }
+          : i.id === "t2"
+            ? { ...i, options: { seats: 12, ends: false } }
+            : i,
+    );
+    const seating = { "t1:7": { first: "Luc", last: "Roy" }, "t1:12": { first: "Anne", last: "Côté" } };
+    const v7 = { ...sample, schemaVersion: 7, items, seating };
+    // The v7 tables, built the way v7 built them: 10 a side + 2 ends, 3.5 m long, 1.0 m wide.
+    const old = { t1: { length: 3.5, width: 1.0, chairs: 12 }, t5: { length: 2.1, width: 0.9, chairs: 8 } };
+    const s = parseScenario(v7);
+    const opts = (id: string) => s.items.find((i) => i.id === id)?.options;
+    expect(opts("t1")).toEqual({ seats: 10, endLeft: true, endRight: true });
+    expect(opts("t5")).toEqual({ seats: 6, endLeft: true, endRight: true });
+    expect(opts("t2")).toEqual({ seats: 12 });
+    for (const [id, o] of Object.entries(old)) {
+      const it = s.items.find((i) => i.id === id);
+      if (!it) throw new Error(`no ${id}`);
+      const shape = shapeOf(it, catalog);
+      expect(shape.kind === "rectTable" && [shape.length, shape.width, shape.chairs.length]).toEqual([
+        o.length,
+        o.width,
+        o.chairs,
+      ]);
+    }
+    expect(s.seating).toEqual(seating);
+    // Seat 7 is still the first chair on the second side, seat 12 the left end.
+    const seats = layoutSeats(s.items, catalog);
+    const seat = (k: string) => seats.find((x) => x.key === k);
+    expect(seat("t1:12")?.x).toBeLessThan(seat("t1:1")?.x ?? 0);
+    expect(seat("t1:7")?.z).toBeGreaterThan(s.items[0]?.z ?? 0);
   });
 
   test("[SEA-01] naming a seat: first and last name, trimmed; both empty clears it; one undo step", () => {
@@ -118,7 +196,73 @@ describe("seating chart", () => {
     expect(differences(s, theirs, catalog)).toContain("1 seat has a different name");
   });
 
-  test("[SEA-04] the chart: every name clear of the others and of the room, at one size, tables longer by at most 1.3×", () => {
+  test("[SEA-04] [LAY-03] an end chair's guest keeps the chart's name size; that end is not drawn longer, twins still match", () => {
+    const editor = setup();
+    for (const key of ["t1:1", "t2:8", "t3:4", "t4:2", "t5:1", "t6:3", "t7:5"])
+      editor.setSeatName(key, { first: "Marie-Ève", last: "Paquette-Tremblay" });
+    const measure = (s: string, px: number, bold: boolean) => s.length * px * (bold ? 0.6 : 0.55);
+    const frame = {
+      x: PAGE.margin,
+      y: PAGE.top,
+      w: PAGE.width - 2 * PAGE.margin,
+      h: PAGE.height - PAGE.top - PAGE.bottom,
+    };
+    const fit = fitRoom(venue, frame, seatingStretch(venue));
+    const chart = () => {
+      const ends = longerTables(editor.active(), venue, catalog);
+      const sizes = new Map(
+        placeNames(editor.active(), venue, catalog, fit, ends, measure).blocks.map((b) => [b.seat.key, b.px]),
+      );
+      return { ends, sizes };
+    };
+    const plain = chart();
+    // Table 2's right end faces the bar: a long name there keeps its full size, and so does every other.
+    expect(editor.setOption("t2", "endRight", true)).toBe(true);
+    editor.setSeatName("t2:7", { first: "Marie-Ève", last: "Paquette-Tremblay" });
+    const end = chart();
+    expect(end.sizes.get("t2:7")).toBe(NAME_MAX * fit.k);
+    for (const key of ["t1:1", "t3:4", "t4:2", "t5:1", "t6:3", "t7:5"])
+      expect(end.sizes.get(key)).toBe(plain.sizes.get(key));
+    // Table 2's own guests keep theirs too (its second side is numbered one on).
+    expect(end.sizes.get("t2:9")).toBe(plain.sizes.get("t2:8"));
+    expect(end.ends.get("t2")?.pos).toBe(0);
+    // Tables 1–3 (12 along the sides) are still drawn the same length.
+    const grown = (id: string) => {
+      const e = end.ends.get(id);
+      return (e?.neg ?? 0) + (e?.pos ?? 0);
+    };
+    expect(grown("t2")).toBeGreaterThan(0);
+    expect(grown("t1")).toBeCloseTo(grown("t2"));
+    expect(grown("t3")).toBeCloseTo(grown("t2"));
+  });
+
+  test("[SEA-04] a name that does not fit gets smaller on its own: the rest of the chart keeps its size", () => {
+    const editor = setup();
+    const measure = (s: string, px: number, bold: boolean) => s.length * px * (bold ? 0.6 : 0.55);
+    const frame = {
+      x: PAGE.margin,
+      y: PAGE.top,
+      w: PAGE.width - 2 * PAGE.margin,
+      h: PAGE.height - PAGE.top - PAGE.bottom,
+    };
+    const fit = fitRoom(venue, frame, seatingStretch(venue));
+    for (const seat of layoutSeats(editor.active().items, catalog))
+      editor.setSeatName(seat.key, { first: "Luc", last: "Roy" });
+    // One very long name, with no hyphen to break at, between two guests on table 2's side.
+    editor.setSeatName("t2:9", { first: "Wolfeschlegelsteinhausen", last: "Bergerdorffstein" });
+    const ends = longerTables(editor.active(), venue, catalog);
+    const { blocks } = placeNames(editor.active(), venue, catalog, fit, ends, measure);
+    const px = (key: string) => blocks.find((b) => b.seat.key === key)?.px ?? 0;
+    const full = NAME_MAX * fit.k;
+    expect(px("t2:9")).toBeLessThan(full);
+    expect(px("t2:9")).toBeGreaterThanOrEqual(NAME_MIN * fit.k);
+    // Only names it touches may give way; the other tables keep the full size.
+    for (const b of blocks.filter((x) => x.lines.length && ["t4", "t5", "t6", "t7"].includes(x.seat.item)))
+      expect(b.px, b.seat.key).toBe(full);
+    expect(blocks.filter((b) => b.lines.length && b.px < full).length).toBeLessThanOrEqual(3);
+  });
+
+  test("[SEA-04] the chart: every name clear of the others and of the room, each at its own size, tables longer by at most 1.3×", () => {
     const editor = setup();
     const firsts = [
       "Catherine",
@@ -147,10 +291,12 @@ describe("seating chart", () => {
     };
     const fit = fitRoom(venue, frame, seatingStretch(venue));
     const ends = longerTables(plan, venue, catalog);
-    const { px, blocks } = placeNames(plan, venue, catalog, fit, ends, measure);
+    const { blocks } = placeNames(plan, venue, catalog, fit, ends, measure);
 
-    expect(px).toBeGreaterThanOrEqual(NAME_MIN);
-    expect(px).toBeLessThanOrEqual(NAME_MAX);
+    for (const b of blocks) {
+      expect(b.px).toBeGreaterThanOrEqual(NAME_MIN * fit.k);
+      expect(b.px).toBeLessThanOrEqual(NAME_MAX * fit.k);
+    }
     expect(blocks.filter((b) => b.lines.length)).toHaveLength(Object.keys(plan.seating).length);
     for (const [i, a] of blocks.entries())
       for (const b of blocks.slice(i + 1))

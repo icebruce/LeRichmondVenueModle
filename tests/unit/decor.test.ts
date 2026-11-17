@@ -227,7 +227,7 @@ describe("scenario files", () => {
       updatedAt: "2026-10-15T00:00:00.000Z",
     };
     const s = parseScenario(v1);
-    expect(s.schemaVersion).toBe(7);
+    expect(s.schemaVersion).toBe(8);
     expect(s.style).toMatchObject({ runner: "none", napkin: "none", menus: false, tableNumbers: false });
     expect(s.style).toMatchObject({ linen: "linen-white", linenLength: "lap" });
     expect(s.style.candles).toEqual([{ id: "candle-votives", n: 3 }]);
@@ -270,7 +270,7 @@ describe("scenario files", () => {
       updatedAt: "2026-10-16T00:00:00.000Z",
     };
     const s = parseScenario(v3);
-    expect(s.schemaVersion).toBe(7);
+    expect(s.schemaVersion).toBe(8);
     expect(s.style.candles).toEqual([{ id: "candle-pillars", n: 3 }]);
     expect(s.items[0]?.style?.candles).toEqual([]);
     expect(s.items[1]?.style?.candles).toEqual([{ id: "candle-tapers", n: 2 }]);
@@ -486,7 +486,7 @@ describe("candle mix", () => {
       ],
     };
     const s = parseScenario(v4);
-    expect(s.schemaVersion).toBe(7);
+    expect(s.schemaVersion).toBe(8);
     // Both become the one candelabra: the first one's arms, their counts together.
     expect(s.style.candles).toEqual([
       { id: "candelabra", n: 3, arms: 5 },

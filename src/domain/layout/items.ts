@@ -68,18 +68,37 @@ function sideChairs(length: number, count: number, z: number, rotY: number): Cha
   return Array.from({ length: count }, (_, i) => ({ x: -length / 2 + pitch * (i + 0.5), z, rotY }));
 }
 
-function rectChairs(length: number, width: number, seats: number, ends: boolean): Chair[] {
+/** A rectangle's table ends with a chair (LAY-03): `left` is local −x, `right` local +x. */
+type Ends = { left: boolean; right: boolean };
+
+function rectChairs(length: number, width: number, side: number, ends: Ends): Chair[] {
   const chairs: Chair[] = [];
-  const endSeats = ends ? Math.min(2, seats) : 0;
-  const side = seats - endSeats;
   const north = Math.ceil(side / 2);
   const south = side - north;
   const off = width / 2 + 0.32;
   // Chairs face local +z at rotY 0 (front direction = (sin rotY, cos rotY)).
   chairs.push(...sideChairs(length, north, -off, 0), ...sideChairs(length, south, off, Math.PI));
-  if (endSeats >= 1) chairs.push({ x: -length / 2 - 0.32, z: 0, rotY: Math.PI / 2 });
-  if (endSeats >= 2) chairs.push({ x: length / 2 + 0.32, z: 0, rotY: -Math.PI / 2 });
+  if (ends.left) chairs.push({ x: -length / 2 - 0.32, z: 0, rotY: Math.PI / 2 });
+  if (ends.right) chairs.push({ x: length / 2 + 0.32, z: 0, rotY: -Math.PI / 2 });
   return chairs;
+}
+
+/** The two end-chair options of a rectangular table (LAY-03). */
+export const END_OPTIONS = ["endLeft", "endRight"] as const;
+
+/**
+ * Where a table's end is as the Plan and Seating views show it (x to the right, z down), at the
+ * table's turn: its left end (local −x) or its right end (local +x).
+ */
+export function endOnPlan(
+  rotY: number,
+  end: (typeof END_OPTIONS)[number],
+): "left" | "right" | "top" | "bottom" {
+  const sign = end === "endRight" ? 1 : -1;
+  const across = Math.cos(rotY) * sign;
+  const down = -Math.sin(rotY) * sign;
+  if (Math.abs(across) >= Math.abs(down) - 1e-9) return across > 0 ? "right" : "left";
+  return down > 0 ? "bottom" : "top";
 }
 
 function roundChairs(diameter: number, seats: number): Chair[] {
@@ -134,21 +153,16 @@ const generators: Record<string, (e: LibraryEntry, o: Record<string, unknown>, p
       const width = e.sizeM.d;
       const chairs = p.oneSide
         ? sideChairs(length, seats, -(width / 2 + 0.32), 0)
-        : rectChairs(length, width, seats, false);
+        : rectChairs(length, width, seats, { left: false, right: false });
       return { kind: "rectTable", length, width, height, seats, chairs, farm };
     }
-    const seats = num(o.seats, 8);
-    const t = rectTable(seats, bool(o.ends));
+    // Seats along the sides; each end chair switched on is one more guest (owner, 2026-11-17).
+    const side = num(o.seats, 8);
+    const ends = { left: bool(o.endLeft), right: bool(o.endRight) };
+    const t = rectTable(side, Number(ends.left) + Number(ends.right));
     const width = num(p.width, t.width);
-    return {
-      kind: "rectTable",
-      length: t.length,
-      width,
-      height,
-      seats,
-      chairs: rectChairs(t.length, width, seats, t.ends),
-      farm,
-    };
+    const chairs = rectChairs(t.length, width, side, ends);
+    return { kind: "rectTable", length: t.length, width, height, seats: chairs.length, chairs, farm };
   },
   roundTable(e, o) {
     const seats = num(o.seats, 8);
@@ -201,11 +215,11 @@ export function seatsOf(shape: Shape): number {
 export function localFootprint(shape: Shape): Polygon {
   switch (shape.kind) {
     case "rectTable": {
-      const hasEnds = shape.chairs.some((c) => Math.abs(c.z) < 1e-6);
+      const end = (sign: number) => shape.chairs.some((c) => Math.abs(c.z) < 1e-6 && c.x * sign > 0);
       const north = shape.chairs.some((c) => c.z < -1e-6);
       const south = shape.chairs.some((c) => c.z > 1e-6);
-      const x0 = -shape.length / 2 - (hasEnds ? CHAIR_ZONE : 0);
-      const x1 = shape.length / 2 + (hasEnds ? CHAIR_ZONE : 0);
+      const x0 = -shape.length / 2 - (end(-1) ? CHAIR_ZONE : 0);
+      const x1 = shape.length / 2 + (end(1) ? CHAIR_ZONE : 0);
       const z0 = -shape.width / 2 - (north ? CHAIR_ZONE : 0);
       const z1 = shape.width / 2 + (south ? CHAIR_ZONE : 0);
       return [

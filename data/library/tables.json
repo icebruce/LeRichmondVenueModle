@@ -16,28 +16,32 @@
           "label": "8 guests",
           "options": {
             "seats": 8,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "10 guests",
           "options": {
             "seats": 10,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "12 guests",
           "options": {
             "seats": 12,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "14 guests",
           "options": {
             "seats": 14,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         }
       ],
@@ -57,7 +61,7 @@
         {
           "type": "number",
           "key": "seats",
-          "label": "Seats",
+          "label": "Seats along the sides",
           "min": 4,
           "max": 14,
           "step": 1,
@@ -65,8 +69,14 @@
         },
         {
           "type": "boolean",
-          "key": "ends",
-          "label": "Chairs at the ends",
+          "key": "endLeft",
+          "label": "Seat at the left end",
+          "default": false
+        },
+        {
+          "type": "boolean",
+          "key": "endRight",
+          "label": "Seat at the right end",
           "default": false
         }
       ],
@@ -170,28 +180,32 @@
           "label": "8 guests",
           "options": {
             "seats": 8,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "10 guests",
           "options": {
             "seats": 10,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "12 guests",
           "options": {
             "seats": 12,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         },
         {
           "label": "14 guests",
           "options": {
             "seats": 14,
-            "ends": false
+            "endLeft": false,
+            "endRight": false
           }
         }
       ],
@@ -216,7 +230,7 @@
         {
           "type": "number",
           "key": "seats",
-          "label": "Seats",
+          "label": "Seats along the sides",
           "min": 6,
           "max": 14,
           "step": 1,
@@ -224,8 +238,14 @@
         },
         {
           "type": "boolean",
-          "key": "ends",
-          "label": "Chairs at the ends",
+          "key": "endLeft",
+          "label": "Seat at the left end",
+          "default": false
+        },
+        {
+          "type": "boolean",
+          "key": "endRight",
+          "label": "Seat at the right end",
           "default": false
         }
       ],

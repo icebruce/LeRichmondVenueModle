@@ -6,15 +6,15 @@ export const SEAT_PITCH = 0.7;
 /** How far a chair zone extends beyond a table edge, for collision footprints. */
 export const CHAIR_ZONE = 0.55;
 
-export type RectTable = { shape: "rect"; length: number; width: number; perSide: number; ends: boolean };
+export type RectTable = { shape: "rect"; length: number; width: number; perSide: number };
 export type RoundTable = { shape: "round"; diameter: number };
 
-export function rectTable(seats: number, ends: boolean): RectTable {
-  const sideSeats = ends ? Math.max(seats - 2, 2) : seats;
+/** A rectangle for `sideSeats` along its sides and `endSeats` (0–2) at its ends (LAY-03). */
+export function rectTable(sideSeats: number, endSeats: number): RectTable {
   const perSide = Math.ceil(sideSeats / 2);
   const length = Math.max(1.2, Math.round(perSide * SEAT_PITCH * 10) / 10);
-  const width = seats >= 12 ? 1.0 : 0.9;
-  return { shape: "rect", length, width, perSide, ends };
+  const width = sideSeats + endSeats >= 12 ? 1.0 : 0.9;
+  return { shape: "rect", length, width, perSide };
 }
 
 const ROUND_DIAMETERS: Record<number, number> = { 4: 0.9, 6: 1.2, 8: 1.5, 10: 1.8 };

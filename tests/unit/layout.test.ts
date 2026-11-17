@@ -1,9 +1,17 @@
 import { describe, expect, test } from "vitest";
 import { catalog, venue } from "./fixtures";
-import { type Item, chairsWorld, footprint, shapeOf } from "../../src/domain/layout/items";
+import {
+  type Item,
+  chairsWorld,
+  endOnPlan,
+  footprint,
+  localFootprint,
+  seatsOf,
+  shapeOf,
+} from "../../src/domain/layout/items";
 import { checkPlacement, findFreeSpot, toggledObstacles } from "../../src/domain/layout/validate";
 import { countLayout, tableLabels } from "../../src/domain/layout/counts";
-import { rectTable, roundTable } from "../../src/domain/library/sizing";
+import { CHAIR_ZONE, rectTable, roundTable } from "../../src/domain/library/sizing";
 import { venueSampleItems } from "../../src/domain/scenario/scenario";
 import { area, polygonInside } from "../../src/domain/geometry";
 import { alignSnap } from "../../src/domain/layout/align";
@@ -219,11 +227,55 @@ describe("placement", () => {
 });
 
 describe("tables and chairs", () => {
-  test("[LAY-03] [LIB-01] rectangle length follows seats (0.70 m a guest); 12 = 6 + 6, or 5 + 5 + 2 ends", () => {
-    expect(rectTable(12, false)).toMatchObject({ perSide: 6, length: 4.2, width: 1.0 });
-    expect(rectTable(12, true)).toMatchObject({ perSide: 5, length: 3.5 });
-    const s = shapeOf(table({ options: { seats: 12, ends: true } }), catalog);
-    expect(s.kind === "rectTable" && s.chairs.length).toBe(12);
+  test("[LAY-03] [LIB-01] rectangle length follows side seats (0.70 m a guest); each end chair adds a guest", () => {
+    expect(rectTable(12, 0)).toMatchObject({ perSide: 6, length: 4.2, width: 1.0 });
+    expect(rectTable(10, 2)).toMatchObject({ perSide: 5, length: 3.5, width: 1.0 });
+    expect(rectTable(10, 1)).toMatchObject({ perSide: 5, length: 3.5, width: 0.9 });
+    const ends = (endLeft: boolean, endRight: boolean) =>
+      shapeOf(table({ options: { seats: 12, endLeft, endRight } }), catalog);
+    const right = ends(false, true);
+    if (right.kind !== "rectTable") throw new Error("expected a rectangle");
+    expect(right.seats).toBe(13);
+    // The added chair is at local +x only; the side chairs are where they were without it.
+    expect(right.chairs.filter((c) => c.z === 0).map((c) => Math.sign(c.x))).toEqual([1]);
+    const none = ends(false, false);
+    expect(none.kind === "rectTable" && right.chairs.slice(0, 12)).toEqual(
+      none.kind === "rectTable" && none.chairs,
+    );
+    const left = ends(true, false);
+    expect(
+      left.kind === "rectTable" && left.chairs.filter((c) => c.z === 0).map((c) => Math.sign(c.x)),
+    ).toEqual([-1]);
+    expect(seatsOf(ends(true, true))).toBe(14);
+    // Only the end with a chair grows the footprint.
+    const xs = localFootprint(right).map((p) => p[0]);
+    expect(Math.max(...xs)).toBeCloseTo(2.1 + CHAIR_ZONE);
+    expect(Math.min(...xs)).toBeCloseTo(-2.1);
+  });
+
+  test("[LAY-03] an end chair is named by where that end is in Plan, at the table's turn", () => {
+    expect([endOnPlan(0, "endLeft"), endOnPlan(0, "endRight")]).toEqual(["left", "right"]);
+    expect([endOnPlan(Math.PI, "endLeft"), endOnPlan(Math.PI, "endRight")]).toEqual(["right", "left"]);
+    // A quarter turn (rotY +90°) sends local +x up the plan.
+    expect([endOnPlan(Math.PI / 2, "endLeft"), endOnPlan(Math.PI / 2, "endRight")]).toEqual([
+      "bottom",
+      "top",
+    ]);
+    expect([endOnPlan(-Math.PI / 2, "endLeft"), endOnPlan(-Math.PI / 2, "endRight")]).toEqual([
+      "top",
+      "bottom",
+    ]);
+    // The label matches where the chair is drawn: the right end's chair is the one furthest right.
+    for (const rotY of [0, 0.4, Math.PI / 2, 2, Math.PI, -1]) {
+      const t = table({ rotY, options: { seats: 8, endRight: true } });
+      const world = chairsWorld(t, shapeOf(t, catalog));
+      const end = world.at(-1);
+      if (!end) throw new Error("no end chair");
+      const where = endOnPlan(rotY, "endRight");
+      const pick = { right: Math.max, left: Math.min, bottom: Math.max, top: Math.min }[where];
+      const axis = where === "left" || where === "right" ? "x" : "z";
+      expect(end[axis]).toBeCloseTo(pick(...world.map((c) => c[axis])));
+    }
   });
 
   test("[LAY-03] round tables use rental diameters and chairs face the centre", () => {

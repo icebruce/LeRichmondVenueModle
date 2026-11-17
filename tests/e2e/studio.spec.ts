@@ -15,6 +15,7 @@ import {
 } from "./helpers";
 import venueJson from "../../data/venue_geometry.json" with { type: "json" };
 import { barTopPlace, parseVenue } from "../../src/domain/venue/model";
+import { endOnPlan } from "../../src/domain/layout/items";
 
 test.describe.configure({ mode: "serial" });
 
@@ -70,6 +71,111 @@ test("[LAY-02] [LAY-03] turn, change seats, duplicate and delete from the inspec
   expect((await state(page)).active?.items.length).toBe(count - 1);
   await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
   expect((await state(page)).active?.items.length).toBe(count);
+});
+
+test("[LAY-03] [SEA-01] [SEA-03] [SEA-04] a chair at either end: one switch per end adds a guest, and named guests keep their chairs", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const seating = async () => (await state(page)).active?.seating ?? {};
+  // A guest on table 2's second side, named in Seating.
+  await setCamera(page, "seating");
+  await page.getByTestId("seat-t2:8").click();
+  await page.keyboard.type("Luc");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Roy");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await seating())["t2:8"]).toEqual({ first: "Luc", last: "Roy" });
+  // Plan: table 2's inspector has its side seats and a switch for each end.
+  await setCamera(page, "plan");
+  const t = await item(page, "t2");
+  const [x, y] = await screenOf(page, t.x, 0.77, t.z);
+  await page.mouse.click(x, y);
+  await page.getByTestId("details").click();
+  await expect(page.getByTestId("inspector")).toContainText("Seats along the sides");
+  const right = page.getByRole("switch", { name: "Seat at the right end" });
+  const left = page.getByRole("switch", { name: "Seat at the left end" });
+  await expect(right).not.toBeChecked();
+  await expect(left).not.toBeChecked();
+  await right.check();
+  expect((await item(page, "t2")).options).toMatchObject({ seats: 12, endRight: true });
+  await expect(left).not.toBeChecked();
+  // One more guest seated, in the counts and on the table.
+  await expect(page.getByTestId("count-seats")).toHaveText("73");
+  await expect(page.getByTestId("selection-bar")).toContainText("13 seats");
+  await setCamera(page, "dollhouse");
+  await expect(page.getByTestId("count-seats")).toHaveText("73");
+  // Seating: the right end is seat 7, after the first side; Luc kept his chair, now seat 9.
+  await setCamera(page, "seating");
+  await expect(page.getByTestId("seat-t2:13")).toBeVisible();
+  await expect(page.getByTestId("seat-t2:9")).toHaveAccessibleName("Table 2, seat 9: Luc Roy");
+  await page.getByTestId("seat-t2:7").click();
+  await page.keyboard.type("Anne");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Côté");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await seating())["t2:7"]).toEqual({ first: "Anne", last: "Côté" });
+  // The chart for the restaurant still exports.
+  const [d] = await Promise.all([page.waitForEvent("download"), page.getByTestId("seating-export").click()]);
+  const { readFileSync } = await import("node:fs");
+  expect(
+    readFileSync(await d.path())
+      .subarray(0, 8)
+      .toString("latin1"),
+  ).toBe("%PDF-1.4");
+  // Switching that end off again lists its guest without a seat; Luc stays on his chair.
+  await page.keyboard.press("Escape");
+  await setCamera(page, "plan");
+  await page.mouse.click(x, y);
+  await page.getByTestId("details").click();
+  await page.getByRole("switch", { name: "Seat at the right end" }).uncheck();
+  await expect(page.getByTestId("count-seats")).toHaveText("72");
+  await setCamera(page, "seating");
+  await expect(page.getByTestId("seat-t2:8")).toHaveAccessibleName("Table 2, seat 8: Luc Roy");
+  await page.getByTestId("seating-unseated").click();
+  await expect(page.getByRole("dialog", { name: "Guests without a seat" })).toContainText("Anne Côté");
+});
+
+test("[LAY-03] a turned table names its end chairs as Plan shows them", async ({ page }) => {
+  await openStudio(page, "fresh");
+  await page.getByTestId("plan-name").click();
+  await page.getByTestId("plan-new-empty").click();
+  await openSection(page, "add");
+  await page.getByTestId("add-table-rect").click();
+  await expect(page.getByTestId("selection-bar")).toContainText("Table 1");
+  await page.getByTestId("details").click();
+  const id = (await state(page)).selection[0] ?? "";
+  const named = async () => {
+    const { rotY } = await item(page, id);
+    const names = (["endLeft", "endRight"] as const).map((k) => `Seat at the ${endOnPlan(rotY, k)} end`);
+    for (const name of names) await expect(page.getByRole("switch", { name })).toBeVisible();
+    return names;
+  };
+  // Out on the open floor (where the sample has its dance area), where a quarter turn fits.
+  expect(
+    await page.evaluate(
+      (moved) =>
+        (
+          (window as unknown as W).__studio.editor as unknown as {
+            moveItems: (m: { id: string; x: number; z: number }[]) => boolean;
+          }
+        ).moveItems([moved]),
+      { id, x: 7.7, z: 10.15 },
+    ),
+  ).toBe(true);
+  const before = await named();
+  await page.getByTestId("rotate-90").click();
+  // A quarter turn: ends that were left and right are now top and bottom, or the other way round.
+  const after = await named();
+  expect(after.some((n) => n.match(/left|right/))).toBe(!before.some((n) => n.match(/left|right/)));
+  // Listed in screen order: top before bottom (or left before right).
+  const listed = await page
+    .getByRole("switch", { name: /^Seat at the/ })
+    .evaluateAll((els) => els.map((el) => el.closest("label")?.textContent ?? ""));
+  expect(listed).toEqual([...after].sort((a, b) => (/top|left/.test(a) ? -1 : /top|left/.test(b) ? 1 : 0)));
+  await page.getByRole("switch", { name: after[1] }).check();
+  expect((await item(page, id)).options.endRight).toBe(true);
+  await expect(page.getByTestId("count-seats")).toHaveText("9");
 });
 
 test("[LIB-01] [LIB-02] add a round table and a dance area from the library", async ({ page }) => {
