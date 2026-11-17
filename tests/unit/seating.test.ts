@@ -210,14 +210,21 @@ describe("seating chart", () => {
     const fit = fitRoom(venue, frame, seatingStretch(venue));
     const chart = () => {
       const ends = longerTables(editor.active(), venue, catalog);
-      return { ends, px: placeNames(editor.active(), venue, catalog, fit, ends, measure).px };
+      const sizes = new Map(
+        placeNames(editor.active(), venue, catalog, fit, ends, measure).blocks.map((b) => [b.seat.key, b.px]),
+      );
+      return { ends, sizes };
     };
     const plain = chart();
-    // Table 2's right end faces the bar: a long name there must not shrink every name on the page.
+    // Table 2's right end faces the bar: a long name there keeps its full size, and so does every other.
     expect(editor.setOption("t2", "endRight", true)).toBe(true);
     editor.setSeatName("t2:7", { first: "Marie-Ève", last: "Paquette-Tremblay" });
     const end = chart();
-    expect(end.px).toBe(plain.px);
+    expect(end.sizes.get("t2:7")).toBe(NAME_MAX * fit.k);
+    for (const key of ["t1:1", "t3:4", "t4:2", "t5:1", "t6:3", "t7:5"])
+      expect(end.sizes.get(key)).toBe(plain.sizes.get(key));
+    // Table 2's own guests keep theirs too (its second side is numbered one on).
+    expect(end.sizes.get("t2:9")).toBe(plain.sizes.get("t2:8"));
     expect(end.ends.get("t2")?.pos).toBe(0);
     // Tables 1–3 (12 along the sides) are still drawn the same length.
     const grown = (id: string) => {
@@ -229,7 +236,33 @@ describe("seating chart", () => {
     expect(grown("t3")).toBeCloseTo(grown("t2"));
   });
 
-  test("[SEA-04] the chart: every name clear of the others and of the room, at one size, tables longer by at most 1.3×", () => {
+  test("[SEA-04] a name that does not fit gets smaller on its own: the rest of the chart keeps its size", () => {
+    const editor = setup();
+    const measure = (s: string, px: number, bold: boolean) => s.length * px * (bold ? 0.6 : 0.55);
+    const frame = {
+      x: PAGE.margin,
+      y: PAGE.top,
+      w: PAGE.width - 2 * PAGE.margin,
+      h: PAGE.height - PAGE.top - PAGE.bottom,
+    };
+    const fit = fitRoom(venue, frame, seatingStretch(venue));
+    for (const seat of layoutSeats(editor.active().items, catalog))
+      editor.setSeatName(seat.key, { first: "Luc", last: "Roy" });
+    // One very long name, with no hyphen to break at, between two guests on table 2's side.
+    editor.setSeatName("t2:9", { first: "Wolfeschlegelsteinhausen", last: "Bergerdorffstein" });
+    const ends = longerTables(editor.active(), venue, catalog);
+    const { blocks } = placeNames(editor.active(), venue, catalog, fit, ends, measure);
+    const px = (key: string) => blocks.find((b) => b.seat.key === key)?.px ?? 0;
+    const full = NAME_MAX * fit.k;
+    expect(px("t2:9")).toBeLessThan(full);
+    expect(px("t2:9")).toBeGreaterThanOrEqual(NAME_MIN * fit.k);
+    // Only names it touches may give way; the other tables keep the full size.
+    for (const b of blocks.filter((x) => x.lines.length && ["t4", "t5", "t6", "t7"].includes(x.seat.item)))
+      expect(b.px, b.seat.key).toBe(full);
+    expect(blocks.filter((b) => b.lines.length && b.px < full).length).toBeLessThanOrEqual(3);
+  });
+
+  test("[SEA-04] the chart: every name clear of the others and of the room, each at its own size, tables longer by at most 1.3×", () => {
     const editor = setup();
     const firsts = [
       "Catherine",
@@ -258,10 +291,12 @@ describe("seating chart", () => {
     };
     const fit = fitRoom(venue, frame, seatingStretch(venue));
     const ends = longerTables(plan, venue, catalog);
-    const { px, blocks } = placeNames(plan, venue, catalog, fit, ends, measure);
+    const { blocks } = placeNames(plan, venue, catalog, fit, ends, measure);
 
-    expect(px).toBeGreaterThanOrEqual(NAME_MIN);
-    expect(px).toBeLessThanOrEqual(NAME_MAX);
+    for (const b of blocks) {
+      expect(b.px).toBeGreaterThanOrEqual(NAME_MIN * fit.k);
+      expect(b.px).toBeLessThanOrEqual(NAME_MAX * fit.k);
+    }
     expect(blocks.filter((b) => b.lines.length)).toHaveLength(Object.keys(plan.seating).length);
     for (const [i, a] of blocks.entries())
       for (const b of blocks.slice(i + 1))

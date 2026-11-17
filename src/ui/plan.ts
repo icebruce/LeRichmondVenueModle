@@ -253,8 +253,7 @@ export function drawRoom(
     const focus = opts.focusTable === id;
     poly(t.top, FILL, focus ? ACCENT : INK_2, (focus ? 3 : 1.2) * k);
   }
-  const { px, blocks } = chart.names;
-  const lineH = px * LEADING;
+  const { blocks } = chart.names;
   const ring = RING * k;
   const spots: SeatSpot[] = blocks.map((r) => {
     const focused = opts.focusSeat === r.seat.key;
@@ -277,9 +276,9 @@ export function drawRoom(
     g.textAlign = r.align;
     const ax = r.align === "left" ? r.x : r.align === "right" ? r.x + r.w : r.x + r.w / 2;
     r.lines.forEach((l, j) => {
-      g.font = `${l.bold ? 600 : 400} ${px}px ${UI}`;
+      g.font = `${l.bold ? 600 : 400} ${r.px}px ${UI}`;
       g.fillStyle = focused ? ACCENT : l.bold ? INK : INK_2;
-      g.fillText(l.s, ax, r.y + lineH * (j + 0.5));
+      g.fillText(l.s, ax, r.y + r.px * LEADING * (j + 0.5));
     });
     return { key: r.seat.key, item: r.seat.item, x: r.x, y: r.y, w: r.w, h: r.h };
   });

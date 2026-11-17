@@ -50,7 +50,7 @@ test("[LAY-03] [SEA-01] [PLT-02] phone: an end chair switched on in the sheet is
   const [x, y] = await screenOf(page, t.x, 0.77, t.z);
   await page.touchscreen.tap(x, y);
   await expect(page.getByTestId("inspector")).toBeVisible();
-  const left = page.getByRole("switch", { name: "Chair at the left end" });
+  const left = page.getByRole("switch", { name: "Seat at the left end" });
   await left.scrollIntoViewIfNeeded();
   await left.tap();
   await expect(left).toBeChecked();

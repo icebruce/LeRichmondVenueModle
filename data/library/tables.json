@@ -70,13 +70,13 @@
         {
           "type": "boolean",
           "key": "endLeft",
-          "label": "Chair at the left end",
+          "label": "Seat at the left end",
           "default": false
         },
         {
           "type": "boolean",
           "key": "endRight",
-          "label": "Chair at the right end",
+          "label": "Seat at the right end",
           "default": false
         }
       ],
@@ -239,13 +239,13 @@
         {
           "type": "boolean",
           "key": "endLeft",
-          "label": "Chair at the left end",
+          "label": "Seat at the left end",
           "default": false
         },
         {
           "type": "boolean",
           "key": "endRight",
-          "label": "Chair at the right end",
+          "label": "Seat at the right end",
           "default": false
         }
       ],

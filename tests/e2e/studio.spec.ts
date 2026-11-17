@@ -93,8 +93,8 @@ test("[LAY-03] [SEA-01] [SEA-03] [SEA-04] a chair at either end: one switch per 
   await page.mouse.click(x, y);
   await page.getByTestId("details").click();
   await expect(page.getByTestId("inspector")).toContainText("Seats along the sides");
-  const right = page.getByRole("switch", { name: "Chair at the right end" });
-  const left = page.getByRole("switch", { name: "Chair at the left end" });
+  const right = page.getByRole("switch", { name: "Seat at the right end" });
+  const left = page.getByRole("switch", { name: "Seat at the left end" });
   await expect(right).not.toBeChecked();
   await expect(left).not.toBeChecked();
   await right.check();
@@ -128,7 +128,7 @@ test("[LAY-03] [SEA-01] [SEA-03] [SEA-04] a chair at either end: one switch per 
   await setCamera(page, "plan");
   await page.mouse.click(x, y);
   await page.getByTestId("details").click();
-  await page.getByRole("switch", { name: "Chair at the right end" }).uncheck();
+  await page.getByRole("switch", { name: "Seat at the right end" }).uncheck();
   await expect(page.getByTestId("count-seats")).toHaveText("72");
   await setCamera(page, "seating");
   await expect(page.getByTestId("seat-t2:8")).toHaveAccessibleName("Table 2, seat 8: Luc Roy");
@@ -147,7 +147,7 @@ test("[LAY-03] a turned table names its end chairs as Plan shows them", async ({
   const id = (await state(page)).selection[0] ?? "";
   const named = async () => {
     const { rotY } = await item(page, id);
-    const names = (["endLeft", "endRight"] as const).map((k) => `Chair at the ${endOnPlan(rotY, k)} end`);
+    const names = (["endLeft", "endRight"] as const).map((k) => `Seat at the ${endOnPlan(rotY, k)} end`);
     for (const name of names) await expect(page.getByRole("switch", { name })).toBeVisible();
     return names;
   };
@@ -170,7 +170,7 @@ test("[LAY-03] a turned table names its end chairs as Plan shows them", async ({
   expect(after.some((n) => n.match(/left|right/))).toBe(!before.some((n) => n.match(/left|right/)));
   // Listed in screen order: top before bottom (or left before right).
   const listed = await page
-    .getByRole("switch", { name: /^Chair at the/ })
+    .getByRole("switch", { name: /^Seat at the/ })
     .evaluateAll((els) => els.map((el) => el.closest("label")?.textContent ?? ""));
   expect(listed).toEqual([...after].sort((a, b) => (/top|left/.test(a) ? -1 : /top|left/.test(b) ? 1 : 0)));
   await page.getByRole("switch", { name: after[1] }).check();

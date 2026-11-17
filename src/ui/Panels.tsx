@@ -2077,7 +2077,7 @@ function OptionField({
   if (option.type === "boolean") {
     // An end chair is named by where that end is in Plan and Seating, at the table's turn (LAY-03).
     const end = END_OPTIONS.find((k) => k === option.key);
-    const label = end ? `Chair at the ${endOnPlan(item.rotY, end)} end` : option.label;
+    const label = end ? `Seat at the ${endOnPlan(item.rotY, end)} end` : option.label;
     return <Toggle label={label} checked={value === true} onChange={set} testId={option.key} />;
   }
   if (option.type === "text") return <TextOption option={option} value={String(value)} onChange={set} />;
