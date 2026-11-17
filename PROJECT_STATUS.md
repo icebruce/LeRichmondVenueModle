@@ -84,6 +84,7 @@
 - Venue layout confirmed by owner (2026-10-15): raised floor east of the bar; entrance corridor + stair landing in the SE; kitchen behind the south wall with the pass as an opening; mezzanine above kitchen + corridor; sweetheart table against the south wall; communal high table and bar stools removed.
 
 - Seating chart in scope (owner, 2026-11-16; reverses "no seating chart"): Seating is a fourth choice beside the cameras; names are typed per seat (first, last), no import, no meal; one Letter landscape page for the restaurant, in the Plan view's orientation, the room stretched to the page width and long tables drawn longer where they can be (not to scale), names horizontal on one row per side at one size, hyphenated names breaking at the hyphen only where needed; table number with its guest count inside each table; guest total at the bottom (SEA-01..04).
+- End chairs (owner, 2026-11-17): one switch per end of a rectangular table, each adding a guest ("Seats along the sides" plus the ends); named left/right or top/bottom as Plan shows the table. Saved plans with "Chairs at the ends" open as the same table with both ends on (schema v8), every name on the same chair (LAY-03).
 - Both PDFs (owner, 2026-11-16): no side list, legend, north arrow, scale bar, "approximate dimensions" note, export date or "Raised floor" label; the plan takes the page. The layout PDF stays to scale (EXP-01).
 
 ## Next steps (2026-10-16)

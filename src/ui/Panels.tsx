@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
-import { type Item, type Shape, isTable, shapeOf } from "../domain/layout/items";
+import { END_OPTIONS, type Item, type Shape, endOnPlan, isTable, shapeOf } from "../domain/layout/items";
 import {
   FLORAL_PALETTES,
   FLOWER_TYPES,
@@ -300,7 +300,7 @@ function caption(e: LibraryEntry, catalog: Catalog): string {
   const seatOpt = e.options.find((o) => o.key === "seats");
   const guests =
     seatOpt?.type === "number"
-      ? `${seatOpt.min}–${seatOpt.max} guests`
+      ? `${seatOpt.min}–${seatOpt.max + e.options.filter((o) => END_OPTIONS.some((k) => k === o.key)).length} guests`
       : "seats" in shape
         ? `${shape.seats} guests`
         : "";
@@ -2075,7 +2075,10 @@ function OptionField({
     );
   }
   if (option.type === "boolean") {
-    return <Toggle label={option.label} checked={value === true} onChange={set} testId={option.key} />;
+    // An end chair is named by where that end is in Plan and Seating, at the table's turn (LAY-03).
+    const end = END_OPTIONS.find((k) => k === option.key);
+    const label = end ? `Chair at the ${endOnPlan(item.rotY, end)} end` : option.label;
+    return <Toggle label={label} checked={value === true} onChange={set} testId={option.key} />;
   }
   if (option.type === "text") return <TextOption option={option} value={String(value)} onChange={set} />;
   // Choices that are colours (fabrics, lights, flower palettes) are picked by sight (DESIGN_GUIDE §4).

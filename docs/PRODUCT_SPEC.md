@@ -77,7 +77,7 @@ Each requirement has an ID. Tests name the ID they cover (`TEST_STRATEGY.md` §2
 |---|---|---|---|---|
 | LAY-01 | M | 1 | Add any library item (`LIB`) in one tap; rectangular table length follows its seat count. | Each step-1 library item can be added and placed. |
 | LAY-02 | M | 1 | Select, drag, rotate (handle + 15° snap; free with modifier), duplicate, delete. Multi-select on desktop. | Works with mouse and touch. |
-| LAY-03 | M | 1 | Chairs are placed automatically around a table from its seat count. Changing seats re-arranges them. | A 12-seat rectangle shows 5 + 5 + 1 + 1 (sides + ends) or 6 + 6 (no ends), owner's choice per table. |
+| LAY-03 | M | 1 | Chairs are placed automatically around a table from its seat count. Changing seats re-arranges them. A rectangle's seat count is its sides; each end has its own switch, and a chair at an end is one more guest (owner, 2026-11-17). The switches are named by where the end is in Plan and Seating at the table's turn (left/right, or top/bottom). Switching an end leaves every named guest on their chair; the guest of an end chair switched off is listed without a seat (SEA-03). | 12 seats shows 6 + 6; with the right end on, 6 + 6 + 1 = 13 and the second side's guests keep their chairs. |
 | LAY-04 | M | 1 | Items cannot overlap fixed architecture or each other; the move is refused with a visible cue, not silently clamped. | Dragging a table into the bar shows a red outline and returns it on release. |
 | LAY-05 | M | 1 | Snapping to a 10 cm grid and to alignment with nearby tables; can be turned off. | — |
 | LAY-06 | M | 1 | Undo / redo for every change (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, toolbar buttons). | 50 steps deep at minimum. |

@@ -70,7 +70,7 @@ export function venueSampleItems(): Item[] {
     x,
     z,
     rotY: 0,
-    options: { seats, ends: false },
+    options: { seats },
   });
   return [
     t("t1", 3.32, 2.65, 12),
@@ -176,7 +176,29 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
   }),
   // v7: the seating chart, empty.
   6: (raw) => ({ ...raw, schemaVersion: 7, seating: {} }),
+  // v8: a chair at each end of a rectangle is switched apart and adds a guest (owner, 2026-11-17).
+  // "Chairs at the ends" on 12 seats was 10 along the sides and both ends: the same table, chairs
+  // and seat numbers, so every name stays on its chair.
+  7: (raw) => {
+    const items = Array.isArray(raw.items) ? (raw.items as Record<string, unknown>[]) : [];
+    return {
+      ...raw,
+      schemaVersion: 8,
+      items: items.map((i) => {
+        const o = i.options as Record<string, unknown> | undefined;
+        if (!o || !("ends" in o)) return i;
+        const { ends, ...rest } = o;
+        if (ends !== true) return { ...i, options: rest };
+        const seats =
+          typeof rest.seats === "number" ? rest.seats : (LEGACY_TABLE_SEATS[String(i.libraryId)] ?? 8);
+        return { ...i, options: { ...rest, seats: seats - 2, endLeft: true, endRight: true } };
+      }),
+    };
+  },
 };
+
+/** v7's default seat count per table, for a table whose seats were never changed. */
+const LEGACY_TABLE_SEATS: Record<string, number> = { "table-rect": 8, "table-farm": 10 };
 
 /** The two candelabra of v4 and their arms. */
 const CANDELABRA_ARMS: Record<string, number> = { "candelabra-3": 3, "candelabra-5": 5 };
