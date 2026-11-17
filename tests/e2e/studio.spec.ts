@@ -168,6 +168,11 @@ test("[LAY-03] a turned table names its end chairs as Plan shows them", async ({
   // A quarter turn: ends that were left and right are now top and bottom, or the other way round.
   const after = await named();
   expect(after.some((n) => n.match(/left|right/))).toBe(!before.some((n) => n.match(/left|right/)));
+  // Listed in screen order: top before bottom (or left before right).
+  const listed = await page
+    .getByRole("switch", { name: /^Chair at the/ })
+    .evaluateAll((els) => els.map((el) => el.closest("label")?.textContent ?? ""));
+  expect(listed).toEqual([...after].sort((a, b) => (/top|left/.test(a) ? -1 : /top|left/.test(b) ? 1 : 0)));
   await page.getByRole("switch", { name: after[1] }).check();
   expect((await item(page, id)).options.endRight).toBe(true);
   await expect(page.getByTestId("count-seats")).toHaveText("9");

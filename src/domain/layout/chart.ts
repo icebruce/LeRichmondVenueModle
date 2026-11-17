@@ -85,8 +85,9 @@ export type Ends = { neg: number; pos: number };
  * How much longer each rectangular table may be drawn on the seating chart (SEA-04), at either end:
  * in all up to (LONGER_MAX − 1) × its length, each end as far as its top touches nothing it did not
  * already touch at its real length: walls, the bar, stair or banquettes, the DJ, the dance area,
- * another table, or the raised floor's edge. Tables alike (same library item and seats) grow by the
- * same amount, so they still match.
+ * another table, or the raised floor's edge. An end with a chair is not grown, so its guest's name
+ * keeps the room it has (LAY-03). Tables alike (same library item and side seats) grow by the same
+ * amount, so they still match.
  */
 export function longerTables(scenario: Scenario, venue: VenueModel, catalog: Catalog): Map<string, Ends> {
   const fixed: Polygon[] = [
@@ -121,14 +122,22 @@ export function longerTables(scenario: Scenario, venue: VenueModel, catalog: Cat
     const cap = (LONGER_MAX - 1) * sh.length;
     const before = new Set(touches(it, none));
     const ok = (e: Ends) => touches(it, e).every((t) => before.has(t));
+    const seated = (end: keyof Ends) =>
+      sh.chairs.some((c) => Math.abs(c.z) < 1e-6 && (end === "pos" ? c.x > 0 : c.x < 0));
     const reach = (end: keyof Ends) => {
+      if (seated(end)) return 0;
       let d = cap;
       while (d > 0 && !ok({ ...none, [end]: d })) d = Math.max(0, d - 0.05);
       return d;
     };
     room.set(it.id, { neg: reach("neg"), pos: reach("pos"), cap });
   }
-  const kind = (it: (typeof tables)[number]) => `${it.libraryId}:${seatsOf(shapeOf(it, catalog))}`;
+  // Seats along the sides: a table with an end chair still matches its plain twins.
+  const kind = (it: (typeof tables)[number]) => {
+    const sh = shapeOf(it, catalog);
+    const side = sh.kind === "rectTable" ? sh.chairs.filter((c) => Math.abs(c.z) > 1e-6).length : seatsOf(sh);
+    return `${it.libraryId}:${side}`;
+  };
   const ends = new Map<string, Ends>();
   for (const it of tables) {
     const r = room.get(it.id);

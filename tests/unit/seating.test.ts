@@ -196,6 +196,39 @@ describe("seating chart", () => {
     expect(differences(s, theirs, catalog)).toContain("1 seat has a different name");
   });
 
+  test("[SEA-04] [LAY-03] an end chair's guest keeps the chart's name size; that end is not drawn longer, twins still match", () => {
+    const editor = setup();
+    for (const key of ["t1:1", "t2:8", "t3:4", "t4:2", "t5:1", "t6:3", "t7:5"])
+      editor.setSeatName(key, { first: "Marie-Ève", last: "Paquette-Tremblay" });
+    const measure = (s: string, px: number, bold: boolean) => s.length * px * (bold ? 0.6 : 0.55);
+    const frame = {
+      x: PAGE.margin,
+      y: PAGE.top,
+      w: PAGE.width - 2 * PAGE.margin,
+      h: PAGE.height - PAGE.top - PAGE.bottom,
+    };
+    const fit = fitRoom(venue, frame, seatingStretch(venue));
+    const chart = () => {
+      const ends = longerTables(editor.active(), venue, catalog);
+      return { ends, px: placeNames(editor.active(), venue, catalog, fit, ends, measure).px };
+    };
+    const plain = chart();
+    // Table 2's right end faces the bar: a long name there must not shrink every name on the page.
+    expect(editor.setOption("t2", "endRight", true)).toBe(true);
+    editor.setSeatName("t2:7", { first: "Marie-Ève", last: "Paquette-Tremblay" });
+    const end = chart();
+    expect(end.px).toBe(plain.px);
+    expect(end.ends.get("t2")?.pos).toBe(0);
+    // Tables 1–3 (12 along the sides) are still drawn the same length.
+    const grown = (id: string) => {
+      const e = end.ends.get(id);
+      return (e?.neg ?? 0) + (e?.pos ?? 0);
+    };
+    expect(grown("t2")).toBeGreaterThan(0);
+    expect(grown("t1")).toBeCloseTo(grown("t2"));
+    expect(grown("t3")).toBeCloseTo(grown("t2"));
+  });
+
   test("[SEA-04] the chart: every name clear of the others and of the room, at one size, tables longer by at most 1.3×", () => {
     const editor = setup();
     const firsts = [

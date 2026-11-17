@@ -2208,9 +2208,15 @@ export function Inspector({
   const ids = items.map((i) => i.id);
 
   const size = sizeOf(shape);
+  // The end chairs read in screen order: left before right, top before bottom (LAY-03).
+  const flip = ["right", "bottom"].includes(endOnPlan(item.rotY, "endLeft"));
+  const swapped = (o: ItemOption) => {
+    const other = { endLeft: "endRight", endRight: "endLeft" }[o.key];
+    return (flip && other && entry?.options.find((x) => x.key === other)) || o;
+  };
   const fields = !many && entry && (
     <>
-      {entry.options.map((o) => (
+      {entry.options.map(swapped).map((o) => (
         <OptionField
           key={`${item.id}:${o.key}`}
           option={o}
